@@ -15,6 +15,16 @@ from mobility.signal_semantics import signal_coverage_for_leg
 DIAGNOSTICS_SCHEMA_VERSION = 2
 
 
+def allocation_summary(plan: dict) -> dict:
+    """Research-only summary; no accuracy claim without independent labels."""
+    reports = [s['time_allocation'] for s in plan.get('segments', []) if s.get('time_allocation')]
+    return {'evaluated_legs': len(reports), 'fallback_legs': sum(bool(r.get('fallback_reason')) for r in reports),
+            'hypothetical_signal_candidates': sum(c['name'] == 'POSSIBLE_SIGNAL_STOP'
+                for r in reports for c in r['candidates']),
+            'independent_eta_mae_s': None, 'independent_position_error_m': None,
+            'accuracy_status': 'NO_INDEPENDENT_OBSERVATIONS', 'legs': reports}
+
+
 def _round(value, digits: int = 3):
     if value is None:
         return None

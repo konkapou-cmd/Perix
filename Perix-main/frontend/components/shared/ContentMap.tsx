@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import BusinessMap from "../BusinessMap";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
 import { openInMaps } from "../../lib/utils/openMapUrl";
+import DestinationJourneyMap from "./DestinationJourneyMap";
 
 type ContentMapProps = {
   latitude: number;
@@ -13,13 +14,18 @@ type ContentMapProps = {
   address?: string;
   interactive?: boolean;
   flush?: boolean;
+  directions?: boolean;
 };
 
-export default function ContentMap({ latitude, longitude, title, address, interactive = true, flush = false }: ContentMapProps) {
+export default function ContentMap({ latitude, longitude, title, address, interactive = true, flush = false, directions = false }: ContentMapProps) {
   const { t } = useTranslation();
   const openMap = () => {
     openInMaps({ latitude, longitude, address, label: title });
   };
+  if (directions) return <View style={[styles.container, flush && styles.containerFlush]}>
+    <DestinationJourneyMap key={`${latitude}:${longitude}`} latitude={latitude} longitude={longitude}
+      title={title} address={address} interactive={interactive} />
+  </View>;
 
   return (
     <View style={[styles.container, flush && styles.containerFlush]}>

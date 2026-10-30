@@ -19,6 +19,15 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import BusinessMap from "../../components/BusinessMap";
 import GoogleMobilityMap from "../../components/GoogleMobilityMap";
+import { boardingApproaches } from "../../lib/mobilityApproach";
+import { readMobilityVehicleLink } from "../../lib/navigation/mobilityRoutes";
+import { journeyPlanLines } from "../../lib/journeyPresentation";
+import { useIsFocused } from "@react-navigation/native";
+import { useAppForeground } from "../../hooks/useAppForeground";
+import { useMobilityNetwork } from "../../hooks/useMobilityNetwork";
+import { canonicalVehicleLine, stopVisibilityBucket } from "../../lib/mobilityNetwork";
+import MobilityDataStatus from "../../components/shared/MobilityDataStatus";
+import MobilityServiceWarnings, { MobilityServiceWarning } from "../../components/shared/MobilityServiceWarnings";
 import type { TrafficContext } from "../../lib/api/mobility";
 import { SkeletonBox, EmptyState } from "../../components/shared";
 import DatePickerModal from "../../components/shared/DatePickerModal";
@@ -77,19 +86,30 @@ interface DateFilter {
 
 export default function LocatorScreen() {
 const { t, i18n } = useTranslation();
+  const screenFocused = useIsFocused();
+  const foreground = useAppForeground();
   const { isDesktop } = useResponsiveLayout();
   const { sessionToken, user, activeIdentity } = useAuth();
-  const params = useLocalSearchParams<{ tab?: string; root_category?: string }>();
+  const params = useLocalSearchParams<{ tab?: string; root_category?: string; vehicle_id?: string;
+    journey_id?: string; mode?: string; vehicle_lat?: string; vehicle_lng?: string }>();
+  const vehicleLink = useMemo(() => readMobilityVehicleLink(params),
+    [params.tab, params.vehicle_id, params.journey_id, params.mode, params.vehicle_lat, params.vehicle_lng]);
   const { setMapBounds: setGlobalMapBounds, mapBounds, refreshKey } = useMapBounds();
-  const { location: contextLocation, livePosition, setManualLocation, radiusKm } = useLocation();
+  const { location: contextLocation, mapPosition, locationMode, selectionRevision, useLiveLocation: requestLiveLocation, radiusKm } = useLocation();
   const [locateFocus, setLocateFocus] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locateToken, setLocateToken] = useState(0);
-  const [mobilityLocateFocus, setMobilityLocateFocus] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [mobilityLocateToken, setMobilityLocateToken] = useState(0);
-  const [mobilityGpsFix, setMobilityGpsFix] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [mobilityLocateFocus, setMobilityLocateFocus] = useState<{ latitude: number; longitude: number } | null>(vehicleLink?.coordinates || null);
+  const [mobilityLocateToken, setMobilityLocateToken] = useState(vehicleLink?.coordinates ? 1 : 0);
   const [locating, setLocating] = useState(false);
-  const [mobilityMode, setMobilityMode] = useState<"all" | "bus" | "tram" | "taxi">("all");
+  const [mobilityMode, setMobilityMode] = useState<"all" | "bus" | "tram" | "taxi">(vehicleLink?.mode || "all");
   const [liveVehicles, setLiveVehicles] = useState<LiveVehicle[]>([]);
+  const [fleetLastSuccess, setFleetLastSuccess] = useState<number | null>(null);
+  const [fleetRefreshFailed, setFleetRefreshFailed] = useState(false);
+  const [fleetLoaded, setFleetLoaded] = useState(false);
+  const [linkedResolved, setLinkedResolved] = useState(false);
+  const [linkedVehicleUnavailable, setLinkedVehicleUnavailable] = useState(false);
+  const linkedFocusRef = useRef(false);
+  const fleetRequestRef = useRef<typeof vehicleLink>(null);
   const [busQuery, setBusQuery] = useState("");
   const [busSuggestions, setBusSuggestions] = useState<any[]>([]);
   const [selectedStop, setSelectedStop] = useState<{ stop_id: string; name: string; platform_id?: string; side?: string | null } | null>(null);
@@ -114,13 +134,49 @@ const { t, i18n } = useTranslation();
   const [taxiRequesting, setTaxiRequesting] = useState(false);
   const [transitMapLines, setTransitMapLines] = useState<V2MapLine[]>([]);
   const [physicalStops, setPhysicalStops] = useState<TransitStopMarker[]>([]);
-  const [diversionWarnings, setDiversionWarnings] = useState<{route_number: string; mode?: string; status: string}[]>([]);
+  const [diversionWarnings, setDiversionWarnings] = useState<MobilityServiceWarning[]>([]);
   const [mapZoom, setMapZoom] = useState<number | null>(null);
   const [mobilityMapZoom, setMobilityMapZoom] = useState<number | null>(null);
   const [mobilityMapBounds, setMobilityMapBounds] = useState<{ minLat: number; maxLat: number; minLng: number; maxLng: number; centerLat: number; centerLng: number } | null>(null);
-  const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
+  const [selectedVehicle, setSelectedVehicle] = useState<string | null>(vehicleLink?.id || null);
   const [tripProgress, setTripProgress] = useState<VehicleTripProgress | null>(null);
   const [tripLoading, setTripLoading] = useState(false);
+  const waitingForLinkedVehicle = !!vehicleLink && selectedVehicle === vehicleLink.id && !linkedResolved;
+  useEffect(() => {
+    if (!vehicleLink) return;
+    linkedFocusRef.current = false;
+    setFleetLoaded(false);
+    setLinkedResolved(false);
+    setLinkedVehicleUnavailable(false);
+    setSelectedStop(null);
+    setServingBuses([]);
+    setSelectedVehicle(vehicleLink.id);
+    setMobilityMode(vehicleLink.mode);
+    setTripProgress(null);
+    setTripLoading(true);
+    if (vehicleLink.coordinates) {
+      setMobilityLocateFocus(vehicleLink.coordinates);
+      setMobilityLocateToken(n => n + 1);
+    }
+  }, [vehicleLink]);
+  useEffect(() => {
+    if (!vehicleLink || !fleetLoaded || fleetRequestRef.current !== vehicleLink
+        || linkedFocusRef.current || selectedVehicle !== vehicleLink.id) return;
+    linkedFocusRef.current = true;
+    const vehicle = liveVehicles.find(v => v.vehicle_id === vehicleLink.id
+      && (!vehicleLink.journeyId || v.trip_instance_id === vehicleLink.journeyId));
+    setLinkedResolved(true);
+    if (!vehicle) {
+      setLinkedVehicleUnavailable(true);
+      setSelectedVehicle(null);
+      setTripLoading(false);
+      return;
+    }
+    if (vehicle.latitude != null && vehicle.longitude != null) {
+      setMobilityLocateFocus({ latitude: vehicle.latitude, longitude: vehicle.longitude });
+      setMobilityLocateToken(n => n + 1);
+    }
+  }, [vehicleLink, fleetLoaded, liveVehicles, selectedVehicle]);
   const [tripLoadFailed, setTripLoadFailed] = useState(false);
   const [arrivalsLoading, setArrivalsLoading] = useState(false);
   const [arrivalsLoadFailed, setArrivalsLoadFailed] = useState(false);
@@ -130,6 +186,11 @@ const { t, i18n } = useTranslation();
     if (vehicle?.trip_id && tripProgress?.trip_id && vehicle.trip_id !== tripProgress.trip_id) return [];
     const sameTrip = !!vehicle?.trip_id && vehicle.trip_id === tripProgress?.trip_id
       && vehicle.vehicle_id === tripProgress?.vehicle_id;
+    const exactIndex = sameTrip && tripProgress?.motion_plan_revision
+      && tripProgress.motion_plan_revision === vehicle?.motion_plan_revision
+      && Number.isInteger(tripProgress.next_timeline_index) ? tripProgress.next_timeline_index : null;
+    if (exactIndex != null && exactIndex >= 0 && exactIndex < stops.length)
+      return stops.slice(exactIndex).filter(stop => !stop.skipped && stop.schedule_relationship !== "SKIPPED");
     const matches = sameTrip && vehicle?.next_stop_id
       ? stops.map((stop, index) => stop.stop_id === vehicle.next_stop_id ? index : -1).filter((index) => index >= 0)
       : [];
@@ -139,6 +200,7 @@ const { t, i18n } = useTranslation();
     return upcoming.filter((stop) => !stop.skipped && stop.schedule_relationship !== "SKIPPED");
   }, [tripProgress, liveVehicles, selectedVehicle]);
   const selectArrivalStop = useCallback((stop: { stop_id: string; name: string; platform_id?: string; side?: string | null }) => {
+    setLinkedVehicleUnavailable(false);
     setSelectedVehicle(null);
     setTripProgress(null);
     setSelectedStop(stop);
@@ -149,6 +211,7 @@ const { t, i18n } = useTranslation();
     setArrivalsLoadFailed(false);
   }, []);
   const selectTransitVehicle = useCallback((id: string) => {
+    setLinkedVehicleUnavailable(false);
     setSelectedStop(null);
     setServingBuses([]);
     setBusQuery("");
@@ -189,7 +252,7 @@ const { t, i18n } = useTranslation();
   >([]);
   const [suggesting, setSuggesting] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<TabType>("businesses");
+  const [activeTab, setActiveTab] = useState<TabType>(params.tab === "mobility" ? "mobility" : "businesses");
   const isMobilityTab = activeTab === "mobility";
   const [googleMapReady, setGoogleMapReady] = useState(false);
   const trafficContext: TrafficContext =
@@ -522,14 +585,13 @@ const { t, i18n } = useTranslation();
   // city/point) and fly the map there.
   const handleLocateMe = useCallback(async () => {
     if (locating) return;
+    const choice = selectionRevision;
     setLocating(true);
     try {
       // Safety timeout: never leave the button spinning forever (some
       // browsers hang the prompt / GPS indefinitely).
-      const loc = await Promise.race([
-        getCurrentPositionWithPermission(),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 20000)),
-      ]);
+      const loc = await requestLiveLocation(20000);
+      if (!loc && currentOriginChoice.current !== choice) return;
       if (loc) {
         const d = 0.02;
         const bounds = {
@@ -541,14 +603,12 @@ const { t, i18n } = useTranslation();
           centerLng: loc.longitude,
         };
         if (isMobilityTab) {
-          setMobilityGpsFix({ latitude: loc.latitude, longitude: loc.longitude });
           setMobilityLocateFocus({ latitude: loc.latitude, longitude: loc.longitude });
           setMobilityLocateToken((t) => t + 1);
           setMobilityMapBounds(bounds);
         } else {
           setLocateFocus({ latitude: loc.latitude, longitude: loc.longitude });
           setLocateToken((t) => t + 1);
-          setManualLocation(loc.latitude, loc.longitude);
           setGlobalMapBounds(bounds);
         }
       } else if (Platform.OS === "web" && typeof window !== "undefined") {
@@ -562,7 +622,7 @@ const { t, i18n } = useTranslation();
     } finally {
       setLocating(false);
     }
-  }, [locating, setManualLocation, setGlobalMapBounds, isMobilityTab, t]);
+  }, [locating, selectionRevision, requestLiveLocation, setGlobalMapBounds, isMobilityTab, t]);
 
 // Live mobility vehicles (buses/taxis) - polled while the Mobility tab
   // is open. The WebSocket channel integration can replace polling later.
@@ -573,7 +633,7 @@ const { t, i18n } = useTranslation();
   // We keep at most ONE in-flight request and schedule the next poll only
   // after the previous one settles, with exponential backoff on failure.
   useEffect(() => {
-    if (activeTab !== "mobility") return;
+    if (activeTab !== "mobility" || !screenFocused || !foreground.visible) return;
     let cancelled = false;
     let inFlight = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -591,10 +651,15 @@ const { t, i18n } = useTranslation();
         const vehicles = await getLiveVehicles(sessionToken, trafficContext);
         if (!cancelled) {
           setLiveVehicles(vehicles || []);
+          fleetRequestRef.current = vehicleLink;
+          setFleetLoaded(true);
+          setFleetLastSuccess(Date.now());
+          setFleetRefreshFailed(false);
           delay = 4000;
         }
       } catch (e) {
         if (!cancelled) {
+          setFleetRefreshFailed(true);
           delay = Math.min(delay * 2, 30000);
         }
       } finally {
@@ -608,25 +673,16 @@ const { t, i18n } = useTranslation();
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [activeTab, sessionToken, trafficContext]);
+  }, [activeTab, sessionToken, trafficContext, screenFocused, vehicleLink, foreground.visible, foreground.epoch]);
 
   // Active transit network -> thin route lines on the map
+  const network = useMobilityNetwork(activeTab === "mobility" && screenFocused && foreground.visible, sessionToken, liveVehicles);
   useEffect(() => {
-    if (activeTab !== "mobility") return;
-    let cancelled = false;
-    // Stable V2 map payload: resolved lines + physical stops
-    getV2Map(sessionToken)
-      .then((map) => {
-        if (cancelled) return;
-        setTransitMapLines(map.lines || []);
-        setPhysicalStops(map.stops || []);
-        setDiversionWarnings(map.diversion_warnings || []);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [activeTab, sessionToken]);
+    if (!network.map) return;
+    setTransitMapLines(network.map.lines);
+    setPhysicalStops(network.map.stops);
+    setDiversionWarnings(network.map.diversion_warnings || []);
+  }, [network.map]);
 
   // Transit lines come from the STABLE v2 map payload (trip patterns with
   // validated geometry from the Geometry Resolver). The All/Bus/Tram
@@ -659,7 +715,7 @@ const { t, i18n } = useTranslation();
         // onto the wrong line. The backend progress_m is authoritative for
         // WHERE on the line the vehicle is (no browser-side re-projection).
         let path: { latitude: number; longitude: number }[] | undefined;
-        const vLine = transitMapLines.find((l) => l.pattern_id != null && l.pattern_id === v.pattern_id);
+        const vLine = canonicalVehicleLine(transitMapLines, v);
         if (vLine && vLine.points && vLine.points.length >= 2 && v.pattern_id) {
           path = vLine.points;
         }
@@ -682,6 +738,7 @@ const { t, i18n } = useTranslation();
               : v.status,
           type: (v.mode === "bus" ? "bus" : v.mode === "tram" ? "tram" : "taxi") as "bus" | "tram" | "taxi",
           label: v.display_route_number || v.route_number || undefined,
+          direction: v.route_direction,
           pinColor: v.mode === "bus" ? "#1E3A8A" : v.mode === "tram" ? "#8B0000" : "#FFC400",
           heading: v.heading ?? null,
           estimated: v.estimated ?? false,
@@ -699,38 +756,27 @@ const { t, i18n } = useTranslation();
   //  13.2-15.3: major stops only (interchanges: 2+ routes or 2+ modes)
   //  >= 15.3: all stops
   // A selected stop is forced, without hiding the other visible stops.
+  const stopZoomBucket = stopVisibilityBucket(mobilityMapZoom);
   const transitStops = useMemo(() => {
     let list = physicalStops;
     if (mobilityMode !== "all") {
       list = list.filter((s) => s.modes.includes(mobilityMode as "bus" | "tram"));
     }
-    const z = mobilityMapZoom ?? 14;
-    if (z >= 15.3) {
+    if (stopZoomBucket === "all") {
       // all stops
-    } else if (z >= 13.2) {
+    } else if (stopZoomBucket === "major") {
       list = list.filter((s) => s.stop_id === selectedStop?.stop_id || s.routes.length >= 2 || s.modes.length >= 2);
     } else {
       list = list.filter((s) => s.stop_id === selectedStop?.stop_id);
     }
     return list;
-  }, [physicalStops, selectedStop, mobilityMode, mobilityMapZoom]);
+  }, [physicalStops, selectedStop, mobilityMode, stopZoomBucket]);
 
   // Journey-plan route on the map: walking light blue, tram green, bus blue.
+  const approaches = useMemo(() => boardingApproaches(journeyPlans[0], liveVehicles, transitMapLines),
+    [journeyPlans, liveVehicles, transitMapLines]);
   const planLines = useMemo(() => {
-    if (!journeyPlans.length) return [];
-    const colors: Record<string, string> = { tram: "#166534", bus: "#1E3A8A" };
-    return journeyPlans[0].legs
-      .filter((leg) => Array.isArray(leg.points) && (leg.points as any[]).length >= 2)
-      .map((leg, idx) => ({
-        segmentId: "leg-" + idx,
-        points: (leg.points as any[])
-          .filter((p: any) => Array.isArray(p) && p.length === 2 && p[0] != null && p[1] != null)
-          .map((p: any) => ({ latitude: p[0], longitude: p[1] })),
-        color: leg.type === "ride" ? colors[leg.mode || "bus"] || "#1E3A8A" : "#59ABE3",
-        weight: leg.type === "ride" ? 6 : 5,
-        opacity: 0.9,
-      }))
-      .filter((l) => l.points.length >= 2);
+    return journeyPlanLines(journeyPlans[0]);
   }, [journeyPlans]);
 
   // Results follow the MAP VIEWPORT (like business results): vehicles and
@@ -796,17 +842,17 @@ const { t, i18n } = useTranslation();
     }
     visible = visible.filter((s) => inViewport(s.latitude, s.longitude));
     if (ref) {
-      visible.forEach((s: any) => {
-        s.d = haversineDistance(ref.latitude, ref.longitude, s.latitude, s.longitude);
-      });
+      visible = visible.map(s => ({ ...s, d: haversineDistance(ref.latitude, ref.longitude, s.latitude, s.longitude) }));
       visible.sort((a: any, b: any) => (a.d ?? Infinity) - (b.d ?? Infinity));
     }
     return visible.slice(0, 8);
   }, [physicalStops, viewportRef, referencePoint, mobilityMode]);
 
+  const selectedJourneyKey = liveVehicles.find(v => v.vehicle_id === selectedVehicle)?.trip_instance_id
+    || liveVehicles.find(v => v.vehicle_id === selectedVehicle)?.trip_id;
   // Selected vehicle: upcoming, non-skipped stops and their arrival predictions.
   useEffect(() => {
-    if (activeTab !== "mobility" || !selectedVehicle) return;
+    if (activeTab !== "mobility" || !screenFocused || !foreground.visible || !selectedVehicle || waitingForLinkedVehicle) return;
     let cancelled = false;
     let sequence = 0;
     let inFlight = false;
@@ -820,7 +866,13 @@ const { t, i18n } = useTranslation();
           setTripProgress(t);
           setTripLoadFailed(false);
         })
-        .catch(() => { if (!cancelled && request === sequence) setTripLoadFailed(true); })
+        .catch((error: { status?: number }) => {
+          if (cancelled || request !== sequence) return;
+          setTripLoadFailed(true);
+          if (error?.status === 404) {
+            setTripProgress(null); setSelectedVehicle(null); setLinkedVehicleUnavailable(true);
+          }
+        })
         .finally(() => {
           inFlight = false;
           if (!cancelled && request === sequence) setTripLoading(false);
@@ -832,7 +884,8 @@ const { t, i18n } = useTranslation();
       cancelled = true;
       clearInterval(interval);
     };
-  }, [activeTab, selectedVehicle, sessionToken, trafficContext]);
+  }, [activeTab, selectedVehicle, selectedJourneyKey, sessionToken, trafficContext, waitingForLinkedVehicle,
+    screenFocused, foreground.visible, foreground.epoch]);
 
   // Bus destination search (debounced)
   useEffect(() => {
@@ -856,7 +909,7 @@ const { t, i18n } = useTranslation();
 
   // Refresh the serving-bus list while a destination is selected
   useEffect(() => {
-    if (activeTab !== "mobility" || mobilityMode === "taxi" || !selectedStop) return;
+    if (activeTab !== "mobility" || !screenFocused || !foreground.visible || mobilityMode === "taxi" || !selectedStop) return;
     let cancelled = false;
     let sequence = 0;
     let inFlight = false;
@@ -870,7 +923,8 @@ const { t, i18n } = useTranslation();
         selectedStop.stop_id,
         contextLocation?.latitude ?? null,
         contextLocation?.longitude ?? null,
-        trafficContext
+        trafficContext,
+        selectedStop.platform_id
       )
         .then((res) => {
           if (cancelled || request !== sequence) return;
@@ -891,7 +945,8 @@ const { t, i18n } = useTranslation();
       cancelled = true;
       clearInterval(interval);
     };
-  }, [activeTab, mobilityMode, selectedStop, sessionToken, contextLocation?.latitude, contextLocation?.longitude, trafficContext]);
+  }, [activeTab, mobilityMode, selectedStop, sessionToken, contextLocation?.latitude, contextLocation?.longitude,
+    trafficContext, screenFocused, foreground.visible, foreground.epoch]);
 
   // Transit "any area" destination suggestions (Perix's own map: venues,
   // stops and real streets from OpenStreetMap)
@@ -935,19 +990,21 @@ const { t, i18n } = useTranslation();
     setTransitStreetSuggestions([]);
   };
 
-  const runPlan = async (destLat: number, destLng: number) => {
-    // Mobility origin = the user's ACTUAL position first (live GPS pin),
-    // browsing center second. A stale manual/context point must never make
-    // the journey plan start hundreds of meters behind the user.
-    // Freshness policy: livePosition is continuously watched and updated,
-    // so it is always preferred. mobilityGpsFix (a one-shot manual Locate Me
-    // fix) is only a fallback when no live position is available yet.
-    const origin = livePosition ?? mobilityGpsFix;
+  const journeyRequest = useRef(0);
+  const currentOriginChoice = useRef(selectionRevision);
+  currentOriginChoice.current = selectionRevision;
+  useEffect(() => () => { journeyRequest.current++; }, []);
+  const runPlan = useCallback(async (destLat: number, destLng: number) => {
+    // Use the explicitly chosen origin, never the viewport or dormant GPS.
+    const request = ++journeyRequest.current;
+    const choice = selectionRevision;
+    const current = () => request === journeyRequest.current && choice === currentOriginChoice.current;
+    const origin = mapPosition;
     const originLat = origin?.latitude;
     const originLng = origin?.longitude;
     if (originLat == null || originLng == null) {
       setJourneyPlans([]);
-      setPlanNote(t("mobility.planNoLocation", "Enable location to plan a journey from where you are."));
+      setPlanNote(t("location.chooseOrigin", "Choose an address or use live location to plan your journey."));
       return;
     }
     setPlanLoading(true);
@@ -958,14 +1015,22 @@ const { t, i18n } = useTranslation();
     setServingBuses([]);
     try {
       const res = await planJourney(sessionToken, originLat, originLng, destLat, destLng);
+      if (!current()) return;
       setJourneyPlans(res.itineraries || []);
       if (res.note && (!res.itineraries || res.itineraries.length === 0)) setPlanNote(res.note);
     } catch {
-      setPlanNote(t("mobility.planError", "Could not plan a journey right now."));
+      if (current()) setPlanNote(t("mobility.planError", "Could not plan a journey right now."));
     } finally {
-      setPlanLoading(false);
+      if (current()) setPlanLoading(false);
     }
-  };
+  }, [mapPosition, selectionRevision, sessionToken, t]);
+  const plannedOriginChoice = useRef(selectionRevision);
+  useEffect(() => {
+    if (plannedOriginChoice.current === selectionRevision) return;
+    plannedOriginChoice.current = selectionRevision;
+    setJourneyPlans([]);
+    if (transitDestLat != null && transitDestLng != null) runPlan(transitDestLat, transitDestLng);
+  }, [selectionRevision, transitDestLat, transitDestLng, runPlan]);
 
   const selectTransitPlace = (place: PlaceSuggestion) => {
     setTransitDestAddress(place.name);
@@ -1428,8 +1493,8 @@ const { t, i18n } = useTranslation();
           <GoogleMobilityMap
             {...(Platform.OS === "web" ? { onReadyChange: setGoogleMapReady, showTrafficLayer: trafficContext === "google_locator" } : {})}
             location={
-              livePosition
-                ? { latitude: livePosition.latitude, longitude: livePosition.longitude }
+              mapPosition
+                ? { latitude: mapPosition.latitude, longitude: mapPosition.longitude }
                 : undefined
             }
             initialRegion={{
@@ -1452,7 +1517,7 @@ const { t, i18n } = useTranslation();
                 ? 0.09
                 : 0.05,
             }}
-            pinLocation={livePosition ?? mobilityGpsFix ?? null}
+            pinLocation={mapPosition}
             focusRegion={mobilityLocateFocus ? { latitude: mobilityLocateFocus.latitude, longitude: mobilityLocateFocus.longitude, latitudeDelta: 0.04, longitudeDelta: 0.04 } : undefined}
             focusToken={mobilityLocateToken || undefined}
             vehicles={mobilityMapVehicles}
@@ -1462,6 +1527,7 @@ const { t, i18n } = useTranslation();
               selectArrivalStop({ stop_id: stop.stop_id, name: stop.name, platform_id: stop.selected_platform_id, side: stop.selected_side });
             }}
             planLines={mobilityMode !== "taxi" ? planLines : undefined}
+            approaches={mobilityMode !== "taxi" ? approaches : undefined}
             onZoomChange={setMobilityMapZoom}
             onRegionChangeComplete={handleMobilityMapRegionChange}
             initialZoom={mobilityMapZoom}
@@ -1510,7 +1576,7 @@ const { t, i18n } = useTranslation();
               ? 0.09
               : 0.05,
           }}
-          pinLocation={locateFocus ?? (livePosition ? { latitude: livePosition.latitude, longitude: livePosition.longitude } : null)}
+          pinLocation={mapPosition}
           userPinImage={activeIdentity?.type === "business" ? (activeIdentity as any).avatar || undefined : (user?.profile_photo || user?.picture || undefined)}
           focusRegion={locateFocus ? { latitude: locateFocus.latitude, longitude: locateFocus.longitude, latitudeDelta: 0.04, longitudeDelta: 0.04 } : undefined}
           focusToken={locateToken || undefined}
@@ -1586,6 +1652,8 @@ const { t, i18n } = useTranslation();
       </View>
 
       {/* Segment Tabs */}
+      {isMobilityTab ? <MobilityDataStatus lastSuccess={fleetLastSuccess} failed={fleetRefreshFailed}
+        networkFailed={network.failed} networkLoading={!network.map} enabled={screenFocused && foreground.visible} /> : null}
       <LocatorHeader
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -1596,15 +1664,7 @@ const { t, i18n } = useTranslation();
       {/* Mobility: Bus/Taxi live view */}
       {isMobilityTab && (
         <View style={styles.mobilityPanel}>
-          {diversionWarnings.length > 0 && (
-            <View style={{ padding: 9, borderRadius: 9, backgroundColor: "#EDF4FB", marginBottom: 8 }}>
-              <Text style={{ color: "#264348", fontSize: 12, fontWeight: "600" }}>
-                {t("mobility.detourPending", "Umleitung wird geprüft: {{lines}}", {
-                  lines: [...new Set(diversionWarnings.map((w) => w.route_number))].join(", "),
-                })}
-              </Text>
-            </View>
-          )}
+          <MobilityServiceWarnings warnings={diversionWarnings} />
           <View style={styles.mobilityToggle}>
             <Pressable
               style={[styles.mobilityToggleOption, mobilityMode === "all" && styles.mobilityToggleOptionActive]}
@@ -1644,6 +1704,9 @@ const { t, i18n } = useTranslation();
             </Pressable>
           </View>
 
+          {linkedVehicleUnavailable && mobilityMode !== "taxi" ? <Text style={styles.mobilityEmptyText}>
+            {t("mobility.vehicleNoLongerActive", "This vehicle's selected journey is no longer active. Choose another vehicle on the map.")}
+          </Text> : null}
           {selectedVehicle && !tripProgress && mobilityMode !== "taxi" && (
             <View style={styles.linePanel}>
               <View style={styles.linePanelHeader}>
@@ -1706,8 +1769,11 @@ const { t, i18n } = useTranslation();
                         {s.name}
                       </Text>
                       <Text style={styles.stopTimeText}>
-                           {t("mobility.arrival", "Arrival")} {s.predicted}
-                           {s.delay_seconds > 0 ? ` (+${Math.round(s.delay_seconds / 60)}′)` : ""}
+                            {t("mobility.arrival", "Arrival")} {s.predicted}
+                            {s.prediction_basis === "PERIX_MOTION_PLAN" ? ` · ${t("mobility.perixEstimate", "PERIX estimate")}` : ""}
+                            {s.delay_seconds > 0 ? ` (+${Math.round(s.delay_seconds / 60)}′)` : ""}
+                            {s.prediction_basis === "PERIX_MOTION_PLAN" && s.source_predicted
+                              ? ` · ${t("mobility.sourcePrediction", "Source")}: ${s.source_predicted}` : ""}
                       </Text>
                       {s.passed ? <Text style={styles.stopTimeText}>
                         {t("mobility.sourceTimeElapsed", "Source time has passed; estimated position has not reached this stop.")}
@@ -1839,6 +1905,9 @@ const { t, i18n } = useTranslation();
                   <Text style={styles.journeyTitle}>
                     {journeyPlans[0].departure} → {journeyPlans[0].arrival}
                   </Text>
+                  <Text style={styles.journeyMeta}>{locationMode === "manual"
+                    ? `${t("location.selectedOrigin", "From selected location")}: ${mapPosition?.name || ""}`
+                    : t("location.liveOrigin", "From live location")}</Text>
                   <Text style={styles.journeyMeta}>
                     {t("mobility.planTotal", "{{n}} min", { n: journeyPlans[0].duration_minutes })} ·{" "}
                     {t("mobility.planWalking", "{{n}} min walking", { n: journeyPlans[0].walking_minutes })}
@@ -2057,13 +2126,18 @@ const { t, i18n } = useTranslation();
                         {b.distance_to_stop_m != null
                           ? `${b.distance_to_stop_m < 1000 ? b.distance_to_stop_m + " m" : (b.distance_to_stop_m / 1000).toFixed(1) + " km"} · `
                           : ""}
-                        {t("mobility.eta", "Arrives ~{{n}} min", { n: b.eta_minutes })}
+                        {b.eta_minutes == null ? t("mobility.etaUnknown", "ETA unavailable")
+                          : t("mobility.eta", "Arrives ~{{n}} min", { n: b.eta_minutes })}
                         {b.delay_minutes > 0 ? ` · ${t("mobility.delay", "+{{n}} min", { n: b.delay_minutes })}` : ""}
                         {b.delay_minutes < 0 ? ` · ${t("mobility.early", "{{n}} min früher", { n: Math.abs(b.delay_minutes) })}` : ""}
                         {" · "}
-                        {b.eta_source === "REALTIME" ? t("mobility.realtimeEta", "Echtzeit-Prognose") : t("mobility.estimated", "Geschätzt")}
+                        {b.eta_source === "PERIX_ESTIMATE" ? t("mobility.perixEstimate", "PERIX estimate")
+                          : b.eta_source === "REALTIME" ? t("mobility.realtimeEta", "Echtzeit-Prognose") : t("mobility.estimated", "Geschätzt")}
+                        {b.eta_source === "PERIX_ESTIMATE" && b.source_predicted_arrival
+                          ? ` · ${b.source_eta_source === "REALTIME" ? "MVB" : t("mobility.schedule", "Schedule")}: ${b.source_predicted_arrival}` : ""}
+                        {b.platform_id ? ` · ${t("mobility.platform", "Platform")}: ${b.platform_id}` : ""}
                         {b.position_source === "LIVE" ? " · GPS" : ""}
-                        {b.eta_source === "REALTIME" && b.realtime_feed_timestamp
+                        {b.realtime_feed_timestamp
                           ? ` · ${t("mobility.feedAge", "Daten vor {{n}} Min.", {
                               n: Math.max(0, Math.floor((Date.now() / 1000 - b.realtime_feed_timestamp) / 60))
                             })}` : ""}
@@ -2073,7 +2147,7 @@ const { t, i18n } = useTranslation();
                         {t("mobility.tapForJourney", "tap for journey")}
                       </Text>
                     </View>
-                    <Text style={styles.mobilityEta}>{b.eta_minutes}′</Text>
+                    <Text style={styles.mobilityEta}>{b.eta_minutes == null ? "—" : `${b.eta_minutes}′`}</Text>
                     <Ionicons name="chevron-forward" size={14} color="#9CA3AF" />
                   </Pressable>
                 ))

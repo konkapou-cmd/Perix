@@ -33,7 +33,21 @@ export type MotionDiagnostics = {
   fallback_reason?: string | null;
 };
 
-export type LiveVehicle = {
+export type EffectivePrediction = {
+  motion_plan_revision?: string | null;
+  next_timeline_index?: number | null;
+  prediction_basis?: string;
+  realtime_feed_timestamp?: number | null;
+  realtime_updated_at?: string | null;
+  next_stop_eta_seconds?: number | null;
+  next_stop_predicted_arrival?: string | null;
+  source_next_stop_predicted_arrival?: string | null;
+  next_stop_eta_source?: string | null;
+};
+
+export type LiveVehicle = EffectivePrediction & {
+  network_version_id?: string;
+  service_date?: string;
   vehicle_id: string;
   business_id: string;
   mode: MobilityMode;
@@ -110,6 +124,8 @@ export const getLiveVehicles = async (token?: string | null, trafficContext: Tra
       accuracy_m: v.position?.accuracy_m ?? null,
       trip_id: v.trip_id ?? null,
       trip_instance_id: v.trip_instance_id ?? null,
+      network_version_id: v.network_version_id,
+      service_date: v.service_date,
       delay_minutes: v.delay_minutes ?? 0,
       next_stop_id: v.next_stop_id ?? null,
       next_stop_name: v.next_stop_name ?? null,
@@ -119,11 +135,22 @@ export const getLiveVehicles = async (token?: string | null, trafficContext: Tra
       position_state: v.position_state,
       geometry_pending: v.geometry_pending ?? false,
       motion: v.motion ?? null,
+      motion_plan_revision: v.motion_plan_revision,
+      next_timeline_index: v.next_timeline_index,
+      prediction_basis: v.prediction_basis,
+      realtime_feed_timestamp: v.realtime_feed_timestamp,
+      realtime_updated_at: v.realtime_updated_at,
+      next_stop_eta_seconds: v.next_stop_eta_seconds,
+      next_stop_predicted_arrival: v.next_stop_predicted_arrival,
+      source_next_stop_predicted_arrival: v.source_next_stop_predicted_arrival,
+      next_stop_eta_source: v.next_stop_eta_source,
     };
   });
 };
 
-export type V2Vehicle = {
+export type V2Vehicle = EffectivePrediction & {
+  network_version_id?: string;
+  service_date?: string;
   vehicle_id: string;
   identity_kind?: "PHYSICAL" | "VIRTUAL_REALTIME" | "VIRTUAL_SCHEDULE" | string;
   registered_vehicle_id?: string | null;
@@ -163,7 +190,11 @@ export type V2Arrival = {
   position_required_kmh?: number | null;
   direction?: string | null;
   mode?: string;
-  eta_seconds?: number;
+  eta_seconds?: number | null;
+  platform_id?: string;
+  source_predicted_arrival?: string;
+  source_eta_source?: string;
+  motion_plan_revision?: string | null;
   predicted?: string;
   scheduled_arrival?: string;
   scheduled_departure?: string;
@@ -188,6 +219,9 @@ export type V2MapLineStop = {
 };
 
 export type V2MapLine = {
+  network_version_id?: string;
+  service_date?: string;
+  approach_geometry_fingerprint?: string;
   pattern_id: string;
   route_number: string;
   display_route_number?: string;
@@ -351,7 +385,11 @@ export type ServingBus = {
   route_direction: string;
   status: string;
   delay_minutes: number; // signed: negative means early
-  eta_minutes: number;
+  eta_minutes: number | null;
+  platform_id?: string;
+  source_predicted_arrival?: string;
+  source_eta_source?: string;
+  motion_plan_revision?: string | null;
   scheduled_arrival?: string;
   scheduled_departure?: string;
   predicted_arrival?: string;
@@ -446,11 +484,15 @@ export const getBusesServing = async (
   stopId: string,
   _lat?: number | null,
   _lng?: number | null,
-  trafficContext: TrafficContext = "baseline"
+  trafficContext: TrafficContext = "baseline",
+  platformId?: string
 ): Promise<ServingBus[]> => {
   // Stable V2 unified arrivals engine (LIVE / REALTIME / SCHEDULE).
+  const query: string[] = [];
+  if (trafficContext === "google_locator") query.push("traffic_context=google_locator");
+  if (platformId) query.push(`platform_id=${encodeURIComponent(platformId)}`);
   const raw = await apiRequest<V2Arrival[]>(
-    `/mobility/v2/stops/${encodeURIComponent(stopId)}/arrivals${trafficContext === "google_locator" ? "?traffic_context=google_locator" : ""}`,
+    `/mobility/v2/stops/${encodeURIComponent(stopId)}/arrivals${query.length ? `?${query.join("&")}` : ""}`,
     "GET",
     token || undefined
   );
@@ -462,7 +504,12 @@ export const getBusesServing = async (
     route_direction: a.direction ?? "",
     status: a.source ?? "SCHEDULE",
     delay_minutes: Math.round((a.delay_seconds ?? 0) / 60),
-    eta_minutes: Math.max(0, Math.ceil((a.eta_seconds ?? 0) / 60)),
+    eta_minutes: typeof a.eta_seconds === "number" && Number.isFinite(a.eta_seconds)
+      ? Math.max(0, Math.ceil(a.eta_seconds / 60)) : null,
+    platform_id: a.platform_id,
+    source_predicted_arrival: a.source_predicted_arrival,
+    source_eta_source: a.source_eta_source,
+    motion_plan_revision: a.motion_plan_revision,
     scheduled_arrival: a.scheduled_arrival,
     scheduled_departure: a.scheduled_departure,
     predicted_arrival: a.predicted_arrival ?? a.predicted,
@@ -478,6 +525,9 @@ export const getBusesServing = async (
 };
 
 export type TripStopProgress = {
+  source_predicted?: string;
+  predicted_departure?: string;
+  prediction_basis?: string;
   stop_id: string;
   name: string;
   scheduled: string | null;
@@ -489,6 +539,8 @@ export type TripStopProgress = {
 };
 
 export type VehicleTripProgress = {
+  motion_plan_revision?: string | null;
+  next_timeline_index?: number | null;
   vehicle_id: string;
   trip_id?: string | null;
   route_number: string;
@@ -512,6 +564,14 @@ export const getVehicleTrip = (token: string | null | undefined, vehicleId: stri
 // ---------------------------------------------------------------------------
 
 export type PlanLeg = {
+  trip_id?: string;
+  trip_instance_id?: string;
+  pattern_id?: string;
+  board_stop_id?: string;
+  alight_stop_id?: string;
+  board_timeline_index?: number;
+  board_progress_m?: number;
+  board_geometry_fingerprint?: string;
   type: "walk" | "walk_transfer" | "ride";
   minutes: number;
   label?: string;

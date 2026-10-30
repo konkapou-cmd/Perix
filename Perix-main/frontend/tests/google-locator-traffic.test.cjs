@@ -103,13 +103,16 @@ test("iframe readiness is source/origin checked and resets on reload/unmount, no
     "react/jsx-runtime": { jsx, jsxs: jsx },
     "react-native": { View: "View", StyleSheet: { create: (value) => value } },
     "expo-constants": { default: {} },
+    "../hooks/useMapSelection": { useMapSelection: () => ({ available: false, position: null, mode: "unset", revision: 0 }) },
+    "./shared/MapLocationControl": { default: "MapLocationControl" },
+    "../lib/vehicleBridge": load("lib/vehicleBridge.ts", {}),
     globals: { window },
   }).default;
   const ready = [];
   const render = (props = {}) => {
     cursor = 0;
     const tree = Map({ onReadyChange: (value) => ready.push(value), ...props });
-    const iframe = tree.props.children;
+    const iframe = tree.props.children.find(child => child.type === "iframe");
     iframe.props.ref.current = frame;
     while (pending.length) pending.shift()();
     return iframe;
@@ -210,9 +213,9 @@ test("Locator gates Google context and retains existing polling cancellation and
   assert.match(source, /delay = Math\.min\(delay \* 2, 30000\)/);
   assert.match(source, /setInterval\(load, 15000\)/);
   assert.match(source, /setInterval\(load, 5000\)/);
-  assert.match(source, /\[activeTab, sessionToken, trafficContext\]/);
-  assert.match(source, /\[activeTab, selectedVehicle, sessionToken, trafficContext\]/);
-  assert.match(source, /contextLocation\?\.longitude, trafficContext\]/);
+  assert.match(source, /\[activeTab, sessionToken, trafficContext, screenFocused, vehicleLink, foreground.visible, foreground.epoch\]/);
+  assert.match(source, /\[activeTab, selectedVehicle, selectedJourneyKey, sessionToken, trafficContext, waitingForLinkedVehicle,\s*screenFocused, foreground.visible, foreground.epoch\]/);
+  assert.match(source, /contextLocation\?\.longitude,\s*trafficContext, screenFocused, foreground.visible, foreground.epoch\]/);
 });
 
 test("Locator eligibility is baseline unless every web Mobility condition is met", () => {
@@ -254,12 +257,16 @@ test("actual polling effects reject out-of-order and cancelled-context results",
     const sandbox = {
       activeTab: "mobility", mobilityMode: "all", sessionToken: "token", trafficContext: "google_locator",
       selectedVehicle: "vehicle:/42", selectedStop: { stop_id: "stop:/1" }, contextLocation: null,
+      waitingForLinkedVehicle: false, setFleetLoaded() {},
+      screenFocused: true, vehicleLink: null, fleetRequestRef: { current: null },
+      foreground: { visible: true, epoch: 0 }, setFleetLastSuccess() {}, setFleetRefreshFailed() {},
+      selectedJourneyKey: "dated-current-trip",
       useEffect(fn, deps) {
         assert.ok(deps.includes("google_locator"));
         cleanup = fn();
       },
       [config.api]: (...args) => {
-        assert.equal(args.at(-1), "google_locator");
+        assert.equal(config.api === "getBusesServing" ? args[4] : args.at(-1), "google_locator");
         return new Promise((resolve, reject) => requests.push({ resolve, reject }));
       },
       [config.setter]: (result) => results.push(result),
@@ -306,11 +313,12 @@ test("slow stop polls do not starve, retry errors, and isolate stop/context chan
   }).outputText;
   const requests = [], results = [];
   const flush = () => new Promise((resolve) => setImmediate(resolve));
-  function mount(stopId, context, mode = "all") {
+  function mount(stopId, context, mode = "all", platformId) {
     let tick, cleanup;
     const sandbox = {
       activeTab: "mobility", mobilityMode: mode, sessionToken: null,
-      selectedStop: { stop_id: stopId }, contextLocation: null, trafficContext: context,
+      selectedStop: { stop_id: stopId, platform_id: platformId }, contextLocation: null, trafficContext: context,
+      screenFocused: true, foreground: { visible: true, epoch: 0 },
       useEffect(fn) { cleanup = fn(); },
       getBusesServing(...args) {
         return new Promise((resolve, reject) => requests.push({ args, resolve, reject }));
@@ -347,7 +355,7 @@ test("slow stop polls do not starve, retry errors, and isolate stop/context chan
   assert.deepEqual(results.at(-1), [bus], "Bus mode still filters tram arrivals");
   second.tick();
   second.cleanup();
-  const third = mount("physical:two", "google_locator", "tram");
+  const third = mount("physical:two", "google_locator", "tram", "east");
   requests[4].resolve([{ vehicle_id: "stale-context", mode: "bus" }]);
   await flush();
   assert.equal(results.length, 2);
@@ -355,7 +363,8 @@ test("slow stop polls do not starve, retry errors, and isolate stop/context chan
   await flush();
   assert.deepEqual(results.at(-1), [tram]);
   assert.equal(requests[5].args[1], "physical:two");
-  assert.equal(requests[5].args.at(-1), "google_locator");
+  assert.equal(requests[5].args[4], "google_locator");
+  assert.equal(requests[5].args[5], "east");
   third.tick();
   third.cleanup();
   third.tick();
@@ -363,4 +372,22 @@ test("slow stop polls do not starve, retry errors, and isolate stop/context chan
   requests[6].resolve([bus]);
   await flush();
   assert.equal(results.length, 3, "unmounted result cannot update state");
+});
+
+test("foreground resume starts fresh fleet work immediately and ignores the older hidden request", async () => {
+  const source=read('app/(tabs)/locator.tsx');
+  const code=ts.transpileModule(source.slice(source.indexOf('// Live mobility vehicles'),source.indexOf('// Active transit network')),
+    {compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
+  const requests=[],results=[];let cleanup;
+  const globals={activeTab:'mobility',screenFocused:true,foreground:{visible:true,epoch:0},vehicleLink:null,
+    sessionToken:null,trafficContext:'baseline',fleetRequestRef:{current:null},
+    useEffect:fn=>{cleanup=fn();},getLiveVehicles:()=>new Promise(resolve=>requests.push(resolve)),
+    setLiveVehicles:value=>results.push(value),setFleetLoaded(){},setFleetLastSuccess(){},setFleetRefreshFailed(){},
+    setTimeout:()=>1,clearTimeout(){}};
+  vm.runInNewContext(code,globals);assert.equal(requests.length,1);cleanup();
+  globals.foreground={visible:false,epoch:0};vm.runInNewContext(code,globals);assert.equal(requests.length,1);
+  globals.foreground={visible:true,epoch:1};vm.runInNewContext(code,globals);assert.equal(requests.length,2);
+  requests[1]([{vehicle_id:'new-current'}]);await new Promise(resolve=>setImmediate(resolve));
+  requests[0]([{vehicle_id:'old-hidden'}]);await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(results.length,1);assert.equal(results[0][0].vehicle_id,'new-current');cleanup();
 });

@@ -425,3 +425,25 @@ async def traffic_for_way(
                     "baseline": profile.get("baseline"),
                 }
     return None
+
+
+async def annotate_profile_availability(bundles: list[dict], *, region_id: str, network_id: str) -> list[dict]:
+    """Research selection only: record presence, not calibrated live coverage.
+
+    Keep the committed atomic bundle immutable. A profile for another graph or
+    opposite direction does not justify even an availability score.
+    """
+    rows = await db.mobility_traffic_profiles.find({'region_id':region_id,'network_id':network_id},
+        {'_id':0,'way_id':1,'osm_snapshot_v':1,'osm_direction':1}).to_list(10000)
+    available = {(r.get('way_id'),r.get('osm_snapshot_v'),r.get('osm_direction')) for r in rows}
+    result = []
+    for bundle in bundles:
+        infra = bundle.get('infrastructure') or {}
+        edges = []
+        for edge in infra.get('edges', []):
+            follows = (edge.get('way') or {}).get('follows_osm_way')
+            direction = 'FORWARD' if follows is True else 'BACKWARD' if follows is False else 'BOTH'
+            found = any((edge.get('way_id'),bundle.get('osm_snapshot_v'),d) in available for d in (direction,'BOTH'))
+            edges.append({**edge,'traffic_profile_available':found})
+        result.append({**bundle,'infrastructure':{**infra,'edges':edges}})
+    return result

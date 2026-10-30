@@ -8,6 +8,7 @@ skipped stops). Live GPS vehicles mark their trip's arrival as LIVE.
 from typing import List, Optional
 
 from database import db
+from mobility.motion.traffic import TrafficContext
 
 
 def _fmt_service_time(sec: int) -> str:
@@ -16,13 +17,14 @@ def _fmt_service_time(sec: int) -> str:
     return f"{h:02d}:{m:02d}"
 
 
-async def unified_arrivals(stop_id: str, limit: int = 20) -> List[dict]:
+async def unified_arrivals(stop_id: str, limit: int = 20, *,
+                           traffic_context: TrafficContext = "baseline") -> List[dict]:
     from mobility.domain import NETWORK_ID, build_domain
     from mobility.overrides import canceled_trip_ids, skipped_stop_ids
     from routes.mobility import (
         _get_active_network,
         _now_service_seconds,
-        _predicted_stop_timeline,
+        _effective_trip_windows,
         _realtime_delays_for,
     )
 
@@ -46,11 +48,31 @@ async def unified_arrivals(stop_id: str, limit: int = 20) -> List[dict]:
         for t in domain["trip_templates"]
         if platform_ids & {str(x) for x in (t.get("stop_ids") or [])}
     ]
-    trip_ids = [t["trip_id"] for t in candidates]
+    # Include predecessors in the existing batch: successor floors need their RT.
+    candidate_routes = {str(t.get("route_number")) for t in candidates}
+    trip_ids = [str(t["trip_id"]) for r in network.get("routes", [])
+                if str(r.get("route_number")) in candidate_routes
+                for t in r.get("trips", []) if t.get("trip_id")]
     delays = await _realtime_delays_for(trip_ids)
     canceled = await canceled_trip_ids()
     skipped_ov = await skipped_stop_ids()
     now = _now_service_seconds()
+
+    # Exclude trips that cannot serve any platform of this physical stop before
+    # resolving physics. Skipped predecessors still participate in run floors.
+    eligible = []
+    for template in candidates:
+        tid = str(template.get("trip_id"))
+        rt = delays.get(tid) or {}
+        if tid in canceled or str(rt.get("trip_schedule_relationship") or "").upper() in ("CANCELED", "DELETED"):
+            continue
+        relationships = {str(k): str(v).upper() for k, v in (rt.get("stop_relationships") or {}).items()}
+        skipped = {str(sid) for sid in skipped_ov.get(tid, set())}
+        targets = platform_ids & {str(sid) for sid in template.get("stop_ids", [])}
+        if any(sid not in skipped and relationships.get(sid) != "SKIPPED" for sid in targets):
+            eligible.append(template)
+    candidates = eligible
+    candidate_routes = {str(t.get("route_number")) for t in candidates}
 
     # Fresh GPS states -> LIVE quality per trip
     states = await db.mobility_vehicle_state.find({}, {"_id": 0}).to_list(200)
@@ -76,7 +98,7 @@ async def unified_arrivals(stop_id: str, limit: int = 20) -> List[dict]:
     from routes.mobility import _all_active_vehicles
 
     pos_by_id = {}
-    for v in await _all_active_vehicles():
+    for v in await _all_active_vehicles(traffic_context=traffic_context):
         if v.get("latitude") is not None and v.get("longitude") is not None:
             pos_by_id[str(v.get("vehicle_id"))] = v
 
@@ -97,6 +119,20 @@ async def unified_arrivals(stop_id: str, limit: int = 20) -> List[dict]:
         x = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
         return r * 2 * math.atan2(math.sqrt(x), math.sqrt(1 - x))
 
+    timelines = {}
+    for number in candidate_routes:
+        route = routes_by_num.get(number)
+        if not route:
+            continue
+        wanted = {str(t["trip_id"]) for t in candidates if str(t.get("route_number")) == number}
+        for run in await _effective_trip_windows(
+            route, delays, str(network.get("version_id") or ""), now,
+            trip_ids=wanted, skip_trip_ids=canceled,
+            traffic_context=traffic_context,
+        ):
+            for window in run["trips"]:
+                timelines[str(window["trip"].get("trip_id"))] = window["timeline"]
+
     out = []
     for tt in candidates:
         tid = str(tt.get("trip_id") or "")
@@ -111,7 +147,7 @@ async def unified_arrivals(stop_id: str, limit: int = 20) -> List[dict]:
         rt = delays.get(tid)
         if rt and str(rt.get("trip_schedule_relationship") or "").upper() in ("CANCELED", "DELETED"):
             continue
-        timeline = _predicted_stop_timeline(route, trip, rt)
+        timeline = timelines.get(tid, [])
         skipped = skipped_ov.get(tid, set())
         entry = next(
             (

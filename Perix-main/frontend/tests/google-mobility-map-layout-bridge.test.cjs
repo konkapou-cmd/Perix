@@ -8,8 +8,12 @@ const ts = require("typescript");
 const root = path.join(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const clone = (value) => JSON.parse(JSON.stringify(value));
+const bridgeExports = {};
+vm.runInNewContext(ts.transpileModule(read("lib/vehicleBridge.ts"), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+}).outputText, { exports: bridgeExports });
 
-function mount() {
+function mount(selection = { available: false, position: null, mode: "unset", revision: 0 }) {
   const slots = [], pending = [], messages = [], ready = [];
   const listeners = new Set();
   let cursor = 0;
@@ -46,6 +50,9 @@ function mount() {
     "react/jsx-runtime": { jsx, jsxs: jsx },
     "react-native": { View: "View", StyleSheet: { create: (styles) => styles } },
     "expo-constants": { default: {} },
+    "../hooks/useMapSelection": { useMapSelection: () => selection },
+    "./shared/MapLocationControl": { default: "MapLocationControl" },
+    "../lib/vehicleBridge": bridgeExports,
   };
   const exports = {};
   vm.runInNewContext(ts.transpileModule(read("components/GoogleMobilityMap.tsx"), {
@@ -56,7 +63,7 @@ function mount() {
     render(props = {}) {
       cursor = 0;
       const tree = exports.default({ onReadyChange: (value) => ready.push(value), ...props });
-      tree.props.children.props.ref.current = frame;
+       tree.props.children.find(child => child.type === "iframe").props.ref.current = frame;
       while (pending.length) pending.shift()();
       return tree;
     },
@@ -107,7 +114,25 @@ test("web map keeps explicit height without flex collapse and matches BusinessMa
   assert.equal(style.marginHorizontal, 16);
   assert.match(read("components/BusinessMap.web.tsx"), /wrap: \{ marginHorizontal: 16,/);
   assert.equal(Object.assign({}, ...map.render({ height: 420 }).props.style).height, 420);
-  assert.equal(tree.props.children.props.style.height, "100%");
+  assert.equal(tree.props.children.find(child => child.type === "iframe").props.style.height, "100%");
+});
+
+test("manual pin replaces GPS and an area choice is not undone by stale vehicle-focus tokens", () => {
+  const selection = { available: true, position: { latitude: 52, longitude: 11 }, mode: "live", revision: 0 };
+  const map = mount(selection);
+  const props = { focusRegion: { latitude: 53, longitude: 12 }, focusToken: 1,
+    pinLocation: { latitude: 52, longitude: 11 }, showUserLocation: true };
+  map.render(props);map.send("ready");map.render(props);map.messages.length = 0;
+  selection.position = { latitude: 48, longitude: 2, name: "Chosen address" };
+  selection.mode = "manual";selection.revision++;
+  map.render(props);
+  const controls = map.messages.find(m => m.message.payload.pin)?.message.payload;
+  assert.equal(controls.userLocation, null);
+  assert.equal(controls.pin.latitude, 48);assert.equal(controls.pin.source, "manual");
+  assert.equal(map.messages.at(-1).message.payload.focusToken, "area-1");
+  map.messages.length = 0;map.render({ ...props, approaches: [] });
+  assert.ok(map.messages.every(m => !m.message.payload.focus), "polls cannot re-focus the older vehicle selection");
+  map.unmount();
 });
 
 test("vehicle polls send neither static geometry nor unchanged paths; controls are independent", () => {
@@ -121,9 +146,10 @@ test("vehicle polls send neither static geometry nor unchanged paths; controls a
   assert.equal(map.messages.length, 0);
   map.send("ready");
   map.render(props);
-  assert.equal(map.messages.length, 3);
-  assert.equal(map.messages[0].message.payload.lines.length, 157);
-  assert.equal(map.messages[1].message.payload.vehicles[0].path.length, 3);
+  assert.equal(map.messages.length, 6);
+  assert.deepEqual(Object.keys(map.messages[0].message.payload), ['vehicles']);
+  assert.equal(map.messages.find(m => m.message.payload.lines).message.payload.lines.length, 157);
+  assert.equal(map.messages[0].message.payload.vehicles[0].path.length, 3);
   map.messages.length = 0;
   const next = { ...props, vehicles: [{ ...clone(vehicle), progressM: 30 }] };
   map.render(next);
@@ -155,12 +181,12 @@ test("same-document load does not reset readiness or resend data, new sessions d
   map.send("ready", "one", { origin: "https://attacker.invalid" });
   map.render(props);
   assert.equal(map.messages.length, 0);
-  tree.props.children.props.onLoad();
+  tree.props.children.find(child => child.type === "iframe").props.onLoad();
   assert.equal(map.messages.at(-1).message.type, "requestReady");
   map.send("ready");
   tree = map.render(props);
   map.messages.length = 0;
-  tree.props.children.props.onLoad();
+  tree.props.children.find(child => child.type === "iframe").props.onLoad();
   assert.equal(map.ready.at(-1), true);
   map.send("ready");
   map.render(props);
@@ -170,14 +196,27 @@ test("same-document load does not reset readiness or resend data, new sessions d
   assert.equal(map.ready.at(-1), false);
   map.send("ready", "two");
   map.render(props);
-  assert.equal(map.messages.length, 4);
-  assert.ok(map.messages.at(-2).message.payload.vehicles[0].path);
+  assert.equal(map.messages.length, 7);
+  assert.ok(map.messages.filter(m => m.message.payload?.vehicles).at(-1).message.payload.vehicles[0].path);
   // A changed document session also resends without an intervening notReady render.
   map.send("ready", "three");
   map.render(props);
-  assert.ok(map.messages.at(-2).message.payload.vehicles[0].path);
+  assert.ok(map.messages.filter(m => m.message.payload?.vehicles).at(-1).message.payload.vehicles[0].path);
   map.unmount();
   assert.equal(map.ready.at(-1), false);
+});
+
+test("stop visibility and camera changes cannot resend static line geometry", () => {
+  const map = mount();
+  const props = { transitLines: [{ patternId: 'one', points }], transitStops: [], vehicles: [vehicle] };
+  map.render(props); map.send('ready'); map.render(props); map.messages.length = 0;
+  map.render({ ...props, transitStops: [{stop_id:'A',name:'A',latitude:52,longitude:11}] });
+  assert.equal(map.messages.length, 1);
+  assert.deepEqual(Object.keys(map.messages[0].message.payload), ['stops']);
+  map.messages.length = 0;
+  map.render({ ...props, initialRegion: {latitude:53,longitude:12} });
+  assert.ok(map.messages.every(m => !('lines' in m.message.payload)));
+  map.unmount();
 });
 
 test("partial updates preserve omitted layers, clear explicit arrays, and merge before init", () => {
@@ -241,4 +280,11 @@ test("cloned vehicle paths reuse cumulative geometry and preserve progress conti
   context.drawVehicles([]);
   assert.equal(context.VEHICLES[vehicle.id], undefined);
   assert.equal(rec.marker.map, null);
+});
+
+test("a null initial zoom means keep the default once; later parent zoom echoes cannot undo a gesture", () => {
+  const { context } = page();context.initMap();let zoom=15;
+  context.MAP.setZoom=value=>{zoom=value;};context.MAP.getZoom=()=>zoom;
+  context.applyUpdate({initialZoom:null});context.MAP.setZoom(17);
+  context.applyUpdate({initialZoom:14});assert.equal(zoom,17);
 });

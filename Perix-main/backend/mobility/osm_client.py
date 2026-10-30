@@ -42,6 +42,12 @@ async def overpass_json(query: str, *, require_elements: bool = True) -> dict:
                     resp.raise_for_status()
                     data = resp.json()
 
+                if not isinstance(data, dict) or not isinstance(data.get('elements'), list):
+                    raise RuntimeError('Invalid Overpass response structure')
+                # Overpass can return HTTP 200 plus partial elements and a
+                # timeout/out-of-memory remark. Nonempty is not completeness.
+                if data.get('remark'):
+                    raise RuntimeError('Incomplete Overpass response (remark present)')
                 if require_elements and not data.get("elements"):
                     raise RuntimeError("empty response (0 elements)")
 

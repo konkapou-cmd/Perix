@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Constants from "expo-constants";
+import type { VehicleApproach } from "../lib/mobilityApproach";
+import { useMapSelection } from "../hooks/useMapSelection";
+import MapLocationControl from "./shared/MapLocationControl";
+import { vehicleBridgeUpdates, VehiclePathState } from "../lib/vehicleBridge";
 
 export type GoogleTransitLine = {
   routeNumber?: string;
@@ -21,6 +25,7 @@ export type GoogleVehicleMarker = {
   longitude: number;
   type?: "bus" | "tram" | "taxi";
   label?: string | null;
+  direction?: string | null;
   estimated?: boolean;
   heading?: number | null;
   path?: { latitude: number; longitude: number }[];
@@ -59,6 +64,7 @@ type Props = {
   transitLines?: GoogleTransitLine[];
   transitStops?: GoogleTransitStop[];
   planLines?: GoogleTransitLine[];
+  approaches?: VehicleApproach[];
   pinLocation?: { latitude: number; longitude: number } | null;
   showUserLocation?: boolean;
   disabled?: boolean;
@@ -85,6 +91,9 @@ const gmapsKey =
 const EMPTY: never[] = [];
 
 export default function GoogleMobilityMap(props: Props) {
+  const selection = useMapSelection();
+  const originChoiceRef = useRef(selection.revision);
+  const consumedFocusRef = useRef("");
   const {
     location,
     initialRegion,
@@ -94,6 +103,7 @@ export default function GoogleMobilityMap(props: Props) {
     transitLines = EMPTY,
     transitStops = EMPTY,
     planLines = EMPTY,
+    approaches = EMPTY,
     pinLocation,
     showUserLocation,
     initialZoom,
@@ -109,7 +119,7 @@ export default function GoogleMobilityMap(props: Props) {
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [session, setSession] = useState<string | null>(null);
-  const vehiclePathsRef = useRef({ session: null as string | null, paths: new Map<string, string>() });
+  const vehiclePathsRef = useRef({ session: null as string | null, paths: new Map() as VehiclePathState });
   const onReadyChangeRef = useRef(onReadyChange);
   onReadyChangeRef.current = onReadyChange;
 
@@ -121,55 +131,35 @@ export default function GoogleMobilityMap(props: Props) {
   const mapUrl = `${typeof window !== "undefined" ? window.location.origin : "https://app.perixapp.com"}/google-mobility-map.html?key=${encodeURIComponent(gmapsKey)}&locale=de`;
   const focusLatitude = focusRegion?.latitude;
   const focusLongitude = focusRegion?.longitude;
+  const initialLatitude = initialRegion?.latitude;
+  const initialLongitude = initialRegion?.longitude;
 
-  // Static network geometry is independent of vehicle polls and controls.
-  useEffect(() => {
-    if (!session || !iframeRef.current?.contentWindow) return;
-    const payload = {
-      lines: transitLines.map((l) => ({
-        route_number: l.routeNumber,
-        pattern_id: l.patternId,
-        mode: l.mode,
-        points: l.points,
-        color: l.color,
-        opacity: l.opacity,
-        weight: l.weight,
-      })),
-      stops: transitStops,
-    };
-    iframeRef.current.contentWindow.postMessage({ source: "perix-google-map", type: "update", payload }, window.location.origin);
-  }, [session, transitLines, transitStops]);
-
+  // Vehicles get the first update; static layers never gate their visibility.
   useEffect(() => {
     if (vehiclePathsRef.current.session !== session) {
       vehiclePathsRef.current = { session, paths: new Map() };
     }
     if (!session || !iframeRef.current?.contentWindow) return;
-    const paths = new Map<string, string>();
-    const payload = {
-      vehicles: vehicles.map((v) => {
-        const signature = JSON.stringify([v.journeyId ?? null, v.path?.map((p) => [p.latitude, p.longitude]) ?? null]);
-        paths.set(v.id, signature);
-        return {
-          id: v.id,
-          journeyId: v.journeyId ?? null,
-          latitude: v.latitude,
-          longitude: v.longitude,
-          type: v.type || "bus",
-          label: v.label,
-          estimated: !!v.estimated,
-          heading: v.heading,
-          ...(vehiclePathsRef.current.paths.get(v.id) !== signature ? { path: v.path ?? null } : {}),
-          progressM: v.progressM,
-          positionState: v.positionState,
-          speed: v.speed,
-          motionState: v.motionState,
-        };
-      }),
-    };
+    const { updates, paths } = vehicleBridgeUpdates(vehicles, vehiclePathsRef.current.paths);
+    const payload = { vehicles: updates };
     iframeRef.current.contentWindow.postMessage({ source: "perix-google-map", type: "update", payload }, window.location.origin);
     vehiclePathsRef.current.paths = paths;
   }, [session, vehicles]);
+
+  // Static geometry and stop visibility have independent lifetimes.
+  useEffect(() => {
+    if (!session || !iframeRef.current?.contentWindow) return;
+    iframeRef.current.contentWindow.postMessage({ source: "perix-google-map", type: "update", payload: {
+      lines: transitLines.map(l => ({ route_number: l.routeNumber, pattern_id: l.patternId, mode: l.mode,
+        points: l.points, color: l.color, opacity: l.opacity, weight: l.weight })),
+    } }, window.location.origin);
+  }, [session, transitLines]);
+
+  useEffect(() => {
+    if (!session || !iframeRef.current?.contentWindow) return;
+    iframeRef.current.contentWindow.postMessage({ source: "perix-google-map", type: "update",
+      payload: { stops: transitStops } }, window.location.origin);
+  }, [session, transitStops]);
 
   useEffect(() => {
     if (!session || !iframeRef.current?.contentWindow) return;
@@ -184,16 +174,40 @@ export default function GoogleMobilityMap(props: Props) {
         opacity: l.opacity,
         weight: l.weight,
       })),
-      userLocation: showUserLocation && location?.latitude != null ? location : null,
-      pin: pinLocation || null,
-      focus: focusLatitude != null && focusLongitude != null && focusToken ? { latitude: focusLatitude, longitude: focusLongitude } : null,
-      focusToken: focusToken ?? null,
-      initialRegion: initialRegion ? { latitude: initialRegion.latitude, longitude: initialRegion.longitude } : null,
+    };
+    iframeRef.current.contentWindow.postMessage({ source: "perix-google-map", type: "update", payload }, window.location.origin);
+  }, [session, planLines]);
+
+  useEffect(() => {
+    if (!session || !iframeRef.current?.contentWindow) return;
+    iframeRef.current.contentWindow.postMessage({ source: "perix-google-map", type: "update",
+      payload: { approaches } }, window.location.origin);
+  }, [session, approaches]);
+
+  useEffect(() => {
+    if (!session || !iframeRef.current?.contentWindow) return;
+    const focusKey = `${session}:${focusToken}`;
+    const sendFocus = !!focusToken && consumedFocusRef.current !== focusKey;
+    if (sendFocus) consumedFocusRef.current = focusKey;
+    const payload = {
+      userLocation: !selection.available && showUserLocation && location?.latitude != null ? location : null,
+      pin: selection.available ? (selection.position ? { ...selection.position, source: selection.mode } : null) : pinLocation || null,
+      focus: focusLatitude != null && focusLongitude != null && sendFocus ? { latitude: focusLatitude, longitude: focusLongitude } : null,
+      focusToken: sendFocus ? focusToken : null,
+      initialRegion: initialLatitude != null && initialLongitude != null ? { latitude: initialLatitude, longitude: initialLongitude } : null,
       initialZoom: initialZoom ?? null,
       showTrafficLayer,
     };
     iframeRef.current.contentWindow?.postMessage({ source: "perix-google-map", type: "update", payload }, window.location.origin);
-  }, [session, planLines, location, pinLocation, focusToken, focusLatitude, focusLongitude, showUserLocation, initialRegion, initialZoom, showTrafficLayer]);
+  }, [session, location, pinLocation, focusToken, focusLatitude, focusLongitude, showUserLocation,
+    initialLatitude, initialLongitude, initialZoom, showTrafficLayer, selection.position, selection.mode, selection.available]);
+
+  useEffect(() => {
+    if (!session || !iframeRef.current?.contentWindow || originChoiceRef.current === selection.revision) return;
+    originChoiceRef.current = selection.revision;
+    if (selection.position) iframeRef.current.contentWindow.postMessage({ source: "perix-google-map", type: "update",
+      payload: { focus: selection.position, focusToken: `area-${selection.revision}` } }, window.location.origin);
+  }, [session, selection.revision, selection.position]);
 
   // Map -> parent bridge
   useEffect(() => {
@@ -238,6 +252,7 @@ export default function GoogleMobilityMap(props: Props) {
         style={{ width: "100%", height: "100%", border: 0, borderRadius: 12 }}
         allow="geolocation"
       />
+      <MapLocationControl />
     </View>
   );
 }

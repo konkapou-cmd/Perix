@@ -1,8 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
 import Constants from "expo-constants";
+import type { VehicleApproach } from "../lib/mobilityApproach";
+import { useMapSelection } from "../hooks/useMapSelection";
+import MapLocationControl from "./shared/MapLocationControl";
 import type { GoogleTransitLine, GoogleTransitStop, GoogleVehicleMarker } from "./GoogleMobilityMap";
+import { vehicleBridgeUpdates, VehiclePathState } from "../lib/vehicleBridge";
 
 type Props = {
   location?: { latitude: number; longitude: number };
@@ -13,6 +17,7 @@ type Props = {
   transitLines?: GoogleTransitLine[];
   transitStops?: GoogleTransitStop[];
   planLines?: GoogleTransitLine[];
+  approaches?: VehicleApproach[];
   pinLocation?: { latitude: number; longitude: number } | null;
   showUserLocation?: boolean;
   disabled?: boolean;
@@ -39,17 +44,22 @@ const APPROVED_MAP_ORIGINS: string[] = [
     process.env.EXPO_PUBLIC_MOBILITY_MAP_ORIGINS ||
     "").split(",").map((s: string) => s.trim()).filter(Boolean),
 ];
+const EMPTY: never[] = [];
 
 export default function GoogleMobilityMapNative(props: Props) {
+  const selection = useMapSelection();
+  const originChoiceRef = useRef(selection.revision);
+  const consumedFocusRef = useRef("");
   const {
     location,
     initialRegion,
     focusRegion,
     focusToken,
-    vehicles = [],
-    transitLines = [],
-    transitStops = [],
-    planLines = [],
+    vehicles = EMPTY,
+    transitLines = EMPTY,
+    transitStops = EMPTY,
+    planLines = EMPTY,
+    approaches = EMPTY,
     pinLocation,
     showUserLocation,
     initialZoom,
@@ -63,6 +73,11 @@ export default function GoogleMobilityMapNative(props: Props) {
 
   const webRef = useRef<WebView>(null);
   const [session, setSession] = useState<string | null>(null);
+  const focusLatitude = focusRegion?.latitude;
+  const focusLongitude = focusRegion?.longitude;
+  const initialLatitude = initialRegion?.latitude;
+  const initialLongitude = initialRegion?.longitude;
+  const vehiclePathsRef = useRef({ session: null as string | null, paths: new Map() as VehiclePathState });
 
   // The Mobility map page is served by the frontend, not the backend API.
   // No silent fallback to production: if the URL is missing or not HTTPS, we
@@ -87,34 +102,28 @@ export default function GoogleMobilityMapNative(props: Props) {
     }
   }
 
-  useEffect(() => {
+  const sendUpdate = useCallback((payload: object) => {
     if (!session || !webRef.current || !mapUrl) return;
-    const payload = {
-      lines: transitLines.map((l) => ({
-        route_number: l.routeNumber,
-        pattern_id: l.patternId,
-        mode: l.mode,
-        points: l.points,
-        color: l.color,
-        opacity: l.opacity,
-        weight: l.weight,
-      })),
-      vehicles: vehicles.map((v) => ({
-        id: v.id,
-        journeyId: v.journeyId ?? null,
-        latitude: v.latitude,
-        longitude: v.longitude,
-        type: v.type || "bus",
-        label: v.label,
-        estimated: !!v.estimated,
-        heading: v.heading,
-        speed: v.speed,
-        motionState: v.motionState,
-        positionState: v.positionState,
-        path: v.path,
-        progressM: v.progressM,
-      })),
-      stops: transitStops,
+    webRef.current.injectJavaScript(`window.postMessage(${JSON.stringify({ source: "perix-google-map", type: "update", payload })}); true;`);
+  }, [session, mapUrl]);
+
+  useEffect(() => {
+    if (vehiclePathsRef.current.session !== session) vehiclePathsRef.current = { session, paths: new Map() };
+    if (!session || !mapUrl) return;
+    const { updates, paths } = vehicleBridgeUpdates(vehicles, vehiclePathsRef.current.paths);
+    sendUpdate({ vehicles: updates });
+    vehiclePathsRef.current.paths = paths;
+  }, [session, mapUrl, sendUpdate, vehicles]);
+
+  useEffect(() => {
+    sendUpdate({ lines: transitLines.map(l => ({ route_number: l.routeNumber, pattern_id: l.patternId,
+      mode: l.mode, points: l.points, color: l.color, opacity: l.opacity, weight: l.weight })) });
+  }, [sendUpdate, transitLines]);
+
+  useEffect(() => { sendUpdate({ stops: transitStops }); }, [sendUpdate, transitStops]);
+
+  useEffect(() => {
+    sendUpdate({
       planLines: planLines.map((l) => ({
         route_number: l.routeNumber,
         pattern_id: l.patternId,
@@ -125,17 +134,34 @@ export default function GoogleMobilityMapNative(props: Props) {
         opacity: l.opacity,
         weight: l.weight,
       })),
-      userLocation: showUserLocation && location?.latitude != null ? location : null,
-      pin: pinLocation || null,
-      focus: focusRegion && focusToken ? { latitude: focusRegion.latitude, longitude: focusRegion.longitude } : null,
-      focusToken: focusToken ?? null,
-      initialRegion: initialRegion ? { latitude: initialRegion.latitude, longitude: initialRegion.longitude } : null,
+    });
+  }, [sendUpdate, planLines]);
+
+  useEffect(() => { sendUpdate({ approaches }); }, [sendUpdate, approaches]);
+
+  useEffect(() => {
+    if (!session || !webRef.current || !mapUrl) return;
+    const focusKey = `${session}:${focusToken}`;
+    const sendFocus = !!focusToken && consumedFocusRef.current !== focusKey;
+    if (sendFocus) consumedFocusRef.current = focusKey;
+    sendUpdate({
+      userLocation: !selection.available && showUserLocation && location?.latitude != null ? location : null,
+      pin: selection.available ? (selection.position ? { ...selection.position, source: selection.mode } : null) : pinLocation || null,
+      focus: focusLatitude != null && focusLongitude != null && sendFocus ? { latitude: focusLatitude, longitude: focusLongitude } : null,
+      focusToken: sendFocus ? focusToken : null,
+      initialRegion: initialLatitude != null && initialLongitude != null ? { latitude: initialLatitude, longitude: initialLongitude } : null,
       initialZoom: initialZoom ?? null,
-    };
-    webRef.current.injectJavaScript(
-      `window.postMessage(${JSON.stringify({ source: "perix-google-map", type: "update", payload })}); true;`
-    );
-  }, [session, mapUrl, transitLines, vehicles, transitStops, planLines, location, pinLocation, focusToken, focusRegion?.latitude, focusRegion?.longitude, showUserLocation, initialRegion, initialZoom]);
+    });
+  }, [session, mapUrl, sendUpdate, location, pinLocation, focusToken, focusLatitude, focusLongitude,
+    showUserLocation, initialLatitude, initialLongitude, initialZoom, selection.position, selection.mode, selection.available]);
+
+  useEffect(() => {
+    if (!session || !webRef.current || originChoiceRef.current === selection.revision) return;
+    originChoiceRef.current = selection.revision;
+    if (selection.position) webRef.current.injectJavaScript(`window.postMessage(${JSON.stringify({
+      source: "perix-google-map", type: "update", payload: { focus: selection.position, focusToken: `area-${selection.revision}` },
+    })}); true;`);
+  }, [session, selection.revision, selection.position]);
 
   const onMessage = (event: WebViewMessageEvent) => {
     let data: any;
@@ -146,6 +172,7 @@ export default function GoogleMobilityMapNative(props: Props) {
     }
     if (!data || data.source !== "perix-google-map") return;
     if (data.type === "ready") setSession(data.session || Date.now().toString());
+    if (data.type === "notReady") setSession(null);
     if (data.type === "mapPress" && onMapPress) onMapPress(data.lat, data.lng);
     if (data.type === "markerPress" && onMarkerPress) onMarkerPress(data.id);
     if (data.type === "stopPress" && onTransitStopPress) {
@@ -190,6 +217,7 @@ export default function GoogleMobilityMapNative(props: Props) {
         style={styles.web}
         containerStyle={styles.web}
       />
+      <MapLocationControl />
     </View>
   );
 }

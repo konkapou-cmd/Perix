@@ -12,11 +12,14 @@ interface LocationData {
 }
 
 interface LocationContextType {
-  /** The map area: the live device position, or a manually picked explore
-   *  point. NEVER restored from storage - always fresh for this session. */
+  /** Explicitly selected live/manual area. Restored addresses stay manual. */
   location: LocationData | null;
   /** Latest GPS fix for the "you are here" pin (independent of the area). */
   livePosition: FreshPosition | null;
+  /** The ONE visible/routing origin, explicitly live or manually selected. */
+  mapPosition: LocationData | null;
+  locationMode: "live" | "manual" | "unset";
+  selectionRevision: number;
   loading: boolean;
   error: string | null;
   setManualLocation: (lat: number, lng: number, name?: string) => void;
@@ -35,7 +38,7 @@ const DEFAULT_RADIUS = 10; // 10km default
 // Last-known area: saved so a page refresh opens the map where the user
 // was (never Berlin). Only the AREA is restored - the live pin always
 // comes from a fresh GPS fix.
-async function loadSavedLocation(): Promise<{ lat: number; lng: number } | null> {
+async function loadSavedLocation(): Promise<{ lat: number; lng: number; name?: string; mode?: string } | null> {
   try {
     let raw: string | null = null;
     if (Platform.OS === "web" && typeof window !== "undefined") {
@@ -47,18 +50,18 @@ async function loadSavedLocation(): Promise<{ lat: number; lng: number } | null>
     const data = JSON.parse(raw);
     const lat = parseFloat(data?.lat);
     const lng = parseFloat(data?.lng);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
     // Stale (older than 7 days) is not useful as a starting area
     if (data?.ts && Date.now() - data.ts > 7 * 24 * 3600 * 1000) return null;
-    return { lat, lng };
+    return { lat, lng, name: typeof data.name === "string" ? data.name : undefined, mode: data.mode };
   } catch {
     return null;
   }
 }
 
-function saveLastLocation(lat: number, lng: number) {
+function saveLastLocation(lat: number, lng: number, mode: "live" | "manual", name?: string) {
   try {
-    const payload = JSON.stringify({ lat, lng, ts: Date.now() });
+    const payload = JSON.stringify({ lat, lng, mode, name, ts: Date.now() });
     if (Platform.OS === "web" && typeof window !== "undefined") {
       window.localStorage.setItem(LAST_LOCATION_KEY, payload);
     } else {
@@ -69,10 +72,15 @@ function saveLastLocation(lat: number, lng: number) {
 
 export function LocationProvider({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useState<LocationData | null>(null);
-  // Live "you are here" position: the single source of truth for the pin.
-  // Updated by the continuous watch and by re-fixes on focus. Only live
-  // positions are ever shown - nothing stored or remembered from before.
+  // Raw device fix is separate from the selected map origin. In manual mode
+  // it must never replace the chosen address or be presented as its location.
   const [livePosition, setLivePosition] = useState<FreshPosition | null>(null);
+  const [selectionRevision, setSelectionRevision] = useState(0);
+  const modeRef = useRef<"live" | "manual" | "unset">("unset");
+  const requestRevision = useRef(0);
+  const mounted = useRef(false);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; requestRevision.current++; }; }, []);
+  const locationMode = location ? (location.isLiveLocation ? "live" : "manual") : "unset";
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [radiusKm, setRadiusKmState] = useState(DEFAULT_RADIUS);
@@ -97,10 +105,9 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   // a locate button (user gesture) before asking the browser.
   // Runs in the background: the UI never waits for the GPS.
   useEffect(() => {
-    if (!sessionToken) {
-      setLoading(false);
-      return;
-    }
+    let cancelled = false;
+    const revision = requestRevision.current;
+    const current = () => !cancelled && mounted.current && revision === requestRevision.current;
     const load = async () => {
       try {
         const savedRadius = await AsyncStorage.getItem(RADIUS_STORAGE_KEY);
@@ -109,18 +116,29 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         }
       } catch {}
       const saved = await loadSavedLocation();
+      if (!current()) return;
+      // A user choice made while auth/bootstrap is resolving always wins.
+      if (modeRef.current !== "unset" && revision > 0) { setLoading(false); return; }
       if (saved) {
+        modeRef.current = "manual";
         setLocation({
           latitude: saved.lat,
           longitude: saved.lng,
           isLiveLocation: false,
+          name: saved.name,
         });
+        setSelectionRevision(n => n + 1);
       }
+      // Manual mode is an explicit preference, not a temporary GPS fallback.
+      if (saved?.mode === "manual" || !sessionToken) { setLoading(false); return; }
       const granted = await isGeolocationGranted();
+      if (!current()) return;
       setGeoGranted(granted);
       if (granted) {
         const fresh = await getCurrentPositionWithPermission({ timeoutMs: 12000 });
+        if (!current()) return;
         if (fresh && isReliablePosition(fresh.accuracy)) {
+          modeRef.current = "live";
           setLocation({
             latitude: fresh.latitude,
             longitude: fresh.longitude,
@@ -128,7 +146,8 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
           });
           liveRef.current = { latitude: fresh.latitude, longitude: fresh.longitude, accuracy: fresh.accuracy };
           setLivePosition({ latitude: fresh.latitude, longitude: fresh.longitude, accuracy: fresh.accuracy });
-          saveLastLocation(fresh.latitude, fresh.longitude);
+          saveLastLocation(fresh.latitude, fresh.longitude, "live");
+          setSelectionRevision(n => n + 1);
         }
       } else if (!saved) {
         // No saved area and no permission: leave the area empty; the map
@@ -139,14 +158,19 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     };
     setLoading(true);
     load();
+    return () => { cancelled = true; };
   }, [sessionToken]);
 
   const requestLiveLocation = async (timeoutMs?: number): Promise<FreshPosition | null> => {
+    const revision = ++requestRevision.current;
+    const currentRequest = () => mounted.current && revision === requestRevision.current;
     try {
       setLoading(true);
       setError(null);
       const current = await getCurrentPositionWithPermission(timeoutMs ? { timeoutMs } : undefined);
+      if (!currentRequest()) return null;
       if (current && isReliablePosition(current.accuracy)) {
+        modeRef.current = "live";
         setGeoGranted(true);
         liveRef.current = { latitude: current.latitude, longitude: current.longitude, accuracy: current.accuracy };
         setLocation({
@@ -156,7 +180,8 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
           isLiveLocation: true,
         });
         setLivePosition({ latitude: current.latitude, longitude: current.longitude, accuracy: current.accuracy });
-        saveLastLocation(current.latitude, current.longitude);
+        saveLastLocation(current.latitude, current.longitude, "live");
+        setSelectionRevision(n => n + 1);
         return { latitude: current.latitude, longitude: current.longitude, accuracy: current.accuracy };
       }
       // No precise fix: stay honest - the UI asks for the location /
@@ -165,15 +190,21 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       setError("Could not get location");
       return null;
     } catch (e) {
+      if (!currentRequest()) return null;
       console.error("Error getting live location:", e);
       setError("Could not get location");
       return null;
     } finally {
-      setLoading(false);
+      if (currentRequest()) setLoading(false);
     }
   };
 
   const setManualLocation = useCallback((lat: number, lng: number, name?: string) => {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return;
+    requestRevision.current++;
+    modeRef.current = "manual";
+    setLoading(false);
+    setError(null);
     // In-memory explore point, but remembered as the starting AREA for the
     // next session - never treated as live.
     setLocation({
@@ -182,7 +213,8 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       name: name,
       isLiveLocation: false,
     });
-    saveLastLocation(lat, lng);
+    saveLastLocation(lat, lng, "manual", name);
+    setSelectionRevision(n => n + 1);
     setRefreshKey((prev) => prev + 1);
   }, []);
 
@@ -210,6 +242,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   // (stale WiFi/IP database, city-level accuracy) are ignored entirely -
   // a wrong position must never be shown as live.
   const applyFix = useCallback((pos: FreshPosition) => {
+    if (!mounted.current || modeRef.current !== "live") return;
     if (!isReliablePosition(pos.accuracy)) return;
     const cur = liveRef.current;
     if (cur) {
@@ -219,7 +252,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     }
     liveRef.current = { latitude: pos.latitude, longitude: pos.longitude, accuracy: pos.accuracy };
     setLivePosition({ latitude: pos.latitude, longitude: pos.longitude, accuracy: pos.accuracy });
-    saveLastLocation(pos.latitude, pos.longitude);
+    saveLastLocation(pos.latitude, pos.longitude, "live");
     if (locationRef.current && !locationRef.current.isLiveLocation) return;
     // When the area is live, it follows the user.
     setLocation({
@@ -234,7 +267,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   // continuously so the pin follows the user live (Google Maps style).
   // Only runs once the permission is granted - never prompts on its own.
   useEffect(() => {
-    if (!sessionToken || geoGranted !== true) return;
+    if (geoGranted !== true || locationMode !== "live") return;
     let stopWatch: (() => void) | null = null;
     const oneShot = () => {
       getCurrentPositionWithPermission({ timeoutMs: 15000 })
@@ -271,13 +304,16 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       if (stopWatch) stopWatch();
       sub.remove();
     };
-  }, [applyFix, sessionToken, geoGranted]);
+  }, [applyFix, sessionToken, geoGranted, locationMode]);
 
   return (
     <LocationContext.Provider
       value={{
         location,
         livePosition,
+        mapPosition: location,
+        locationMode,
+        selectionRevision,
         loading,
         error,
         setManualLocation,
@@ -298,4 +334,9 @@ export function useLocation() {
     throw new Error("useLocation must be used within a LocationProvider");
   }
   return context;
+}
+
+/** Shared map renderers can also be embedded outside the application shell. */
+export function useOptionalLocation() {
+  return useContext(LocationContext);
 }

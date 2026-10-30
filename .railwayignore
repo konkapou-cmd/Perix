@@ -1,8 +1,73 @@
+# ---- Dependencies ----
 node_modules/
-*.apk
-android-sdkcmdline-tools.zip
-.metro-cache/
+
+# ---- Expo / Metro ----
 .expo/
+.metro-cache/
+.metro-health-check*
+dist/
+web-build/
+expo-env.d.ts
+*.tsbuildinfo
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.pytest_cache/
+venv/
+.venv/
+
+# ---- Environment / secrets ----
+.env
+.env.*
+*.env
+*.env.*
+!.env.example
+google-services.json
+play-store-key.json
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+*token.json*
+*credentials.json*
+
+# ---- Build artifacts ----
+*.apk
+*.zip
+*.tar.gz
+*.tgz
+*.bak
+*.docx
+
+# ---- IDE / OS ----
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.orig.*
+
+# ---- Logs ----
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.pnpm-debug.log*
+dump.rdb
+
+# ---- Temp / generated ----
+tsc_output.txt
+tsc_final.txt
+expo_output.txt
 nul
-com.facebook.react.devsupport.BundleDownloader
-__tests__/
+fix
+app-example
+.vercel/
+test_reports/
+
+# ---- Local opencode plans ----
+.opencode/plans/
+
+# ---- User notes ----
+Perix Reset gut zustand .txt

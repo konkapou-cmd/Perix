@@ -592,12 +592,13 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
         onEditProfile={onEditProfile}
         themeStyles={themeStyles}
       />
-      {!isOwnProfile && detail.business.latitude && detail.business.longitude && (
+      {!isOwnProfile && detail.business.latitude != null && detail.business.longitude != null && (
         <ContentMap
           latitude={detail.business.latitude}
           longitude={detail.business.longitude}
           title={detail.business.name}
           address={detail.business.address}
+          directions
           interactive={false}
           flush
         />

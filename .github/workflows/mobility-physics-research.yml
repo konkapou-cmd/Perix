@@ -1,0 +1,66 @@
+name: Mobility native physics and daily refresh safeguards
+on:
+  pull_request:
+    paths:
+      - 'Perix-main/backend/mobility/**'
+      - 'Perix-main/backend/utils/gtfs.py'
+      - 'Perix-main/backend/utils/mobility_workers.py'
+      - 'Perix-main/backend/tests/test_mobility_*.py'
+      - 'Perix-main/backend/tests/test_native_*.py'
+      - 'Perix-main/backend/tests/test_daily_network_recovery.py'
+      - 'Perix-main/backend/tools/replay_native_recalibration.py'
+      - 'Perix-main/backend/tools/build_osm_source.py'
+      - '.github/workflows/mobility-physics-research.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-native-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: Perix-main/backend
+    env:
+      MONGO_URL: mongodb://127.0.0.1:1
+      DB_NAME: perix_mobility_offline
+      MOBILITY_TIME_ALLOCATION_ENABLED: 'false'
+      MOBILITY_NATIVE_RECALIBRATION_ENABLED: 'false'
+      MOBILITY_DAILY_RECOVERY_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: Perix-main/backend/requirements.txt
+      - run: pip install -r requirements.txt pytest pytest-asyncio
+      - name: New native units first — no external services
+        run: >-
+          python -m pytest -q --junitxml=native-unit-results.xml
+          tests/test_native_recalibration.py
+          tests/test_daily_network_recovery.py
+      - name: Explicit suites only — never the destructive test_db fixture
+        run: >-
+          python -m pytest -q --junitxml=mobility-research-results.xml
+          tests/test_native_recalibration.py
+          tests/test_daily_network_recovery.py
+          tests/test_mobility_time_allocation.py tests/test_mobility_motion_common.py
+          tests/test_mobility_motion_bus_tram.py tests/test_mobility_motion_engine.py
+          tests/test_mobility_motion_handover.py tests/test_mobility_motion_fusion.py
+          tests/test_mobility_motion_diagnostics.py tests/test_mobility_motion_explain.py
+          tests/test_mobility_motion_initial_speed.py tests/test_mobility_motion_lateness.py
+          tests/test_mobility_motion_calibration.py tests/test_mobility_motion_engine_observability.py
+          tests/test_mobility_motion_google_traffic.py tests/test_mobility_traffic_profiles.py
+          tests/test_mobility_effective_timeline.py tests/test_mobility_effective_consumers.py
+          tests/test_mobility_motion_diagnostic_refresh.py
+          tests/test_mobility_generation_readiness.py tests/test_mobility_generation_fingerprints.py
+          tests/test_mobility_signal_semantics.py tests/test_mobility_signal_clustering.py
+          tests/test_gtfs_island_integrity.py tests/test_mobility_timeline_contract.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mobility-research-results
+          path: |
+            Perix-main/backend/mobility-research-results.xml
+            Perix-main/backend/native-unit-results.xml

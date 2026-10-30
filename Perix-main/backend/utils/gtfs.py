@@ -49,7 +49,20 @@ def _hhmm(s: str) -> str:
     p = str(s).strip().split(":")
     if len(p) < 2:
         return str(s).strip()
-    return f"{int(p[0]):02d}:{int(p[1]):02d}"
+    result = f"{int(p[0]):02d}:{int(p[1]):02d}"
+    return f"{result}:{int(p[2]):02d}" if len(p) == 3 and int(p[2]) else result
+
+
+def _time_seconds(value: str, context: str) -> int:
+    parts = value.strip().split(":")
+    if (
+        len(parts) not in (2, 3)
+        or any(not p.isascii() or not p.isdigit() for p in parts)
+        or int(parts[1]) >= 60
+        or (len(parts) == 3 and int(parts[2]) >= 60)
+    ):
+        raise ValueError(f"{context}: invalid GTFS time {value!r}")
+    return int(parts[0]) * 3600 + int(parts[1]) * 60 + (int(parts[2]) if len(parts) == 3 else 0)
 
 
 def _active_service_ids(zf: zipfile.ZipFile, service_date: date) -> set:
@@ -135,6 +148,7 @@ def _parse_zip(source, service_date, agency_regex, timezone) -> dict:
             else:
                 mode = "bus"
             selected_routes[r["route_id"]] = {
+                "agency_id": r.get("agency_id", ""),
                 "route_number": (r.get("route_short_name") or r.get("route_long_name") or r["route_id"]).strip(),
                 "name": (r.get("route_long_name") or "").strip(),
                 "mode": mode,
@@ -146,6 +160,8 @@ def _parse_zip(source, service_date, agency_regex, timezone) -> dict:
                 continue
             trips[r["trip_id"]] = {
                 "route_id": r["route_id"],
+                "direction_id": (r.get("direction_id") or "").strip(),
+                "service_id": r["service_id"],
                 "headsign": (r.get("trip_headsign") or "").strip(),
                 "shape_id": (r.get("shape_id") or "").strip(),
                 "block_id": (r.get("block_id") or "").strip() or None,
@@ -180,8 +196,15 @@ def _parse_zip(source, service_date, agency_regex, timezone) -> dict:
             dep = r.get("departure_time") or arr
             if not dep:
                 continue
+            context = f"trip {tid!r}, stop {r['stop_id']!r}, stop_sequence {r.get('stop_sequence')!r}"
+            _time_seconds(arr or dep, f"{context}, arrival_time")
+            _time_seconds(dep, f"{context}, departure_time")
+            try:
+                sequence = int(r.get("stop_sequence") or 0)
+            except ValueError as exc:
+                raise ValueError(f"{context}: invalid stop_sequence") from exc
             trips[tid]["times"].append(
-                (int(r.get("stop_sequence") or 0), r["stop_id"], _hhmm(arr or dep), _hhmm(dep))
+                (sequence, r["stop_id"], _hhmm(arr or dep), _hhmm(dep))
             )
 
         # Shapes (streaming, keep only shapes referenced by the selected trips)
@@ -200,18 +223,38 @@ def _parse_zip(source, service_date, agency_regex, timezone) -> dict:
         for sid in shapes:
             shapes[sid] = [[lat, lng] for _, lat, lng in sorted(shapes[sid], key=lambda x: x[0])]
 
-        # Group trips by public line number + mode
+        # Keep legacy public labels unless different agencies share one.
+        public_agencies = defaultdict(set)
+        for base in selected_routes.values():
+            public_agencies[(base["route_number"], base["mode"])].add(base["agency_id"])
         grouped = {}
         for tid, t in trips.items():
             base = selected_routes[t["route_id"]]
-            key = (base["route_number"], base["mode"])
+            public_key = (base["route_number"], base["mode"])
+            label = (
+                f"{base['agency_id']}/{base['route_number']}"
+                if len(public_agencies[public_key]) > 1 else base["route_number"]
+            )
+            key = (label, base["mode"], base["agency_id"])
             seqs = sorted(t["times"], key=lambda x: x[0])
+            previous_departure = None
+            for sequence, sid, arr, dep in seqs:
+                context = f"trip {tid!r}, stop {sid!r}, stop_sequence {sequence}"
+                arrival = _time_seconds(arr, context)
+                departure = _time_seconds(dep, context)
+                if departure < arrival:
+                    raise ValueError(f"{context}: departure_time {dep!r} precedes arrival_time {arr!r}")
+                if previous_departure is not None and arrival < previous_departure:
+                    raise ValueError(f"{context}: arrival_time {arr!r} precedes previous departure_time")
+                previous_departure = departure
             if len(seqs) < 2:
                 continue
             g = grouped.setdefault(
                 key,
                 {
-                    "route_number": base["route_number"],
+                    "route_number": label,
+                    "public_route_number": base["route_number"],
+                    "agency_id": base["agency_id"],
                     "name": base["name"] or base["route_number"],
                     "mode": base["mode"],
                     "_stop_ids": [],
@@ -235,6 +278,10 @@ def _parse_zip(source, service_date, agency_regex, timezone) -> dict:
             g["trips"].append(
                 {
                     "trip_id": tid,
+                    "agency_id": base["agency_id"],
+                    "gtfs_route_id": t["route_id"],
+                    "direction_id": t["direction_id"],
+                    "service_id": t["service_id"],
                     "headsign": headsign,
                     "start": seqs[0][3],
                     "end": seqs[-1][3],
@@ -243,6 +290,11 @@ def _parse_zip(source, service_date, agency_regex, timezone) -> dict:
                     # route.stops below is only a union for discovery/UI
                     # and must not define direction or progress.
                     "stop_ids": [sid for _seq, sid, _arr, _dep in seqs],
+                    "stop_sequences": [seq for seq, _sid, _arr, _dep in seqs],
+                    "stop_times_sequence": [
+                        {"stop_sequence": seq, "stop_id": sid, "arrival_time": arr, "departure_time": dep}
+                        for seq, sid, arr, dep in seqs
+                    ],
                     "stop_times": stop_times,
                     "stop_times_arrival": stop_times_arrival,
                     "shape_id": t["shape_id"] or None,
@@ -253,6 +305,8 @@ def _parse_zip(source, service_date, agency_regex, timezone) -> dict:
         for key, g in sorted(grouped.items(), key=lambda kv: (kv[0][1], kv[0][0])):
             route = {
                 "route_number": g["route_number"],
+                "public_route_number": g["public_route_number"],
+                "agency_id": g["agency_id"],
                 "name": g["name"],
                 "mode": g["mode"],
                 "stops": [stops[sid] for sid in g["_stop_ids"] if sid in stops],
