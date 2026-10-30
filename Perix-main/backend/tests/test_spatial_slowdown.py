@@ -291,3 +291,21 @@ def test_active_stop_triad_changes_via_existing_cache_and_handover(monkeypatch):
     assert moving['progress_m']>400 and moving['next_timeline_index']==2
     assert moving['fit']=='SPATIAL_SLOWDOWN'
     assert moving['spatial_slowdown']['priors'][0]['progress_m']==600
+
+
+def test_two_to_one_lane_drop_adds_an_upstream_slowdown_point():
+    edges=[{'edge_id':'a','from_m':0,'to_m':500,'from_node':1,'to_node':2,
+             'way':{'highway':'primary','directional_lanes':2}},
+           {'edge_id':'b','from_m':500,'to_m':1000,'from_node':2,'to_node':3,
+             'way':{'highway':'primary','directional_lanes':1}}]
+    infra={'signals':[],'edges':edges}
+    priors=engine._spatial_slowdown_priors(infra,'bus',0,1000,{}, {'turn_speed_kmh':{}})
+    assert [p['kind'] for p in priors]==['MODELED_LANE_DROP']
+    assert priors[0]['progress_m']==500
+
+
+def test_missing_lane_tags_invent_no_lane_drop_point():
+    edges=[{'edge_id':'a','from_m':0,'to_m':500,'from_node':1,'to_node':2,'way':{'highway':'primary'}},
+           {'edge_id':'b','from_m':500,'to_m':1000,'from_node':2,'to_node':3,'way':{'highway':'primary'}}]
+    infra={'signals':[],'edges':edges}
+    assert engine._spatial_slowdown_priors(infra,'bus',0,1000,{}, {'turn_speed_kmh':{}})==[]

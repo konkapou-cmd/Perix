@@ -231,6 +231,15 @@ def _spatial_slowdown_priors(infra, mode, start_m, end_m, traffic, config):
         roundabout=(b.get('way') or {}).get('junction')=='roundabout' and (a.get('way') or {}).get('junction')!='roundabout'
         if roundabout or len(neighbors.get(node,()))>=3:
             candidates.append({'progress_m':float(a['to_m']),'kind':'MODELED_JUNCTION_APPROACH','anchor_id':str(node)})
+        try:
+            lanes_a=float((a.get('way') or {}).get('directional_lanes') or (a.get('way') or {}).get('lanes') or 0)
+            lanes_b=float((b.get('way') or {}).get('directional_lanes') or (b.get('way') or {}).get('lanes') or 0)
+        except (TypeError,ValueError):
+            lanes_a,lanes_b=0,0
+        if lanes_a>=2 and lanes_b==1:
+            # 2→1 merge nose: queue forms upstream on the dropped arm.
+            # Missing lane tags invent nothing.
+            candidates.append({'progress_m':float(a['to_m']),'kind':'MODELED_LANE_DROP','anchor_id':str(b.get('edge_id'))})
     out=[]
     for point in sorted(candidates,key=lambda p:p['progress_m']):
         if not start_m+5 < point['progress_m'] < end_m-20:
