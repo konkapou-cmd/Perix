@@ -33,7 +33,11 @@ const BACKEND_URL =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
   process.env.EXPO_PUBLIC_BACKEND_URL;
 
-export default function ServiceDetailPage() {
+export default function ServiceRoute() {
+  return <GuestEntityRoute kind="service"><ServiceDetailPage /></GuestEntityRoute>;
+}
+
+function ServiceDetailPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { sessionToken, user } = useAuth();
@@ -639,3 +643,4 @@ const styles = StyleSheet.create({
   moduleLabel: { fontSize: FONT_SIZES.caption, color: COLORS.textMuted, width: 110 },
   moduleValue: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary, fontWeight: "600", flex: 1 },
 });
+import GuestEntityRoute from "../../components/city/GuestEntityRoute";

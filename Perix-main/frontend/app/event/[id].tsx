@@ -56,7 +56,11 @@ import {
   APP_URL,
 } from "../../lib/api";
 
-export default function EventDetailPage() {
+export default function EventRoute() {
+  return <GuestEntityRoute kind="event"><EventDetailPage /></GuestEntityRoute>;
+}
+
+function EventDetailPage() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { sessionToken, user } = useAuth();
@@ -682,3 +686,4 @@ const styles = StyleSheet.create({
   passwordModalSubmit: { paddingVertical: SPACING.gap, paddingHorizontal: SPACING.section, borderRadius: BORDER_RADIUS.md, backgroundColor: COLORS.eventAccent },
   passwordModalSubmitText: { color: "#fff", fontWeight: "600" },
 });
+import GuestEntityRoute from "../../components/city/GuestEntityRoute";

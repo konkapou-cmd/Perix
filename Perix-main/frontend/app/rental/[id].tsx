@@ -19,7 +19,11 @@ function muxFallback(videoUrl?: string | null): string | null {
   return m ? `https://image.mux.com/${m[1]}/thumbnail.jpg` : null;
 }
 
-export default function RentalDetailPage() {
+export default function RentalRoute() {
+  return <GuestEntityRoute kind="rental"><RentalDetailPage /></GuestEntityRoute>;
+}
+
+function RentalDetailPage() {
   const { t } = useTranslation();
   const { id: rawId } = useLocalSearchParams<{ id?: string | string[] }>();
   const id = normalizeId(rawId);
@@ -320,3 +324,4 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
 });
+import GuestEntityRoute from "../../components/city/GuestEntityRoute";

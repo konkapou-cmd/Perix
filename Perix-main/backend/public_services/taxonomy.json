@@ -1,0 +1,49 @@
+{
+  "id": "public-services",
+  "label_el": "Δημόσιες Υπηρεσίες",
+  "label_de": "Öffentliche Dienste",
+  "icon": "business-outline",
+  "children": [
+    {"id":"ps:new-in-city","label_el":"Νέος στην πόλη","label_de":"Neu in der Stadt","icon":"compass-outline","children":[
+      {"id":"ps:new-in-city:buergerbuero","label_el":"Bürgerbüro","label_de":"Bürgerbüro"},
+      {"id":"ps:new-in-city:registration","label_el":"Anmeldung / Ummeldung / Abmeldung","label_de":"Anmeldung / Ummeldung / Abmeldung"},
+      {"id":"ps:new-in-city:immigration","label_el":"Aufenthalt / Ausländerbehörde","label_de":"Aufenthalt / Ausländerbehörde"},
+      {"id":"ps:new-in-city:naturalisation","label_el":"Einbürgerung","label_de":"Einbürgerung"}
+    ]},
+    {"id":"ps:family","label_el":"Οικογένεια & Παιδιά","label_de":"Familie & Kinder","icon":"people-outline","children":[
+      {"id":"ps:family:benefits","label_el":"Kindergeld / Elterngeld","label_de":"Kindergeld / Elterngeld"},
+      {"id":"ps:family:childcare","label_el":"Kita / Jugendamt","label_de":"Kita / Jugendamt"},
+      {"id":"ps:family:education","label_el":"Εκπαίδευση","label_de":"Bildung"}
+    ]},
+    {"id":"ps:work-benefits","label_el":"Εργασία & Παροχές","label_de":"Arbeit & Leistungen","icon":"briefcase-outline","children":[
+      {"id":"ps:work-benefits:jobcenter","label_el":"Jobcenter","label_de":"Jobcenter"},
+      {"id":"ps:work-benefits:employment-agency","label_el":"Arbeitsagentur","label_de":"Arbeitsagentur"},
+      {"id":"ps:work-benefits:housing-benefit","label_el":"Wohngeld","label_de":"Wohngeld"},
+      {"id":"ps:work-benefits:social-office","label_el":"Sozialamt","label_de":"Sozialamt"}
+    ]},
+    {"id":"ps:health","label_el":"Υγεία & Φροντίδα","label_de":"Gesundheit & Pflege","icon":"medkit-outline","children":[
+      {"id":"ps:health:health-office","label_el":"Gesundheitsamt","label_de":"Gesundheitsamt"},
+      {"id":"ps:health:hospitals","label_el":"Νοσοκομεία","label_de":"Krankenhäuser"},
+      {"id":"ps:health:insurance-care","label_el":"Ασφάλιση / Περίθαλψη","label_de":"Versicherung / Versorgung"}
+    ]},
+    {"id":"ps:business-professionals","label_el":"Επιχειρήσεις & Επαγγελματίες","label_de":"Unternehmen & Berufstätige","icon":"storefront-outline","children":[
+      {"id":"ps:business-professionals:trade-office","label_el":"Gewerbeamt","label_de":"Gewerbeamt"},
+      {"id":"ps:business-professionals:tax-office","label_el":"Finanzamt","label_de":"Finanzamt"},
+      {"id":"ps:business-professionals:chambers","label_el":"IHK / HWK","label_de":"IHK / HWK"},
+      {"id":"ps:business-professionals:permits","label_el":"Άδειες","label_de":"Genehmigungen"}
+    ]},
+    {"id":"ps:city-daily","label_el":"Δήμος & Καθημερινότητα","label_de":"Stadt & Alltag","icon":"home-outline","children":[
+      {"id":"ps:city-daily:vehicles-licences","label_el":"Kfz / Führerschein","label_de":"Kfz / Führerschein"},
+      {"id":"ps:city-daily:public-order","label_el":"Ordnungsamt","label_de":"Ordnungsamt"},
+      {"id":"ps:city-daily:citizen-services","label_el":"Bürgerdienste","label_de":"Bürgerdienste"},
+      {"id":"ps:city-daily:recycling","label_el":"Ανακύκλωση","label_de":"Recycling"},
+      {"id":"ps:city-daily:infrastructure","label_el":"Δημοτικές υποδομές","label_de":"Kommunale Infrastruktur"}
+    ]},
+    {"id":"ps:sos","label_el":"Έκτακτη ανάγκη – SOS","label_de":"Notfall – SOS","icon":"warning-outline","children":[
+      {"id":"ps:sos:police","label_el":"Αστυνομία","label_de":"Polizei"},
+      {"id":"ps:sos:fire-rescue","label_el":"Πυροσβεστική / Διασώστες","label_de":"Feuerwehr / Rettungsdienst"},
+      {"id":"ps:sos:emergency-hospitals","label_el":"Νοσοκομεία / Επείγοντα","label_de":"Krankenhäuser / Notfallversorgung"},
+      {"id":"ps:sos:helplines","label_el":"Γραμμές 110 / 112 / 116117","label_de":"Rufnummern 110 / 112 / 116117"}
+    ]}
+  ]
+}

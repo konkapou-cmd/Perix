@@ -53,7 +53,11 @@ import ChatSection from "../../components/shared/ChatSection";
 
 const PAGE_ACCENT = "#FF9F1C";
 
-export default function ActivityDetailPage() {
+export default function ActivityRoute() {
+  return <GuestEntityRoute kind="activity"><ActivityDetailPage /></GuestEntityRoute>;
+}
+
+function ActivityDetailPage() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { sessionToken, user } = useAuth();
@@ -530,3 +534,4 @@ const styles = StyleSheet.create({
   themedAlertButton: { backgroundColor: PAGE_ACCENT, paddingHorizontal: SPACING.large, paddingVertical: SPACING.compact, borderRadius: BORDER_RADIUS.md, width: "100%", alignItems: "center" },
   themedAlertButtonText: { color: "#fff", fontSize: FONT_SIZES.body, fontWeight: "600" },
 });
+import GuestEntityRoute from "../../components/city/GuestEntityRoute";

@@ -36,6 +36,8 @@ from routes.reports import router as reports_router
 from routes.mobility import router as mobility_router
 from routes.account_deletion import router as account_deletion_router
 from routes.push_web import router as push_web_router
+from routes.public_services import router as public_services_router
+from routes.city_public import router as city_public_router
 
 # Create main API router
 api_router = APIRouter(prefix="/api")
@@ -83,6 +85,8 @@ api_router.include_router(mobility_telemetry_router)
 api_router.include_router(reports_router)
 api_router.include_router(account_deletion_router)
 api_router.include_router(push_web_router)
+api_router.include_router(public_services_router)
+api_router.include_router(city_public_router)
 
 
 @api_router.get("/")

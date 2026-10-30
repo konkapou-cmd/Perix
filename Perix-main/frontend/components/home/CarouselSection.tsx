@@ -16,6 +16,7 @@ interface CarouselSectionProps {
   title: string;
   icon: keyof typeof Ionicons.glyphMap;
   color?: string;
+  activeFilterTextColor?: string;
   seeAllRoute?: any;
   filters?: {
     options: FilterOption[];
@@ -30,7 +31,7 @@ interface CarouselSectionProps {
   children: React.ReactNode;
 }
 
-export function CarouselSection({ title, icon, color, seeAllRoute, filters, emptyMessage, hideWhenEmpty, layout = "carousel", children }: CarouselSectionProps) {
+export function CarouselSection({ title, icon, color, activeFilterTextColor, seeAllRoute, filters, emptyMessage, hideWhenEmpty, layout = "carousel", children }: CarouselSectionProps) {
   const router = useRouter();
   const { t } = useTranslation();
   const hasContent = React.Children.count(children) > 0;
@@ -66,7 +67,7 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
                 style={[styles.filterChip, filters.activeKey === opt.key && { backgroundColor: accent, borderColor: accent }]}
                 onPress={() => filters.onChange(opt.key)}
               >
-                <Text style={[styles.filterChipText, filters.activeKey === opt.key && { color: COLORS.textLight, fontWeight: "600" }]}>
+                <Text style={[styles.filterChipText, filters.activeKey === opt.key && { color: activeFilterTextColor || COLORS.textLight, fontWeight: "600" }]}>
                   {opt.label}
                 </Text>
               </Pressable>
