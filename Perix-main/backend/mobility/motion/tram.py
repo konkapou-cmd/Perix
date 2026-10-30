@@ -8,6 +8,7 @@ from mobility.motion.common import (
     trajectory_time_at_progress,
     turn_angle_degrees,
     turn_speed_cap_kmh,
+    refine_scenario_inputs,
 )
 
 MODEL_NAME = "TRAM_PHYSICS_V1"
@@ -39,6 +40,7 @@ def build_tram_leg(
     config: dict,
     recovery_ratio: float = 0.0,
     initial_speed_kmh: float = 0.0,
+    scenario: dict | None = None,
 ) -> dict:
     """Build one tram leg.
 
@@ -70,6 +72,9 @@ def build_tram_leg(
         if cap is not None:
             point_caps.append({"progress_m": boundary, "speed_cap_kmh": cap})
 
+    if scenario is not None:
+        spans, point_caps = refine_scenario_inputs(spans, leg_edges, point_caps, scenario, config, start_m, end_m)
+
     preliminary = build_speed_trajectory(
         start_m=start_m,
         end_m=end_m,
@@ -84,7 +89,7 @@ def build_tram_leg(
 
     mandatory = []
     cumulative_hold = 0.0
-    if bool(config.get("rail_signal_enabled", False)):
+    if scenario is None and bool(config.get("rail_signal_enabled", False)):
         for signal in sorted(signals or [], key=lambda x: float(x.get("progress_m") or 0.0)):
             kinds = set(signal.get("kinds") or [])
             progress = float(signal.get("progress_m") or 0.0)
@@ -132,4 +137,5 @@ def build_tram_leg(
         "recovery_ratio": ratio,
         "traffic_edge_count": 0,
         "signal_stop_count": len(mandatory),
+        **({'turn_events': point_caps, 'speed_constraints': spans, 'hypothetical': True} if scenario is not None else {}),
     }

@@ -71,9 +71,16 @@ test_reports/
 # ---- Local opencode plans ----
 .opencode/plans/
 
+# Internal third-party research previews, not redistributable runtime feeds.
+Perix-main/backend/data/review/ISLAND_PROVISIONAL_SCHEDULE_*.json
+Perix-main/backend/data/review/ISLAND_PROVISIONAL_STOP_TIMES_*.csv
+Perix-main/backend/data/review/ISLAND_OSM_STOP_CATALOG_*.json
+
 # ---- User notes ----
 Perix Reset gut zustand .txt
 
 # NOTE: do NOT use a bare "*.txt" here — the Railway CLI applies .gitignore
 # rules to uploads, which silently excluded backend/requirements.txt and
 # broke every deploy with "backend/requirements.txt: not found".
+.vercel
+.env*

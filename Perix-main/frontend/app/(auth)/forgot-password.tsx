@@ -23,28 +23,22 @@ export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [token, setToken] = useState("");
   const [sent, setSent] = useState(false);
   const [sentMessage, setSentMessage] = useState("");
 
   const handleForgotPassword = async () => {
     if (!email.trim()) {
-      setError(t("auth.emailRequired", "E-Mail ist erforderlich"));
+      setError(t("auth.emailRequired", "Enter your email address"));
       return;
     }
     setLoading(true);
     setError("");
     try {
-      const result = await forgotPassword(email.trim());
-      if (result.reset_token) {
-        // Development fallback (no email provider configured)
-        setToken(result.reset_token);
-      } else {
-        setSent(true);
-        setSentMessage(result.message || t("auth.resetEmailSent", "Wenn die E-Mail existiert, wurde ein Link gesendet."));
-      }
+      await forgotPassword(email.trim());
+      setSent(true);
+      setSentMessage(t("auth.recoveryEmailNotice", "If an eligible account uses this email, you'll receive a password reset link. Please check your inbox and spam folder."));
     } catch (e: any) {
-      setError(e?.message || t("auth.forgotError", "Fehler beim Senden der E-Mail"));
+      setError(e?.message || t("auth.forgotError", "Couldn't request a reset link. Please try again."));
     }
     setLoading(false);
   };
@@ -71,33 +65,6 @@ export default function ForgotPasswordScreen() {
     );
   }
 
-  if (token) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.scroll}>
-          <View style={styles.card}>
-            <Ionicons name="checkmark-circle" size={64} color={COLORS.success} style={{ marginBottom: 20 }} />
-            <Text style={styles.title}>{t("auth.resetTokenReady", "Passwort-Reset-Token")}</Text>
-            <Text style={styles.desc}>
-              {t("auth.resetTokenDesc", "Kopiere diesen Code, um dein Passwort zurückzusetzen:")}
-            </Text>
-            <View style={styles.tokenBox}>
-              <Text style={styles.tokenText} selectable>{token}</Text>
-            </View>
-            <Pressable
-              style={styles.primaryButton}
-              onPress={() => router.replace("/reset-password")}
-            >
-              <Text style={styles.primaryButtonText}>
-                {t("auth.continueToReset", "Zum Zurücksetzen")}
-              </Text>
-            </Pressable>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -109,9 +76,9 @@ export default function ForgotPasswordScreen() {
         </Pressable>
         <ScrollView contentContainerStyle={styles.scroll}>
           <View style={styles.card}>
-            <Text style={styles.title}>{t("auth.forgotPassword", "Passwort vergessen?")}</Text>
+            <Text style={styles.title}>{t("auth.forgotPassword", "Forgot password?")}</Text>
             <Text style={styles.desc}>
-              {t("auth.forgotPasswordDesc", "Gib deine E-Mail ein, um den Reset-Token zu erhalten.")}
+              {t("auth.recoveryEmailIntro", "Enter your account email and we'll help you get back to Perix with a secure reset link.")}
             </Text>
             <TextInput
               style={styles.input}
@@ -131,7 +98,7 @@ export default function ForgotPasswordScreen() {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.primaryButtonText}>{t("auth.sendResetToken", "Token senden")}</Text>
+                <Text style={styles.primaryButtonText}>{t("auth.sendRecoveryLink", "Send reset link")}</Text>
               )}
             </Pressable>
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -169,14 +136,4 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.6 },
   errorText: { color: COLORS.danger, marginTop: 12, fontSize: 14, textAlign: "center" },
   backBtn: { padding: 16 },
-  tokenBox: {
-    width: "100%",
-    backgroundColor: COLORS.backgroundPage,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  tokenText: { fontSize: 13, color: COLORS.textPrimary, fontFamily: "monospace", textAlign: "center" },
 });

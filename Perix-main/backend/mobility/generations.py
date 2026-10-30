@@ -398,6 +398,7 @@ async def build_pattern_generation(
             "resolved_pairs": len(
                 [s for s in (routed.get("segments") or []) if s.get("ok")]
             ),
+            **({'snap_diagnostics': routed['snap_diagnostics']} if 'snap_diagnostics' in routed else {}),
         }
 
     validation = validate_geometry(points, coords)

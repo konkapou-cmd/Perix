@@ -14,6 +14,11 @@ type MapMarker = {
   estimated?: boolean;
   label?: string | null;
   path?: { latitude: number; longitude: number }[];
+  journeyId?: string | null;
+  progressM?: number | null;
+  positionState?: string | null;
+  speed?: number | null;
+  motionState?: string | null;
 };
 
 type MapBounds = {
@@ -98,6 +103,8 @@ type Props = {
   disabled?: boolean;
   disabledHint?: string;
   staticMode?: boolean;
+  onReadyChange?: (ready: boolean) => void;
+  showTrafficLayer?: boolean;
 };
 
 declare const BusinessMap: React.FC<Props>;

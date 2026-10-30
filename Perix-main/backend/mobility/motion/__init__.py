@@ -15,8 +15,15 @@ async def position_for_trip(**kwargs):
     return await _position(**kwargs)
 
 
+async def effective_timeline_for_trip(**kwargs):
+    from mobility.motion.engine import effective_timeline_for_trip as _timeline
+
+    return await _timeline(**kwargs)
+
+
 __all__ = [
     "MOTION_SCHEMA_VERSION",
     "clear_motion_cache",
     "position_for_trip",
+    "effective_timeline_for_trip",
 ]

@@ -8,6 +8,8 @@ import { Business, EventItem, ActivityItem, ArtistSearchResult, Rental, Job, Ser
 import { formatEventDate } from "../lib/formatDate";
 import { COLORS } from "../lib/designTokens";
 import { isBusinessOpen } from "../lib/openingHours";
+import { useMapSelection } from "../hooks/useMapSelection";
+import MapLocationControl from "./shared/MapLocationControl";
 
 type MapMarker = {
   id: string;
@@ -21,6 +23,7 @@ type MapMarker = {
   type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service" | "product" | "bus" | "tram" | "taxi";
   heading?: number | null;
   estimated?: boolean;
+  label?: string | null;
   path?: { latitude: number; longitude: number }[];
 };
 
@@ -55,6 +58,7 @@ type Props = {
   services?: Service[];
   markers?: MapMarker[];
   extraMarkers?: MapMarker[];
+  planLines?: { points: { latitude: number; longitude: number }[]; color: string; weight?: number; opacity?: number }[];
   transitLines?: {
     points: { latitude: number; longitude: number }[];
     color: string;
@@ -109,6 +113,7 @@ export default function BusinessMap({
   services = [] as Service[],
   markers,
   extraMarkers,
+  planLines = [],
   transitLines = [],
   onTransitLineClick,
   transitStops = [],
@@ -124,6 +129,8 @@ export default function BusinessMap({
   disabledHint = "Tap to enable location",
   staticMode = false,
 }: Props) {
+  const selection = useMapSelection();
+  const originChoiceRef = useRef(selection.revision);
   const generatedMarkers: MapMarker[] = [
     ...businesses
       .filter(b => b.latitude != null && b.longitude != null)
@@ -320,6 +327,13 @@ export default function BusinessMap({
     }, 500);
   };
 
+  useEffect(() => {
+    if (!mapRef.current || originChoiceRef.current === selection.revision) return;
+    originChoiceRef.current = selection.revision;
+    if (selection.position) mapRef.current.animateToRegion({ ...selection.position,
+      latitudeDelta: 0.05, longitudeDelta: 0.05 }, 500);
+  }, [selection.revision, selection.position]);
+
   const handleMapPress = (event: any) => {
     if (onMapPress && !disabled) {
       const { latitude, longitude } = event.nativeEvent.coordinate;
@@ -398,7 +412,7 @@ export default function BusinessMap({
       <MapView
         ref={mapRef}
         style={styles.map}
-        showsUserLocation={showUserLocation}
+        showsUserLocation={!selection.available && showUserLocation}
         initialRegion={resolvedInitialRegion}
         customMapStyle={mapStyle}
         onRegionChangeComplete={handleRegionChangeComplete}
@@ -408,6 +422,11 @@ export default function BusinessMap({
         pitchEnabled={!staticMode}
         rotateEnabled={!staticMode}
       >
+        {selection.position ? <Marker identifier="perix-origin" coordinate={selection.position}
+          title={selection.mode === "manual" ? selection.position.name || "Selected location" : "Live location"}
+          pinColor={selection.mode === "manual" ? COLORS.eventsAccent : COLORS.primary} /> : null}
+        {planLines.map((line, index) => <Polyline key={`journey-${index}`} coordinates={line.points}
+          strokeColor={line.color} strokeWidth={line.weight ?? 5} tappable={false} />)}
         {transitLines.map((line, i) => (
           <Polyline
             key={`transit-line-${line.patternId || i}`}
@@ -462,6 +481,20 @@ export default function BusinessMap({
             );
           })}
         {groupedMarkers.map((group) => {
+          const vehicle = group.items[0];
+          if (group.type === "bus" || group.type === "tram") {
+            const scale = 0.78 * Math.max(0.45, Math.min(1.35, zoomLevel / 14));
+            return <Marker key={group.key} coordinate={{ latitude: group.latitude, longitude: group.longitude }}
+              anchor={{ x: 0.5, y: 0.5 }} onPress={() => onMarkerPress?.(vehicle.id)}>
+              <View style={{ width: 64 * scale, height: 64 * scale, alignItems: "center", justifyContent: "center",
+                opacity: vehicle.estimated ? 0.72 : 1 }}>
+                <Ionicons name={group.type === "tram" ? "train" : "bus"} size={32 * scale}
+                  color={group.type === "tram" ? "#8B0000" : "#1E3A8A"} />
+                {vehicle.label ? <Text style={{ color: "#fff", backgroundColor: group.type === "tram" ? "#8B0000" : "#1E3A8A",
+                  fontWeight: "800", fontSize: 12 * scale, paddingHorizontal: 4, borderRadius: 4 }}>{vehicle.label}</Text> : null}
+              </View>
+            </Marker>;
+          }
           const zoomScale = Math.max(0.8, Math.min(1.7, zoomLevel / 12));
           const groupSize = (group.count > 1 ? (group.count < 3 ? 26 : group.count < 10 ? 30 : group.count < 30 ? 34 : 40) : 20) * zoomScale;
           const groupFontSize = Math.min(17, (group.count >= 100 ? 9 : group.count >= 10 ? 10.5 : 12) * zoomScale);
@@ -499,6 +532,7 @@ export default function BusinessMap({
           );
         })}
       </MapView>
+      <MapLocationControl />
       <Modal visible={selectedGroup !== null} transparent animationType="slide" onRequestClose={() => setSelectedGroup(null)}>
         <Pressable style={styles.sheetOverlay} onPress={() => setSelectedGroup(null)}>
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>

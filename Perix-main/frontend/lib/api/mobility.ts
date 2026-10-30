@@ -1,6 +1,7 @@
 import { apiRequest, API_BASE } from "./core";
 
 export type MobilityMode = "bus" | "tram" | "taxi";
+export type TrafficContext = "baseline" | "google_locator";
 
 export type MotionDiagnostics = {
   model?: string | null;
@@ -32,7 +33,21 @@ export type MotionDiagnostics = {
   fallback_reason?: string | null;
 };
 
-export type LiveVehicle = {
+export type EffectivePrediction = {
+  motion_plan_revision?: string | null;
+  next_timeline_index?: number | null;
+  prediction_basis?: string;
+  realtime_feed_timestamp?: number | null;
+  realtime_updated_at?: string | null;
+  next_stop_eta_seconds?: number | null;
+  next_stop_predicted_arrival?: string | null;
+  source_next_stop_predicted_arrival?: string | null;
+  next_stop_eta_source?: string | null;
+};
+
+export type LiveVehicle = EffectivePrediction & {
+  network_version_id?: string;
+  service_date?: string;
   vehicle_id: string;
   business_id: string;
   mode: MobilityMode;
@@ -42,6 +57,7 @@ export type LiveVehicle = {
   name: string;
   registration?: string | null;
   route_number?: string | null;
+  display_route_number?: string | null;
   route_direction?: string | null;
   latitude: number | null;
   longitude: number | null;
@@ -79,9 +95,9 @@ export type DriverSession = {
   status: string;
 };
 
-export const getLiveVehicles = async (token?: string | null): Promise<LiveVehicle[]> => {
+export const getLiveVehicles = async (token?: string | null, trafficContext: TrafficContext = "baseline"): Promise<LiveVehicle[]> => {
   // Stable V2 API: the Locator no longer knows GTFS/GPS internals.
-  const raw = await apiRequest<V2Vehicle[]>("/mobility/v2/vehicles", "GET", token || undefined);
+  const raw = await apiRequest<V2Vehicle[]>(`/mobility/v2/vehicles${trafficContext === "google_locator" ? "?traffic_context=google_locator" : ""}`, "GET", token || undefined);
   return (raw || []).map((v) => {
     const ageSeconds = Math.max(0, Number(v.position?.age_seconds ?? 0));
     return {
@@ -93,6 +109,7 @@ export const getLiveVehicles = async (token?: string | null): Promise<LiveVehicl
       fleet_number: String(v.route?.number ?? ""),
       name: String(v.route?.number ?? v.vehicle_id),
       route_number: v.route?.number ?? null,
+      display_route_number: v.display_route_number ?? null,
       route_direction: v.route?.direction ?? null,
       latitude: v.position?.latitude ?? null,
       longitude: v.position?.longitude ?? null,
@@ -107,6 +124,8 @@ export const getLiveVehicles = async (token?: string | null): Promise<LiveVehicl
       accuracy_m: v.position?.accuracy_m ?? null,
       trip_id: v.trip_id ?? null,
       trip_instance_id: v.trip_instance_id ?? null,
+      network_version_id: v.network_version_id,
+      service_date: v.service_date,
       delay_minutes: v.delay_minutes ?? 0,
       next_stop_id: v.next_stop_id ?? null,
       next_stop_name: v.next_stop_name ?? null,
@@ -116,15 +135,27 @@ export const getLiveVehicles = async (token?: string | null): Promise<LiveVehicl
       position_state: v.position_state,
       geometry_pending: v.geometry_pending ?? false,
       motion: v.motion ?? null,
+      motion_plan_revision: v.motion_plan_revision,
+      next_timeline_index: v.next_timeline_index,
+      prediction_basis: v.prediction_basis,
+      realtime_feed_timestamp: v.realtime_feed_timestamp,
+      realtime_updated_at: v.realtime_updated_at,
+      next_stop_eta_seconds: v.next_stop_eta_seconds,
+      next_stop_predicted_arrival: v.next_stop_predicted_arrival,
+      source_next_stop_predicted_arrival: v.source_next_stop_predicted_arrival,
+      next_stop_eta_source: v.next_stop_eta_source,
     };
   });
 };
 
-export type V2Vehicle = {
+export type V2Vehicle = EffectivePrediction & {
+  network_version_id?: string;
+  service_date?: string;
   vehicle_id: string;
   identity_kind?: "PHYSICAL" | "VIRTUAL_REALTIME" | "VIRTUAL_SCHEDULE" | string;
   registered_vehicle_id?: string | null;
   mode: string;
+  display_route_number?: string | null;
   route?: { number?: string | null; direction?: string | null };
   position?: {
     latitude?: number | null;
@@ -153,12 +184,29 @@ export type V2Arrival = {
   trip_instance_id?: string;
   trip_id?: string;
   route_number: string;
+  display_route_number?: string;
+  display_route_source?: string;
+  position_eta_consistency?: string;
+  position_required_kmh?: number | null;
   direction?: string | null;
   mode?: string;
-  eta_seconds?: number;
+  eta_seconds?: number | null;
+  platform_id?: string;
+  source_predicted_arrival?: string;
+  source_eta_source?: string;
+  motion_plan_revision?: string | null;
   predicted?: string;
+  scheduled_arrival?: string;
+  scheduled_departure?: string;
+  predicted_arrival?: string;
+  predicted_departure?: string;
   delay_seconds?: number;
+  departure_delay_seconds?: number;
   source?: string;
+  eta_source?: "REALTIME" | "SCHEDULE" | string;
+  position_source?: "LIVE" | "ESTIMATED" | string;
+  realtime_updated_at?: string | null;
+  realtime_feed_timestamp?: number | null;
   vehicle_id: string;
   distance_to_stop_m?: number | null;
 };
@@ -171,8 +219,13 @@ export type V2MapLineStop = {
 };
 
 export type V2MapLine = {
+  network_version_id?: string;
+  service_date?: string;
+  approach_geometry_fingerprint?: string;
   pattern_id: string;
   route_number: string;
+  display_route_number?: string;
+  display_route_source?: string;
   mode?: "bus" | "tram";
   direction?: string;
   points: { latitude: number; longitude: number }[];
@@ -185,6 +238,7 @@ export type V2MapLine = {
 export type V2Map = {
   lines: V2MapLine[];
   stops: TransitStopMarker[];
+  diversion_warnings?: { route_number: string; mode?: string; direction?: string; status: string }[];
 };
 
 export const getMobilityOperatorInfo = (token: string) =>
@@ -326,10 +380,24 @@ export const getV2Map = (token: string | null | undefined) =>
 export type ServingBus = {
   vehicle_id: string;
   route_number: string;
+  display_route_number?: string;
+  position_eta_consistency?: string;
   route_direction: string;
   status: string;
-  delay_minutes: number;
-  eta_minutes: number;
+  delay_minutes: number; // signed: negative means early
+  eta_minutes: number | null;
+  platform_id?: string;
+  source_predicted_arrival?: string;
+  source_eta_source?: string;
+  motion_plan_revision?: string | null;
+  scheduled_arrival?: string;
+  scheduled_departure?: string;
+  predicted_arrival?: string;
+  predicted_departure?: string;
+  eta_source?: string;
+  position_source?: string;
+  realtime_updated_at?: string | null;
+  realtime_feed_timestamp?: number | null;
   distance_to_bus_m: number | null;
   distance_to_stop_m: number | null;
   mode?: string;
@@ -415,21 +483,41 @@ export const getBusesServing = async (
   token: string | null | undefined,
   stopId: string,
   _lat?: number | null,
-  _lng?: number | null
+  _lng?: number | null,
+  trafficContext: TrafficContext = "baseline",
+  platformId?: string
 ): Promise<ServingBus[]> => {
   // Stable V2 unified arrivals engine (LIVE / REALTIME / SCHEDULE).
+  const query: string[] = [];
+  if (trafficContext === "google_locator") query.push("traffic_context=google_locator");
+  if (platformId) query.push(`platform_id=${encodeURIComponent(platformId)}`);
   const raw = await apiRequest<V2Arrival[]>(
-    `/mobility/v2/stops/${encodeURIComponent(stopId)}/arrivals`,
+    `/mobility/v2/stops/${encodeURIComponent(stopId)}/arrivals${query.length ? `?${query.join("&")}` : ""}`,
     "GET",
     token || undefined
   );
   return (raw || []).map((a) => ({
     vehicle_id: a.vehicle_id,
     route_number: a.route_number,
+    display_route_number: a.display_route_number,
+    position_eta_consistency: a.position_eta_consistency,
     route_direction: a.direction ?? "",
     status: a.source ?? "SCHEDULE",
-    delay_minutes: Math.max(0, Math.round((a.delay_seconds ?? 0) / 60)),
-    eta_minutes: Math.max(0, Math.ceil((a.eta_seconds ?? 0) / 60)),
+    delay_minutes: Math.round((a.delay_seconds ?? 0) / 60),
+    eta_minutes: typeof a.eta_seconds === "number" && Number.isFinite(a.eta_seconds)
+      ? Math.max(0, Math.ceil(a.eta_seconds / 60)) : null,
+    platform_id: a.platform_id,
+    source_predicted_arrival: a.source_predicted_arrival,
+    source_eta_source: a.source_eta_source,
+    motion_plan_revision: a.motion_plan_revision,
+    scheduled_arrival: a.scheduled_arrival,
+    scheduled_departure: a.scheduled_departure,
+    predicted_arrival: a.predicted_arrival ?? a.predicted,
+    predicted_departure: a.predicted_departure,
+    eta_source: a.eta_source ?? a.source ?? "SCHEDULE",
+    position_source: a.position_source ?? "ESTIMATED",
+    realtime_updated_at: a.realtime_updated_at,
+    realtime_feed_timestamp: a.realtime_feed_timestamp,
     distance_to_bus_m: null,
     distance_to_stop_m: a.distance_to_stop_m ?? null,
     mode: a.mode,
@@ -437,16 +525,24 @@ export const getBusesServing = async (
 };
 
 export type TripStopProgress = {
+  source_predicted?: string;
+  predicted_departure?: string;
+  prediction_basis?: string;
   stop_id: string;
   name: string;
   scheduled: string | null;
   delay_seconds: number;
   predicted: string;
   passed: boolean;
+  skipped?: boolean;
+  schedule_relationship?: string;
 };
 
 export type VehicleTripProgress = {
+  motion_plan_revision?: string | null;
+  next_timeline_index?: number | null;
   vehicle_id: string;
+  trip_id?: string | null;
   route_number: string;
   route_direction: string;
   mode: string;
@@ -456,9 +552,9 @@ export type VehicleTripProgress = {
   stops: TripStopProgress[];
 };
 
-export const getVehicleTrip = (token: string | null | undefined, vehicleId: string) =>
+export const getVehicleTrip = (token: string | null | undefined, vehicleId: string, trafficContext: TrafficContext = "baseline") =>
   apiRequest<VehicleTripProgress>(
-    `/mobility/vehicles/${encodeURIComponent(vehicleId)}/trip`,
+    `/mobility/vehicles/${encodeURIComponent(vehicleId)}/trip${trafficContext === "google_locator" ? "?traffic_context=google_locator" : ""}`,
     "GET",
     token || undefined
   );
@@ -468,6 +564,14 @@ export const getVehicleTrip = (token: string | null | undefined, vehicleId: stri
 // ---------------------------------------------------------------------------
 
 export type PlanLeg = {
+  trip_id?: string;
+  trip_instance_id?: string;
+  pattern_id?: string;
+  board_stop_id?: string;
+  alight_stop_id?: string;
+  board_timeline_index?: number;
+  board_progress_m?: number;
+  board_geometry_fingerprint?: string;
   type: "walk" | "walk_transfer" | "ride";
   minutes: number;
   label?: string;

@@ -39,9 +39,10 @@ def test_handover_finds_current_leg():
 def test_717m_backward_resample_can_never_be_emitted():
     guarded = continuity_guard(
         {"progress_m": 120.0, "speed_kmh": 35.0, "motion_state": "MOVING"},
-        {"progress_m": 837.0},
+        {"progress_m": 837.0, "speed_kmh": 30.0},
     )
     assert guarded["progress_m"] == 837.0
+    assert guarded["speed_kmh"] == 30.0
     assert guarded["backward_resample_prevented_m"] == 717.0
     assert guarded["motion_state"] == "CONTINUITY_GUARD"
 

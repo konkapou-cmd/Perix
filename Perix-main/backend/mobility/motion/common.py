@@ -80,6 +80,72 @@ def turn_speed_cap_kmh(angle_deg: float, rules: dict) -> Optional[float]:
     return selected
 
 
+def directed_turn_caps(edges: list[dict], start_m: float, end_m: float,
+                       rules: dict, window_m: float = 20.0) -> list[dict]:
+    """Opt-in, fixed-distance bearings on the existing directed edge chain.
+
+    The window is a geometric modeling criterion, not a measured road feature.
+    Never bridge disconnected topology. Tiny polyline zigzags cancel over the
+    window instead of becoming independent intersection turns.
+    """
+    if not math.isfinite(window_m) or window_m <= 0:
+        return []
+
+    def point(progress):
+        for edge in edges:
+            a, b = float(edge['from_m']), float(edge['to_m'])
+            if a <= progress <= b and b > a:
+                ratio = (progress - a) / (b - a)
+                p, q = edge['from_point'], edge['to_point']
+                return [p[i] + ratio * (q[i] - p[i]) for i in (0, 1)]
+        return None
+
+    out = []
+    for index, (a, b) in enumerate(zip(edges, edges[1:])):
+        p = float(a.get('to_m') or 0)
+        if not start_m < p < end_m or a.get('to_node') is None or a.get('to_node') != b.get('from_node'):
+            continue
+        lo, hi = max(start_m, p - window_m), min(end_m, p + window_m)
+        chain = [e for e in edges if e['to_m'] > lo and e['from_m'] < hi]
+        if any(x.get('to_node') != y.get('from_node') or abs(x['to_m'] - y['from_m']) > .01
+               for x, y in zip(chain, chain[1:])):
+            continue
+        try:
+            before, center, after = point(lo), point(p), point(hi)
+            if not before or not center or not after:
+                continue
+            angle = turn_angle_degrees({'from_point': before, 'to_point': center},
+                                       {'from_point': center, 'to_point': after})
+        except (KeyError, TypeError, ValueError):
+            continue
+        cap = turn_speed_cap_kmh(angle, rules)
+        if cap is not None:
+            out.append({'progress_m': p, 'speed_cap_kmh': cap, 'angle_deg': angle,
+                        'from_edge_id': a.get('edge_id'), 'to_edge_id': b.get('edge_id'),
+                        'kind': 'MODELED_TURN', 'window_m': window_m})
+    return out
+
+
+def refine_scenario_inputs(spans, edges, point_caps, scenario, config, start_m, end_m):
+    """Pure opt-in input refinement; baseline builders never enter this path."""
+    spans = [dict(s) for s in spans]
+    for span in spans:
+        edge = next((e for e in edges if str(e.get('edge_id')) == span.get('edge_id')), {})
+        posted = (edge.get('way') or {}).get('maxspeed_kmh')
+        valid = isinstance(posted, (int, float)) and not isinstance(posted, bool) and math.isfinite(posted) and posted > 0
+        if valid:
+            span['speed_cap_kmh'] = min(span['speed_cap_kmh'], posted, config['max_speed_kmh'])
+        span['limit_basis'] = 'OSM_TAG' if valid else 'MODELED_DEFAULT'
+        # Even an OSM tag is source evidence, not a legal certification.
+        span['legal_limit_verified'] = False
+        if span['edge_id'] in scenario.get('slow_edge_ids', []):
+            span['speed_cap_kmh'] *= max(.1, min(1., scenario.get('speed_factor', 1.)))
+    if scenario.get('refine_turns'):
+        point_caps = directed_turn_caps(edges, start_m, end_m, config.get('turn_speed_kmh') or {},
+                                        float(config.get('turn_window_m', 20.0)))
+    return spans, point_caps
+
+
 def _unique_positions(values: Iterable[float], epsilon: float = 0.001) -> list[float]:
     out = []
     for value in sorted(float(x) for x in values):
@@ -90,13 +156,16 @@ def _unique_positions(values: Iterable[float], epsilon: float = 0.001) -> list[f
 
 def _cap_at(progress_m: float, spans: list[dict]) -> float:
     caps = []
+    fallback = []
     for span in spans:
+        speed = kmh_to_mps(float(span["speed_cap_kmh"]))
+        speed = speed if math.isfinite(speed) and speed > 0.0 else 1e-9
+        fallback.append(speed)
         if float(span["from_m"]) - 0.001 <= progress_m <= float(span["to_m"]) + 0.001:
-            caps.append(kmh_to_mps(float(span["speed_cap_kmh"])))
+            caps.append(speed)
     if caps:
-        return max(0.1, min(caps))
-    fallback = [kmh_to_mps(float(x["speed_cap_kmh"])) for x in spans]
-    return max(0.1, min(fallback)) if fallback else kmh_to_mps(10.0)
+        return min(caps)
+    return min(fallback) if fallback else kmh_to_mps(10.0)
 
 
 def build_speed_trajectory(
@@ -204,24 +273,34 @@ def build_speed_trajectory(
         if ds <= 0.0:
             continue
 
-        if v0 + v1 > 0.05:
-            dt = 2.0 * ds / max(0.05, v0 + v1)
+        if v0 + v1 > 0.0:
+            phases = [(p0, p1, v0, v1, 2.0 * ds / (v0 + v1))]
         else:
             peak = math.sqrt(max(0.0, 2.0 * ds * accel * brake / (accel + brake)))
-            dt = peak / accel + peak / brake
+            cap = _cap_at((p0 + p1) / 2.0, spans)
+            capped = cap < peak
+            peak = min(peak, cap)
+            accel_end = p0 + peak * peak / (2.0 * accel)
+            phases = [(p0, accel_end, 0.0, peak, peak / accel)]
+            brake_start = accel_end
+            if capped:
+                brake_start = max(accel_end, p1 - peak * peak / (2.0 * brake))
+                phases.append((accel_end, brake_start, peak, peak, (brake_start - accel_end) / peak))
+            phases.append((brake_start, p1, peak, 0.0, peak / brake))
 
-        segments.append(
-            {
-                "t0": t,
-                "t1": t + dt,
-                "p0": p0,
-                "p1": p1,
-                "v0": v0,
-                "v1": v1,
-                "state": "MOVING",
-            }
-        )
-        t += dt
+        for phase_p0, phase_p1, phase_v0, phase_v1, dt in phases:
+            segments.append(
+                {
+                    "t0": t,
+                    "t1": t + dt,
+                    "p0": phase_p0,
+                    "p1": phase_p1,
+                    "v0": phase_v0,
+                    "v1": phase_v1,
+                    "state": "MOVING",
+                }
+            )
+            t += dt
 
         stop = next(
             (value for sp, value in stop_by_pos.items() if abs(sp - p1) <= 0.001),
@@ -275,7 +354,7 @@ def sample_trajectory(trajectory: dict, elapsed_s: float, time_scale: float = 1.
             return {"progress_m": p0, "speed_kmh": 0.0, "state": state}
 
         local_t = _clamp(elapsed - t0, 0.0, t1 - t0)
-        duration = max(0.001, t1 - t0)
+        duration = t1 - t0
         v0 = float(segment.get("v0") or 0.0)
         v1 = float(segment.get("v1") or 0.0)
         accel = (v1 - v0) / duration
@@ -305,21 +384,50 @@ def trajectory_time_at_progress(trajectory: dict, progress_m: float) -> float:
             if abs(target - p0) <= 0.001:
                 return float(segment["t0"])
             continue
-        if not (p0 - 0.001 <= target <= p1 + 0.001):
+        if not (p0 <= target <= p1):
             continue
 
         x = _clamp(target - p0, 0.0, p1 - p0)
         t0 = float(segment["t0"])
-        duration = max(0.001, float(segment["t1"]) - t0)
+        duration = float(segment["t1"]) - t0
+        if duration <= 0.0:
+            return t0
         v0 = float(segment.get("v0") or 0.0)
         v1 = float(segment.get("v1") or 0.0)
         a = (v1 - v0) / duration
-        if abs(a) < 1e-9:
-            local = x / max(0.001, v0)
+        if a == 0.0:
+            local = x / v0 if v0 > 0.0 else 0.0
         else:
             disc = max(0.0, v0 * v0 + 2.0 * a * x)
-            roots = [(-v0 + math.sqrt(disc)) / a, (-v0 - math.sqrt(disc)) / a]
-            valid = [r for r in roots if -0.001 <= r <= duration + 0.001]
-            local = min(valid) if valid else duration * (x / max(0.001, p1 - p0))
+            # Rationalized kinematics avoids cancellation at very low speeds.
+            denominator = v0 + math.sqrt(disc)
+            local = 2.0 * x / denominator if denominator > 0.0 else 0.0
         return t0 + _clamp(local, 0.0, duration)
     return float(trajectory.get("duration_s") or 0.0)
+
+
+def remaining_trajectory(trajectory: dict, elapsed_s: float, time_scale: float = 1.0) -> dict:
+    """Clip an already legal plan at NOW without changing its position/speed.
+
+    Used only by opt-in allocation when new traffic cannot justify a compatible
+    mid-leg change. Reparameterize remaining phases; never rewrite past motion.
+    """
+    scale = max(1., float(time_scale))
+    elapsed = max(0., elapsed_s / scale)
+    segments, total = [], 0.
+    for source in trajectory.get('segments', []):
+        if source['t1'] <= elapsed:
+            continue
+        offset = max(0., elapsed - source['t0'])
+        duration = source['t1'] - source['t0']
+        acceleration = (source['v1'] - source['v0']) / duration if duration > 0 else 0.
+        p0 = source['p0'] + source['v0'] * offset + .5 * acceleration * offset * offset
+        dt = (source['t1'] - max(elapsed, source['t0'])) * scale
+        segments.append({'t0':total,'t1':total+dt,'p0':p0,'p1':source['p1'],
+            'v0':(source['v0']+acceleration*offset)/scale,'v1':source['v1']/scale,
+            'state':source.get('state','MOVING'), **({'hold_id':source['hold_id']} if 'hold_id' in source else {})})
+        total += dt
+    return {'start_m':segments[0]['p0'] if segments else trajectory['end_m'],
+            'end_m':trajectory['end_m'],'duration_s':total,'segments':segments,
+            'model':trajectory.get('model'),'traffic_edge_count':trajectory.get('traffic_edge_count',0),
+            'signal_stop_count':sum(s['state']!='MOVING' for s in segments)}

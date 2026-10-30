@@ -1,15 +1,15 @@
 import React, { useMemo } from "react";
-import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Platform, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
 import BusinessMap from "../../components/BusinessMap";
 import { MapBounds } from "../../context/MapBoundsContext";
 import { Business, EventItem, ActivityItem, Rental, Service } from "../../lib/api";
 import { Listing } from "../../lib/api/listings";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { entityRoutes, pushEntityRoute, getRentalNavigationId, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
+import { useHomeTransit } from "../../hooks/useHomeTransit";
+import { mobilityVehicleRoute, transitMarkerId } from "../../lib/navigation/mobilityRoutes";
 
 interface MapSectionProps {
   mapBounds: MapBounds;
@@ -34,6 +34,7 @@ interface MapSectionProps {
 export function MapSection({ mapBounds, businesses, hotels, events, activities, rentals, jobs, services, products, ownerHomes, userLocation, userPinImage, pinLocation, onRegionChange, onRecenter, recentering, focusToken }: MapSectionProps) {
   const router = useRouter();
   const { t } = useTranslation();
+  const transit = useHomeTransit();
 
   const allBusinesses = useMemo(() => {
     if (!hotels || hotels.length === 0) return businesses;
@@ -65,9 +66,11 @@ export function MapSection({ mapBounds, businesses, hotels, events, activities, 
     }));
   }, [ownerHomes, rentals]);
 
-  const extraMarkers = useMemo(() => [...productMarkers, ...homeMarkers], [productMarkers, homeMarkers]);
+  const extraMarkers = useMemo(() => [...productMarkers, ...homeMarkers, ...transit.markers], [productMarkers, homeMarkers, transit.markers]);
 
   const handleMarkerPress = (id: string) => {
+    const vehicle = transit.vehicles.find(v => transitMarkerId(v.vehicle_id) === id);
+    if (vehicle) { router.push(mobilityVehicleRoute(vehicle)); return; }
     const all = [...allBusinesses, ...(hotels || [])];
     const biz = all.find(b => b.business_id === id);
     if (biz) { router.push(`/business/${id}` as any); return; }
@@ -90,24 +93,6 @@ export function MapSection({ mapBounds, businesses, hotels, events, activities, 
     if (prod) { pushEntityRoute(router, entityRoutes.listing(id), () => showInvalidEntityAlert(t)); return; }
     const home = (ownerHomes || []).find(h => h.listing_id === id);
     if (home) { pushEntityRoute(router, entityRoutes.listing(id), () => showInvalidEntityAlert(t)); return; }
-  };
-
-  const handleRecenter = async () => {
-    if (Platform.OS !== "web") {
-      // Native: fetch the current position here and tell the parent so the
-      // map can animate to it (initialRegion alone never moves an open map).
-      const loc = await getCurrentPositionWithPermission();
-      if (loc) {
-        onRecenter?.(loc.latitude, loc.longitude);
-      } else {
-        Alert.alert(
-          t("common.error") || "Error",
-          t("locator.locationDenied") || "Location permission denied"
-        );
-      }
-      return;
-    }
-    onRecenter?.();
   };
 
   return (
@@ -147,13 +132,6 @@ export function MapSection({ mapBounds, businesses, hotels, events, activities, 
           extraMarkers={extraMarkers}
           disabled={false}
         />
-        <Pressable style={styles.recenterButton} onPress={handleRecenter} disabled={recentering}>
-          {recentering ? (
-            <ActivityIndicator size="small" color={COLORS.primary} />
-          ) : (
-            <Ionicons name="locate" size={22} color={COLORS.primary} />
-          )}
-        </Pressable>
       </View>
     </View>
   );

@@ -13,6 +13,7 @@ from database import db
 from mobility.domain import build_domain, NETWORK_ID, _service_date
 from models.user import UserPublic
 from routes.dependencies import get_current_user_optional
+from mobility.motion.traffic import TrafficContext
 
 router = APIRouter(prefix="/mobility/v2", tags=["MobilityV2"])
 
@@ -469,12 +470,13 @@ async def v2_stops(current_user: Optional[UserPublic] = Depends(get_current_user
 
 
 @router.get("/stops/{stop_id}/arrivals")
-async def v2_stop_arrivals(stop_id: str, current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+async def v2_stop_arrivals(stop_id: str, current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+                           traffic_context: TrafficContext = "baseline"):
     """Unified arrivals for a physical stop: LIVE GPS, realtime and
     schedule arrivals from one engine, honoring canceled/skipped."""
     from mobility.arrivals import unified_arrivals
 
-    return await unified_arrivals(stop_id)
+    return await unified_arrivals(stop_id, traffic_context=traffic_context)
 
 
 @router.get("/plan")
@@ -484,11 +486,13 @@ async def v2_plan(
     to_lat: float,
     to_lng: float,
     current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+    traffic_context: TrafficContext = "baseline",
 ):
     """Journey planning - same engine as V1, exposed on the stable API."""
     from routes.mobility import plan_journey
 
-    return await plan_journey(from_lat, from_lng, to_lat, to_lng, current_user)
+    return await plan_journey(from_lat, from_lng, to_lat, to_lng, current_user,
+                              traffic_context=traffic_context)
 
 
 @router.get("/alerts")
@@ -1027,7 +1031,7 @@ async def v2_diagnostic_motion_summary(
 
     region = get_active_region()
     network = await _get_active_network()
-    vehicles = await _all_active_vehicles()
+    vehicles = await _all_active_vehicles(allow_live_fetch=False)
     summary = summarize_vehicle_motion(vehicles)
     return {
         "region_id": region.region_id,
@@ -1046,6 +1050,10 @@ async def v2_diagnostic_motion_trip(
     current_user: Optional[UserPublic] = Depends(get_current_user_optional),
 ):
     """Explain every physical leg of one active-network trip."""
+    return await _motion_trip_report(trip_id)
+
+
+async def _motion_trip_report(trip_id: str, research=False):
     from mobility.motion.explain import explain_trip_plan
     from mobility.regions import get_active_region
     from routes.mobility import (
@@ -1116,6 +1124,7 @@ async def v2_diagnostic_motion_trip(
         version_id=str(network.get("version_id") or ""),
         timeline=timeline,
         path=path,
+        **({'include_research': True} if research else {}),
     )
     return {
         "region_id": region.region_id,
@@ -1129,15 +1138,41 @@ async def v2_diagnostic_motion_trip(
     }
 
 
+def _research_admin(user):
+    from fastapi import HTTPException
+    if user is None:
+        raise HTTPException(401, 'Authentication required')
+    if getattr(user, 'is_admin', False) is not True:
+        raise HTTPException(403, 'Administrator required')
+
+
+@router.get('/diagnostic/research/allocation/{trip_id}')
+async def v2_research_allocation(trip_id: str, current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    _research_admin(current_user)
+    from mobility.motion.time_allocation import enabled
+    if not enabled():
+        return {'enabled': False, 'reason': 'MOBILITY_TIME_ALLOCATION_ENABLED_FALSE'}
+    return await _motion_trip_report(trip_id, research=True)
+
+
+@router.get('/diagnostic/research/status')
+async def v2_research_status(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    _research_admin(current_user)
+    from mobility.motion.time_allocation import enabled, shadow_only
+    from mobility.motion.native_recalibration import enabled as native_enabled
+    return {'time_allocation_enabled': enabled(), 'time_allocation_shadow_only': shadow_only(),
+            'native_recalibration_enabled': native_enabled(), 'native_recalibration_shadow_only': True}
+
+
 @router.get("/traffic")
 async def v2_traffic(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
-    """TomTom removed from the product - the endpoint stays for client
-    compatibility but always returns empty."""
+    """Compatibility endpoint; external traffic observations are not supplied."""
     return {"incidents": [], "closures": [], "updated_at": None}
 
 
 @router.get("/vehicles")
-async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+                       traffic_context: TrafficContext = "baseline"):
     """Canonical vehicle state: position always carries source/quality, and
     every scheduled vehicle has a stable trip_instance_id. Adding a new
     position source later only changes `source` - never the shape."""
@@ -1147,7 +1182,7 @@ async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_u
 
     domain = await _domain()
     service_date = (domain or {}).get("network", {}).get("service_date")
-    vehicles = await _all_active_vehicles()
+    vehicles = await _all_active_vehicles(traffic_context=traffic_context)
     now = datetime.now().astimezone()
     out = []
     for v in vehicles:

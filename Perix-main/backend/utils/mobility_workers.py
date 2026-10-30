@@ -258,6 +258,9 @@ async def _realtime_worker():
                         "stop_predictions": stop_predictions,
                         "stop_relationships": stop_relationships,
                         "trip_schedule_relationship": trip_rel,
+                        # Source time, not the time at which we polled the feed.
+                        # Missing source time disables wait-only ETA recovery.
+                        "source_timestamp": int(tu.timestamp or feed.header.timestamp or 0),
                     }
                 )
 
@@ -386,6 +389,56 @@ async def _store_alert(alert, now_iso: str) -> None:
         await db.mobility_service_alerts.insert_one(doc)
 
 
+def _daily_recovery_control():
+    from mobility.daily_recovery import DailyRecovery
+    return DailyRecovery(db.mobility_daily_recovery, region_id=_ACTIVE_REGION.region_id,
+        network_id=_ACTIVE_REGION.network_id, timezone_name=_ACTIVE_REGION.timezone)
+
+
+async def _managed_daily_candidate(candidate_id, service_date, source_sha256):
+    from mobility.daily_recovery import enabled
+    if not enabled():
+        return None
+    from mobility.generations import atomic_generations_enabled, prepare_network_version
+    from mobility.osm_store import active_version
+    from routes.mobility import _get_active_network, _activate_network_version
+    if not AUTO_ACTIVATE or not atomic_generations_enabled():
+        return {'state': 'AUTOMATIC_ATOMIC_ACTIVATION_DISABLED'}
+    control = _daily_recovery_control()
+    row = await control.register(service_date=service_date, source_sha256=source_sha256, candidate_id=candidate_id)
+    if not row.get('candidate_id'):
+        return row
+    _event, lock, _queue = _precompute_primitives()
+    async with lock:
+        candidate = await db.bus_network_versions.find_one({'version_id': row['candidate_id'],
+            'region_id': _ACTIVE_REGION.region_id, 'network_id': _ACTIVE_REGION.network_id}, {'_id': 0})
+        if not candidate or candidate.get('service_date') != service_date:
+            return {'state': 'CANDIDATE_DATE_OR_SCOPE_MISMATCH'}
+        active = await _get_active_network()
+        if (active or {}).get('version_id') == row['candidate_id']:
+            if active.get('generation_state') not in ('READY', 'ACTIVE_READY'):
+                return {'state': 'ACTIVE_NETWORK_NOT_READY'}
+            return await control.confirm_active(row['candidate_id'], service_date)
+        result = await control.attempt(graph_v=await active_version(_ACTIVE_REGION.region_id),
+            source_version_id=str((active or {}).get('version_id') or '') or None,
+            prepare=prepare_network_version, activate=_activate_network_version)
+    alarm = result.get('alarm') or {}
+    _log(f"daily recovery: state={result.get('state')} candidate={row['candidate_id']} alarm={alarm.get('code')}")
+    return result
+
+
+async def _recover_daily_candidate():
+    from mobility.daily_recovery import enabled, civil_date
+    if not enabled() or not AUTO_ACTIVATE:
+        return
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    row = await _daily_recovery_control().status()
+    today = civil_date(datetime.now(ZoneInfo(_ACTIVE_REGION.timezone)), _ACTIVE_REGION.timezone)
+    if row.get('service_date') == today and row.get('candidate_id') and row.get('state') != 'ACTIVATED':
+        await _managed_daily_candidate(row['candidate_id'], today, row['source_sha256'])
+
+
 async def _static_worker():
     if _ACTIVE_REGION.static_transit_type != "GTFS":
         _log(
@@ -399,6 +452,7 @@ async def _static_worker():
     _log(f"static started ({STATIC_GTFS_URL}, every {STATIC_INTERVAL_HOURS}h)")
 
     while True:
+        today = None
         try:
             # Stream to disk (the nationwide feed is ~270MB - never hold it in RAM)
             tmp_path = "/tmp/perix_gtfs.zip"
@@ -424,11 +478,13 @@ async def _static_worker():
             from datetime import datetime
             from zoneinfo import ZoneInfo
 
-            today = datetime.now(ZoneInfo(_ACTIVE_REGION.timezone)).date().isoformat()
+            from mobility.daily_recovery import civil_date, next_midnight_seconds, enabled as recovery_enabled
+            today = civil_date(datetime.now(ZoneInfo(_ACTIVE_REGION.timezone)), _ACTIVE_REGION.timezone)
             from routes.mobility import _get_active_network
 
             active = await _get_active_network()
-            active_fresh = bool(active) and today in str(active.get("name") or "")
+            active_fresh = bool(active) and (active.get('service_date') == today
+                or (not active.get('service_date') and str(active.get('name') or '').endswith(today)))
             has_trip_stops = False
             for r in (active or {}).get("routes", []):
                 for t in r.get("trips", []):
@@ -459,6 +515,7 @@ async def _static_worker():
                 _log("static: parsing feed...")
                 payload = parse_gtfs_zip_path(
                     tmp_path,
+                    service_date=today,
                     agency_regex=_ACTIVE_REGION.agency_regex,
                     timezone=_ACTIVE_REGION.timezone,
                 )
@@ -473,8 +530,11 @@ async def _static_worker():
                 from routes.mobility import _create_network_version, _get_active_network
 
                 await _merge_shapes(payload, await _get_active_network())
-                result = await _create_network_version(routes, payload.get("name") or "GTFS auto")
+                reusable = await _daily_recovery_control().candidate_for(today, sha) if recovery_enabled() else None
+                result = ({'version_id': reusable, 'diff': {'reused_pending_candidate': True}} if reusable else
+                    await _create_network_version(routes, payload.get("name") or "GTFS auto", service_date=today))
                 _log(f"static: imported version {result['version_id']} diff={result['diff']}")
+                activation_succeeded = not AUTO_ACTIVATE
                 if AUTO_ACTIVATE:
                     from mobility.generations import (
                         atomic_generations_enabled,
@@ -482,7 +542,10 @@ async def _static_worker():
                     )
                     from routes.mobility import _activate_network_version
 
-                    if atomic_generations_enabled():
+                    managed = await _managed_daily_candidate(str(result['version_id']), today, sha)
+                    if managed is not None:
+                        activation_succeeded = managed.get('state') == 'ACTIVATED'
+                    elif atomic_generations_enabled():
                         _event, lock, _queue = _precompute_primitives()
                         async with lock:
                             preparation = await prepare_network_version(
@@ -490,10 +553,13 @@ async def _static_worker():
                                 source_version_id=str((active or {}).get("version_id") or "") or None,
                             )
                         if preparation.get("state") == "READY":
+                            if civil_date(datetime.now(ZoneInfo(_ACTIVE_REGION.timezone)), _ACTIVE_REGION.timezone) != today:
+                                raise RuntimeError('Civil day changed; stale candidate not activated')
                             await _activate_network_version(
                                 str(result["version_id"]),
                                 require_ready=True,
                             )
+                            activation_succeeded = True
                             _log(
                                 "static: warm-activated "
                                 f"{result['version_id']} "
@@ -509,12 +575,9 @@ async def _static_worker():
                                 f"blocking={preparation.get('blocking_missing')}"
                             )
                     else:
-                        await _activate_network_version(
-                            str(result["version_id"]),
-                            require_ready=False,
-                            force=True,
-                        )
-                        request_precompute(None, reason="NETWORK_ACTIVATED_LEGACY_MODE")
+                        raise RuntimeError('Atomic readiness is required for automatic daily activation')
+                if not activation_succeeded:
+                    raise RuntimeError('Daily candidate not activated; source hash intentionally left unsynced')
                 await db.mobility_sync_state.replace_one(
                     {"key": sync_key},
                     {
@@ -528,7 +591,11 @@ async def _static_worker():
                 )
         except Exception as e:
             _log(f"static: cycle error: {type(e).__name__}: {e}")
-        await asyncio.sleep(STATIC_INTERVAL_HOURS * 3600)
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        from mobility.daily_recovery import next_midnight_seconds
+        await asyncio.sleep(max(5., min(STATIC_INTERVAL_HOURS*3600,
+            next_midnight_seconds(datetime.now(ZoneInfo(_ACTIVE_REGION.timezone)), _ACTIVE_REGION.timezone))))
 
 
 _PRECOMPUTE_EVENT: Optional[asyncio.Event] = None
@@ -703,3 +770,9 @@ async def _precompute_road_geometries():
                 f"{type(exc).__name__}: {exc}"
             )
             # Never spin: periodic retry remains available in 20m.
+        try:
+            # Outside the active refresh lock: the managed candidate acquires
+            # that same lock itself. Graph-repair events wake this coordinator.
+            await _recover_daily_candidate()
+        except Exception as exc:
+            _log(f'daily recovery: coordinator error {type(exc).__name__}')

@@ -102,6 +102,7 @@ import { IdentityDropdown } from "../../components/profile/IdentityDropdown";
 import { getMyBusinesses, Business } from "../../lib/api";
 import { entityRoutes, pushEntityRoute, getRentalNavigationId, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
 import { LocationSearchOverlay } from "../../components/home/LocationSearchOverlay";
+import { AreaSelectionForm } from "../../components/shared/AreaSelection";
 import { PostCard } from "../../components/home/PostCard";
 import { LayoutSettingsModal } from "../../components/home/LayoutSettingsModal";
 
@@ -128,8 +129,9 @@ export default function HomeScreen() {
   const { user, sessionToken, activeIdentity, setActiveIdentity } = useAuth();
   const { unreadMessageCount } = useBadge();
   const { openCreateSheet, openBizActions } = React.useContext(CreateFlowContext);
-  const { location: globalLocation, livePosition, setManualLocation, useLiveLocation } = useLocation();
-  const { mapBounds, isMapInitialized, refreshKey: mapRefreshKey, setMapBounds } = useMapBounds();
+  const { location: globalLocation, livePosition, mapPosition, selectionRevision, setManualLocation, useLiveLocation } = useLocation();
+  const lastLocationChoice = useRef(-1);
+  const { mapBounds, refreshKey: mapRefreshKey, setMapBounds } = useMapBounds();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isDesktop } = useResponsiveLayout();
@@ -298,9 +300,8 @@ export default function HomeScreen() {
     });
   }, [globalLocation]);
 
-  // "You are here" pin: the live GPS fix only. Nothing stored or
-  // remembered from previous sessions is ever shown as live.
-  const pinLocation = livePosition ? { latitude: livePosition.latitude, longitude: livePosition.longitude } : null;
+  // Exactly one origin: blue live fix or orange selected address.
+  const pinLocation = mapPosition;
 
   // Once the watch delivers a precise live fix, any previous "couldn't
   // locate" error is stale - clear it.
@@ -309,17 +310,19 @@ export default function HomeScreen() {
   }, [livePosition]);
 
   useEffect(() => {
-    if (isMapInitialized) return;
+    if (!globalLocation || lastLocationChoice.current === selectionRevision) return;
+    lastLocationChoice.current = selectionRevision;
     // Start at the live location. No stored/profile fallbacks - a previous
     // session's coordinates must never be shown as live.
     if (globalLocation) {
       const d = 0.09;
       setMapBounds({ minLat: globalLocation.latitude - d / 2, maxLat: globalLocation.latitude + d / 2, minLng: globalLocation.longitude - d / 2, maxLng: globalLocation.longitude + d / 2, centerLat: globalLocation.latitude, centerLng: globalLocation.longitude });
+      setMapFocusToken(n => n + 1);
     }
-  }, [globalLocation, isMapInitialized, setMapBounds]);
+  }, [globalLocation, selectionRevision, setMapBounds]);
 
   const handleRecenterOnMe = async () => {
-    if (locatingMe) return;
+    if (locatingMe) return false;
     setLocatingMe(true);
     setLocateFailed(false);
     try {
@@ -332,12 +335,16 @@ export default function HomeScreen() {
         setMapBounds({ minLat: loc.latitude - d / 2, maxLat: loc.latitude + d / 2, minLng: loc.longitude - d / 2, maxLng: loc.longitude + d / 2, centerLat: loc.latitude, centerLng: loc.longitude });
         setUserLocation({ latitude: loc.latitude, longitude: loc.longitude });
         setMapFocusToken((t) => t + 1);
+        setShowLocationSearch(false);
+        return true;
       } else {
         setLocateFailed(true);
+        return false;
       }
     } catch (error) {
       console.error("Failed to get location:", error);
       setLocateFailed(true);
+      return false;
     } finally {
       setLocatingMe(false);
     }
@@ -910,6 +917,7 @@ export default function HomeScreen() {
         nearLat={mapBounds?.centerLat ?? null}
         nearLng={mapBounds?.centerLng ?? null}
         onClose={() => setShowLocationSearch(false)}
+        onUseLive={handleRecenterOnMe}
         onSelectPlace={(lat, lng, name) => {
           const d = 0.09;
           setMapBounds({ minLat: lat - d / 2, maxLat: lat + d / 2, minLng: lng - d / 2, maxLng: lng + d / 2, centerLat: lat, centerLng: lng });
@@ -969,41 +977,10 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {!isMapInitialized && (
+        {!globalLocation && (
           <View style={styles.mapPromptContainer}>
-            <View style={styles.mapPromptCard}>
-              <View style={styles.mapPromptIconContainer}>
-                <Ionicons name="map" size={40} color={COLORS.primary} />
-              </View>
-              <Text style={styles.mapPromptTitle}>{t("home.setLocationTitle", { defaultValue: "Set Your Area" })}</Text>
-              <Text style={styles.mapPromptText}>{t("home.setLocationDescription", { defaultValue: "To see content from nearby businesses, please first set your location area on the map." })}</Text>
-              <Pressable
-                style={[styles.mapPromptButton, locatingMe && styles.mapPromptButtonDisabled]}
-                onPress={handleRecenterOnMe}
-                data-testid="recenter-btn"
-                disabled={locatingMe}
-              >
-                {locatingMe ? (
-                  <ActivityIndicator size="small" color={COLORS.textLight} />
-                ) : (
-                  <Ionicons name="locate" size={20} color={COLORS.textLight} />
-                )}
-                <Text style={styles.mapPromptButtonText}>
-                  {locatingMe
-                    ? t("home.locating", { defaultValue: "Locating..." })
-                    : t("home.useMyLocation", { defaultValue: "Use My Location" })}
-                </Text>
-              </Pressable>
-              <Pressable style={[styles.mapPromptButton, styles.mapPromptButtonSecondary]} onPress={() => router.navigate("/(tabs)/locator" as any)} data-testid="go-to-map-btn">
-                <Ionicons name="navigate" size={20} color={COLORS.primary} />
-                <Text style={[styles.mapPromptButtonText, styles.mapPromptButtonTextSecondary]}>{t("home.goToMap", { defaultValue: "Go to Map" })}</Text>
-              </Pressable>
-              {locateFailed && (
-                <Text style={styles.mapPromptError}>
-                  {t("home.locateFailed", { defaultValue: "Couldn't get your precise location. Allow location access and try again." })}
-                </Text>
-              )}
-            </View>
+            <AreaSelectionForm sessionToken={sessionToken} onUseLive={handleRecenterOnMe}
+              onSelectPlace={(lat, lng, name) => setManualLocation(lat, lng, name)} />
           </View>
         )}
 
@@ -1017,7 +994,7 @@ export default function HomeScreen() {
           activeIdentity={activeIdentity}
         />
 
-        {locateFailed && mapBounds && homeLayout.sections.find(s => s.id === "map")?.enabled !== false && (
+        {locateFailed && globalLocation?.isLiveLocation && mapBounds && homeLayout.sections.find(s => s.id === "map")?.enabled !== false && (
           <View style={styles.locateErrorPill}>
             <Ionicons name="alert-circle" size={16} color={COLORS.errorText} />
             <Text style={styles.locateErrorText}>
@@ -1026,7 +1003,7 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {mapBounds && homeLayout.sections.find(s => s.id === "map")?.enabled !== false && (
+        {globalLocation && mapBounds && homeLayout.sections.find(s => s.id === "map")?.enabled !== false && (
           <MapSection
             mapBounds={mapBounds}
             businesses={shuffledBusinesses}

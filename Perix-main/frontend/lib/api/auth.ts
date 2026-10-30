@@ -41,11 +41,11 @@ export const getMe = async (token: string): Promise<import("./core").User> => {
   return apiRequest<import("./core").User>("/auth/me", "GET", token);
 };
 
-export const logoutUser = async (token: string): Promise<void> => {
-  await apiRequest("/auth/logout", "POST", token);
+export const logoutUser = async (token?: string | null): Promise<void> => {
+  await apiRequest("/auth/logout", "POST", token, undefined, 5000);
 };
 
-export const forgotPassword = async (email: string): Promise<{ status: string; message?: string; reset_token?: string }> => {
+export const forgotPassword = async (email: string): Promise<{ status: string; message?: string }> => {
   return apiRequest("/auth/forgot-password", "POST", null, { email });
 };
 

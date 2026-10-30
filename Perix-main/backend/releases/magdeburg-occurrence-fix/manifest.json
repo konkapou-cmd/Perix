@@ -1,0 +1,686 @@
+{
+  "schema": "perix-source-delta-v1",
+  "captured_on": "2026-10-23",
+  "baseline": {
+    "deployment": "bb95324b-2504-4356-b1d6-8ef9f4f0ac1e",
+    "environment": "staging",
+    "service": "backend-staging",
+    "archive": "deployed-baseline.zip",
+    "archive_sha256": "115a018efe26e28390861ebfefacaf68d465242a93906b228c71a6dc4c2fd19d",
+    "local_head_at_original_capture_not_patch_base": "275f3b1f82d3ed185ac782fe934b827216c3e1e3"
+  },
+  "deployed": {
+    "project": "99643a3b-bf65-467a-8f2f-50640f519b2b",
+    "environment": "staging",
+    "service": "backend-staging",
+    "deployment_id": "3b8ef7d6-7c7c-4763-b7f1-b133c53dc5e0",
+    "status": "SUCCESS",
+    "image_digest": "sha256:9a73a35fa19876aaacb95a0aa8700da4bcdc70034de90622d3194797b716fc99",
+    "rollback_deployment": "be852108-f0b9-4adc-8917-04d096b31fc8",
+    "active_network": "net_fa5ce635d48b",
+    "service_date": "2026-10-23",
+    "generation_ready": 157,
+    "generation_expected": 157,
+    "schema_v": "12",
+    "production_touched": false,
+    "variables_changed": false
+  },
+  "source_identity": {
+    "manifest": "latency-approved-manifest.json",
+    "manifest_sha256": "74e67ace13cf434ad8c11f8dc32541a823b21d37093b61fcfd77a4bdd99413cb",
+    "source_manifest_sha256": "5766dbe5bfe985eb9765ff1220d99b3839e4131eaf608ddfc43c09be307a89d6",
+    "review_patch_sha256": "afffebd71ace1507363a7be75169dfb7f907f682815236cd2e114b5fee49eb12",
+    "artifact_frozen": true,
+    "all_manifest_files_verified_against_final_package_extraction": true,
+    "remote_verified_backend_files": 252,
+    "future_candidate_files_used": false
+  },
+  "patch": {
+    "file": "source-delta.patch",
+    "sha256": "e863072a23b1eddf6b80be5679f8584153335dc07003660690973946737ca57a",
+    "bytes": 459798,
+    "paths_relative_to": "backend",
+    "context_lines": 3,
+    "modified": 15,
+    "added": 11
+  },
+  "files": [
+    {
+      "path": "database.py",
+      "status": "modified",
+      "before_sha256": "cb52f6b4b207c33216e11b08a4a16b4715dc9bcb9777cb1765d48363d091f332",
+      "after_sha256": "f103755a6517a30d6717c4c5629c75d538622a347aedeb9e0d6e7b1f16c44904",
+      "after_bytes": 29816
+    },
+    {
+      "path": "mobility/arrivals.py",
+      "status": "modified",
+      "before_sha256": "fcbdb705622a957daa52b9d027c57da4f02b9014819c1aae503cd74e19ea84a0",
+      "after_sha256": "a910d77fa436de3ea778d63dbf3d517ded6e222060b7c3f54a5e29e09b02253e",
+      "after_bytes": 9378
+    },
+    {
+      "path": "mobility/domain.py",
+      "status": "modified",
+      "before_sha256": "3349ec234409d5cab86805eb57d0f59bbb2b7e0ca38f2223fa8219a52a175884",
+      "after_sha256": "445d46fb93482f296e3eee46332dab27e5a6aee8c74b6fdba24bcb1e4cdaefbc",
+      "after_bytes": 19194
+    },
+    {
+      "path": "mobility/geometry_cache.py",
+      "status": "modified",
+      "before_sha256": "e9996af1b5bd1043777173c2c33aa6802f537ee0249dba716bc52e479668fd5d",
+      "after_sha256": "46d5a75991437ff1b52d499a31caa78e4ab067ef043ad65bb3d0eaa8df14f92d",
+      "after_bytes": 3975
+    },
+    {
+      "path": "mobility/map_match.py",
+      "status": "modified",
+      "before_sha256": "b20faaa1904241e86524447cf49effe061eab13d784ecce2700dbec97485f94d",
+      "after_sha256": "dc6be0b661390fbd19dae2b792c992abe5312b309da6f78ed15faef44b8b9572",
+      "after_bytes": 5308
+    },
+    {
+      "path": "mobility/motion/engine.py",
+      "status": "modified",
+      "before_sha256": "c687a6c8d72d108a76429c50a312e9ba478db8794dff78bdcdf4318b979165c8",
+      "after_sha256": "6d34b178ba06f44b6426e66b0d78e7669ccc91d0f4ec9119f25a7c362f3f85e2",
+      "after_bytes": 32115
+    },
+    {
+      "path": "mobility/osm_store.py",
+      "status": "modified",
+      "before_sha256": "2949cdeabb29e272ebebd62560d2875b66a50803a51f5357921354e07f11381f",
+      "after_sha256": "265a4a8283f73220a41db982162620f50cfdbe120e8b7f339de90aa5094777e3",
+      "after_bytes": 17606
+    },
+    {
+      "path": "mobility/realtime_index.py",
+      "status": "modified",
+      "before_sha256": "ca513f8dc32827f7585f0175b8e0a719d3bfeb5945a16904392d79d5764fba5f",
+      "after_sha256": "76ad93b6ae56ac665ddb04171d653c0b87b34639b24d64a02fe221f9b39b2d94",
+      "after_bytes": 1471
+    },
+    {
+      "path": "mobility/schedule_revision.py",
+      "status": "modified",
+      "before_sha256": "f42f88eb0356d6cbe301204f0d8eaad5c0f715e8690c3960fb93b101c0559e94",
+      "after_sha256": "89762e001658478f6b130d5b7d672c9ae967dfb799ffc74940fae71dd01ca231",
+      "after_bytes": 15774
+    },
+    {
+      "path": "mobility/service_clock.py",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "22fc20180387d1fc4116057921244e243d2146d27141f35f6831a4cda2cd30d2",
+      "after_bytes": 966
+    },
+    {
+      "path": "mobility/stop_occurrences.py",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "4c14430f5e3a84945f3847f133a94b45575fe07ae31bde2746b75dfe243abdd0",
+      "after_bytes": 1200
+    },
+    {
+      "path": "mobility/telemetry.py",
+      "status": "modified",
+      "before_sha256": "b28c0dd3f00f0f33a6c1420de19f0ad14ee8505b34daa795054d59b95b394fd3",
+      "after_sha256": "bf96e3e5b6d2af923591741a62f58896fea7b983edcf95462e7be35d038d4914",
+      "after_bytes": 20073
+    },
+    {
+      "path": "mobility/v2.py",
+      "status": "modified",
+      "before_sha256": "846b58e9eee529818c6d01ed7f6cfa03efdcbf4ba07bbdf091b92cf906c0c335",
+      "after_sha256": "c3c6d2d41d2e16a34acda6395b017da9d76d78b9aed0956dcb4918d60a48a65b",
+      "after_bytes": 55020
+    },
+    {
+      "path": "routes/mobility.py",
+      "status": "modified",
+      "before_sha256": "9a5d81431cd9ec9a574fed3cd1bd3a881f4002d59ec16ffad6286386b43b3dad",
+      "after_sha256": "776a72aeab7b725a03abb3a558c1187d4deb345bba575c4d63fbb89367bf34b4",
+      "after_bytes": 128649
+    },
+    {
+      "path": "tests/fixtures/civil_actual_carryover.json",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "efa587da1152056e5d8a1b8b3d6d54bf5f5e4997ec7208af1032636e50acfa01",
+      "after_bytes": 191843
+    },
+    {
+      "path": "tests/fixtures/magdeburg_line54_occurrences.json",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "18cb0bc84d8c31a2bd3ca07fd2c1c29acffaf83a5628672bd4dd1f09431b866e",
+      "after_bytes": 101133
+    },
+    {
+      "path": "tests/test_magdeburg_stop_occurrences.py",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "817b77ed6317e12a957fa6666fa8f46d20c365f21910e05fac376b6b267c8c3e",
+      "after_bytes": 5467
+    },
+    {
+      "path": "tests/test_mobility_actual_carryover.py",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "4fa30cb1f79de8e1a60539fe456cdd5d08343a860d89ca62c75e7f7324d86a5e",
+      "after_bytes": 2163
+    },
+    {
+      "path": "tests/test_mobility_civil_day.py",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "03140f5cbac8b4dd831bce40781431286386c8c7e5d4709592d31e497c32e6b2",
+      "after_bytes": 13933
+    },
+    {
+      "path": "tests/test_mobility_dated_carryover.py",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "1c515477085ab2a3f5e4750ac62f0ed2d6651d31c059cae1b503ee60eb829bc6",
+      "after_bytes": 12261
+    },
+    {
+      "path": "tests/test_mobility_latency.py",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "c97ac6a8a196f09a0b35e2e385c5896c3dcf613e09dc98160fa45629b8a173e0",
+      "after_bytes": 6637
+    },
+    {
+      "path": "tests/test_mobility_osm_snapshot_completeness.py",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "0e2eb1b7361fd48b6c21b4fb4037a7bba34b2d74d685bca74a1c2f58c946adb1",
+      "after_bytes": 7031
+    },
+    {
+      "path": "tests/test_mobility_schedule_revision.py",
+      "status": "modified",
+      "before_sha256": "0509974d05a563c236811d6fec69fd8ba96d1dec525d21bb194bc679719c466e",
+      "after_sha256": "d5d813b5bc8291039e2bfd49b202970f9def0fd3b65318ef47a9cbcd4aedc066",
+      "after_bytes": 8946
+    },
+    {
+      "path": "tests/test_vehicle_performance.py",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "be9bd24475d5bd64cf15de978fdd05bfa253e55c0acefd4c4810667e249098b3",
+      "after_bytes": 7191
+    },
+    {
+      "path": "utils/gtfs.py",
+      "status": "modified",
+      "before_sha256": "7df2e815703c5a5d5f9e983d33942fc507577ceafe5147b20a52a3f91927444b",
+      "after_sha256": "f67a37962c07c623226092702970fd041c202496d5dba12cf49227b3d726375a",
+      "after_bytes": 12689
+    },
+    {
+      "path": "utils/mobility_workers.py",
+      "status": "modified",
+      "before_sha256": "6f4382067d54f949e6c4a3159d592433e1ecca8b83c13aed500c5e36585ae8c3",
+      "after_sha256": "964dc21273dd4490fd5724e98996b0436598e7a14036e2bda59f82a83aa14ead",
+      "after_bytes": 41262
+    }
+  ],
+  "reconstructed_file_hashes": {
+    "Procfile": "20e5d79226834e5664b0c96a40a45d78fc7291389300c0b4cba706a428a86601",
+    "config.py": "47e1894fda2b67a19c62d22b481a6d8c418b747425fbadc7260386bcfffbdbe9",
+    "database.py": "f103755a6517a30d6717c4c5629c75d538622a347aedeb9e0d6e7b1f16c44904",
+    "mobility/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "mobility/alert_lifecycle.py": "fd95d823324b95bf5dd01fa6cf9bc3cd9cbf54a511b386759243f963a7ae96c0",
+    "mobility/alert_scope.py": "d530bb173d53ecce09b99e02eab4fd47cc77b7fc2b11b85b66bce79a5e4ff16f",
+    "mobility/arrivals.py": "a910d77fa436de3ea778d63dbf3d517ded6e222060b7c3f54a5e29e09b02253e",
+    "mobility/detour_guard.py": "a3fd22aa844dfbcfa543ed9a65e8d52c25a73ced66eadddaeca86a6b3037bb46",
+    "mobility/detour_guard_core.py": "c916bb8e5416e410d2e6cef42414ceaaf242fcbad1edc26cc562a22de8f36695",
+    "mobility/display_labels.py": "a5cf0852c2d1bc9f928a8fd0d2735f8473bd5dc64864f61adb9f9a9193dab11f",
+    "mobility/domain.py": "445d46fb93482f296e3eee46332dab27e5a6aee8c74b6fdba24bcb1e4cdaefbc",
+    "mobility/editor.py": "ed12a5cac85c532dbe64c3bc48b5ce2bcc682e5535e739c32f1ce7512d2d8898",
+    "mobility/eta_position.py": "7620a583c4da9800e9c32603d9d22e4a9b9423a17535ee95ada47f47334e5901",
+    "mobility/eta_quality.py": "03590c76006b0883ef0f8b0f0ef75b897238198c10dd103d96fccd7406aa9ddc",
+    "mobility/generations.py": "af3e046175e38acbeb109ad979c3e524961e8d40ae2250c32645ca22d985117a",
+    "mobility/geometry_audit.py": "23dd28af0f3d6d4193c61ed57b691caebb281da0508d539e2204c5f3c7d96bc0",
+    "mobility/geometry_cache.py": "46d5a75991437ff1b52d499a31caa78e4ab067ef043ad65bb3d0eaa8df14f92d",
+    "mobility/google_roads.py": "95c5a453a16025a769c253f7176e4a983f4d823369cccec43e9d2ed89c407ad1",
+    "mobility/graph.py": "b7e7c7a285f2a32f819a671cc3d29f16dc8468c6fbebdc8169f86c6f64df06c6",
+    "mobility/infrastructure.py": "d84eccd60cf69e176e2016a020c2f9ff2f8a7df618847531e618360bce6e711c",
+    "mobility/map_match.py": "dc6be0b661390fbd19dae2b792c992abe5312b309da6f78ed15faef44b8b9572",
+    "mobility/motion/__init__.py": "0c1c07aaf5c6c4f3c6d62e894a290ddaa5fb05d85d299f747a44103b87b2425d",
+    "mobility/motion/bus.py": "21ecdd19e2692b89ad19545db3c41408d7788636573cf84cb24304014e527f7a",
+    "mobility/motion/calibration.py": "b4442349f207fd9f782e4914087129648d2e419059fdaf00a4c0742e876ef2fe",
+    "mobility/motion/common.py": "806f7e6909332d12c7021148f3b6e2108d210ccc61263c0737f0f422c007c850",
+    "mobility/motion/config.py": "645d0540b09e7ef87eb43bf6e88f999f5987e7f31c0b2e0bb4ad12bba5796eab",
+    "mobility/motion/diagnostics.py": "cd09487aa3aae4ee1c0ba1b787804b755805d8ddaadbc686e800d8b8e2cf960b",
+    "mobility/motion/engine.py": "6d34b178ba06f44b6426e66b0d78e7669ccc91d0f4ec9119f25a7c362f3f85e2",
+    "mobility/motion/explain.py": "b44ba354292a3097fcda69ff3211cb72d23e8272f8292faf2567c859250b46bc",
+    "mobility/motion/handover.py": "a60a2a58345e64d613633d278326cb52c0578c24bf0e22edbb002435d467b550",
+    "mobility/motion/traffic.py": "4c05092d7cb319cc37a7b78246485e862fb439f98b67cd2f9d4311547ba6a09c",
+    "mobility/motion/tram.py": "e48dbe21882b1ec3142a17f560d6f318b4a8e754f74f80e826529f37c6209e53",
+    "mobility/official_route_audit.py": "0c4225dd5f92e3d7882e678ef4ccd613e4172f4ef109a5382c88172e6352b434",
+    "mobility/osm_client.py": "91122eeaf75250fc12f959e479482461f20899aec1dfb6008f2c4b280d8c7ff7",
+    "mobility/osm_store.py": "265a4a8283f73220a41db982162620f50cfdbe120e8b7f339de90aa5094777e3",
+    "mobility/overrides.py": "bb92e63715bb4ea03598c1a0ed4afe3a21cc2649e96af4acfa1b28ed83ada5aa",
+    "mobility/physical_alignment.py": "70fce018adc02d78b010bca2a0ac5bd505719d0a40ae090e6cb16a4326ab14a6",
+    "mobility/realtime_freshness.py": "0de0ece5ec7e8b4ee9b6119e0517664b5624a4abcfc175b4673887087bc2a4d6",
+    "mobility/realtime_index.py": "76ad93b6ae56ac665ddb04171d653c0b87b34639b24d64a02fe221f9b39b2d94",
+    "mobility/realtime_order.py": "b745d66fe6821ce0fa069c580f82787e8f490be53a77c3ac85a66659d5aa3d30",
+    "mobility/realtime_trip_identity.py": "6f46e98dd7092a77b495a500881e1e8ec6920a2788d550ba1dbb02e5e769fe97",
+    "mobility/rebuild_queue.py": "6b00de23e4d33b90bb130d498f143c75905c30731b0cd57230be980ca0c43a42",
+    "mobility/regions.py": "454c7ce9958321fdf08edd3501db56fa9d2c5c9964455ebb8e6115ac56fb652d",
+    "mobility/release_gate.py": "ed2a6ee9fe256634060131ceefc818ae5ad58317b77862de9c77e877457c9ea3",
+    "mobility/restrictions.py": "d6058a22d61e28ea41a4c8f2aa89cf335f1c253bb050f2e8f456b7812b2d6275",
+    "mobility/roads.py": "40a8e2fe6d35b476b4041169deaa69e16fdb395b9735105ed5aaecb94d218c66",
+    "mobility/schedule_revision.py": "89762e001658478f6b130d5b7d672c9ae967dfb799ffc74940fae71dd01ca231",
+    "mobility/service_clock.py": "22fc20180387d1fc4116057921244e243d2146d27141f35f6831a4cda2cd30d2",
+    "mobility/signal_semantics.py": "4fac80abcc6eaa9c82e35bb657fb6e4d03eb167515ec72cca59c1857b0389606",
+    "mobility/signals.py": "96e94ce8cf8f6edb988bd8fcc461a88797a32fbe353b2027288496d9efc51204",
+    "mobility/stop_occurrences.py": "4c14430f5e3a84945f3847f133a94b45575fe07ae31bde2746b75dfe243abdd0",
+    "mobility/telemetry.py": "bf96e3e5b6d2af923591741a62f58896fea7b983edcf95462e7be35d038d4914",
+    "mobility/traffic_counts.py": "49b4e1da7d44af6d241b944dbf34454c5ca18b42d2dadf58aeb7259c61a2665d",
+    "mobility/traffic_profiles.py": "a3d0b83014461d3cdfa6efbc05c94486fe7a7ed9d0a7805a648620314a1a8b90",
+    "mobility/v2.py": "c3c6d2d41d2e16a34acda6395b017da9d76d78b9aed0956dcb4918d60a48a65b",
+    "mobility/verified_closure.py": "32e1d0a3917065de29e97b4b4469e32b19ab84fb79722775953a8d369d2d2f0a",
+    "models/__init__.py": "27810c638e28c55634348910525cfbc54249486c8c47a754b307bdd55db894cd",
+    "models/activity.py": "451488f0caa74d078ecdddd50e906fa8b26daad8a0341906fe34c4d86537e017",
+    "models/artist.py": "49b2ca6d599bb869bb562b797cef9f0b53488852cd71d154b80083ec2ee27481",
+    "models/business.py": "c23e3d18d3366cc0f05ec058413b992f22e3d8d8babfa3160fdf6ae2e3a4e144",
+    "models/event.py": "81fa7acb10e7bbe77d520970ac63672e110fbc4acb894467d0c9efeba67deeb6",
+    "models/feed.py": "408c4223e37e506226ef5040844ac448a8c8cef62b8d367961a868b4de57754d",
+    "models/focal_point.py": "076c7fafeaf34ea6e552c746538cfcce4fb87bfba33fd20a9905d8d3cc394cde",
+    "models/listing.py": "226293adc1ac4b23161e1cad068b9c998c6162384be84ef5373121d5cab5078d",
+    "models/message.py": "d472776b7f91a61fb7148061c0d4d4a7f1b024995ca58bdcc42de2b728b1fe5f",
+    "models/mobility.py": "54449f6d83d5850eb2c358b2ad8b86ae400b483c43734f8e04cb74a932bfce59",
+    "models/notification.py": "4c96b7ff48eb10df3a1a78f6e80c82b2104f4fc17b3a73fc983102006a4d4d6d",
+    "models/post.py": "1009403e4851539375ca6ac843e43ad6a33fd3e019023e4b9fcfea3fecbf2e40",
+    "models/rental.py": "f958e96cd6f3e5d0a94fcdc4223d524a5a84d0fdaff4a2b42cdb2c30c36c55bc",
+    "models/saved.py": "d623218c965e2b54c3a92aceed0d09bb35db4eee7a85251229a7c3646bd85577",
+    "models/service.py": "1f81735cb64718cefcb5f83dd7f91c436f3d2e623b97f8d2af8ffe75451caa36",
+    "models/story.py": "f4f64388e06b104af4ddc0ed12bef757533991a6ea1259438811d6871a799dcc",
+    "models/story_analytics.py": "9dbf7096b38208eab5e8e2e9b12e668b2b593bc3cd8bf08380ac6baad572b73a",
+    "models/user.py": "9dfb81c009ba3a1b44fba9bd31a967c553e92d29c39fcf0a7e961545b2c25f37",
+    "pytest.ini": "6913061a3b6b36f11483ab9e92c3043d843f00747d92a950dd93c38c38886b61",
+    "railway.json": "ce48b85654245a295272c1e6946ad32faad3896bbf0ba2cf03b79767c43d42e3",
+    "requirements.txt": "93c52613cc010b9bea7eb03d723e1400c60c17bce0f9a109edd1bc058176c058",
+    "routes/__init__.py": "65892d6a70d492bd36ee442363f0b3a32d4317a248dc945844a1d15b5bd67062",
+    "routes/account_deletion.py": "7983e04b45e3ee2e5c424517bbb50d5183b854752c12f99ef6110ee82b16e3aa",
+    "routes/activities.py": "e121d3a17738fa6c52ef74490ba600cf29f3688306b419fe5c2c6f0e6bf0b27c",
+    "routes/admin.py": "fda51a96ea5623b983b68f347d77e87d02d3e4b0c621de10a929ddea3475c9b7",
+    "routes/analytics.py": "478167dab618927b051464f9e1ced1eb359065dbc5ee219b33a2183792c4c40c",
+    "routes/artists.py": "436e305e270ead90301f3d26440596478e5cd705c8695df1453d1ef135eff1a2",
+    "routes/auth.py": "1c5f21d751ce4aab0cbe58760d3fbe68834331f8d2b3fbd579406828008ab766",
+    "routes/businesses.py": "b88b60195b3d8b041c01d1b1ccc2896c88318543f5274d99866411a6e6e1af48",
+    "routes/categories.py": "79794cc92a3e3c8bb6393d5043b642b25921f81cf82de28211a5a45f88d11bf8",
+    "routes/contacts.py": "a19422ec96c95c2466bfdd014900419e37f08d353318d3f06a319779241ea3f4",
+    "routes/dependencies.py": "49dbb6192a3987e99730ea4a571e1c8f84447a0697706b24d054057c9207a94f",
+    "routes/events.py": "0ace8342b959606ad049a8340b572064cbf48f8613c26319acc0ae8bc360a8c3",
+    "routes/feed.py": "9c836ea8191a2374432942f2c407b5c4c27c2fa6cd0b118ff9b78011980627eb",
+    "routes/friend_requests.py": "bcdeb3ce1f9175063aa152f7bfcd125a6b7ec72bcb6dcf803dd474d861137c9d",
+    "routes/jobs.py": "cc44860b56920e1a67866d2d3fea963562bc07e48e94f03cfe4b5acf70362d96",
+    "routes/legal.py": "24419d0aed8cf86bd95ae22816351dc358f302bf3cbed6787704adc5382eb59a",
+    "routes/listings.py": "764d8b1d1833c3e9b5cb61f43bd20edbd842c4c130fa766df01c1491ce976e67",
+    "routes/media.py": "472032e0c1191c688d72be6c84ac20caa323f3bc8683feb68e51bd6a3a771768",
+    "routes/messages.py": "b47b4519a257dcdfe8130b2827498bfa93994b9bc5e1ff13891bd8d61859e9f6",
+    "routes/mobility.py": "776a72aeab7b725a03abb3a558c1187d4deb345bba575c4d63fbb89367bf34b4",
+    "routes/music.py": "74916a9d8638d33e00e8498aebd910e6092445766d72ab1eaa409db7a7d66fcd",
+    "routes/mux.py": "aed83a4582c3c6f5c463238b0314ef9a3c6281f14ade5b6710efff6e04292737",
+    "routes/mux_proxy.py": "03204409084638dc85d80f5ef0ff929275ea2709e31035d7bafa52db5061bf66",
+    "routes/notifications.py": "b2fc47ebdd654bc2d900848b4c8a57af33653bd9de64aad0d70f587d696e1276",
+    "routes/places.py": "ce92a9efd2b7710b96847dc3f94af270fddb32eef91a62b0836e10d23c28a2ed",
+    "routes/posts.py": "0d9204cb1a4f9f5ccd0c99b0d877fdabf9a581dd28cbc867ffde4426011d8bfa",
+    "routes/preview.py": "32996252a6b749d15b9c07c8011217d65e525fe5e6d4b5c6ca1c426b4e91766d",
+    "routes/profiles.py": "94bfb51552feee6f92d852a79da27a8256ea0374a2708132a0a40fd6f5bc6ba7",
+    "routes/push_web.py": "828e87e3537e82cbdc3e599172e9aad18b36ca3ee0f54ae9d8c25e385a83231e",
+    "routes/rentals.py": "bb908b8832e044e2d0a89e439829a766dceae7eece236db3bf19548066300d50",
+    "routes/reports.py": "808af93c498474bac1fa669c8b1ef1da2c0bd43d5179f3512da0f852d3c911bc",
+    "routes/saved.py": "5de6b75f96f26b69c57c2db43b839ec9a92bcbce92799dd7ebc0ad6f66002e9f",
+    "routes/search.py": "34feb63f92fc883de94426f6de48630493d1ff665a0c44cece897b2e490c1106",
+    "routes/services.py": "00458d6ad52c49df38d634201e92090d13d088b2c4e3333c910063f14a63c353",
+    "routes/stories.py": "e22762d140df9149d773e10d471929ebf445f1f801537e8c7863256150be046b",
+    "routes/story_analytics.py": "456e17994c5227578bf0605de6fabcbd0b99e819ca1ba343a456d04676880210",
+    "routes/uploads.py": "95c1a0b3035635cb66c87e65904d14394c73cebc7cb888718bcda98b49a1e631",
+    "routes/ws.py": "986a964820b76a0184e70a5479bf28ed7b0d6f037fd033d6e5b0f5cd0acfa81d",
+    "server.py": "f3e161d922df8d7630a91844537d9b45fa5a3ba6624bb54c17b8587a489f6386",
+    "services/__init__.py": "01199d4b0ce00be60424be3f4ab2ca0493f1473190fe0462a78ca245464c3c3b",
+    "services/business_hours.py": "5ade58ed40dc084a26c8ed82073b07272c928e23992b786288c6ce5b4a0e9c45",
+    "services/date_range_booking.py": "4835cd98ed02eca39db4ed646046ed8e1deb44a8064ca4d1cb2a1e79561d471e",
+    "services/date_range_utils.py": "fcedf62b33d63a1c2b1d6747c0242e556de81c56c11b63aa3b3c46f34bcd3139",
+    "services/deletion_resolution.py": "83e0156d7250c1bbfb121ff4ab1e147d0acdf1ed17c59a57eab157224525509b",
+    "services/entity_ownership.py": "b319410e91289c0401567aff130070ca6ccad4bce4b8b8dd1679141023780580",
+    "tests/conftest.py": "2bec078f90c34903c6665d25db8527c79cbbb25fefdd39c19bf55a5b199908c6",
+    "tests/fixtures/civil_actual_carryover.json": "efa587da1152056e5d8a1b8b3d6d54bf5f5e4997ec7208af1032636e50acfa01",
+    "tests/fixtures/magdeburg_line54_occurrences.json": "18cb0bc84d8c31a2bd3ca07fd2c1c29acffaf83a5628672bd4dd1f09431b866e",
+    "tests/test_activities_business_flow.py": "97f427217617a3d219b2a6d8f3d7423d042896dc86f2f5325cccfc2f6cf4850a",
+    "tests/test_analytics_api.py": "808f5b97362118b592e3654643ee010bfa286714ab2b1877909508ad2336edd0",
+    "tests/test_attendance.py": "75f75ae27d4eca77e06a166b5b9f0c566901de2526202b512300d8758596651f",
+    "tests/test_backend_api.py": "0044b6e58bcae86817a0dd70ddf28485097fca34508bdf59f2f3228b0f4cc201",
+    "tests/test_bug_fixes.py": "468e55035ab68c399e5a8d0af4aeb4882b998ba26493845d7b7b1ea3b4533784",
+    "tests/test_bulk_delete_calls.py": "869e0e5b00968a4818501c91c1597190e8beebdb9e9fdc69aefb3f8655a9d9ca",
+    "tests/test_business_categories.py": "83dec2d1d9ed6e30fddf58c9655c12c1e325ca85cca71e143ea7fd84562daa59",
+    "tests/test_business_gallery_api.py": "114f683a2c5a6b3e336c01023c7919fc1ac3e43ad40ca44f2c3404dd7f5301ab",
+    "tests/test_business_locator_fixes.py": "a1601f2726042ca45a9511bbb23188d21ac7eb95deaefa5751e740a3f7e76c65",
+    "tests/test_calls_subscriptions_messages.py": "3b0b48b299790e15c95a8f6048a95638a41bb1e0ede86c9db9374413c1b4a21f",
+    "tests/test_chunked_upload_and_calls.py": "9cf776e3041c112545b97f5e99bac66bb97774cb1fdbf4d4155c5bde8f976f87",
+    "tests/test_date_range_booking.py": "723f47e39b09175068617e2688805a243219bf81c554d69bc74053ac85f03764",
+    "tests/test_date_range_booking_concurrency.py": "88e1455a186736a8f551306aaf0550982b7ca692ee622d4aa276862d5ab90984",
+    "tests/test_date_range_utils.py": "c4bb15ee0216db821029a91af949774041dedb44ed950147a7d174f981147a95",
+    "tests/test_delete_profiles.py": "4ef1c4d8fde163d5dc62dff39ae225cf5785854df8da1733d70d0ee54572058a",
+    "tests/test_deletion_resolution.py": "27329835066d0efe31d9ac65c7694772796d5d6c1593ba505a1913d03acb54ca",
+    "tests/test_e2e_predeployment.py": "eb593420bc2a10e44e4a4634ea30cca5f65ca955f646d5ec640d0d41cfe40a8e",
+    "tests/test_entity_ownership.py": "c85b43788658bd7d8ca5c405de91d56bcf2ed3062dcb50112495f35afbc64515",
+    "tests/test_event_features.py": "841a60d0bf44781b9b2abe5fe1f87d77b77fa74b6583b0d58816565d86b0999c",
+    "tests/test_fan_gallery.py": "a6b87368db23ecdf6c8c294aae8dfc488d45a642ba26ce4d6bbca13deacd465c",
+    "tests/test_friend_messages_stories_api.py": "1fb9319aadf1949db0e75a917f05d527a6f1d6d4b822686644fcf990a274cb1b",
+    "tests/test_gallery_auto_post.py": "6914c7a6c95120c3e69a530e05a415ec982d2dfa943d096b36f7a678750681e9",
+    "tests/test_home_feed_artists_fix.py": "cffce85b42258705e67150535a409d6cfd0cd2ba036ed6f460df2093e10c1b59",
+    "tests/test_hotel_service_routes.py": "5f3c7d6228c30632509e07148738c1426c85450005498895c80eb6b435527447",
+    "tests/test_hotel_service_validation.py": "c112873d02434d5c114e1a9ddccb7c8b162fbb99c3e5730a7e9dee899d06f9db",
+    "tests/test_jobs_api.py": "ee8c4ab0e4cb38682aa079d294e0736a03d38678fa6440077eb30b9efea89651",
+    "tests/test_magdeburg_stop_occurrences.py": "817b77ed6317e12a957fa6666fa8f46d20c365f21910e05fac376b6b267c8c3e",
+    "tests/test_media_and_location.py": "aa42af1d2270084a6056fe37f709e8133e56a55a455e6b7ca7cf17bb60dec09c",
+    "tests/test_message_badges.py": "80e6ad7d4f1e24ef78c4f023005e831f4ec1fb99d361609163fa98ef1496b0ec",
+    "tests/test_message_edit_and_profiles.py": "30c890619fdaf0076c1f769943de27fa50b243ff74add5ea6aaa96b3f84ab41c",
+    "tests/test_migration.py": "33e50fc32169336912895624176f0e81de182a8ce9f3f7fc2700a0fdb8a557c7",
+    "tests/test_mobility_actual_carryover.py": "4fa30cb1f79de8e1a60539fe456cdd5d08343a860d89ca62c75e7f7324d86a5e",
+    "tests/test_mobility_alert_lifecycle.py": "c85001d67c4ffc6023bb7c2335770b3dc59d1f59c1ee2cfcf6a9d0c8e44cc0db",
+    "tests/test_mobility_civil_day.py": "03140f5cbac8b4dd831bce40781431286386c8c7e5d4709592d31e497c32e6b2",
+    "tests/test_mobility_dated_carryover.py": "1c515477085ab2a3f5e4750ac62f0ed2d6651d31c059cae1b503ee60eb829bc6",
+    "tests/test_mobility_detour_guard.py": "bd40f40eae99d1c62be850ac0ce6dc81077c153f5acdd549d2e481d6839e4215",
+    "tests/test_mobility_eta_quality.py": "e9cc3b372ba5d043e0af04a12b853d908a1f53ba7b311ebc618976afa64a7ee9",
+    "tests/test_mobility_generation_fingerprints.py": "bf42d458a34699a19d724e47d6aba3b0207c822aa56d32161644956ce4198671",
+    "tests/test_mobility_generation_readiness.py": "afd01e703ca67824d373d20d4af8d617cdba782db0d15c05f6c54cabbb48bf72",
+    "tests/test_mobility_geometry_conformance.py": "e58550fdb4d1e1cf1c4e15b950bac8762e39b5b5f01257442a05e8a1e28eb2b3",
+    "tests/test_mobility_geometry_validation_ordered.py": "58eaefd34f5810e8c91d75c04f5d08963e2a36e0a5d9a86ba90d75675c71b071",
+    "tests/test_mobility_infrastructure.py": "68080477292707b2b4e65211ffba2bad8c3d51e5c39db677f5b8baa34765fcba",
+    "tests/test_mobility_latency.py": "c97ac6a8a196f09a0b35e2e385c5896c3dcf613e09dc98160fa45629b8a173e0",
+    "tests/test_mobility_live_findings_v8.py": "a2a1893969a8589270e103a24847e91fa6d50a65257acc94c9437c976db792ac",
+    "tests/test_mobility_motion_bus_tram.py": "47bfcfa22d466423e2afa9e3d65b8db244018df799485422047dd2c07fed00e5",
+    "tests/test_mobility_motion_calibration.py": "7bf4e3fc1c41b59334338f2e2e1dc94af1a5a55954f9a7eb816723505f5e3c16",
+    "tests/test_mobility_motion_common.py": "1ef155187ed8d8eafdd22df038841513ea8bdba40e127dc11f2aa7a489975e13",
+    "tests/test_mobility_motion_diagnostics.py": "124ba3494a02a8689c3fb1fc4f265057f9109550682320070e11e01c2576d64c",
+    "tests/test_mobility_motion_engine.py": "81227f4fce0b77230ca95e446a2b74ae4dd4b6077348f27621c935b6efde05f6",
+    "tests/test_mobility_motion_engine_observability.py": "0c3b91c36e72546ff9c24fcf6f52d1928baaf850d1fc4af4fa68c5eb95aad3b3",
+    "tests/test_mobility_motion_explain.py": "b9dcdeb2e99710d64ee892cdc8a7fc6c76e3cb94800509951dd8cfc4be4641c8",
+    "tests/test_mobility_motion_handover.py": "842b571f099faeda15599b054b9e0666f3ffa9a531dbb62aa291853bc7b846ff",
+    "tests/test_mobility_motion_initial_speed.py": "06e68a65a56eb4607bb766576ec9f652ceca5fe84e68c267a5f77284719fbb4d",
+    "tests/test_mobility_motion_lateness.py": "c70caa749fede0096d8899ee25bcbc02f5253d73696cddfb47cc47ae10a70357",
+    "tests/test_mobility_official_gate_integration.py": "f43d07352f318aeaea9f8d64e077a698dfac52f54dcba078b5c7166efa6d4ad6",
+    "tests/test_mobility_official_route_audit.py": "d7c9ef8452c79a5f882f1e32034e2c739aef1b1bdbdb21ab0badfad85c36757e",
+    "tests/test_mobility_osm_snapshot_completeness.py": "0e2eb1b7361fd48b6c21b4fb4037a7bba34b2d74d685bca74a1c2f58c946adb1",
+    "tests/test_mobility_physical_alignment.py": "2486ba86396fb7c6a07b501f1447ec60c9d738e660022b8e7007c141d9b04a98",
+    "tests/test_mobility_realtime_freshness.py": "86560e97335438793442635dc8a54d2fd3e566399fcf4853c48f4cae48907d74",
+    "tests/test_mobility_realtime_trip_identity.py": "b591f31fb35fd80e9c3ec3960713129816beab2fc41c41300901fc5cfd7b2149",
+    "tests/test_mobility_rebuild_queue.py": "120014a0274b7d55baf9f9e187c133a3bc069b19c968790adb417c5d55b6bf3d",
+    "tests/test_mobility_regions.py": "e3d64b98049d00f764991876bfbfda63552c6745f2c5bb4815a58f9e4c03478a",
+    "tests/test_mobility_release_gate.py": "d1b5a8c2a518418c29a5b7fb2c666237c97f4777d8904ee0d38a336643d69789",
+    "tests/test_mobility_road_edge_orientation.py": "f1947c9baeb80a239817daed33608942cacca4f01b8399d5f5f73cdb385f4cc3",
+    "tests/test_mobility_schedule_revision.py": "d5d813b5bc8291039e2bfd49b202970f9def0fd3b65318ef47a9cbcd4aedc066",
+    "tests/test_mobility_signal_clustering.py": "6178c0afdc0972212197abfb219ba408b6c7838e9468ba09c2c90211d8c83152",
+    "tests/test_mobility_signal_semantics.py": "fe39aa31a5a78fd7a5e797592ff9b985a8e69e9d909f4bb0d947665fab20e1c2",
+    "tests/test_mobility_timeline_contract.py": "0bb31a94f5d3f66de95cd18853f43eebe64a5b38ac54278c972c1c5cf6f13e21",
+    "tests/test_mobility_traffic_profiles.py": "58fa86552fcd0f55b84c99575de327e3986d9aba619676deaaffa9686ea99b47",
+    "tests/test_mobility_verified_closure.py": "8e2c7c53647984b88b0c5aa7cbe50360ba4670edd955203b21d2589487b2e9e2",
+    "tests/test_mobility_verified_detours.py": "28f63e969b8891c5e9997140770e31c65183b7af15e58372612959347d90523d",
+    "tests/test_music_and_profiles_api.py": "a6e1c1252474223f32c24c167210ab93cb4c3bbc13fa2e1e35cc10cbcf9b0359",
+    "tests/test_post_gallery_sync.py": "cc1c9eaae84e8927956765c247b5f8877212f4fbcd1b7180e2dd61ffc2475760",
+    "tests/test_profile_common_friends_fix.py": "70f6e5fe74ee479f58e5784fbc7423c6d2c4ce815cec1e890e753b394ff932b4",
+    "tests/test_push_notifications.py": "d178e033b8e84eece50bcce01722b2c7fe8592d9e53e4208b9a64e5ec377d246",
+    "tests/test_realtime_order_mongo.py": "216c7ddf8f335e6bdf660000bf80f51d7cd530151cb12140776fadc607f4b9ac",
+    "tests/test_refactored_routes.py": "b040ab01a9f50793e10e5553e83649f14d0e3b57750181e36908229ff5ac9c0c",
+    "tests/test_story_analytics_api.py": "5a5ecb332e9d2bc1344974f3222c52097f50c3fe507cbd3ed8d43601c1ba5e72",
+    "tests/test_vehicle_performance.py": "be9bd24475d5bd64cf15de978fdd05bfa253e55c0acefd4c4810667e249098b3",
+    "tests/test_video_upload_and_locator.py": "530cee451e7392ac188d6192cacdfeb2412dd72353b797085f86e67e0e9f8651",
+    "tests/test_ws_and_auth.py": "ac0d8a1a6c9d2992b8f3455c4cb703b2a13bae4b6b9cb4b7b86d5bc6dfa98f53",
+    "utils/__init__.py": "48748830e2082bfd62852b666aff5fc98b9672c90c0b807edd5c195c44c020b3",
+    "utils/cleanup.py": "22dd207aa827f2aded0bdc9fbf600a30808be79b2ffaf5669aa288fdc935f0da",
+    "utils/cloudinary_utils.py": "c822db3ee63d2a5a15201c6bf4952eeaa398c73a5dd7ed1b26f0f0447d62c9b2",
+    "utils/email_utils.py": "6dd204d9482aeb8344e3c0c69cb367264078cb46140f549fd6f84f7429a8efc6",
+    "utils/gtfs.py": "f67a37962c07c623226092702970fd041c202496d5dba12cf49227b3d726375a",
+    "utils/helpers.py": "572827fc916e5d70fd61d1a30e25dc3438a79491a1211b82e4e02c2fcec70dbc",
+    "utils/mobility_workers.py": "964dc21273dd4490fd5724e98996b0436598e7a14036e2bda59f82a83aa14ead",
+    "utils/moderation.py": "494c9061c7c1699ba72e29a3b1ccc6e59358ec3ca79a406b5ee0c76d8172e0dd",
+    "utils/mux_resolver.py": "9f6ee6a4d01d339119e0a46d3ee33e332a11745694c4cc8b8169006799740112",
+    "utils/osm.py": "8d9e5ac9f2eaaae324b447754f12a41e78ba702510ff9648ce9ac99dc9336568",
+    "utils/product_permissions.py": "b4e48b70db544181914c2414c2dfb117914a8daa25b2b5981a538c90aff46da1",
+    "utils/push_notifications.py": "2374258b8bb128838f08437f17c07ccb01b63278856afb7895f71f96ccf2a849"
+  },
+  "unchanged_matcher": {
+    "path": "mobility/realtime_trip_identity.py",
+    "sha256": "6f46e98dd7092a77b495a500881e1e8ec6920a2788d550ba1dbb02e5e769fe97"
+  },
+  "historical_validation_not_rerun": {
+    "records": [
+      "LATENCY_DEPLOYMENT_RESULT.md",
+      "latency-approved-manifest.json",
+      "latency-deployment-record.json",
+      "latency-deployed-verification.json"
+    ],
+    "candidate_tests_passed": 269,
+    "packaged_tests_passed": 254,
+    "packaged_tests_skipped": 1,
+    "skip_reason": "Older root capture deliberately excluded; actual 21-trip fixture included"
+  },
+  "observed_staging_state_not_a_promise": {
+    "record": "latency-deployed-verification.json",
+    "utc": "2026-10-23T02:21:47.550281+00:00",
+    "active": {
+      "version_id": "net_fa5ce635d48b",
+      "service_date": "2026-10-23",
+      "generation_state": "ACTIVE_READY",
+      "ready": 157,
+      "expected": 157
+    },
+    "realtime_rows": 157,
+    "fresh_realtime_rows": 152,
+    "https_samples": [
+      {
+        "kind": "vehicles_first_https",
+        "status": 200,
+        "seconds": 3.4027,
+        "count": 42
+      },
+      {
+        "kind": "map_first_https",
+        "status": 200,
+        "seconds": 2.3125,
+        "count": 157
+      },
+      {
+        "kind": "vehicles_warm_https",
+        "status": 200,
+        "seconds": 0.9338,
+        "count": 42
+      },
+      {
+        "kind": "map_warm_https",
+        "status": 200,
+        "seconds": 1.3127,
+        "count": 157
+      },
+      {
+        "kind": "concurrent_map_2",
+        "status": 200,
+        "seconds": 2.5288,
+        "count": 157
+      },
+      {
+        "kind": "concurrent_vehicles_1",
+        "status": 200,
+        "seconds": 2.5831,
+        "count": 42
+      },
+      {
+        "kind": "concurrent_map_1",
+        "status": 200,
+        "seconds": 2.5886,
+        "count": 157
+      },
+      {
+        "kind": "concurrent_vehicles_2",
+        "status": 200,
+        "seconds": 2.6207,
+        "count": 42
+      },
+      {
+        "kind": "arrivals_https",
+        "status": 200,
+        "seconds": 1.8502,
+        "count": 20
+      },
+      {
+        "kind": "progress_https",
+        "status": 200,
+        "seconds": 3.4421,
+        "count": 0
+      }
+    ],
+    "all_https_under_15s": true,
+    "concurrent_batch_seconds": 2.6221,
+    "proven_cold_http": false
+  },
+  "dated_storage": {
+    "write_collection": "mobility_trip_realtime_journeys",
+    "unique_fields": [
+      "region_id",
+      "network_id",
+      "network_version_id",
+      "service_date",
+      "trip_id"
+    ],
+    "reason": "Concrete legacy unique index on region_id/network_id/trip_id prevents same-ID dated overlap",
+    "legacy_collection": "mobility_trip_realtime",
+    "legacy_collection_and_index_preserved": true,
+    "read_policy": "Both stores queried by exact date/version; even stale dated row supersedes legacy rollback row",
+    "rollback_limit": "Code rollback does not migrate dated rows or restore active network; old code lacks civil-day overlap behavior"
+  },
+  "actual_carryover_fixture": {
+    "path": "tests/fixtures/civil_actual_carryover.json",
+    "gtfs_sha256": "df1f77d9103dc84bbb8daad92505a3e8ca82050a64cd023218ca478599c81ce2",
+    "trips_per_date": {
+      "2026-10-22": 21,
+      "2026-10-23": 21
+    },
+    "evidence": "Full actual 24+ occurrence clocks with hashed identifiers; not simultaneous live fleet"
+  },
+  "offline_source_provenance": {
+    "dataset": "Geofabrik Sachsen-Anhalt 261016",
+    "sha256": "d5d34ce99b4f84359228e96e8ed405afcfd395613f659dca88f69fa7cca492f6",
+    "md5": "462c316cc18418f0ba8b5d217b2610f7",
+    "size_bytes": 176166062,
+    "source_timestamp": "2026-10-16T20:21:21Z",
+    "polygon_sha256": "8cfaba37360087feff109a4e7c5e4462b8f6a3687429f06af3b5b5d6d257a360",
+    "polygon_contains_bbox": true,
+    "missing_node_references": 0,
+    "extractor_sha256": "e14fac6eebc0897987743dd0cd8b37cb867feb9e8ca80e0c69f6376212052b5f",
+    "audit": "Independent full-PBF query-ID, tag, node-reference and geometry equality; no clipping",
+    "extractor_origin": "Existing rz-deploy-islands mobility/pbf_bootstrap.py reused read-only; not bundled",
+    "bbox": [
+      52.0,
+      11.45,
+      52.25,
+      11.8
+    ],
+    "coverage": {
+      "roads": {
+        "bbox": [
+          52.0,
+          11.45,
+          52.25,
+          11.8
+        ],
+        "complete": true,
+        "failed": 0,
+        "expected": 29961
+      },
+      "rails": {
+        "bbox": [
+          52.0,
+          11.45,
+          52.25,
+          11.8
+        ],
+        "complete": true,
+        "failed": 0,
+        "expected": 865
+      },
+      "signals": {
+        "bbox": [
+          52.0,
+          11.45,
+          52.25,
+          11.8
+        ],
+        "complete": true,
+        "failed": 0,
+        "expected": 2816
+      }
+    },
+    "bundle_sha256": "5b0d92093b6e852e0f2e6d812a66f645e96e15f63c5cf768280b98a16b4755e3",
+    "bundle_bytes": 17688607,
+    "elements_sha256": "07ce1a34c895fdb64d63590e7a45ac26ac7329a8e5ab269d35bd29e1de18d1b1",
+    "verified_rail_way_ids": [
+      "154233522",
+      "935943410",
+      "935943416",
+      "949784604"
+    ],
+    "source_data_bundled": false
+  },
+  "exclusions": [
+    "Future candidate-only offline tests",
+    "whole backend",
+    "nationwide GTFS",
+    "OSM binaries/bundle",
+    "auth/email changes",
+    "fonts/build configuration",
+    "island/Syrr changes",
+    "Real service/provider URLs, credentials and environment values"
+  ],
+  "allowed_inert_test_placeholder": "example.invalid/test.zip retained byte-exactly in deployed civil-day test",
+  "new_verification": "Deterministic regeneration and isolated git apply --check/replay with exact hashes; no new tests or remote operations",
+  "frontend_documentation_only": {
+    "deployment_id": "53d102c6-37a9-4d81-8e65-9e0772d58604",
+    "status": "SUCCESS",
+    "candidate_bundle_sha256": "5185bd96bc8d3b45add0690eeed86c16ca2c222f0e25a0cb6d53096f27410bb5",
+    "served_bundle_sha256": "47a4a917a110746052c281964df7672e08f2b01d59fa05ced6e3600506cbf502",
+    "candidate_and_served_hashes_are_distinct": true,
+    "observed_at": "2026-10-23T02:22:17.291Z",
+    "smoke_passed": true,
+    "browser": [
+      {
+        "viewport": "desktop",
+        "rendered_rows": 20,
+        "errors": 0,
+        "max_completed_request_ms": 8203,
+        "overflow": false,
+        "requests_without_completion_timing": 1
+      },
+      {
+        "viewport": "mobile",
+        "rendered_rows": 20,
+        "errors": 0,
+        "max_completed_request_ms": 3315,
+        "overflow": false,
+        "requests_without_completion_timing": 0
+      }
+    ],
+    "assets_included": false,
+    "public_key_asset_included": false,
+    "candidate_tests": "9 passed",
+    "typecheck_caveat": "Five pre-existing CityAdViewer.tsx diagnostics on clean HEAD; not a clean typecheck claim",
+    "production_changed": false
+  },
+  "remaining_caveats": [
+    "Production unpromoted",
+    "Virtual schedule/realtime estimates are not GPS or proof of world accuracy",
+    "Five existing CityAdViewer type errors",
+    "Older root capture replay skipped",
+    "Historical tests not rerun for bundle",
+    "No latency SLA or proven cold HTTP",
+    "Existing dated policy and rollback limits remain"
+  ]
+}

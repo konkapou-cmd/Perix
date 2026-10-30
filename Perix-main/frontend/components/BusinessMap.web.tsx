@@ -9,6 +9,8 @@ import { useTranslation } from "react-i18next";
 import { getCurrentLanguageSync } from "../i18n";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
+import { useMapSelection } from "../hooks/useMapSelection";
+import MapLocationControl from "./shared/MapLocationControl";
 
 type MapMarker = {
   id: string;
@@ -28,6 +30,9 @@ type MapMarker = {
   /** Backend progress along the canonical line (meters) - authoritative
    *  position, never re-projected in the browser. */
   progressM?: number | null;
+  journeyId?: string | null;
+  speed?: number | null;
+  motionState?: string | null;
   positionState?: string | null;
 };
 
@@ -109,24 +114,36 @@ type Props = {
   onRegionChange?: (bounds: MapBounds) => void;
   onRegionChangeComplete?: (bounds: MapBounds) => void;
   onZoomChange?: (zoom: number) => void;
+  /** Camera zoom belongs to a view, not to shared GPS/MapBounds. */
+  cameraScope?: "explore" | "mobility";
   onMarkerPress?: (markerId: string) => void;
   onMapPress?: (latitude: number, longitude: number) => void;
   height?: number;
   disabled?: boolean;
   disabledHint?: string;
   staticMode?: boolean;
+  onReadyChange?: (ready: boolean) => void;
+  showTrafficLayer?: boolean;
 };
 
 const googleKey =
+  Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_MAPS_JS_KEY ||
   Constants.expoConfig?.extra?.EXPO_PUBLIC_GEO_KEY ||
   Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
+  process.env.EXPO_PUBLIC_GOOGLE_MAPS_JS_KEY ||
   process.env.EXPO_PUBLIC_GEO_KEY ||
   process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
   "";
 
 // Vehicle icon scale: smaller, proportional city vehicles. zoom 10 -> 0.35,
 // zoom 14 -> 0.78, zoom 16 -> 0.89, zoom 18+ -> 1.05.
-const vehicleScale = (zoom: number) => 0.78 * Math.max(0.45, Math.min(1.35, zoom / 14));
+const vehicleScale = (zoom: number): number => {
+  if (zoom < 12) return 0.34;
+  if (zoom < 14) return 0.38;
+  if (zoom < 16) return 0.44;
+  if (zoom < 18) return 0.52;
+  return 0.61;
+};
 
 const haversineMeters = (
   a: { lat?: number; lng?: number; latitude?: number; longitude?: number },
@@ -375,28 +392,38 @@ export default function BusinessMap({
   onRegionChange,
   onRegionChangeComplete,
   onZoomChange,
+  cameraScope = "explore",
   onMarkerPress,
   onMapPress,
   height = 300,
   disabled = false,
   disabledHint = "Tap to enable location",
   staticMode = false,
+  onReadyChange,
+  showTrafficLayer = false,
 }: Props) {
+  const selection = useMapSelection();
+  const originChoiceRef = useRef(selection.revision);
   const { t } = useTranslation();
   const mapDivRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const [mapReady, setMapReady] = useState(false);
   const mapReadyRef = useRef(false);
+  const onReadyChangeRef = useRef(onReadyChange);
+  onReadyChangeRef.current = onReadyChange;
   const [mapError, setMapError] = useState(false);
   const [enabling, setEnabling] = useState(false);
   const enablingRef = useRef(false);
   const [enableError, setEnableError] = useState<string | null>(null);
-  const centerLat = location?.latitude ?? initialRegion?.latitude ?? 52.52;
-  const centerLng = location?.longitude ?? initialRegion?.longitude ?? 13.405;
+  // The map camera follows the shared viewport; location is only a GPS pin.
+  const centerLat = initialRegion?.latitude ?? location?.latitude ?? 52.52;
+  const centerLng = initialRegion?.longitude ?? location?.longitude ?? 13.405;
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const lastBoundsRef = useRef<string>("");
   const prevCenterRef = useRef<string>("");
+  const prevCameraScopeRef = useRef(cameraScope);
+  const zoomByScopeRef = useRef<Partial<Record<"explore" | "mobility", number>>>({});
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // The map's one-time listeners must always call the LATEST props (stale
@@ -409,12 +436,14 @@ export default function BusinessMap({
   onRegionChangeCompleteRef.current = onRegionChangeComplete;
   const onZoomChangeRef = useRef(onZoomChange);
   onZoomChangeRef.current = onZoomChange;
+  const onMarkerPressRef = useRef(onMarkerPress);
+  onMarkerPressRef.current = onMarkerPress;
 
   // Continuous vehicle motion: positions are interpolated in GEOGRAPHIC
   // space between polls (requestAnimationFrame), so vehicles glide along
   // their routes instead of jumping every 4s. After reaching the latest
-  // poll target the marker EXTRAPOLATES at the same speed until the next
-  // poll - live-like continuous motion. Zooming in makes the same
+  // poll target the marker waits for the next sample, as in Mobility.
+  // Never run past the latest authoritative sample. Zooming in makes the same
   // geographic step cover more pixels - motion appears faster naturally.
   const animRunningRef = useRef(false);
   const animRafRef = useRef<number | null>(null);
@@ -427,9 +456,8 @@ export default function BusinessMap({
       if (!rec || rec.animStart == null || !rec.marker) return;
       try {
         const t = (now - rec.animStart) / Math.max(1, rec.animDuration || 1000);
-        // Extrapolation cap: keep gliding at the same speed for up to 3x
-        // the glide duration after the target - a late poll stays smooth.
-        const tt = Math.min(Math.max(t, 0), 3.0);
+        // A late poll must not push the vehicle past a stop prematurely.
+        const tt = Math.min(Math.max(t, 0), 1.0);
         if (rec.path && rec.cum && rec.progTo != null && Number.isFinite(rec.progFrom) && Number.isFinite(rec.progTo)) {
           // Progress interpolation along the canonical road/rail polyline:
           // the vehicle follows the curves, never a straight chord.
@@ -445,7 +473,7 @@ export default function BusinessMap({
           const lng = rec.geoFrom.lng + (rec.geoTo.lng - rec.geoFrom.lng) * tt;
           rec.marker.setPosition({ lat, lng });
         }
-        if (t >= 3.0) {
+        if (t >= 1.0) {
           rec.animStart = null;
         } else {
           active = true;
@@ -476,8 +504,13 @@ export default function BusinessMap({
   const setVehicleTarget = (rec: any, pos: { lat: number; lng: number }, nowTs: number, targetProgressM?: number | null) => {
     // Anchored states never animate: the vehicle stands exactly on its
     // stop (STOP_ANCHOR) or terminus (TURNAROUND_ANCHOR).
-    if (rec.positionState === "STOP_ANCHOR" || rec.positionState === "TURNAROUND_ANCHOR") {
+    if (rec.positionState === "STOP_ANCHOR" || rec.positionState === "TURNAROUND_ANCHOR"
+        || ["DWELL", "AT_STOP", "SIGNAL_HOLD", "TURNAROUND", "PARKED"].includes(rec.motionState)
+        || rec.speed === 0) {
       rec.animStart = null;
+      rec.lastTs = nowTs;
+      if (Number.isFinite(targetProgressM)) rec.progNow = rec.progFrom = targetProgressM;
+      rec.progTo = null;
       rec.marker.setPosition(pos);
       return;
     }
@@ -521,10 +554,11 @@ export default function BusinessMap({
         } else {
           fromProg = rec.progNow ?? toProg;
         }
+        toProg = Math.max(fromProg, toProg);
         const d = Math.abs(toProg - fromProg);
         const dt = rec.lastTs ? nowTs - rec.lastTs : 0;
         rec.lastTs = nowTs;
-        if (d > 250 || dt <= 0 || dt > 30000 || toProg < fromProg) {
+        if (d > 250 || dt <= 0 || dt > 30000) {
           // Snap: brand-new vehicle, trip change, a stale update, or the
           // extrapolation overshot the new poll target (never glide back).
           rec.progFrom = toProg;
@@ -689,8 +723,9 @@ export default function BusinessMap({
     allMarkers.forEach((m) => {
       parts.push(
         `${m.id}|${m.latitude}|${m.longitude}|${m.pinColor || ""}|${m.pinInnerColor || ""}` +
-        `|s${m.positionState || ""}|p${m.progressM ?? ""}` +
-        (m.path && m.path.length ? `|l${m.path.length}:${m.path[0]?.latitude}` : "")
+         `|s${m.positionState || ""}|p${m.progressM ?? ""}` +
+        `|${m.type}|${m.journeyId || ""}|${m.label || ""}|${m.heading ?? ""}|${m.speed ?? ""}|${m.motionState || ""}` +
+        (m.path ? JSON.stringify(m.path) : "")
       );
     });
     return parts.join(";");
@@ -699,7 +734,8 @@ export default function BusinessMap({
   const groupedMarkers = useMemo(() => {
     const groups = new Map<string, MapMarker[]>();
     allMarkers.forEach((m) => {
-      const key = `${m.latitude.toFixed(5)}_${m.longitude.toFixed(5)}`;
+      const key = m.type === "bus" || m.type === "tram" ? `vehicle:${m.id}`
+        : `${m.latitude.toFixed(5)}_${m.longitude.toFixed(5)}`;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(m);
     });
@@ -733,6 +769,7 @@ export default function BusinessMap({
 
   // Init map — runs once per map div lifetime (disabled toggles or unmount)
   useEffect(() => {
+    onReadyChangeRef.current?.(false);
     if (!mapDivRef.current || mapError) return;
     if (mapRef.current) return; // map already alive for this div
     let cancelled = false;
@@ -742,7 +779,8 @@ export default function BusinessMap({
         const google = (window as any).google;
         const map = new google.maps.Map(mapDivRef.current, {
           center: { lat: centerLat, lng: centerLng },
-          zoom: 14,
+          // Do not inherit the tight Mobility zoom in other Locator categories.
+          zoom: cameraScope === "mobility" ? 15 : 14,
           disableDefaultUI: staticMode,
           zoomControl: !staticMode,
           mapTypeControl: false,
@@ -810,16 +848,47 @@ export default function BusinessMap({
         mapRef.current = map;
         mapReadyRef.current = true;
         setMapReady(true);
+        onReadyChangeRef.current?.(true);
         console.log("[WebMap] initialized zoom=" + map.getZoom());
-        onZoomChangeRef.current?.(map.getZoom() || 14);
+        onZoomChangeRef.current?.(map.getZoom() || (cameraScope === "mobility" ? 15 : 14));
       })
-      .catch((e) => { console.error("[WebMap] init failed", e); setMapError(true); });
+      .catch((e) => {
+        if (cancelled) return;
+        console.error("[WebMap] init failed", e);
+        onReadyChangeRef.current?.(false);
+        setMapError(true);
+      });
     return () => {
       cancelled = true;
       mapRef.current = null;
       mapReadyRef.current = false;
+      setMapReady(false);
+      onReadyChangeRef.current?.(false);
     };
   }, [disabled, mapError]);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !showTrafficLayer) return;
+    const traffic = new (window as any).google.maps.TrafficLayer();
+    traffic.setMap(mapRef.current);
+    return () => traffic.setMap(null);
+  }, [mapReady, showTrafficLayer, disabled]);
+
+  // Keep the same geographic center across tabs, but store zoom separately.
+  // No GPS write, no map recreation and no vehicle animation reset.
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const previousScope = prevCameraScopeRef.current;
+    if (previousScope === cameraScope) return;
+    const map = mapRef.current;
+    const currentZoom = map.getZoom();
+    if (typeof currentZoom === "number" && Number.isFinite(currentZoom)) {
+      zoomByScopeRef.current[previousScope] = currentZoom;
+    }
+    prevCameraScopeRef.current = cameraScope;
+    const target = zoomByScopeRef.current[cameraScope] ?? (cameraScope === "mobility" ? 15 : 14);
+    if (Math.abs((map.getZoom() ?? target) - target) >= 0.25) map.setZoom(target);
+  }, [cameraScope, mapReady]);
 
   // Sync markers — DOM-based pins (OverlayView) for pixel-perfect app-style rendering
   useEffect(() => {
@@ -1023,7 +1092,8 @@ export default function BusinessMap({
         const rec = existing;
         // Keep the vehicle's canonical path fresh (the resolved line can
         // change once, e.g. when the geometry worker completes it).
-        const pathChanged = rep.path != null && rec.path !== rep.path;
+        const pathChanged = rec.journeyId !== rep.journeyId || rec.path !== rep.path;
+        rec.journeyId = rep.journeyId;
         if (rep.path && rep.path.length >= 2) {
           rec.path = rep.path;
           rec.cum = polylineCumulative(rep.path);
@@ -1050,6 +1120,8 @@ export default function BusinessMap({
         rec.label = rep.label;
         rec.estimated = rep.estimated ?? false;
         rec.positionState = rep.positionState ?? null;
+        rec.speed = rep.speed ?? null;
+        rec.motionState = rep.motionState ?? null;
         setVehicleTarget(rec, { lat: rep.latitude, lng: rep.longitude }, Date.now(), rep.progressM ?? null);
         rec.marker.setIcon(makeVehicleIcon(google, rec));
         rec.marker.setOpacity(rec.estimated ? 0.72 : 1);
@@ -1071,6 +1143,9 @@ export default function BusinessMap({
           rec.marker.setIcon(makeVehicleIcon(google, rec));
         },
         vehicleId: rep.id,
+        journeyId: rep.journeyId,
+        speed: rep.speed ?? null,
+        motionState: rep.motionState ?? null,
         heading: typeof rep.heading === "number" ? rep.heading : 0,
         scale: vScale,
         type: rep.type,
@@ -1101,7 +1176,7 @@ export default function BusinessMap({
       marker.setIcon(makeVehicleIcon(google, rec));
       marker.setOpacity(rec.estimated ? 0.72 : 1);
       marker.addListener("click", () => {
-        onMarkerPress?.(rep.id);
+        onMarkerPressRef.current?.(rep.id);
       });
       markersRef.current.push(rec);
     });
@@ -1373,17 +1448,16 @@ export default function BusinessMap({
       // directions instead of the name.
       const platforms = (s as any).platforms || [];
       if (zoom >= 16 && platforms.length >= 1) {
-        const mainKey = `stop:${s.stop_id}:${bucket}`;
-        seenKeys.add(mainKey);
-        if (!stopsCacheRef.current.has(mainKey)) {
-          buildPin(s, s.latitude, s.longitude, showBadges, undefined, null, mainKey);
-        }
-        const clusters: { lat: number; lng: number; directions: string[]; routeNums: Set<string> }[] = [];
+        // Deep zoom: render the ACTUAL boarding points, not an extra
+        // aggregate marker on top of nearby opposing platforms.
+        const clusters: { lat: number; lng: number; side: string | null; directions: string[]; routeNums: Set<string> }[] = [];
         for (const p of platforms) {
           if (p.latitude == null || p.longitude == null) continue;
+          const side = p.side === "left" || p.side === "right" ? p.side : null;
+          // Never collapse opposite boarding sides into one marker.
           const near = clusters.find(
-            (c) =>
-              Math.sqrt((c.lat - p.latitude) ** 2 + (c.lng - p.longitude) ** 2) * 111000 < 25
+            (c) => c.side === side &&
+              Math.sqrt((c.lat - p.latitude) ** 2 + (c.lng - p.longitude) ** 2) * 111000 < 12
           );
           if (near) {
             for (const d of p.directions || []) {
@@ -1394,23 +1468,32 @@ export default function BusinessMap({
             clusters.push({
               lat: p.latitude,
               lng: p.longitude,
+              side,
               directions: [...(p.directions || [])],
               routeNums: new Set<string>(p.routes || []),
             });
           }
         }
+        if (!clusters.length) {
+          const mainKey = `stop:${s.stop_id}:${bucket}`;
+          seenKeys.add(mainKey);
+          if (!stopsCacheRef.current.has(mainKey)) {
+            buildPin(s, s.latitude, s.longitude, showBadges, undefined, null, mainKey);
+          }
+        }
         for (const c of clusters) {
-          const dMain =
-            Math.sqrt((s.latitude - c.lat) ** 2 + (s.longitude - c.lng) ** 2) * 111000;
-          if (dMain < 25) continue;
-          const k = `dir:${s.stop_id}:${c.lat.toFixed(5)},${c.lng.toFixed(5)}`;
+          const k = `dir:${s.stop_id}:${c.side || "unknown"}:${c.lat.toFixed(5)},${c.lng.toFixed(5)}`;
           seenKeys.add(k);
           if (!stopsCacheRef.current.has(k)) {
             const cRoutes = Array.from(c.routeNums).map((rn) => {
               const rr = (s.routes || []).find((x: any) => x.route_number === rn);
               return rr || { route_number: rn, mode: s.modes[0] || "bus" };
             });
-            buildPin(s, c.lat, c.lng, true, c.directions, null, k, undefined, cRoutes);
+            buildPin(
+              s, c.lat, c.lng, true,
+              c.directions.length ? c.directions : [s.name],
+              c.side, k, undefined, cRoutes
+            );
           }
         }
         return;
@@ -1449,9 +1532,10 @@ export default function BusinessMap({
     const map = mapRef.current;
     if (!map || !mapReadyRef.current) return;
     // The "you are here" pin only shows at the live device location.
-    const pinPos = pinLocation;
-    const imageKey = userPinImage || "";
-    if (!showUserLocation || !pinPos) {
+    const pinPos = selection.available ? selection.position : pinLocation;
+    const manual = selection.mode === "manual";
+    const imageKey = `${selection.mode}:${manual ? "" : userPinImage || ""}`;
+    if ((!selection.available && !showUserLocation) || !pinPos) {
       if (userLocationOverlayRef.current) {
         try { userLocationOverlayRef.current.setMap(null); } catch (e) {}
         userLocationOverlayRef.current = null;
@@ -1476,8 +1560,10 @@ export default function BusinessMap({
     const container = document.createElement("div");
     container.style.position = "absolute";
     container.style.pointerEvents = "none";
+    container.setAttribute("data-perix-origin", manual ? "manual" : "live");
+    container.title = manual ? selection.position?.name || "Selected location" : "Live location";
 
-    if (userPinImage) {
+    if (userPinImage && !manual) {
       // User pin with the profile photo (user or business avatar)
       const pin = document.createElement("div");
       pin.style.width = "34px";
@@ -1502,11 +1588,11 @@ export default function BusinessMap({
       const dot = document.createElement("div");
       dot.style.width = "16px";
       dot.style.height = "16px";
-      dot.style.borderRadius = "50%";
-      dot.style.backgroundColor = "#59ABE3";
+      dot.style.borderRadius = manual ? "4px" : "50%";
+      dot.style.backgroundColor = manual ? COLORS.eventsAccent : COLORS.primary;
       dot.style.border = "3px solid #ffffff";
       dot.style.boxShadow = "0 1px 5px rgba(0,0,0,0.4)";
-      dot.style.transform = "translate(-50%, -50%)";
+      dot.style.transform = manual ? "translate(-50%, -50%) rotate(-45deg)" : "translate(-50%, -50%)";
       dot.style.boxSizing = "border-box";
       container.appendChild(dot);
     }
@@ -1539,7 +1625,13 @@ export default function BusinessMap({
     overlay.setMap(map);
     userLocationOverlayRef.current = overlay;
     userLocImageRef.current = imageKey;
-  }, [location, showUserLocation, mapReady, userPinImage, pinLocation]);
+  }, [location, showUserLocation, mapReady, userPinImage, pinLocation, selection.position, selection.mode, selection.available]);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || originChoiceRef.current === selection.revision) return;
+    originChoiceRef.current = selection.revision;
+    if (selection.position) mapRef.current.panTo({ lat: selection.position.latitude, lng: selection.position.longitude });
+  }, [selection.revision, selection.position, mapReady]);
 
   // Pan when the initialRegion-based center changes (e.g. home map bounds updates)
   useEffect(() => {
@@ -1554,6 +1646,13 @@ export default function BusinessMap({
   // Fly to explicitly focused region (e.g. search selection / recenter)
   useEffect(() => {
     if (!mapRef.current || !mapReadyRef.current || !focusToken || !focusRegion) return;
+    if (staticMode && focusRegion.latitudeDelta > 0 && focusRegion.longitudeDelta > 0) {
+      mapRef.current.fitBounds({ south: focusRegion.latitude - focusRegion.latitudeDelta / 2,
+        north: focusRegion.latitude + focusRegion.latitudeDelta / 2,
+        west: focusRegion.longitude - focusRegion.longitudeDelta / 2,
+        east: focusRegion.longitude + focusRegion.longitudeDelta / 2 }, 20);
+      return;
+    }
     mapRef.current.panTo({ lat: focusRegion.latitude, lng: focusRegion.longitude });
     mapRef.current.setZoom(14);
   }, [focusToken, mapReady]);
@@ -1640,6 +1739,7 @@ export default function BusinessMap({
         ref={mapDivRef as any}
         style={{ flex: 1, borderRadius: 12 }}
       />
+      <MapLocationControl />
 
       <Modal visible={!!selectedGroup} transparent animationType="slide" onRequestClose={() => setSelectedGroup(null)}>
         <Pressable style={s.sheetOverlay} onPress={() => setSelectedGroup(null)}>

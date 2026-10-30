@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -21,19 +21,26 @@ export default function ResetPasswordScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const params = useLocalSearchParams<{ token?: string }>();
-  const [token, setToken] = useState(params.token || "");
+  const linkToken = typeof params.token === "string" ? params.token : "";
+  const [token, setToken] = useState(linkToken);
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  useEffect(() => { setToken(linkToken); }, [linkToken]);
 
   const handleReset = async () => {
     if (!token.trim()) {
-      setError(t("auth.tokenRequired", "Token ist erforderlich"));
+      setError(t("auth.tokenRequired", "Open the reset link from your email, or request a new link."));
       return;
     }
     if (newPassword.length < 4) {
-      setError(t("auth.passwordMinLength", "Passwort muss mindestens 4 Zeichen lang sein"));
+      setError(t("auth.passwordMinLength", "Password must be at least 4 characters"));
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError(t("auth.recoveryPasswordsMismatch", "The passwords don't match. Please try again."));
       return;
     }
     setLoading(true);
@@ -42,7 +49,7 @@ export default function ResetPasswordScreen() {
       await resetPassword(token.trim(), newPassword);
       setSuccess(true);
     } catch (e: any) {
-      setError(e?.message || t("auth.resetError", "Fehler beim Zurücksetzen des Passworts"));
+      setError(e?.message || t("auth.resetError", "Couldn't reset your password. Please request a new link and try again."));
     }
     setLoading(false);
   };
@@ -53,16 +60,16 @@ export default function ResetPasswordScreen() {
         <ScrollView contentContainerStyle={styles.scroll}>
           <View style={styles.card}>
             <Ionicons name="checkmark-circle" size={64} color={COLORS.success} style={{ marginBottom: 20 }} />
-            <Text style={styles.title}>{t("auth.passwordReset", "Passwort zurückgesetzt")}</Text>
+            <Text style={styles.title}>{t("auth.passwordReset", "Your password has been changed")}</Text>
             <Text style={styles.desc}>
-              {t("auth.passwordResetDesc", "Dein Passwort wurde erfolgreich geändert. Du kannst dich jetzt anmelden.")}
+              {t("auth.passwordResetDesc", "You're all set! Sign in to Perix with your new password.")}
             </Text>
             <Pressable
               style={styles.primaryButton}
               onPress={() => router.replace("/login")}
             >
               <Text style={styles.primaryButtonText}>
-                {t("auth.goToLogin", "Zum Login")}
+                {t("auth.goToLogin", "Go to login")}
               </Text>
             </Pressable>
           </View>
@@ -82,27 +89,44 @@ export default function ResetPasswordScreen() {
         </Pressable>
         <ScrollView contentContainerStyle={styles.scroll}>
           <View style={styles.card}>
-            <Text style={styles.title}>{t("auth.resetPassword", "Passwort zurücksetzen")}</Text>
+            <Text style={styles.title}>{t("auth.resetPassword", "Reset password")}</Text>
             <Text style={styles.desc}>
-              {t("auth.resetPasswordDesc", "Gib den Reset-Token und dein neues Passwort ein.")}
+              {t("auth.recoveryNewPasswordIntro", "Choose a new password for your Perix account and confirm it below.")}
             </Text>
-            <TextInput
+            {!linkToken && <TextInput
               style={styles.input}
-              placeholder={t("auth.resetToken", "Reset-Token")}
+              placeholder={t("auth.resetToken", "Reset token from email")}
               placeholderTextColor="#9ca3af"
               value={token}
               onChangeText={setToken}
               autoCapitalize="none"
               autoFocus
-            />
+            />}
             <TextInput
               style={styles.input}
-              placeholder={t("auth.newPassword", "Neues Passwort")}
+              placeholder={t("auth.newPassword", "New password")}
               placeholderTextColor="#9ca3af"
               value={newPassword}
               onChangeText={setNewPassword}
               secureTextEntry
+              autoCapitalize="none"
+              autoComplete="new-password"
             />
+            <TextInput
+              style={styles.input}
+              placeholder={t("auth.confirmPassword", "Confirm Password")}
+              placeholderTextColor="#9ca3af"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              autoCapitalize="none"
+              autoComplete="new-password"
+            />
+            <Pressable onPress={() => router.replace("/forgot-password")}>
+              <Text style={[styles.desc, { marginBottom: 16 }]}>
+                {t("auth.recoveryRequestNewLink", "Link expired? Request a new one")}
+              </Text>
+            </Pressable>
             <Pressable
               style={[styles.primaryButton, loading && styles.buttonDisabled]}
               onPress={handleReset}
@@ -111,7 +135,7 @@ export default function ResetPasswordScreen() {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.primaryButtonText}>{t("auth.resetPassword", "Passwort zurücksetzen")}</Text>
+                <Text style={styles.primaryButtonText}>{t("auth.resetPassword", "Reset password")}</Text>
               )}
             </Pressable>
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
