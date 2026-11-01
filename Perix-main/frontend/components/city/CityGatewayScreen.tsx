@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import BusinessMap from "../BusinessMap";
 import { useAuth } from "../../context/AuthContext";
 import { apiRequest, CategoryGroup } from "../../lib/api/core";
-import { getLiveVehicles, getTransitStops, TransitStopMarker, LiveVehicle } from "../../lib/api/mobility";
+import { getLiveVehicles, getTransitStops, TransitStopMarker, LiveVehicle, searchPlaces } from "../../lib/api/mobility";
 import { translateCategory } from "../../lib/categoryTranslation";
 import { getPublicServiceTaxonomy, CityBounds, MAGDEBURG_BOUNDS, PublicServiceCategory, PUBLIC_SERVICE_THEME as theme } from "../../lib/city/publicServices";
 import { ALL_QUERY, DirectoryEntity, gatewayCategories, GatewayNode } from "../../lib/city/gateway";
@@ -41,6 +41,32 @@ export default function CityGatewayScreen({ initialRoot }: { initialRoot?: strin
   // refetch for this: pins move without abrupt list/map reloads.
   const [liveVehicles, setLiveVehicles] = useState<LiveVehicle[]>([]);
   const [liveStops, setLiveStops] = useState<TransitStopMarker[]>([]);
+  // Destination search (address/place/stop, not map-point bound): debounced,
+  // stale-guarded, single dropdown. Selecting centers the same map.
+  type PlaceSuggestion = { id: string; title: string; sub?: string | null; latitude: number; longitude: number; kind: string };
+  const [destination, setDestination] = useState<PlaceSuggestion | null>(null);
+  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
+  const [suggesting, setSuggesting] = useState(false);
+  const [focusToken, setFocusToken] = useState(0);
+  useEffect(() => {
+    const q = search.trim();
+    if (q.length < 3) { setSuggestions([]); setSuggesting(false); return; }
+    let active = true;
+    setSuggesting(true);
+    const timer = setTimeout(() => {
+      searchPlaces(null, q).then(res => {
+        if (!active) return;
+        const items: PlaceSuggestion[] = [
+          ...(res.places || []).filter(p => p.lat != null && p.lng != null).map(p => ({ id: `place:${p.name}:${p.lat},${p.lng}`, title: p.name, sub: p.address ?? null, latitude: p.lat as number, longitude: p.lng as number, kind: "place" })),
+          ...(res.stops || []).filter(p => p.lat != null && p.lng != null).map(p => ({ id: `stopplace:${p.stop_id}`, title: p.name, sub: null, latitude: p.lat as number, longitude: p.lng as number, kind: "stop" })),
+          ...(res.streets || []).filter(p => p.lat != null && p.lng != null).map(p => ({ id: `street:${p.name}`, title: p.name, sub: p.address ?? null, latitude: p.lat as number, longitude: p.lng as number, kind: "street" })),
+        ];
+        setSuggestions(items.slice(0, 8));
+        setSuggesting(false);
+      }).catch(() => { if (active) { setSuggestions([]); setSuggesting(false); } });
+    }, 400);
+    return () => { active = false; clearTimeout(timer); };
+  }, [search]);
   useEffect(() => {
     let active = true;
     const load = () => {
@@ -112,6 +138,31 @@ export default function CityGatewayScreen({ initialRoot }: { initialRoot?: strin
     setBounds(prev => Object.keys(prev).every(key => Math.abs(prev[key as keyof CityBounds] - next[key as keyof CityBounds]) < 0.000001) ? prev : next);
   }, []);
   const select = (entity: DirectoryEntity) => { setSelected(entity); setDetailBack([]); };
+  const selectDestination = useCallback((s: PlaceSuggestion) => {
+    setDestination(s);
+    setSuggestions([]);
+    setFocusToken(t => t + 1);
+  }, []);
+  const centerLat = (bounds.minLat + bounds.maxLat) / 2;
+  const centerLng = (bounds.minLng + bounds.maxLng) / 2;
+  const destinationInfo = useMemo(() => {
+    if (!destination) return null;
+    const R = 6371000;
+    const toRad = (d: number) => d * Math.PI / 180;
+    const a = Math.sin(toRad(destination.latitude - centerLat) / 2) ** 2
+      + Math.cos(toRad(centerLat)) * Math.cos(toRad(destination.latitude)) * Math.sin(toRad(destination.longitude - centerLng) / 2) ** 2;
+    const meters = 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
+    let best: typeof transitStops[number] | null = null;
+    let bestD = Infinity;
+    for (const s of transitStops) {
+      const dLa = (s.latitude - destination.latitude) * 111320;
+      const dLo = (s.longitude - destination.longitude) * 111320 * Math.cos(toRad(destination.latitude));
+      const d = Math.hypot(dLa, dLo);
+      if (d < bestD) { bestD = d; best = s; }
+    }
+    const lines = best && bestD <= 600 ? best.routes.map(r => r.route_number) : [];
+    return { meters, lines, stopName: best && bestD <= 600 ? best.name : null };
+  }, [destination, centerLat, centerLng, transitStops]);
   const selectLive = useCallback((id: string) => {
     const v = liveVehicles.find(x => `mobility:${x.vehicle_id}` === id);
     if (v && v.latitude != null && v.longitude != null) {
@@ -133,19 +184,35 @@ export default function CityGatewayScreen({ initialRoot }: { initialRoot?: strin
       <View testID="city-centered-brand" style={styles.headerBrand}><PerixLogo size="compact" /><Text style={styles.city}>Magdeburg, {city("ui.country")}</Text></View>
       <View style={styles.headerLanguage}><CityLanguagePicker /></View>
     </View>
-    <View testID="city-search-bar" style={styles.searchBar}>
-      <Ionicons name="search-outline" size={21} color={theme.blue} />
-      <TextInput value={search} onChangeText={setSearch} accessibilityLabel={city("ui.search")} placeholder={city("ui.search")} placeholderTextColor={COLORS.textMuted} style={styles.input} />
-      {!!search && <Pressable accessibilityRole="button" accessibilityLabel={city("ui.clear")} style={styles.clearSearch} onPress={() => setSearch("")}><Ionicons name="close" size={20} color={theme.blue} /></Pressable>}
-    </View>
-    <View testID="city-map-frame" style={{ height: mapHeight, flexShrink: 0, marginTop: 12 }}>
-      <BusinessMap initialRegion={INITIAL_REGION} markers={markers} height={mapHeight} showUserLocation={false}
-        transitStops={transitStops}
-        onRegionChangeComplete={onBounds} onMarkerPress={id => { const entity = discovery.items.find(r => `${r.type}:${r.id}` === id); if (entity) select(entity); else selectLive(id); }}
-        onTransitStopPress={s => { const entity = discovery.items.find(r => r.type === "stop" && r.id === `stop:${s.stop_id}`); if (entity) select(entity); }} />
-      <View testID="city-map-border" pointerEvents="none" style={styles.mapBorder} />
-    </View>
     <ScrollView style={styles.lower} contentContainerStyle={styles.content}>
+      <View testID="city-search-bar" style={styles.searchBar}>
+        <Ionicons name="search-outline" size={21} color={theme.blue} />
+        <TextInput value={search} onChangeText={t => { setSearch(t); setDestination(null); }} accessibilityLabel={city("ui.search")} placeholder={city("ui.search")} placeholderTextColor={COLORS.textMuted} style={styles.input} />
+        {!!search && <Pressable accessibilityRole="button" accessibilityLabel={city("ui.clear")} style={styles.clearSearch} onPress={() => { setSearch(""); setDestination(null); setSuggestions([]); }}><Ionicons name="close" size={20} color={theme.blue} /></Pressable>}
+      </View>
+      {suggesting && <Text style={styles.hint}>…</Text>}
+      {suggestions.length > 0 && <View testID="city-suggestions" style={styles.result}>
+        {suggestions.map(s => (
+          <Pressable key={s.id} accessibilityRole="button" onPress={() => selectDestination(s)} style={styles.suggestion}>
+            <Ionicons name={s.kind === "stop" ? "train-outline" : s.kind === "street" ? "navigate-outline" : "location-outline"} size={18} color={theme.blue} />
+            <View style={styles.suggestionText}><Text style={styles.tileTitle}>{s.title}</Text>{!!s.sub && <Text style={styles.note} numberOfLines={1}>{s.sub}</Text>}</View>
+          </Pressable>))}
+      </View>}
+      {destination && destinationInfo && <View testID="city-destination" style={styles.result}>
+        <Text style={styles.tileTitle}>{destination.title}</Text>
+        <Text style={styles.note}>≈ {(destinationInfo.meters / 1000).toFixed(1).replace(".", ",")} km{destinationInfo.lines.length > 0 ? ` · ${destinationInfo.lines.join(" · ")}` : ""}</Text>
+        {destinationInfo.stopName ? <Text style={styles.hint}>{destinationInfo.stopName}</Text> : null}
+      </View>}
+      <View testID="city-map-frame" style={{ height: mapHeight, flexShrink: 0, marginTop: 12 }}>
+        <BusinessMap initialRegion={INITIAL_REGION} markers={markers} height={mapHeight} showUserLocation={false}
+          transitStops={transitStops}
+          focusRegion={destination ? { latitude: destination.latitude, longitude: destination.longitude, latitudeDelta: 0.02, longitudeDelta: 0.02 } : undefined}
+          focusToken={focusToken}
+          pinLocation={destination ? { latitude: destination.latitude, longitude: destination.longitude } : null}
+          onRegionChangeComplete={onBounds} onMarkerPress={id => { const entity = discovery.items.find(r => `${r.type}:${r.id}` === id); if (entity) select(entity); else selectLive(id); }}
+          onTransitStopPress={s => { const entity = discovery.items.find(r => r.type === "stop" && r.id === `stop:${s.stop_id}`); if (entity) select(entity); }} />
+        <View testID="city-map-border" pointerEvents="none" style={styles.mapBorder} />
+      </View>
       {current && <View style={styles.row}>
         <Pressable accessibilityRole="button" accessibilityLabel={city("ui.back")} style={styles.button} onPress={back}><Text style={styles.blue}>← {city("ui.back")}</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={city("ui.all")} style={styles.button} onPress={allCategories}><Ionicons name="grid-outline" size={19} color={theme.blue} /></Pressable>
@@ -196,7 +263,7 @@ const styles = StyleSheet.create({
   city: { color: theme.navy, fontSize: FONT_SIZES.micro, lineHeight: 14 }, lower: { flex: 1, minHeight: 0 }, content: { padding: 16, gap: 8, maxWidth: 1280, width: "100%", alignSelf: "center" },
   mapBorder: { position: "absolute", top: 0, bottom: 0, left: 16, right: 16, borderWidth: 1, borderColor: COLORS.divider, borderRadius: BORDER_RADIUS.md },
   heading: { color: theme.navy, fontSize: FONT_SIZES.h3, fontWeight: FONT_WEIGHTS.bold }, note: { color: "#59616A", fontSize: FONT_SIZES.bodySmall, lineHeight: 22 }, hint: { color: "#59616A", fontSize: FONT_SIZES.small, lineHeight: 18 }, blue: { color: theme.blue },
-  row: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 4 }, button: { minHeight: 44, padding: 8, justifyContent: "center" }, grid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -4 },
+  row: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 4 }, button: { minHeight: 44, padding: 8, justifyContent: "center" }, suggestion: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10 }, suggestionText: { flex: 1, minWidth: 0, gap: 2 }, grid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -4 },
   tile: { minHeight: 96, padding: 16, borderRadius: BORDER_RADIUS.lg, backgroundColor: COLORS.background, ...SHADOWS.subtle, gap: 8 }, tileTitle: { color: theme.navy, fontWeight: FONT_WEIGHTS.semibold, fontSize: FONT_SIZES.bodySmall }, chevron: { position: "absolute", top: 18, right: 12 },
   searchBar: { height: 48, flexShrink: 0, marginHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: 12, borderRadius: BORDER_RADIUS.lg, backgroundColor: COLORS.background, ...SHADOWS.subtle },
   input: { flex: 1, minWidth: 0, height: 44, paddingRight: 12, fontSize: FONT_SIZES.bodySmall, color: theme.navy }, clearSearch: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
