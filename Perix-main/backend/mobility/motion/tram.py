@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from mobility.motion.common import (
     build_speed_trajectory,
+    enclosure_factor,
     kmh_to_mps,
     deterministic_signal_hold_seconds,
     trajectory_time_at_progress,
@@ -59,7 +60,7 @@ def build_tram_leg(
         {
             "from_m": max(float(start_m), float(edge["from_m"])),
             "to_m": min(float(end_m), float(edge["to_m"])),
-            "speed_cap_kmh": _hard_speed_kmh(edge, config),
+            "speed_cap_kmh": max(5.0, _hard_speed_kmh(edge, config) * enclosure_factor(edge, config)),
             "edge_id": str(edge.get("edge_id")),
         }
         for edge in leg_edges

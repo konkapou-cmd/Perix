@@ -208,6 +208,27 @@ def remaining_eta_spans(spans, start_m, end_m, config, initial_speed_kmh, streng
     return out
 
 
+def enclosure_factor(edge: dict, config: dict) -> float:
+    """Persistent canyon friction multiplier from mapped building enclosure.
+
+    Returns 1.0 when the edge carries no valid urban_enclosure ratio.
+    Applied to the hard cap: a narrow built-up street limits even free flow.
+    """
+    enc = (edge.get("way") or {}).get("urban_enclosure")
+    if isinstance(enc, bool) or not isinstance(enc, (int, float)):
+        return 1.0
+    enc = float(enc)
+    if not math.isfinite(enc) or not 0.0 < enc <= 1.0:
+        return 1.0
+    try:
+        factor = float(config.get("urban_enclosure_factor", 0.0))
+    except (TypeError, ValueError):
+        return 1.0
+    if not math.isfinite(factor) or factor <= 0.0:
+        return 1.0
+    return max(0.1, 1.0 - factor * min(1.0, float(enc)))
+
+
 def _unique_positions(values: Iterable[float], epsilon: float = 0.001) -> list[float]:
     out = []
     for value in sorted(float(x) for x in values):

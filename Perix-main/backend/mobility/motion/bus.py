@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from mobility.motion.common import (
     build_speed_trajectory,
+    enclosure_factor,
     kmh_to_mps,
     deterministic_signal_hold_seconds,
     trajectory_time_at_progress,
@@ -63,7 +64,7 @@ def build_bus_leg(
     spans = []
     traffic_edges = 0
     for edge in leg_edges:
-        hard = _hard_speed_kmh(edge, config)
+        hard = max(5.0, _hard_speed_kmh(edge, config) * enclosure_factor(edge, config))
         traffic = traffic_by_edge.get(str(edge.get("edge_id"))) or {}
         observed = traffic.get("expected_speed_kmh")
         natural = hard

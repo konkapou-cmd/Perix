@@ -80,6 +80,124 @@ def _edge_follows_way(way: dict, from_node: int, to_node: int) -> Optional[bool]
     return b > a
 
 
+def _enclosure(value) -> Optional[float]:
+    """Offline building-enclosure ratio 0..1; absent/invalid means unknown."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    if not math.isfinite(float(value)) or not 0.0 <= float(value) <= 1.0:
+        return None
+    return float(value)
+
+
+def _project_meters(lat: float, lon: float, ref_lat: float) -> tuple:
+    """Local equirectangular meters; adequate for sub-city distances."""
+    kx = 111320.0 * math.cos(math.radians(ref_lat))
+    return lon * kx, lat * 110540.0
+
+
+def building_ring_area_m2(ring: list) -> float:
+    """Shoelace area of a closed [lat, lng] ring; 0 for degenerate rings."""
+    pts = [(float(p[0]), float(p[1])) for p in (ring or []) if len(p) >= 2]
+    if len(pts) < 3:
+        return 0.0
+    ref = sum(p[0] for p in pts) / len(pts)
+    xy = [_project_meters(la, lo, ref) for la, lo in pts]
+    area = abs(sum(x0 * y1 - x1 * y0 for (x0, y0), (x1, y1) in zip(xy, xy[1:] + xy[:1]))) / 2.0
+    return area if math.isfinite(area) else 0.0
+
+
+def build_building_grid(buildings: list, cell_deg: float = 0.01) -> dict:
+    """Grid index over building footprints with explicit coverage boxes.
+
+    buildings: [{ring: [[lat, lng]...], area_m2, centroid: [lat, lng]}].
+    Returns {'cells': {(ilat, ilng): [building_idx]}, 'index': [...],
+             'coverage': [(min_lat, min_lng, max_lat, max_lng)]}.
+    """
+    cells: dict = {}
+    index = []
+    for b in buildings or []:
+        ring = b.get("ring") or []
+        lats = [float(p[0]) for p in ring if len(p) >= 2]
+        lngs = [float(p[1]) for p in ring if len(p) >= 2]
+        if not lats:
+            continue
+        area = float(b.get("area_m2") or building_ring_area_m2(ring))
+        if area <= 0.0:
+            continue
+        centroid = b.get("centroid") or [sum(lats) / len(lats), sum(lngs) / len(lngs)]
+        entry = {"area_m2": area, "centroid": [float(centroid[0]), float(centroid[1])],
+                 "bbox": (min(lats), min(lngs), max(lats), max(lngs))}
+        idx = len(index)
+        index.append(entry)
+        ilo0, jlo0 = math.floor(min(lats) / cell_deg), math.floor(min(lngs) / cell_deg)
+        ihi0, jhi0 = math.floor(max(lats) / cell_deg), math.floor(max(lngs) / cell_deg)
+        for ii in range(ilo0, ihi0 + 1):
+            for jj in range(jlo0, jhi0 + 1):
+                cells.setdefault((ii, jj), []).append(idx)
+    return {"cells": cells, "index": index, "coverage": [],
+            "cell_deg": float(cell_deg)}
+
+
+def way_enclosure(points: list, grid: dict, buffer_m: float = 50.0) -> Optional[float]:
+    """Share of buffer area around a centerline covered by building footprints.
+
+    A building counts once, at the first sample box containing its centroid
+    (deterministic; documented v1 heuristic, not a legal measurement).
+    Returns None when the way leaves the grid coverage (unknown, not open).
+    """
+    pts = [(float(p[0]), float(p[1])) for p in (points or []) if len(p) >= 2]
+    if len(pts) < 2 or not grid or not grid.get("index"):
+        return None
+    coverage = grid.get("coverage") or []
+    if coverage:
+        for la, lo in pts:
+            if not any(a <= la <= c and b <= lo <= d for a, b, c, d in coverage):
+                return None
+    cell_deg = float(grid.get("cell_deg") or 0.01)
+    ref = sum(p[0] for p in pts) / len(pts)
+    half = float(buffer_m)
+    counted: set = set()
+    area = 0.0
+    boxes = 0
+    prev = pts[0]
+    acc = 0.0
+    samples = [pts[0]]
+    for cur in pts[1:]:
+        x0, y0 = _project_meters(prev[0], prev[1], ref)
+        x1, y1 = _project_meters(cur[0], cur[1], ref)
+        seg = math.hypot(x1 - x0, y1 - y0)
+        acc += seg
+        while acc >= 20.0:
+            f = 1.0 - (acc - 20.0) / seg if seg > 0 else 1.0
+            samples.append((prev[0] + (cur[0] - prev[0]) * f, prev[1] + (cur[1] - prev[1]) * f))
+            acc -= 20.0
+        prev = cur
+    samples.append(pts[-1])
+    for la, lo in samples:
+        x, y = _project_meters(la, lo, ref)
+        lo_la = la - half / 110540.0
+        hi_la = la + half / 110540.0
+        kx = 111320.0 * math.cos(math.radians(ref)) or 1.0
+        lo_lo, hi_lo = lo - half / kx, lo + half / kx
+        hits: set = set()
+        ii0, jj0 = math.floor(lo_la / cell_deg), math.floor(lo_lo / cell_deg)
+        ii1, jj1 = math.floor(hi_la / cell_deg), math.floor(hi_lo / cell_deg)
+        for ii in range(ii0, ii1 + 1):
+            for jj in range(jj0, jj1 + 1):
+                for bi in grid["cells"].get((ii, jj), ()):
+                    b = grid["index"][bi]
+                    cla, clo = b["centroid"]
+                    if lo_la <= cla <= hi_la and lo_lo <= clo <= hi_lo and bi not in counted:
+                        hits.add(bi)
+        for bi in sorted(hits):
+            counted.add(bi)
+            area += grid["index"][bi]["area_m2"]
+        boxes += 1
+    if boxes == 0:
+        return None
+    return max(0.0, min(1.0, area / (boxes * (2.0 * half) ** 2)))
+
+
 def _directional_lanes(tags: dict, follows_way: Optional[bool]) -> Optional[int]:
     if follows_way is True:
         directional = _int_tag(tags.get("lanes:forward"))
@@ -118,6 +236,15 @@ def _bus_lane(tags: dict) -> bool:
     return any(token in values for token in ("lane", "designated", "yes"))
 
 
+def _enclosure(value) -> Optional[float]:
+    """Offline building-enclosure ratio 0..1; absent/invalid means unknown."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    if not math.isfinite(float(value)) or not 0.0 <= float(value) <= 1.0:
+        return None
+    return float(value)
+
+
 def _way_attributes(way: dict, mode: str, from_node: int, to_node: int) -> dict:
     tags = way.get("tags") or {}
     follows_way = _edge_follows_way(way, from_node, to_node)
@@ -125,6 +252,7 @@ def _way_attributes(way: dict, mode: str, from_node: int, to_node: int) -> dict:
         "name": way.get("name") or tags.get("name"),
         "maxspeed_kmh": _maxspeed_kmh(tags.get("maxspeed")),
         "follows_osm_way": follows_way,
+        "urban_enclosure": _enclosure(way.get("urban_enclosure")),
     }
 
     if mode == "tram":

@@ -48,6 +48,9 @@ DEFAULT_MOTION_CONFIG = {
         "road_signal_green_ratio": 0.65,
         "road_signal_max_hold_s": 35.0,
         "road_signal_min_stop_s": 3.0,
+        # Persistent canyon friction from mapped building enclosure
+        # (way.urban_enclosure 0..1, set by the offline import).
+        "urban_enclosure_factor": 0.15,
         # Provisional station dwell when the source gives no explicit
         # departure (tram dwells longer, peak longer than quiet).
         "station_dwell_s": {"peak": 20.0, "standard": 12.0, "quiet": 8.0},
@@ -69,6 +72,9 @@ DEFAULT_MOTION_CONFIG = {
         "rail_signal_green_ratio": 0.75,
         "rail_signal_max_hold_s": 30.0,
         "rail_signal_min_stop_s": 3.0,
+        # Persistent canyon friction from mapped building enclosure
+        # (way.urban_enclosure 0..1, set by the offline import).
+        "urban_enclosure_factor": 0.10,
         # Provisional station dwell when the source gives no explicit
         # departure (peak tram dwells reach ~30 s, quiet drops to ~10 s).
         "station_dwell_s": {"peak": 30.0, "standard": 15.0, "quiet": 10.0},
