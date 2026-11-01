@@ -1367,12 +1367,16 @@ def _chain_trips(route: dict, delays: Optional[dict] = None, skip_trip_ids: Opti
     return runs
 
 
-def _select_run_trip(run: dict, now_sec: int) -> tuple:
+def _select_run_trip(run: dict, now_sec: int, delays: Optional[dict] = None, route: Optional[dict] = None) -> tuple:
     """Resolve source-active journeys before cache-only inferred continuity.
 
     No additional vehicles, replacement positions or changed clocks are made.
     A verified same-block predecessor may still be held by its effective plan;
     mere terminus proximity is not evidence of a shared physical vehicle.
+    A trip whose schedule window passed but whose fresh realtime still shows
+    future departures (delayed past its static window, dwelling at the final
+    stop) stays active as SOURCE_REALTIME_ACTIVE instead of being parked at
+    a terminus. Stale feed rows never qualify.
     """
     retained = next((w for w in run["trips"] if w["start"] <= now_sec <= w["end"]), None)
     source_active = [w for w in run["trips"]
@@ -1385,6 +1389,20 @@ def _select_run_trip(run: dict, now_sec: int) -> tuple:
                 and current_block == str(retained["trip"].get("block_id") or "")):
             return retained, "VERIFIED_BLOCK_RETAINED"
         return current, "SOURCE_ACTIVE"
+    if retained is None and delays and route is not None:
+        best = None
+        for w in run["trips"]:
+            rt = delays.get(str(w["trip"].get("trip_id") or ""))
+            if not rt or str(rt.get("source_timing_status") or "").startswith("STALE"):
+                continue
+            timeline = _predicted_stop_timeline(route, w["trip"], rt)
+            if not timeline:
+                continue
+            future = max(int(e.get("predicted_departure") or 0) for e in timeline)
+            if future >= now_sec and (best is None or future > best[0]):
+                best = (future, w)
+        if best is not None:
+            return best[1], "SOURCE_REALTIME_ACTIVE"
     return retained, "PERIX_RETAINED" if retained is not None else "NO_ACTIVE_WINDOW"
 
 
@@ -1557,7 +1575,7 @@ async def _compute_estimated_transit_vehicles(network: dict, *, initial_sync: bo
                 continue
             # Determine the trip the vehicle is on RIGHT NOW first (window
             # check), so suppression can be trip-scoped.
-            active, selection_basis = _select_run_trip(run, now_sec)
+            active, selection_basis = _select_run_trip(run, now_sec, delays, route)
             before = None
             after = None
             for w in run["trips"]:
