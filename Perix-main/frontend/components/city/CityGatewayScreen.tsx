@@ -6,15 +6,16 @@ import { useTranslation } from "react-i18next";
 import BusinessMap from "../BusinessMap";
 import { useAuth } from "../../context/AuthContext";
 import { apiRequest, CategoryGroup } from "../../lib/api/core";
+import { getLiveVehicles, getTransitStops, TransitStopMarker, LiveVehicle } from "../../lib/api/mobility";
 import { translateCategory } from "../../lib/categoryTranslation";
 import { getPublicServiceTaxonomy, CityBounds, MAGDEBURG_BOUNDS, PublicServiceCategory, PUBLIC_SERVICE_THEME as theme } from "../../lib/city/publicServices";
 import { ALL_QUERY, DirectoryEntity, gatewayCategories, GatewayNode } from "../../lib/city/gateway";
 import { useCityDiscovery } from "../../hooks/city/useCityDiscovery";
 import CityInlineDetails from "./CityInlineDetails";
 import PerixLogo from "../brand/PerixLogo";
-import { BORDER_RADIUS, COLORS, FONT_SIZES, FONT_WEIGHTS } from "../../lib/designTokens";
-import { gatewayEntityColor, gatewayNodeColor } from "../../lib/city/presentation";
-import { confirmedEmpty, localizeGatewayNodes } from "../../lib/city/localization";
+import { BORDER_RADIUS, COLORS, FONT_SIZES, FONT_WEIGHTS, SHADOWS } from "../../lib/designTokens";
+import { gatewayEntityColor, gatewayNodeColor, GATEWAY_ENTITY_COLORS } from "../../lib/city/presentation";
+import { CATEGORY_COLORS } from "../../lib/categoryIcons";import { confirmedEmpty, localizeGatewayNodes } from "../../lib/city/localization";
 import { CITY_ROOT_IDS } from "../../i18n/city";
 import CityLanguagePicker from "./CityLanguagePicker";
 
@@ -36,6 +37,24 @@ export default function CityGatewayScreen({ initialRoot }: { initialRoot?: strin
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<DirectoryEntity | null>(null);
   const [detailBack, setDetailBack] = useState<DirectoryEntity[]>([]);
+  // Live fleet, refreshed on the locator cadence. Directory results never
+  // refetch for this: pins move without abrupt list/map reloads.
+  const [liveVehicles, setLiveVehicles] = useState<LiveVehicle[]>([]);
+  const [liveStops, setLiveStops] = useState<TransitStopMarker[]>([]);
+  useEffect(() => {
+    let active = true;
+    const load = () => {
+      getLiveVehicles(null).then(v => { if (active) setLiveVehicles(v || []); }).catch(() => {});
+    };
+    load();
+    const timer = setInterval(load, 15000);
+    return () => { active = false; clearInterval(timer); };
+  }, []);
+  useEffect(() => {
+    let active = true;
+    getTransitStops(null).then(s => { if (active) setLiveStops(s || []); }).catch(() => {});
+    return () => { active = false; };
+  }, []);
   const categories = useMemo(() => localizeGatewayNodes(gatewayCategories(tree, publicTree, slug => translateCategory(slug, t), language), t, city), [tree, publicTree, t, city, language]);
   const rootNode = startRoot ? categories.find(c => c.id === startRoot) : undefined;
   const resolvedPath: GatewayNode[] = [];
@@ -64,15 +83,43 @@ export default function CityGatewayScreen({ initialRoot }: { initialRoot?: strin
     return () => { active = false; };
   }, [retry]);
   // Keep the actual map node and initial camera stable through all filter changes.
-  const markers = useMemo(() => discovery.items.filter(r => Number.isFinite(r.latitude) && Number.isFinite(r.longitude))
+  // Directory pins exclude live fleet/stops: vehicles refresh on their own
+  // poll while stops render as zoom-aware transit pins, like the main map.
+  const inBounds = useCallback((lat?: number | null, lng?: number | null) =>
+    lat != null && lng != null && lat >= bounds.minLat && lat <= bounds.maxLat
+      && lng >= bounds.minLng && lng <= bounds.maxLng, [bounds]);
+  const placeMarkers = useMemo(() => discovery.items.filter(r => r.type !== "bus" && r.type !== "tram" && r.type !== "taxi" && r.type !== "stop")
+    .filter(r => Number.isFinite(r.latitude) && Number.isFinite(r.longitude))
     .map(r => ({ id: `${r.type}:${r.id}`, latitude: r.latitude!, longitude: r.longitude!, title: r.title,
-      type: (["bus", "tram", "taxi", "business", "event", "activity", "job", "rental", "service", "product"].includes(r.type) ? r.type : r.type === "home" ? "rental" : "service") as "service",
+      type: (["business", "event", "activity", "job", "rental", "product", "home", "service"].includes(r.type) ? r.type : "rental") as "service",
       pinColor: gatewayEntityColor(r) })), [discovery.items]);
+  const vehicleMarkers = useMemo(() => liveVehicles
+    .filter(v => v.latitude != null && v.longitude != null && inBounds(v.latitude, v.longitude) && (v.mode === "bus" || v.mode === "tram" || v.mode === "taxi"))
+    .map(v => ({ id: `mobility:${v.vehicle_id}`, latitude: v.latitude!, longitude: v.longitude!, title: `${v.mode} ${v.route_number || v.name}`,
+      type: v.mode as "bus" | "tram" | "taxi", pinColor: GATEWAY_ENTITY_COLORS[v.mode] ?? "#216BA2" })), [liveVehicles, inBounds]);
+  const markers = useMemo(() => [...placeMarkers, ...vehicleMarkers], [placeMarkers, vehicleMarkers]);
+  const transitStops = useMemo(() => liveStops
+    .filter(s => s.latitude != null && s.longitude != null && inBounds(s.latitude, s.longitude))
+    .map(s => {
+      const routes = (s.routes || []).filter(r => r.mode === "bus" || r.mode === "tram");
+      const modes = Array.from(new Set(routes.map(r => r.mode))) as ("bus" | "tram")[];
+      return { stop_id: String(s.stop_id), name: s.name, latitude: s.latitude!, longitude: s.longitude!,
+        modes: modes.length ? modes : (["bus"] as ("bus" | "tram")[]),
+        routes: routes.map(r => ({ route_number: r.route_number, mode: r.mode as "bus" | "tram" })) };
+    }), [liveStops, inBounds]);
   const onBounds = useCallback((next: CityBounds) => {
     if (![next.minLat, next.maxLat, next.minLng, next.maxLng].every(Number.isFinite)) return;
     setBounds(prev => Object.keys(prev).every(key => Math.abs(prev[key as keyof CityBounds] - next[key as keyof CityBounds]) < 0.000001) ? prev : next);
   }, []);
   const select = (entity: DirectoryEntity) => { setSelected(entity); setDetailBack([]); };
+  const selectLive = useCallback((id: string) => {
+    const v = liveVehicles.find(x => `mobility:${x.vehicle_id}` === id);
+    if (v && v.latitude != null && v.longitude != null) {
+      select({ id: `mobility:${v.vehicle_id}`, type: v.mode as DirectoryEntity["type"],
+        title: `${v.mode} ${v.route_number || v.name}`, description: v.route_direction || undefined,
+        latitude: v.latitude, longitude: v.longitude } as DirectoryEntity);
+    }
+  }, [liveVehicles]);
   const choose = (node: GatewayNode) => {
     if (node.action === "login") { if (!authLoading) router.push((user ? "/home" : "/login") as never); return; }
     setPath([...resolvedPath, node]);
@@ -82,9 +129,9 @@ export default function CityGatewayScreen({ initialRoot }: { initialRoot?: strin
   const headerHeight = compact ? 64 : 84;
   const mapHeight = Math.max(110, (height - headerHeight) * (compact ? 0.42 : 0.54));
   return <View style={styles.page}>
-    <View style={[styles.header, { height: headerHeight }]}>
-      <View testID="city-centered-brand" style={styles.headerCenter}><PerixLogo size={compact ? "header" : "gateway"} /><Text style={styles.city}>Magdeburg, {city("ui.country")}</Text></View>
-      <View style={[styles.headerLanguage, { marginLeft: compact ? 74 : 100 }]}><CityLanguagePicker /></View>
+    <View style={[styles.headerRow, { height: headerHeight }]}>
+      <View testID="city-centered-brand" style={styles.headerBrand}><PerixLogo size="compact" /><Text style={styles.city}>Magdeburg, {city("ui.country")}</Text></View>
+      <View style={styles.headerLanguage}><CityLanguagePicker /></View>
     </View>
     <View testID="city-search-bar" style={styles.searchBar}>
       <Ionicons name="search-outline" size={21} color={theme.blue} />
@@ -93,7 +140,9 @@ export default function CityGatewayScreen({ initialRoot }: { initialRoot?: strin
     </View>
     <View testID="city-map-frame" style={{ height: mapHeight, flexShrink: 0, marginTop: 12 }}>
       <BusinessMap initialRegion={INITIAL_REGION} markers={markers} height={mapHeight} showUserLocation={false}
-        onRegionChangeComplete={onBounds} onMarkerPress={id => { const entity = discovery.items.find(r => `${r.type}:${r.id}` === id); if (entity) select(entity); }} />
+        transitStops={transitStops}
+        onRegionChangeComplete={onBounds} onMarkerPress={id => { const entity = discovery.items.find(r => `${r.type}:${r.id}` === id); if (entity) select(entity); else selectLive(id); }}
+        onTransitStopPress={s => { const entity = discovery.items.find(r => r.type === "stop" && r.id === `stop:${s.stop_id}`); if (entity) select(entity); }} />
       <View testID="city-map-border" pointerEvents="none" style={styles.mapBorder} />
     </View>
     <ScrollView style={styles.lower} contentContainerStyle={styles.content}>
@@ -112,7 +161,7 @@ export default function CityGatewayScreen({ initialRoot }: { initialRoot?: strin
       {taxonomyError && <Pressable accessibilityRole="button" style={styles.button} onPress={() => setRetry(n => n + 1)}><Text>{city("ui.taxonomyError")} {city("ui.retry")}</Text></Pressable>}
       {(!current || (!discovery.loading && !empty)) && <View testID="city-category-grid" style={styles.grid}>{(current?.children || (current ? [] : categories)).map(node => <View key={node.id} style={{ width: `${100 / columns}%`, padding: 4 }}>
         <Pressable accessibilityRole="button" disabled={node.action === "login" && authLoading} accessibilityLabel={node.label} style={styles.tile} onPress={() => choose(node)}>
-          <Ionicons name={node.icon as keyof typeof Ionicons.glyphMap} size={24} color={gatewayNodeColor(node)} />
+          <Ionicons name={node.icon as keyof typeof Ionicons.glyphMap} size={24} color={CATEGORY_COLORS[node.id] ?? gatewayNodeColor(node)} />
           <Text style={styles.tileTitle}>{node.label}</Text>
           <Ionicons name="chevron-forward" size={16} color={theme.gold} style={styles.chevron} />
         </Pressable>
@@ -141,17 +190,17 @@ export default function CityGatewayScreen({ initialRoot }: { initialRoot?: strin
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, minHeight: 0, overflow: "hidden", backgroundColor: "#fff" }, header: { flexShrink: 0, backgroundColor: "#fff" },
-  headerCenter: { position: "absolute", left: 60, right: 60, top: 0, bottom: 0, alignItems: "center", justifyContent: "center" },
-  headerLanguage: { position: "absolute", left: "50%", top: 0, bottom: 0, justifyContent: "center" },
-  city: { color: theme.navy, fontSize: FONT_SIZES.micro, lineHeight: 14 }, lower: { flex: 1, minHeight: 0 }, content: { padding: 16, gap: 8, maxWidth: 1200, width: "100%", alignSelf: "center" },
-  mapBorder: { position: "absolute", top: 0, bottom: 0, left: 16, right: 16, borderWidth: 2, borderColor: COLORS.pinHotel, borderRadius: BORDER_RADIUS.md },
+  page: { flex: 1, minHeight: 0, overflow: "hidden", backgroundColor: "#fff" }, headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, flexShrink: 0, backgroundColor: "#fff" },
+  headerBrand: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1 },
+  headerLanguage: { justifyContent: "center", flexShrink: 0 },
+  city: { color: theme.navy, fontSize: FONT_SIZES.micro, lineHeight: 14 }, lower: { flex: 1, minHeight: 0 }, content: { padding: 16, gap: 8, maxWidth: 1280, width: "100%", alignSelf: "center" },
+  mapBorder: { position: "absolute", top: 0, bottom: 0, left: 16, right: 16, borderWidth: 1, borderColor: COLORS.divider, borderRadius: BORDER_RADIUS.md },
   heading: { color: theme.navy, fontSize: FONT_SIZES.h3, fontWeight: FONT_WEIGHTS.bold }, note: { color: "#59616A", fontSize: FONT_SIZES.bodySmall, lineHeight: 22 }, hint: { color: "#59616A", fontSize: FONT_SIZES.small, lineHeight: 18 }, blue: { color: theme.blue },
   row: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 4 }, button: { minHeight: 44, padding: 8, justifyContent: "center" }, grid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -4 },
-  tile: { minHeight: 96, padding: 16, borderRadius: 16, backgroundColor: "#fff", borderWidth: 1.5, borderColor: COLORS.pinHotel, gap: 8 }, tileTitle: { color: theme.navy, fontWeight: FONT_WEIGHTS.semibold, fontSize: FONT_SIZES.bodySmall }, chevron: { position: "absolute", top: 18, right: 12 },
-  searchBar: { height: 48, flexShrink: 0, marginHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: 12, borderWidth: 1.5, borderColor: COLORS.pinHotel, borderRadius: 16, backgroundColor: "#fff" },
+  tile: { minHeight: 96, padding: 16, borderRadius: BORDER_RADIUS.lg, backgroundColor: COLORS.background, ...SHADOWS.subtle, gap: 8 }, tileTitle: { color: theme.navy, fontWeight: FONT_WEIGHTS.semibold, fontSize: FONT_SIZES.bodySmall }, chevron: { position: "absolute", top: 18, right: 12 },
+  searchBar: { height: 48, flexShrink: 0, marginHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: 12, borderRadius: BORDER_RADIUS.lg, backgroundColor: COLORS.background, ...SHADOWS.subtle },
   input: { flex: 1, minWidth: 0, height: 44, paddingRight: 12, fontSize: FONT_SIZES.bodySmall, color: theme.navy }, clearSearch: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  result: { padding: 16, borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.pinHotel, backgroundColor: "#fff", gap: 6 },
-  emptyState: { padding: 24, borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.pinHotel, backgroundColor: "#fff", alignItems: "center", gap: 12 }, emptyText: { color: theme.navy, fontSize: FONT_SIZES.bodySmall, lineHeight: 24, textAlign: "center" },
+  result: { padding: 16, borderRadius: BORDER_RADIUS.lg, backgroundColor: COLORS.background, ...SHADOWS.subtle, gap: 6 },
+  emptyState: { padding: 24, borderRadius: BORDER_RADIUS.lg, backgroundColor: COLORS.background, ...SHADOWS.subtle, alignItems: "center", gap: 12 }, emptyText: { color: theme.navy, fontSize: FONT_SIZES.bodySmall, lineHeight: 24, textAlign: "center" },
   scrim: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)", alignItems: "flex-end", justifyContent: "flex-end" }, drawer: { maxHeight: "92%", backgroundColor: "#fff", padding: 16, borderTopLeftRadius: 20 },
 });

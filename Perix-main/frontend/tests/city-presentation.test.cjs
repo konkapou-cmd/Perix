@@ -69,18 +69,18 @@ test("logo follows the existing application language, with a stable size and no 
 });
 
 test("Gateway, mobile Home, desktop Home and login use the same scoped logo", () => {
-  assert.match(read("components/city/CityGatewayScreen.tsx"), /<PerixLogo size=\{compact \? "header" : "gateway"\}/);
+  assert.match(read("components/city/CityGatewayScreen.tsx"), /<PerixLogo size="compact"/);
   assert.match(read("app/(tabs)/home.tsx"), /<PerixLogo size="compact"/);
   assert.match(read("app/(auth)/login.tsx"), /<PerixLogo size="login"/);
   assert.match(read("components/TopNavbar.tsx"), /brandLogo \? <PerixLogo/);
   assert.match(read("components/GlobalWebChrome.tsx"), /brandLogo=\{routeSegments\[0\] === "\(tabs\)" && routeSegments\[1\] === "home"\}/);
 });
 
-test("Gateway has a white background and a non-interactive sky-blue map outline", () => {
+test("Gateway has a white background and a neutral non-interactive map frame", () => {
   const source = read("components/city/CityGatewayScreen.tsx");
   assert.match(source, /page: \{[^}]*backgroundColor: "#fff"/);
   assert.match(source, /testID="city-map-border" pointerEvents="none"/);
-  assert.match(source, /mapBorder: \{[^}]*borderWidth: 2, borderColor: COLORS\.pinHotel/);
+  assert.match(source, /mapBorder: \{[^}]*borderWidth: 1, borderColor: COLORS\.divider/);
   assert.doesNotMatch(source.match(/<BusinessMap[\s\S]*?\/>/)[0], /\bkey=/);
 });
 
@@ -98,13 +98,16 @@ test("Home category accents follow the existing Locator tokens with readable eve
   assert.equal((source.match(/activeFilterTextColor=\{COLORS.textPrimary\}/g) || []).length, 2);
 });
 
-test("centered logo, circular language picker and search precede the unchanged map", () => {
+test("flex header with visible language picker and locator-style cards precede the unchanged map", () => {
   const source = read("components/city/CityGatewayScreen.tsx");
   assert.ok(source.indexOf('testID="city-centered-brand"') < source.indexOf('testID="city-search-bar"'));
   assert.ok(source.indexOf('testID="city-search-bar"') < source.indexOf("<BusinessMap"));
   assert.match(source, /testID="city-map-frame"[^>]*marginTop: 12/);
-  assert.match(source, /headerCenter: \{[^}]*left: 60, right: 60/);
-  assert.match(source, /tile: \{[^}]*backgroundColor: "#fff"[^}]*borderColor: COLORS.pinHotel/);
+  assert.match(source, /headerRow: \{[^}]*flexDirection: "row"[^}]*justifyContent: "space-between"/);
+  assert.doesNotMatch(source, /headerCenter: \{[^}]*position: "absolute"/);
+  assert.match(source, /tile: \{[^}]*backgroundColor: COLORS\.background[^}]*\.\.\.SHADOWS\.subtle/);
+  assert.doesNotMatch(source.match(/tile: \{[^}]*\}/)[0], /pinHotel/);
+  assert.match(source, /CATEGORY_COLORS\[node\.id\] \?\? gatewayNodeColor\(node\)/);
   for (const removed of ["Ενεργό φίλτρο χάρτη", "Όλες οι δημόσιες κατηγορίες", "Εξερεύνησε την πόλη", "Πραγματικά δημόσια αποτελέσματα, χωρίς"]) assert.ok(!source.includes(removed));
   assert.match(source, /!current \|\| \(!discovery.loading && !empty\)/);
 });
