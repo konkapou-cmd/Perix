@@ -19,6 +19,9 @@ DEFAULT_MOTION_CONFIG = {
         "plan_cache_seconds": 12.0,
         "infrastructure_total_tolerance_m": 25.0,
         "infrastructure_total_tolerance_ratio": 0.02,
+        # Weekday peak windows (service-day clock) and nightly quiet window.
+        "dwell_peak_windows": [["06:30", "09:00"], ["15:30", "18:30"]],
+        "dwell_quiet_window": ["21:00", "05:30"],
     },
     "bus": {
         "acceleration_mps2": 1.20,
@@ -45,6 +48,9 @@ DEFAULT_MOTION_CONFIG = {
         "road_signal_green_ratio": 0.65,
         "road_signal_max_hold_s": 35.0,
         "road_signal_min_stop_s": 3.0,
+        # Provisional station dwell when the source gives no explicit
+        # departure (tram dwells longer, peak longer than quiet).
+        "station_dwell_s": {"peak": 20.0, "standard": 12.0, "quiet": 8.0},
     },
     "tram": {
         "acceleration_mps2": 1.00,
@@ -63,6 +69,9 @@ DEFAULT_MOTION_CONFIG = {
         "rail_signal_green_ratio": 0.75,
         "rail_signal_max_hold_s": 30.0,
         "rail_signal_min_stop_s": 3.0,
+        # Provisional station dwell when the source gives no explicit
+        # departure (peak tram dwells reach ~30 s, quiet drops to ~10 s).
+        "station_dwell_s": {"peak": 30.0, "standard": 15.0, "quiet": 10.0},
     },
 }
 

@@ -876,6 +876,34 @@ async def _build_trip_plan(
     return plan
 
 
+def _dwell_period(service_s, weekday, config):
+    """Peak/quiet/standard period on the service-day clock (no new data)."""
+    def to_s(hhmm):
+        h, m = hhmm.split(':')
+        return int(h) * 3600 + int(m) * 60
+    quiet=config.get('dwell_quiet_window') or ["21:00", "05:30"]
+    q0, q1 = to_s(quiet[0]), to_s(quiet[1])
+    if q0 <= q1:
+        if q0 <= service_s < q1:
+            return 'quiet'
+    elif service_s >= q0 or service_s < q1:
+        return 'quiet'
+    if weekday < 5:
+        for start, end in config.get('dwell_peak_windows') or []:
+            if to_s(start) <= service_s < to_s(end):
+                return 'peak'
+    return 'standard'
+
+
+def station_dwell_for(mode, service_s, weekday, config):
+    """Provisional dwell from the mode×period table; 10 s when unconfigured."""
+    table = config.get('station_dwell_s') or {}
+    try:
+        return max(0.0, float(table.get(_dwell_period(service_s, weekday, config), 10.0)))
+    except (TypeError, ValueError):
+        return 10.0
+
+
 def _station_forecast_key(timeline,index):
     nxt=next((i for i in range(index+1,len(timeline)) if timeline[i].get('relationship')!='SKIPPED'),None)
     if nxt is None:return None
@@ -1063,7 +1091,8 @@ def _precise_handover_sample(plan, now_s, timeline, stop_progress):
     return sample
 
 
-async def _initial_source_plan(*,trip_id,mode,version_id,timeline,path,now_local,now_s,failure):
+async def _initial_source_plan(*,trip_id,mode,version_id,timeline,path,now_local,now_s,failure,
+                             modeled_station_dwell_s=10.0):
     """Initialize an estimate from this source leg using the existing solver.
 
     Historic simulated lateness is not an observed vehicle position. Reverse
@@ -1077,7 +1106,7 @@ async def _initial_source_plan(*,trip_id,mode,version_id,timeline,path,now_local
     if usable and float(timeline[usable[-1]]['predicted_arrival'])<=now_s:
         index=usable[-1]
     args=dict(trip_id=trip_id,mode=mode,version_id=version_id,timeline=timeline,path=path,
-              now_local=now_local,now_service_s=now_s,failure=failure,modeled_station_dwell_s=10.0)
+              now_local=now_local,now_service_s=now_s,failure=failure,modeled_station_dwell_s=modeled_station_dwell_s)
     plan=await _build_trip_plan(**args,source_anchor_index=index)
     if not plan:
         return None
@@ -1099,7 +1128,7 @@ async def _initial_source_plan(*,trip_id,mode,version_id,timeline,path,now_local
         basis=('SOURCE_LEG_REMAINING_TIME_INVERSION' if remaining<=duration+1e-6
                else 'SOURCE_INTERVAL_DELAY_UNALLOCATED')
     plan['initialization']={'basis':basis,'reference_service_s':float(now_s),
-        'source_anchor_index':index,'modeled_station_dwell_s':10.0,
+        'source_anchor_index':index,'modeled_station_dwell_s':float(modeled_station_dwell_s),
         'source_departure_s':float(timeline[index]['predicted_departure']),
         'effective_departure_s':float(leg['t0']) if leg else None,
         'source_next_index':int(leg['next_timeline_index']) if leg else index,
@@ -1359,6 +1388,7 @@ async def _position_for_trip_locked(
     old_progress = None
     from mobility.motion.source_reconciliation import estimate_revision, source_frontier_conflict, source_start_index, MODEL_EPOCH
     revision_token = estimate_revision(identity)
+    table_dwell = station_dwell_for(str(mode), float(now_sec), now_local.weekday(), config)
     station_release_index=None
     station_prior=next((v for v in reversed(list(_PLAN_CACHE.values())) if v.get('identity')==identity
         and 0<=now_mono-v.get('cached_at',0)<=90),None) if require_station_reforecast else None
@@ -1376,7 +1406,8 @@ async def _position_for_trip_locked(
         prior=next((v for v in reversed(list(_PLAN_CACHE.values())) if v.get('identity')==identity
                     and 0<=now_mono-v.get('cached_at',0)<=90),None)
         fresh=await _initial_source_plan(trip_id=str(trip_id),mode=str(mode),version_id=str(version_id),
-            timeline=timeline,path=path,now_local=now_local,now_s=float(now_sec),failure=failure)
+            timeline=timeline,path=path,now_local=now_local,now_s=float(now_sec),failure=failure,
+            modeled_station_dwell_s=table_dwell)
         if fresh:
             new_sample=_precise_handover_sample(fresh,now_sec,timeline,path.get('stop_progress') or [])
             old_sample=(_precise_handover_sample(prior['plan'],now_sec,timeline,path.get('stop_progress') or [])
@@ -1398,7 +1429,7 @@ async def _position_for_trip_locked(
                 _PLAN_CACHE[key]=cached
                 previous_state=None
                 reconciled_now=True
-            elif float(prior['plan'].get('modeled_station_dwell_s',0))!=10.0:
+            elif float(prior['plan'].get('modeled_station_dwell_s',0))!=table_dwell:
                 # Keep the existing NOW point/speed for a small correction.
                 # Refit through the normal handover with the new dwell policy.
                 cached=None
@@ -1459,7 +1490,7 @@ async def _position_for_trip_locked(
             previous_plan=previous_plan,
             history_index=history_index,
             source_anchor_index=source_start_index(timeline, now_sec) if previous_plan is None and handover_anchor is None else None,
-            modeled_station_dwell_s=10.0 if initial_sync and os.getenv('MOBILITY_SPATIAL_SLOWDOWN_ENABLED','false').lower()=='true' else None,
+            modeled_station_dwell_s=table_dwell if initial_sync and os.getenv('MOBILITY_SPATIAL_SLOWDOWN_ENABLED','false').lower()=='true' else None,
             station_release_index=station_release_index,
         )
         if not plan:
