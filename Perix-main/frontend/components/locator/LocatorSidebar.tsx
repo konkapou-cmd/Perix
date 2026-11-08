@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { CategoryGroup } from "../../lib/api";
 import { CATEGORY_ICONS, subcategoryIcon, CATEGORY_COLORS, subcategoryColor } from "../../lib/categoryIcons";
+import IllustratedIcon from "../icons/IllustratedIcon";
 import { sortCategoriesByLabel } from "../../lib/categoryTranslation";
 
 type Props = {
@@ -22,6 +23,8 @@ type Props = {
   onSelectRoot: (slug: string) => void;
   onSelectSubcategory: (slug: string) => void;
   onClose?: () => void;
+  onDismiss?: () => void;
+  overlay?: boolean;
 };
 
 const SIDEBAR_WIDTH = 260;
@@ -35,6 +38,8 @@ export default function LocatorSidebar({
   onSelectRoot,
   onSelectSubcategory,
   onClose,
+  onDismiss,
+  overlay=false,
 }: Props) {
   const { t } = useTranslation();
 
@@ -68,11 +73,11 @@ export default function LocatorSidebar({
   }, [onSelectRoot, onSelectSubcategory, onClose]);
 
   return (
-    <View style={styles.container}>
+    <View testID="locator-sidebar" style={[styles.container,overlay&&styles.overlayContainer]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{t("locator.categories", "Categories")}</Text>
-        {onClose && (
-          <Pressable onPress={onClose} style={styles.closeBtn} hitSlop={8}>
+        {(onDismiss || onClose) && (
+          <Pressable onPress={onDismiss || onClose} style={styles.closeBtn} hitSlop={8}>
             <Ionicons name="close" size={20} color="#264348" />
           </Pressable>
         )}
@@ -126,11 +131,9 @@ export default function LocatorSidebar({
                 }}
               >
                 <View style={styles.itemIcon}>
-                  <Ionicons
-                    name={(CATEGORY_ICONS[cat.slug] || "folder-outline") as any}
-                    size={16}
-                    color={isExpanded ? "#59ABE3" : (CATEGORY_COLORS[cat.slug] || "#264348")}
-                  />
+                  <IllustratedIcon kind="business-root" iconKey={cat.slug} size={16}
+                    fallback={(CATEGORY_ICONS[cat.slug] || "folder-outline") as any}
+                    color={isExpanded ? "#59ABE3" : (CATEGORY_COLORS[cat.slug] || "#264348")} />
                 </View>
                 <Text
                   style={[
@@ -155,7 +158,10 @@ export default function LocatorSidebar({
                 <View style={styles.groupList}>
                   {cat.groups!.map((group) => (
                     <View key={group.slug}>
-                      <Text style={styles.groupHeader}>{label(group.slug, group.name)}</Text>
+                      <View style={styles.groupHeaderRow}>
+                        <IllustratedIcon kind="business-group" iconKey={`${cat.slug}--${group.slug}`} size={14} fallback="grid-outline" />
+                        <Text style={styles.groupHeader}>{label(group.slug, group.name)}</Text>
+                      </View>
                       <View style={styles.subList}>
                         {sortCategoriesByLabel(group.subcategories, t).map((sub) => {
                           const isSubActive = selectedSubcategory === sub.slug;
@@ -165,12 +171,10 @@ export default function LocatorSidebar({
                               style={[styles.subItem, isSubActive && styles.subItemActive]}
                               onPress={() => handleSubSelect(sub.slug)}
                             >
-                              <Ionicons
-                                name={subcategoryIcon(sub.slug) as any}
-                                size={14}
+                              <IllustratedIcon kind="business-subcategory" iconKey={sub.slug} size={14}
+                                fallback={subcategoryIcon(sub.slug) as any}
                                 color={isSubActive ? "#59ABE3" : (subcategoryColor(sub.slug, cat.slug) || "#264348")}
-                                style={styles.subIcon}
-                              />
+                                style={styles.subIcon} />
                               <Text style={[styles.subText, isSubActive && styles.subTextActive]} numberOfLines={1}>
                                 {label(sub.slug, sub.name)}
                               </Text>
@@ -191,12 +195,10 @@ export default function LocatorSidebar({
                           style={[styles.subItem, isSubActive && styles.subItemActive]}
                           onPress={() => handleSubSelect(sub.slug)}
                         >
-                          <Ionicons
-                            name={subcategoryIcon(sub.slug) as any}
-                            size={14}
-                            color={isSubActive ? "#59ABE3" : (subcategoryColor(sub.slug, cat.slug) || "#264348")}
-                            style={styles.subIcon}
-                          />
+                            <IllustratedIcon kind="business-subcategory" iconKey={sub.slug} size={14}
+                              fallback={subcategoryIcon(sub.slug) as any}
+                              color={isSubActive ? "#59ABE3" : (subcategoryColor(sub.slug, cat.slug) || "#264348")}
+                              style={styles.subIcon} />
                           <Text style={[styles.subText, isSubActive && styles.subTextActive]} numberOfLines={1}>
                             {label(sub.slug, sub.name)}
                           </Text>
@@ -225,6 +227,7 @@ const styles = StyleSheet.create({
       default: { position: "absolute" as any, top: 0, left: 0, bottom: 0, zIndex: 100, elevation: 10, shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 4, height: 0 } },
     }),
   },
+  overlayContainer: {position:"absolute",top:0,bottom:0,left:0,zIndex:110,elevation:12,shadowColor:"#000",shadowOpacity:0.14,shadowRadius:10,shadowOffset:{width:3,height:0}},
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -258,9 +261,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.sm,
     marginHorizontal: SPACING.small,
   },
-  itemActive: {
-    backgroundColor: "rgba(89,171,227,0.12)",
-  },
+  itemActive: { backgroundColor: "transparent" },
   itemIcon: {
     width: 22,
     alignItems: "center",
@@ -292,9 +293,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.sm,
     gap: SPACING.small,
   },
-  subItemActive: {
-    backgroundColor: "rgba(89,171,227,0.12)",
-  },
+  subItemActive: { backgroundColor: "transparent" },
   subIcon: {
     marginRight: SPACING.small,
     marginLeft: 1,
@@ -321,12 +320,14 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.tiny,
   },
   groupHeader: {
+    flex: 1,
     fontSize: Platform.OS === "web" ? 11 : 10,
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: "#264348",
     textTransform: "uppercase" as any,
     letterSpacing: 0.5,
     paddingVertical: SPACING.small,
-    paddingHorizontal: SPACING.small,
+    paddingHorizontal: 0,
   },
+  groupHeaderRow:{flexDirection:"row",alignItems:"center",gap:6,paddingHorizontal:SPACING.small},
 });

@@ -1,0 +1,17 @@
+{
+  "observed_at": "2026-10-26T12:30:31.880896+00:00",
+  "active_network": {
+    "version_id": "net_7f0605d2409e",
+    "generation_state": "ACTIVE_READY",
+    "service_date": "2026-10-25"
+  },
+  "active_graph": {
+    "active_v": 1793013850,
+    "roads": 29251,
+    "rails": 733,
+    "signals": 2814
+  },
+  "daily_recovery_flag_true": false,
+  "new_module_present_in_production": false,
+  "production_mutations_by_this_task": 0
+}

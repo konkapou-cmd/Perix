@@ -1,0 +1,36 @@
+{
+  "type": "SYNTHETIC_ENGINEERING_NOT_ACCURACY",
+  "iterations": 40,
+  "baseline_fit_cpu_ms": {
+    "p50": 1.1502999113872647,
+    "p95": 2.3089000023901463
+  },
+  "additional_research_cpu_ms": {
+    "p50": 2.1092999959364533,
+    "p95": 4.827499971725047
+  },
+  "baseline_new_position_delta_m": {
+    "p50": 16.76802833893794,
+    "p95": 110.77710212333679
+  },
+  "maximum_absolute_eta_delta_s": 0.0,
+  "physics_violations": 0,
+  "backward_samples": 0,
+  "fallback_counts": {
+    "BASELINE_PHYSICS_LIMITED": 10,
+    "DIRECT_TRAFFIC_CONFLICTS_WITH_TARGET": 10,
+    "SELECTED": 20
+  },
+  "direct_traffic_fixture_distance_coverage": 0.5,
+  "actual_tomtom_requests": 0,
+  "actual_provider_coverage": 0.0,
+  "rejected_measurement_ratio": null,
+  "request_budget_cost": {
+    "flow": 0,
+    "incident": 0
+  },
+  "eta_mae_s": null,
+  "independent_position_error_m": null,
+  "api_latency_p50_p95": null,
+  "reason": "No independent observations or API load benchmark supplied"
+}

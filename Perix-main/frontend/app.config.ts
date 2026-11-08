@@ -6,7 +6,7 @@ const config: ExpoConfig = {
   version: "1.19.0",
   owner: "konkapou",
   orientation: "portrait",
-  icon: "./assets/images/prx-icon.png",
+  icon: "./assets/images/perix-watercolor-app-icon.png",
   scheme: "perix",
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
@@ -32,7 +32,7 @@ const config: ExpoConfig = {
   },
   android: {
     adaptiveIcon: {
-      foregroundImage: "./assets/images/prx-logo-adaptive.png",
+      foregroundImage: "./assets/images/perix-watercolor-adaptive-icon.png",
       backgroundColor: "#ffffff",
     },
     package: "com.perix.citysocial",
@@ -81,7 +81,7 @@ const config: ExpoConfig = {
   web: {
     bundler: "metro",
     output: "single",
-    favicon: "./assets/images/prx-logo.png",
+    favicon: "./assets/images/perix-watercolor-favicon.png",
   },
   plugins: [
     "expo-router",
@@ -95,7 +95,7 @@ const config: ExpoConfig = {
     [
       "expo-splash-screen",
       {
-        image: "./assets/images/prx-logo.png",
+        image: "./assets/brand/perix-watercolor-wordmark.png",
         imageWidth: 180,
         resizeMode: "contain",
         backgroundColor: "#ffffff",

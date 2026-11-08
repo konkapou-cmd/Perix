@@ -1,0 +1,54 @@
+{
+  "task": "READ_ONLY_DAILY_REFRESH_AND_NATIVE_EVENT_FORENSICS",
+  "runtime_source_changes": 0,
+  "native_source_boundary_files_verified": 28,
+  "protected_files_verified": 17,
+  "native_report_unchanged": true,
+  "forensic_tests": {
+    "tests": 20,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "regression_tests": {
+    "tests": 435,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "artifacts_sha256": {
+    "case-geometry-context.json": "057a08337098dced2f55cb20c83fa5e9b6482bbc28502863ed4675c5935f5ade",
+    "coverage-and-mode-counts.json": "bdbe485968693656ced0d277fc54cae36b9ceb9375fe814703c4d5baa052a232",
+    "deployed-source-readonly.zip": "af97303035b51d31664fc80c95dd488804b54ea5ccb1b39146771b1fad9888b9",
+    "deployment.json": "16a2afa8dba512f0c91a7edf339481cf71213a6277823070ffc71c4742d48461",
+    "forensic-results.xml": "bf3065f7e309f69aa7532a686aa42a963c7194f2a6fb22350ae2e1670fcdcb9c",
+    "geometry-forensic.json": "24d77df4435406893972bb2a22c0036d1c695903c0186d92a3858b00b5c93e4c",
+    "native-event-forensic-precise.json": "5b3fa25d9247727b9fd73b1c93c723371f895ee337b2b418687cc0797edc4250",
+    "production-readonly.json": "b90f81d2a60ef5a5cdd84403f7d1c604a9992493a33b21048a9342b072c8211b",
+    "README.md": "0a5acc69aaccc44aa23069eb3db8fe66204b40eb35b174ccd1dad8145327f7f2",
+    "regression-results.xml": "08958debb675665cd471cd0354b819815db1bf88ec16e8d3d70e8e39c5589c5d",
+    "source-boundary-verification.json": "cd1c9308ef3374c63c6386b4112e76c8dde0f238f1e19d5cbc37fc02acaf82d1",
+    "test_forensic_evidence.py": "58151746771fd3a291cf0cc6d3bcb9f83e78983189dae089c24a412577e46151",
+    "worker-logs-redacted.json": "4408999f0d081685f0be4e5544457e45e326ca68c657d990f08a347c36b98ae2"
+  },
+  "reproduction_scripts_in_approved_temp": {
+    "C:\\Users\\PC\\AppData\\Local\\Temp\\opencode\\perix-daily-forensic-capture.py": "618db423aa8d90e570ad93c2f61b7504fbef1cdfca7ea2734532723e8ae242d0",
+    "C:\\Users\\PC\\AppData\\Local\\Temp\\opencode\\perix-daily-forensic-graph-capture.py": "c77904456dd9df4b8adfe4fe8e9839d47c14d0218eaf7d8fe5784b7cd6fd4a50",
+    "C:\\Users\\PC\\AppData\\Local\\Temp\\opencode\\perix-daily-forensic-logs.py": "aed5652b86cacaa016ba3663f13522566cbb9fed9248f3de4ac7edea54736c76",
+    "C:\\Users\\PC\\AppData\\Local\\Temp\\opencode\\perix-native-event-forensic.py": "0979cc0397dc458ed47cb51c113789fff3d4cb65f2c62077adf93e72d9e37465",
+    "C:\\Users\\PC\\AppData\\Local\\Temp\\opencode\\perix-daily-geometry-reproduce.py": "7d4f4079ef0d907db98e8aad57c8e5a116f8e1b2653343c793939da929f23d1a",
+    "C:\\Users\\PC\\AppData\\Local\\Temp\\opencode\\perix-daily-export-evidence.py": "a4dbd4c468c6108afec9dc149aad09dc7dc109da1ef299f871a646ecc37b0b40"
+  },
+  "private_large_inputs": {
+    "C:\\Users\\PC\\AppData\\Local\\Temp\\opencode\\perix-native-canonical-net_7c4078011f7f.json": "668ebb6e99ac9b10699ac666803580395a38c651e471d6fa150c4bab18bf326d",
+    "C:\\Users\\PC\\AppData\\Local\\Temp\\opencode\\perix-daily-forensics-20261026\\graph-readonly.json": "e02808c982dbfdce4d5ebdf429cf946001ac6dbeb99754824e4e21515114543a"
+  },
+  "production_mutations_by_this_task": 0,
+  "deployment": false,
+  "activation": false,
+  "commit_push": false,
+  "new_gtfs_http_requests": 0,
+  "traffic_http_requests": 0,
+  "osm_http_requests_by_this_task": 0,
+  "independent_bus_ground_truth": null
+}

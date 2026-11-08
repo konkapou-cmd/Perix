@@ -1,0 +1,68 @@
+{
+  "local_source_files_snapshotted": 504,
+  "protected_local_source_files_unchanged": 503,
+  "modified_existing_source": [
+    "Perix-main/frontend/public/google-mobility-map.html"
+  ],
+  "diff_stats": {
+    "Perix-main/frontend/public/google-mobility-map.html": {
+      "added": 6,
+      "removed": 1
+    },
+    "Perix-main/frontend/tests/last-minute-marker-sync.test.cjs": {
+      "added": 156,
+      "removed": 0
+    }
+  },
+  "production_files_unchanged": 281,
+  "backend_production_patch_applied": false,
+  "frontend_before_sha256": "d5346b81885e6ab105a8a2072e9830c223208b7cff8319f57ae994f5a1e8c24f",
+  "frontend_candidate_sha256": "55d3a5cff7742264b859b1bedfbe198232306c3b871899b50b165a16219d93fa",
+  "backend_replay_sha256": "a7a5b78991428e3d5cea8be2e22fc75c3b007105157e50d5cfd44e337a5f832c",
+  "production_html_delta": {
+    "added": 6,
+    "removed": 1
+  },
+  "test_results": {
+    "local-backend-regressions.xml": {
+      "tests": 559,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "production-motion-regressions.xml": {
+      "tests": 30,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "frontend": {
+      "tests": 98,
+      "failures": 0,
+      "skipped": 0
+    },
+    "new_production_frontend": {
+      "tests": 12,
+      "failures": 0,
+      "skipped": 0
+    }
+  },
+  "local_patch_forward_and_reverse_checked": true,
+  "production_patch_forward_and_reverse_checked": true,
+  "shared_renderer_function_identical_before_and_after": true,
+  "source_hashes_after": {
+    "Perix-main/frontend/public/google-mobility-map.html": "8a11f34d6850929fc404644eaf22e50316d79d05a53ca4617176acd15d69809f",
+    "Perix-main/frontend/tests/last-minute-marker-sync.test.cjs": "8a038952853b8d59feeddb11f21dbf3a4d0a3d76b08e4fbe8878c10968dd0145"
+  },
+  "production_actions": {
+    "deployments": 0,
+    "flag_changes": 0,
+    "gtfs_activations": 0,
+    "google_calls": 0,
+    "google_billing_changes": 0
+  },
+  "patch_sha256": {
+    "local-task-only.patch": "f687426d97bcf1e7daea08095e8a6c9fd347bdc14a0b8b6001cbd4687044fe6f",
+    "production-html-only.patch": "59f685055f7b9ec2662a151f8512f671691e98ef1f1da6f9542318c1fdebf003"
+  }
+}

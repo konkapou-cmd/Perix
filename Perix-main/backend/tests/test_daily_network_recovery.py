@@ -229,13 +229,11 @@ def test_polygon_proof_rejects_holes_and_concave_intrusion():
 @pytest.mark.asyncio
 @pytest.mark.parametrize('ready_state', [False, True])
 async def test_static_worker_marks_hash_only_after_strict_activation(monkeypatch, ready_state):
-    import io
     from types import SimpleNamespace
     from unittest.mock import Mock
     from utils import mobility_workers as w, gtfs
     from routes import mobility as routes
     from mobility import generations, daily_recovery
-    import builtins
     class Response:
         def raise_for_status(self): pass
         async def aiter_bytes(self): yield b'SYNTHETIC_GTFS_ZIP_BYTES'
@@ -245,8 +243,6 @@ async def test_static_worker_marks_hash_only_after_strict_activation(monkeypatch
         async def __aenter__(self): return self
         async def __aexit__(self, *a): pass
         def stream(self, *a, **k): return Response()
-    original_open = builtins.open
-    monkeypatch.setattr(builtins, 'open', lambda p, *a, **k: io.BytesIO() if p == '/tmp/perix_gtfs.zip' else original_open(p, *a, **k))
     monkeypatch.setattr(w.httpx, 'AsyncClient', lambda **k: Client())
     monkeypatch.setattr(w, '_ACTIVE_REGION', SimpleNamespace(static_transit_type='GTFS', region_id='r', network_id='n',
         timezone='Europe/Berlin', agency_regex='mock', service_day_start_hour=4))
@@ -268,6 +264,7 @@ async def test_static_worker_marks_hash_only_after_strict_activation(monkeypatch
     monkeypatch.setattr(generations, 'prepare_network_version', AsyncMock(return_value={
         'state': 'READY' if ready_state else 'BLOCKED_CHANGED_PATTERNS', 'version_id': 'net_candidate', 'blocking_missing': [] if ready_state else ['56:missing']}))
     payload = {'service_date': '2026-10-26', 'name': 'GTFS 2026-10-26',
+        'feed_info': {'publisher_name': 'Test Publisher', 'publisher_url': 'https://example.invalid/gtfs'},
         'routes': [{'route_number': '56', 'trips': [{'trip_id': 't'}], 'stops': []}]}
     parser = Mock(return_value=payload); monkeypatch.setattr(gtfs, 'parse_gtfs_zip_path', parser)
     if importlib.util.find_spec('mobility.schedule_revision') is not None:
@@ -283,7 +280,16 @@ async def test_static_worker_marks_hash_only_after_strict_activation(monkeypatch
     monkeypatch.setattr(w.asyncio, 'sleep', stop_after_cycle)
     with pytest.raises(asyncio.CancelledError): await w._static_worker()
     assert parser.call_args.kwargs['service_date'] == '2026-10-26'
+    assert not Path(parser.call_args.args[0]).exists()
     assert creator.call_args.kwargs['service_date'] == '2026-10-26'
+    import hashlib
+    assert creator.call_args.kwargs['static_input'] == {
+        'kind': 'GTFS_ARCHIVE', 'ingestion': 'DOWNLOAD',
+        'sha256': hashlib.sha256(b'SYNTHETIC_GTFS_ZIP_BYTES').hexdigest(),
+        'notices': {'feed_info.txt': {'status': 'UNKNOWN'},
+                    'attributions.txt': {'status': 'UNKNOWN'}},
+        'publisher': {'publisher_name': 'Test Publisher',
+                      'publisher_url': 'https://example.invalid/gtfs'}}
     if ready_state:
         activation.assert_awaited_once(); sync.replace_one.assert_awaited_once()
     else:
@@ -301,6 +307,146 @@ async def test_network_creator_preserves_explicit_day_without_forcing_active(mon
     await m._create_network_version([], 'Synthetic dated network', service_date='2026-10-26')
     assert insert.call_args.args[0]['service_date'] == '2026-10-26'
     assert insert.call_args.args[0]['active'] is False
+    assert 'static_input' not in insert.call_args.args[0]
+
+
+@pytest.mark.asyncio
+async def test_network_creator_binds_archive_hash_without_inventing_provider(monkeypatch):
+    from types import SimpleNamespace
+    from routes import mobility as m
+    insert = AsyncMock()
+    monkeypatch.setattr(m, 'db', SimpleNamespace(bus_network_versions=SimpleNamespace(insert_one=insert)))
+    monkeypatch.setattr(m, '_get_active_network', AsyncMock(return_value=None))
+    monkeypatch.setattr(m, '_broadcast', lambda *a: None)
+    source = {'kind': 'GTFS_ARCHIVE', 'sha256': 'a' * 64, 'ingestion': 'DOWNLOAD'}
+    await m._create_network_version([], 'dated', service_date='2026-10-26', static_input=source)
+    source['sha256'] = 'b' * 64
+    saved = insert.call_args.args[0]
+    assert saved['static_input'] == {'kind': 'GTFS_ARCHIVE', 'sha256': 'a' * 64, 'ingestion': 'DOWNLOAD'}
+    assert 'license' not in saved['static_input'] and 'provider' not in saved['static_input']
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('bad', [
+    {}, {'kind': 'GTFS_ARCHIVE', 'sha256': 'bad', 'ingestion': 'DOWNLOAD'},
+    {'kind': 'GTFS_ARCHIVE', 'sha256': 'A' * 64, 'ingestion': 'DOWNLOAD'},
+    {'kind': 'GTFS_ARCHIVE', 'sha256': 'a' * 64, 'ingestion': 'OTHER'},
+    {'kind': 'GTFS_ARCHIVE', 'sha256': 'a' * 64, 'ingestion': 'DOWNLOAD', 'url': 'secret'},
+    {'kind': 'GTFS_ARCHIVE', 'sha256': 'a' * 64, 'ingestion': 'DOWNLOAD',
+     'notices': {'feed_info.txt': {'status': 'PRESENT'}}},
+    {'kind': 'GTFS_ARCHIVE', 'sha256': 'a' * 64, 'ingestion': 'DOWNLOAD',
+     'notices': {'feed_info.txt': {'status': 'PRESENT', 'sha256': 'a' * 64},
+                 'attributions.txt': {'status': 'ABSENT', 'sha256': 'a' * 64}}},
+    {'kind': 'GTFS_ARCHIVE', 'sha256': 'a' * 64, 'ingestion': 'DOWNLOAD',
+     'notices': {'feed_info.txt': {'status': 'LICENSED'}, 'attributions.txt': {'status': 'ABSENT'}}},
+    {'kind': 'GTFS_ARCHIVE', 'sha256': 'a' * 64, 'ingestion': 'DOWNLOAD',
+     'publisher': {'publisher_name': '', 'publisher_url': 'https://gtfs.de'}},
+    {'kind': 'GTFS_ARCHIVE', 'sha256': 'a' * 64, 'ingestion': 'DOWNLOAD',
+     'publisher': {'publisher_name': 'GTFS', 'publisher_url': 'ftp://gtfs.de'}},
+    {'kind': 'GTFS_ARCHIVE', 'sha256': 'a' * 64, 'ingestion': 'DOWNLOAD',
+     'publisher': {'publisher_name': 'GTFS', 'publisher_url': 'https://gtfs.de', 'license': 'CC-BY'}},
+])
+async def test_invalid_archive_identity_fails_before_any_database_call(monkeypatch, bad):
+    from routes import mobility as m
+    get_active = AsyncMock()
+    monkeypatch.setattr(m, '_get_active_network', get_active)
+    with pytest.raises(ValueError):
+        await m._create_network_version([], 'invalid', static_input=bad)
+    get_active.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_archive_identity_with_notices_is_bound_without_inventing_licence(monkeypatch):
+    from types import SimpleNamespace
+    from routes import mobility as m
+    insert = AsyncMock()
+    monkeypatch.setattr(m, 'db', SimpleNamespace(bus_network_versions=SimpleNamespace(insert_one=insert)))
+    monkeypatch.setattr(m, '_get_active_network', AsyncMock(return_value=None))
+    monkeypatch.setattr(m, '_broadcast', lambda *a: None)
+    source = {'kind': 'GTFS_ARCHIVE', 'sha256': 'a' * 64, 'ingestion': 'UPLOAD',
+              'notices': {'feed_info.txt': {'status': 'PRESENT', 'sha256': 'b' * 64},
+                          'attributions.txt': {'status': 'ABSENT'}}}
+    await m._create_network_version([], 'dated', service_date='2026-10-26', static_input=source)
+    saved = insert.call_args.args[0]['static_input']
+    assert saved['notices']['feed_info.txt'] == {'status': 'PRESENT', 'sha256': 'b' * 64}
+    assert saved['notices']['attributions.txt'] == {'status': 'ABSENT'}
+    assert 'license' not in saved and 'license' not in saved['notices']['feed_info.txt']
+
+
+@pytest.mark.asyncio
+async def test_archive_publisher_is_bound_verbatim_without_licence_inference(monkeypatch):
+    from types import SimpleNamespace
+    from routes import mobility as m
+    insert = AsyncMock()
+    monkeypatch.setattr(m, 'db', SimpleNamespace(bus_network_versions=SimpleNamespace(insert_one=insert)))
+    monkeypatch.setattr(m, '_get_active_network', AsyncMock(return_value=None))
+    monkeypatch.setattr(m, '_broadcast', lambda *a: None)
+    source = {'kind': 'GTFS_ARCHIVE', 'sha256': 'a' * 64, 'ingestion': 'DOWNLOAD',
+              'publisher': {'publisher_name': 'gtfs.de / DELFI e.V.',
+                            'publisher_url': 'https://gtfs.de'}}
+    await m._create_network_version([], 'dated', service_date='2026-10-26', static_input=source)
+    saved = insert.call_args.args[0]['static_input']
+    assert saved['publisher'] == {'publisher_name': 'gtfs.de / DELFI e.V.',
+                                  'publisher_url': 'https://gtfs.de'}
+    assert 'license' not in saved['publisher']
+
+
+def _minimal_gtfs_zip(extra_files):
+    import io
+    import zipfile
+    files = {
+        'agency.txt': 'agency_id,agency_name\n1,Test Agency\n',
+        'calendar.txt': 'service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date\ns,1,1,1,1,1,1,1,20261001,20261031\n',
+        'calendar_dates.txt': 'service_id,date,exception_type\n',
+        'routes.txt': 'route_id,agency_id,route_short_name,route_type\nr,1,9,3\n',
+        'trips.txt': 'route_id,service_id,trip_id\nr,s,t\n',
+        'stops.txt': 'stop_id,stop_name,stop_lat,stop_lon\nA,A,52.1,11.6\nB,B,52.11,11.61\n',
+        'stop_times.txt': 'trip_id,stop_sequence,stop_id,arrival_time,departure_time\nt,0,A,10:00:00,10:00:00\nt,1,B,10:10:00,10:10:00\n',
+    }
+    files.update(extra_files)
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w') as archive:
+        for name, text in files.items():
+            archive.writestr(name, text)
+    return buf.getvalue()
+
+
+def test_parser_binds_archive_publisher_only_when_usable():
+    from utils import gtfs as gtfs_parser
+    good = _minimal_gtfs_zip({'feed_info.txt':
+        'feed_publisher_name,feed_publisher_url,feed_lang\nTest Publisher,https://example.invalid/gtfs,de\n'})
+    payload = gtfs_parser.parse_gtfs_zip(good, service_date='2026-10-26',
+                                         agency_regex='Test', timezone='Europe/Berlin')
+    assert payload['feed_info'] == {'publisher_name': 'Test Publisher',
+                                    'publisher_url': 'https://example.invalid/gtfs'}
+    assert gtfs_parser.parse_gtfs_zip(
+        _minimal_gtfs_zip({}), service_date='2026-10-26',
+        agency_regex='Test', timezone='Europe/Berlin')['feed_info'] is None
+    assert gtfs_parser.parse_gtfs_zip(
+        _minimal_gtfs_zip({'feed_info.txt':
+            'feed_publisher_name,feed_publisher_url\nTest Publisher,ftp://example.invalid/x\n'}),
+        service_date='2026-10-26', agency_regex='Test',
+        timezone='Europe/Berlin')['feed_info'] is None
+
+
+@pytest.mark.asyncio
+async def test_manual_gtfs_upload_records_the_actual_uploaded_archive_hash(monkeypatch):
+    import hashlib
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+    from routes import mobility as m
+    from utils import gtfs
+    content = b'synthetic uploaded GTFS bytes'
+    monkeypatch.setattr(gtfs, 'parse_gtfs_zip', Mock(return_value={
+        'routes': [{'mode': 'bus', 'trips': []}], 'service_date': '2026-10-26', 'name': 'synthetic'}))
+    creator = AsyncMock(return_value={'version_id': 'synthetic'})
+    monkeypatch.setattr(m, '_create_network_version', creator)
+    upload = SimpleNamespace(read=AsyncMock(return_value=content))
+    await m.import_gtfs_zip(file=upload, date='2026-10-26', operator={})
+    assert creator.call_args.kwargs['static_input'] == {'kind': 'GTFS_ARCHIVE',
+        'sha256': hashlib.sha256(content).hexdigest(), 'ingestion': 'UPLOAD',
+        'notices': {'feed_info.txt': {'status': 'UNKNOWN'},
+                    'attributions.txt': {'status': 'UNKNOWN'}}}
 
 
 @pytest.mark.asyncio

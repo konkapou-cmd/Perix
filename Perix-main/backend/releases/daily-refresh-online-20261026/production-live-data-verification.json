@@ -1,0 +1,26 @@
+{
+  "deployment": "86787584-b517-4c4a-acbb-da7ef325add5",
+  "active_version": "net_a17a9612acba",
+  "service_date": "2026-10-26",
+  "generation_state": "READY",
+  "ready_bundles": 159,
+  "bus_patterns": 93,
+  "tram_patterns": 66,
+  "graph": 1793043763,
+  "layers": {
+    "roads": 30027,
+    "rails": 865,
+    "signals": 2814
+  },
+  "control": {
+    "day_attempts": 1,
+    "alarm": null,
+    "candidate_id": "net_a17a9612acba",
+    "service_date": "2026-10-26",
+    "state": "ACTIVATED"
+  },
+  "daily_recovery_enabled": true,
+  "auto_activate": true,
+  "native_enabled": false,
+  "traffic_enabled": false
+}

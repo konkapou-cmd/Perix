@@ -1,0 +1,67 @@
+{
+  "origin": "https://app.perix.eu",
+  "network_http": 200,
+  "routes_http": 200,
+  "vehicles_http": 200,
+  "service_date": "2026-10-26",
+  "active_version": "net_a17a9612acba",
+  "virtual_vehicle_counts": {
+    "bus": 25,
+    "tram": 32
+  },
+  "served_frontend_unchanged": true,
+  "entry_sha256": "3914b3bb0c5451f449729e208e88479863ffbe23369af12f299172497ae7cd18",
+  "map_html_sha256": "d5346b81885e6ab105a8a2072e9830c223208b7cff8319f57ae994f5a1e8c24f",
+  "all_virtual_records_use_current_network_date": true,
+  "samples": [
+    {
+      "mode": "bus",
+      "trip_id": "775861",
+      "service_date": "2026-10-26",
+      "network_version_id": "net_a17a9612acba",
+      "next_stop_id": "666238",
+      "next_stop_eta_seconds": 38
+    },
+    {
+      "mode": "bus",
+      "trip_id": "719346",
+      "service_date": "2026-10-26",
+      "network_version_id": "net_a17a9612acba",
+      "next_stop_id": "466094",
+      "next_stop_eta_seconds": 98
+    },
+    {
+      "mode": "bus",
+      "trip_id": "1778607",
+      "service_date": "2026-10-26",
+      "network_version_id": "net_a17a9612acba",
+      "next_stop_id": null,
+      "next_stop_eta_seconds": null
+    },
+    {
+      "mode": "tram",
+      "trip_id": "249401",
+      "service_date": "2026-10-26",
+      "network_version_id": "net_a17a9612acba",
+      "next_stop_id": null,
+      "next_stop_eta_seconds": null
+    },
+    {
+      "mode": "tram",
+      "trip_id": "193771",
+      "service_date": "2026-10-26",
+      "network_version_id": "net_a17a9612acba",
+      "next_stop_id": "676730",
+      "next_stop_eta_seconds": 95
+    },
+    {
+      "mode": "tram",
+      "trip_id": "140971",
+      "service_date": "2026-10-26",
+      "network_version_id": "net_a17a9612acba",
+      "next_stop_id": "482146",
+      "next_stop_eta_seconds": 38
+    }
+  ],
+  "gps_accuracy_claim": false
+}

@@ -1,15 +1,15 @@
 import React, { useMemo } from "react";
-import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
 import BusinessMap from "../../components/BusinessMap";
 import { MapBounds } from "../../context/MapBoundsContext";
 import { Business, EventItem, ActivityItem, Rental, Service } from "../../lib/api";
 import { Listing } from "../../lib/api/listings";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { entityRoutes, pushEntityRoute, getRentalNavigationId, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
+import { MAP_PAGE_GUTTER } from "../../lib/city/mapLayout";
 
 interface MapSectionProps {
   mapBounds: MapBounds;
@@ -24,14 +24,16 @@ interface MapSectionProps {
   ownerHomes?: Listing[];
   userLocation?: { latitude: number; longitude: number } | null;
   userPinImage?: string | null;
+  userPinName?: string | null;
   pinLocation?: { latitude: number; longitude: number } | null;
+  manualOrigin?: { latitude: number; longitude: number; name?: string } | null;
   onRegionChange: (bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => void;
   onRecenter?: (lat?: number, lng?: number) => void;
   recentering?: boolean;
   focusToken?: number;
 }
 
-export function MapSection({ mapBounds, businesses, hotels, events, activities, rentals, jobs, services, products, ownerHomes, userLocation, userPinImage, pinLocation, onRegionChange, onRecenter, recentering, focusToken }: MapSectionProps) {
+export function MapSection({ mapBounds, businesses, hotels, events, activities, rentals, jobs, services, products, ownerHomes, userLocation, userPinImage, userPinName, pinLocation, manualOrigin, onRegionChange, onRecenter, recentering, focusToken }: MapSectionProps) {
   const router = useRouter();
   const { t } = useTranslation();
 
@@ -65,7 +67,8 @@ export function MapSection({ mapBounds, businesses, hotels, events, activities, 
     }));
   }, [ownerHomes, rentals]);
 
-  const extraMarkers = useMemo(() => [...productMarkers, ...homeMarkers], [productMarkers, homeMarkers]);
+  const extraMarkers = useMemo(() => [...productMarkers, ...homeMarkers,...(manualOrigin ? [{id:"home-user-origin",
+    latitude:manualOrigin.latitude,longitude:manualOrigin.longitude,title:manualOrigin.name || t("mobility.manualLocation","Entered location"),pinColor:COLORS.primary}] : [])], [productMarkers, homeMarkers, manualOrigin, t]);
 
   const handleMarkerPress = (id: string) => {
     const all = [...allBusinesses, ...(hotels || [])];
@@ -92,34 +95,20 @@ export function MapSection({ mapBounds, businesses, hotels, events, activities, 
     if (home) { pushEntityRoute(router, entityRoutes.listing(id), () => showInvalidEntityAlert(t)); return; }
   };
 
-  const handleRecenter = async () => {
-    if (Platform.OS !== "web") {
-      // Native: fetch the current position here and tell the parent so the
-      // map can animate to it (initialRegion alone never moves an open map).
-      const loc = await getCurrentPositionWithPermission();
-      if (loc) {
-        onRecenter?.(loc.latitude, loc.longitude);
-      } else {
-        Alert.alert(
-          t("common.error") || "Error",
-          t("locator.locationDenied") || "Location permission denied"
-        );
-      }
-      return;
-    }
-    onRecenter?.();
-  };
+  // Both platforms use Home's shared LocationContext request/pin update.
+  const handleRecenter = () => {onRecenter?.();};
 
   return (
     <View style={styles.container}>
       <View style={styles.mapWrapper}>
         <BusinessMap
-          // Native: the map animates to `location` when it changes (the
-          // recenter button lands here). Web: omit it - the web map stays
-          // put unless explicitly focused, so live GPS never yanks it.
-          location={Platform.OS === "web" ? undefined : userLocation ?? undefined}
-          showUserLocation
+          horizontalInset={0}
+          // Both platforms move the camera only on explicit focus/recenter;
+          // GPS updates the pin without pulling an explored base back home.
+          location={undefined}
+          showUserLocation={!!pinLocation}
           userPinImage={userPinImage ?? undefined}
+          userPinName={userPinName}
           pinLocation={pinLocation}
           initialRegion={{
             latitude: mapBounds.centerLat,
@@ -161,6 +150,7 @@ export function MapSection({ mapBounds, businesses, hotels, events, activities, 
 
 const styles = StyleSheet.create({
   container: {
+    marginHorizontal:MAP_PAGE_GUTTER,
     marginBottom: 12,
     backgroundColor: COLORS.background,
     paddingTop: 0,

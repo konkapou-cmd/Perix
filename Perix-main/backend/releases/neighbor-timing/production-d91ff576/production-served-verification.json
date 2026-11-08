@@ -1,0 +1,8 @@
+{
+  "origin": "https://app.perix.eu",
+  "deployment": "d91ff576-492d-45e8-a388-c2b00d0746c6",
+  "entry": "entry-466601e831e24aa5b2fa73325a3ff821.js",
+  "entry_sha256": "3914b3bb0c5451f449729e208e88479863ffbe23369af12f299172497ae7cd18",
+  "map_html_sha256": "d5346b81885e6ab105a8a2072e9830c223208b7cff8319f57ae994f5a1e8c24f",
+  "staging_origin_absent": true
+}

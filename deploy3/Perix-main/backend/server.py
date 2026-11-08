@@ -1,0 +1,575 @@
+"""
+Perix - City Social Media API
+Refactored modular architecture - February 2026
+Deploy marker 2026-08-16e: deletion tombstone always runs (best-effort content steps) + hide
+deleted/inactive businesses in /businesses and /businesses/nearby — trigger Railway redeploy
+of both services (backend + Perix)
+"""
+import asyncio
+import time
+from collections import defaultdict
+from pathlib import Path
+from fastapi import FastAPI, Request, HTTPException, Depends, Query
+from routes.dependencies import get_current_user
+from models.user import UserPublic
+from starlette.middleware.cors import CORSMiddleware
+from starlette.responses import JSONResponse, FileResponse, RedirectResponse, StreamingResponse
+import httpx
+from starlette.staticfiles import StaticFiles
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+
+import os
+from database import db, build_category_tree, create_indexes
+from routes import api_router
+from utils.cleanup import run_cleanup, start_cleanup_scheduler, setup_ttl_indexes
+from utils.push_notifications import send_event_reminder_notification
+
+
+class RateLimiter:
+    def __init__(self):
+        self.requests: dict = defaultdict(list)
+
+    def is_allowed(self, key: str, limit: int, window: int) -> bool:
+        now = time.time()
+        self.requests[key] = [t for t in self.requests[key] if now - t < window]
+        if len(self.requests[key]) >= limit:
+            return False
+        self.requests[key].append(now)
+        return True
+
+rate_limiter = RateLimiter()
+
+RATE_LIMITS = {
+    "/api/auth/login": (30, 60),
+    "/api/auth/register": (30, 60),
+    "/api/auth/google-session": (5, 60),
+    "/api/uploads/": (20, 60),
+    "/api/media/": (20, 60),
+    "/api/messages/send": (30, 60),
+}
+
+DEFAULT_LIMIT = (60, 60)
+
+# Initialize scheduler
+scheduler = AsyncIOScheduler()
+
+app = FastAPI(
+    title="Perix - City Social Media API",
+    description="""
+## Social Media Platform for Businesses, Artists & Users
+
+### Features:
+- **Authentication**: Register, login, logout with session tokens
+- **Posts**: Create, read, like, comment on posts with media support
+- **City Ads**: Location-based business ads
+- **Businesses**: Business profiles with categories, events, fan gallery
+- **Artists**: Artist profiles with genres, booking requests, fan gallery
+- **Events**: Create and attend events
+- **Activities**: Private activities with invitations
+- **Messages**: Direct messaging between users
+- **Feed**: Personalized home feed with location filtering
+
+### Authentication:
+All endpoints except `/api/auth/register` and `/api/auth/login` require authentication.
+Use the session token in the `Authorization: Bearer <token>` header.
+    """,
+    version="2.0.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
+)
+
+# Honor X-Forwarded-Proto so redirects keep the https scheme behind proxies
+@app.middleware("http")
+async def https_scheme_middleware(request: Request, call_next):
+    if request.headers.get("x-forwarded-proto", "http") == "https":
+        request.scope["scheme"] = "https"
+    return await call_next(request)
+
+
+# Force HTTPS for browser requests (geolocation, cameras etc. require a secure context)
+@app.middleware("http")
+async def force_https_middleware(request: Request, call_next):
+    proto = request.headers.get("x-forwarded-proto", request.url.scheme or "http")
+    host = (request.headers.get("host") or "").split(":")[0]
+    if proto == "http" and request.method in ("GET", "HEAD") and host not in ("localhost", "127.0.0.1"):
+        return RedirectResponse(url=str(request.url.replace(scheme="https")), status_code=308)
+    return await call_next(request)
+
+
+# Canonical host: exactly ONE origin for the web app, so browser
+# permissions (geolocation etc.) and stored sessions stay consistent -
+# www.perixapp.com / perixapp.com always land on app.perixapp.com.
+@app.middleware("http")
+async def canonical_host_middleware(request: Request, call_next):
+    host = (request.headers.get("host") or "").split(":")[0].lower()
+    if host in ("www.perixapp.com", "perixapp.com"):
+        return RedirectResponse(
+            url=str(request.url.replace(scheme="https", hostname="app.perixapp.com")),
+            status_code=308,
+        )
+    return await call_next(request)
+
+
+# Rate limiting middleware
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    path = request.url.path
+    client_ip = request.client.host if request.client else "unknown"
+
+    limit, window = DEFAULT_LIMIT
+    for prefix, cfg in RATE_LIMITS.items():
+        if path.startswith(prefix):
+            limit, window = cfg
+            break
+
+    key = f"{client_ip}:{path}"
+    if not rate_limiter.is_allowed(key, limit, window):
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Too many requests. Please try again later."},
+        )
+
+    response = await call_next(request)
+    return response
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include the main API router
+app.include_router(api_router)
+
+# --- Public account-deletion pages (Google Play / Apple requirement) ---
+# Must be declared before the SPA fallback below.
+from fastapi.responses import HTMLResponse
+from routes.account_deletion import (
+    deletion_request_page_html,
+    deletion_confirm_page_html,
+    resolve_deletion_token,
+)
+
+
+@app.get("/account-deletion", include_in_schema=False)
+async def account_deletion_page():
+    return HTMLResponse(deletion_request_page_html())@app.get("/account-deletion/confirm", include_in_schema=False)
+async def account_deletion_confirm_page(token: str = ""):
+    user = await resolve_deletion_token(token.strip())
+    if user is None:
+        return HTMLResponse(
+            deletion_confirm_page_html(
+                "", error="This deletion link is invalid or has expired. Please request a new one."
+            )
+        )
+    return HTMLResponse(deletion_confirm_page_html(token.strip(), user=user))
+
+# --- Public legal pages (GDPR / DSA) ---
+from routes.legal import privacy_page_html, terms_page_html, impressum_page_html
+
+
+@app.get("/privacy", include_in_schema=False)
+async def privacy_page(lang: str = "en"):
+    return HTMLResponse(privacy_page_html(lang))
+
+
+@app.get("/terms", include_in_schema=False)
+async def terms_page(lang: str = "en"):
+    return HTMLResponse(terms_page_html(lang))
+
+
+@app.get("/impressum", include_in_schema=False)
+async def impressum_page(lang: str = "en"):
+    return HTMLResponse(impressum_page_html(lang))
+
+
+# --- Web app static hosting (SPA) ---
+WEB_DIST = Path(__file__).parent / "webdist"
+WEB_DIST_ZIP = Path(__file__).parent / "webdist.dat"
+# Allow deploying the frontend as a single zip (avoids upload timeouts with
+# many small files). Extract on first boot if webdist is missing.
+# Extract frontend bundle if needed (handles stale/partial webdist).
+import shutil as _shutil
+if WEB_DIST_ZIP.exists() and not (WEB_DIST / "_expo").exists():
+    if WEB_DIST.exists():
+        _shutil.rmtree(WEB_DIST, ignore_errors=True)
+    WEB_DIST.mkdir(parents=True, exist_ok=True)
+    import zipfile
+    with zipfile.ZipFile(WEB_DIST_ZIP) as _zf:
+        _zf.extractall(WEB_DIST)
+
+@app.api_route("/mux-hls/{path:path}", methods=["GET", "HEAD"], include_in_schema=False)
+async def mux_hls_proxy(path: str, request: Request):
+    """First-party proxy for Mux HLS streams.
+
+    Browsers with strict tracking prevention (Edge, Safari ITP) block
+    third-party storage/requests to stream.mux.com, which breaks video
+    playback. Serving the stream from our own origin avoids that.
+    """
+    qs = request.url.query
+    target = f"https://stream.mux.com/{path}" + (f"?{qs}" if qs else "")
+    fwd_headers = {
+        k: v for k, v in request.headers.items()
+        if k.lower() not in ("host", "origin", "referer", "cookie", "connection")
+    }
+    async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
+        upstream = await client.send(
+            client.build_request(request.method, target, headers=fwd_headers),
+            stream=True,
+        )
+        resp_headers = {
+            k: v for k, v in upstream.headers.items()
+            if k.lower() not in ("transfer-encoding", "connection", "content-encoding", "content-length")
+        }
+        return StreamingResponse(
+            upstream.aiter_bytes(),
+            status_code=upstream.status_code,
+            headers=resp_headers,
+            media_type=upstream.headers.get("content-type"),
+        )
+
+
+if WEB_DIST.exists():
+    app.mount("/_expo", StaticFiles(directory=WEB_DIST / "_expo"), name="web-expo")
+
+    # Font fallback: deploy pipelines sometimes strip node_modules paths from
+    # the web build. Serve the font files from a plain directory so icons and
+    # brand fonts always load. Routes must be declared BEFORE the /assets mount.
+    FONT_DIR = Path(__file__).parent / "static_fonts"
+
+    @app.get("/assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/{filename}", include_in_schema=False)
+    async def icon_font_file(filename: str):
+        p = FONT_DIR / "icons" / filename
+        if p.exists():
+            return FileResponse(p, media_type="font/ttf", headers={"Cache-Control": "public, max-age=3600"})
+        raise HTTPException(status_code=404, detail="Font not found")
+
+    @app.get("/assets/node_modules/@expo-google-fonts/quicksand/{weight}/{filename}", include_in_schema=False)
+    async def quicksand_font_file(weight: str, filename: str):
+        p = FONT_DIR / "quicksand" / weight / filename
+        if p.exists():
+            return FileResponse(p, media_type="font/ttf", headers={"Cache-Control": "public, max-age=3600"})
+        raise HTTPException(status_code=404, detail="Font not found")
+
+    app.mount("/assets", StaticFiles(directory=WEB_DIST / "assets"), name="web-assets")
+
+    if (WEB_DIST / "pwa").exists():
+        app.mount("/pwa", StaticFiles(directory=WEB_DIST / "pwa"), name="web-pwa")
+
+    @app.get("/manifest.json", include_in_schema=False)
+    async def web_manifest():
+        p = WEB_DIST / "manifest.json"
+        if p.exists():
+            return FileResponse(p, media_type="application/manifest+json", headers={"Cache-Control": "public, max-age=3600"})
+        raise HTTPException(status_code=404, detail="Manifest not found")
+
+    @app.get("/sw.js", include_in_schema=False)
+    async def web_service_worker():
+        p = WEB_DIST / "sw.js"
+        if p.exists():
+            return FileResponse(p, media_type="application/javascript", headers={"Cache-Control": "no-cache"})
+        raise HTTPException(status_code=404, detail="Service worker not found")
+
+    @app.get("/service-worker", include_in_schema=False)
+    async def web_service_worker_nocache():
+        # Extensionless path so CDNs don't apply their static-file caching
+        # policy - the service worker must always revalidate.
+        p = WEB_DIST / "sw.js"
+        if p.exists():
+            return FileResponse(p, media_type="application/javascript", headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+        raise HTTPException(status_code=404, detail="Service worker not found")
+
+    @app.get("/favicon.ico", include_in_schema=False)
+    async def web_favicon():
+        return FileResponse(WEB_DIST / "favicon.ico")
+
+    @app.get("/test-player.html", include_in_schema=False)
+    async def web_test_player():
+        if (WEB_DIST / "test-player.html").exists():
+            return FileResponse(WEB_DIST / "test-player.html", headers={"Cache-Control": "no-store"})
+        return JSONResponse({"detail": "test page not built"}, status_code=404)
+
+    @app.get("/api/test-player.html", include_in_schema=False)
+    async def api_test_player():
+        if (WEB_DIST / "test-player.html").exists():
+            return FileResponse(WEB_DIST / "test-player.html", headers={"Cache-Control": "no-store"})
+        return JSONResponse({"detail": "test page not built"}, status_code=404)
+
+    @app.get("/test-player", include_in_schema=False)
+    async def web_test_player_short():
+        if (WEB_DIST / "test-player.html").exists():
+            return FileResponse(WEB_DIST / "test-player.html", headers={"Cache-Control": "no-store"})
+        return JSONResponse({"detail": "test page not built"}, status_code=404)
+
+    @app.get("/google-mobility-map.html", include_in_schema=False)
+    async def web_google_mobility_map():
+        if (WEB_DIST / "google-mobility-map.html").exists():
+            return FileResponse(WEB_DIST / "google-mobility-map.html", headers={"Cache-Control": "no-store"})
+        return JSONResponse({"detail": "mobility map not built"}, status_code=404)
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def web_spa_fallback(full_path: str):
+        # SPA fallback: serve index.html for any non-API GET request.
+        # Never cache it so clients always pick up the newest bundle.
+        return FileResponse(WEB_DIST / "index.html", headers={"Cache-Control": "no-store, no-cache, must-revalidate"})
+
+
+@app.get("/api/ping-deploy")
+async def ping_deploy():
+    return {"deployed": True, "commit": os.getenv("APP_COMMIT_SHA", "unknown")}
+
+
+@app.post("/api/admin/transfer-marketplace")
+async def transfer_marketplace(
+    source_user_id: str = Query(..., description="Source account ID (deleted/orphaned user)"),
+    destination_user_id: str = Query(..., description="Destination account ID (receives listings)"),
+    dry_run: bool = Query(True, description="Preview without making changes"),
+    confirm: bool = Query(False, description="Required for non-dry-run execution"),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    """Admin-only: Transfer orphan listings and repair missing canonical fields.
+
+    - Transfers listings owned by source_user_id to destination_user_id
+    - Sets complete canonical fields: seller_id, seller_type, publication_scope
+    - Preserves existing listing_type (only defaults to "product" when missing)
+    - Also repairs already-transferred listings with missing ownership fields
+    """
+    from routes.admin import verify_admin
+    from datetime import datetime, timezone
+    import uuid
+
+    await verify_admin(current_user)
+
+    if not dry_run and not confirm:
+        raise HTTPException(status_code=400, detail="Set confirm=true for non-dry-run execution")
+
+    now = datetime.now(timezone.utc)
+    audit_id = str(uuid.uuid4())
+
+    # Transfer orphan personal listings: source → destination
+    transfer_candidates = await db.listings.find(
+        {
+            "seller_type": {"$in": ["user", None]},
+            "is_active": True,
+            "$or": [
+                {"seller_id": source_user_id},
+                {"owner_id": source_user_id},
+            ],
+        },
+        {"listing_id": 1, "title": 1, "listing_type": 1},
+    ).to_list(500)
+
+    transferred_ids = []
+    for l in transfer_candidates:
+        if not dry_run:
+            update_fields = {
+                "owner_id": destination_user_id,
+                "seller_id": destination_user_id,
+                "seller_type": "user",
+                "status": "published",
+                "is_hidden": False,
+                "is_active": True,
+                "publication_scope": "profile_and_marketplace",
+                "updated_at": now,
+            }
+            if not l.get("listing_type"):
+                update_fields["listing_type"] = "product"
+            await db.listings.update_one(
+                {"listing_id": l["listing_id"]},
+                {"$set": update_fields},
+            )
+        transferred_ids.append(l["listing_id"])
+
+    # Repair already-transferred listings with missing canonical ownership fields
+    repair_candidates = await db.listings.find(
+        {
+            "owner_id": destination_user_id,
+            "$or": [
+                {"seller_id": {"$exists": False}},
+                {"seller_id": None},
+                {"seller_type": {"$exists": False}},
+                {"seller_type": None},
+                {"publication_scope": {"$exists": False}},
+                {"publication_scope": None},
+            ],
+        },
+        {"listing_id": 1, "title": 1, "listing_type": 1},
+    ).to_list(500)
+
+    repaired_ids = []
+    for l in repair_candidates:
+        if not dry_run:
+            update_fields = {
+                "seller_id": destination_user_id,
+                "seller_type": "user",
+                "publication_scope": "profile_and_marketplace",
+                "status": "published",
+                "is_hidden": False,
+                "is_active": True,
+                "updated_at": now,
+            }
+            if not l.get("listing_type"):
+                update_fields["listing_type"] = "product"
+            await db.listings.update_one(
+                {"listing_id": l["listing_id"]},
+                {"$set": update_fields},
+            )
+        repaired_ids.append(l["listing_id"])
+
+    return {
+        "dry_run": dry_run,
+        "audit_id": audit_id,
+        "source_user_id": source_user_id,
+        "destination_user_id": destination_user_id,
+        "transferred": {
+            "count": len(transferred_ids),
+            "listing_ids": transferred_ids,
+        },
+        "repaired": {
+            "count": len(repaired_ids),
+            "listing_ids": repaired_ids,
+        },
+    }
+
+
+# Reminder processing function
+async def process_event_reminders():
+    """Process and send all due event reminders."""
+    from datetime import datetime, timezone
+    
+    try:
+        current_time = datetime.now(timezone.utc).isoformat()
+        
+        # Find all pending reminders that are due
+        due_reminders = await db.event_reminders.find({
+            "status": "pending",
+            "remind_at": {"$lte": current_time}
+        }, {"_id": 0}).to_list(length=100)
+        
+        if not due_reminders:
+            return
+        
+        print(f"[Reminder Scheduler] Processing {len(due_reminders)} due reminders...")
+        
+        sent_count = 0
+        failed_count = 0
+        
+        for reminder in due_reminders:
+            try:
+                # Get user's push token
+                user = await db.users.find_one(
+                    {"user_id": reminder["user_id"]},
+                    {"_id": 0, "push_token": 1, "name": 1}
+                )
+                
+                if user and user.get("push_token"):
+                    await send_event_reminder_notification(
+                        push_token=user["push_token"],
+                        event_title=reminder.get("event_title", "Event"),
+                        event_id=reminder["event_id"],
+                        reminder_id=reminder["reminder_id"]
+                    )
+                    
+                    # Mark as sent
+                    await db.event_reminders.update_one(
+                        {"reminder_id": reminder["reminder_id"]},
+                        {"$set": {
+                            "status": "sent", 
+                            "sent_at": current_time
+                        }}
+                    )
+                    sent_count += 1
+                    print(f"[Reminder] Sent reminder for event: {reminder.get('event_title')}")
+                else:
+                    # Mark as failed (no push token)
+                    await db.event_reminders.update_one(
+                        {"reminder_id": reminder["reminder_id"]},
+                        {"$set": {"status": "failed", "error": "No push token"}}
+                    )
+                    failed_count += 1
+                    
+            except Exception as e:
+                # Mark as failed
+                await db.event_reminders.update_one(
+                    {"reminder_id": reminder["reminder_id"]},
+                    {"$set": {"status": "failed", "error": str(e)}}
+                )
+                failed_count += 1
+                print(f"[Reminder] Failed to send: {e}")
+        
+        if sent_count > 0 or failed_count > 0:
+            print(f"[Reminder Scheduler] Processed: {sent_count} sent, {failed_count} failed")
+            
+    except Exception as e:
+        print(f"[Reminder Scheduler] Error: {e}")
+
+
+@app.on_event("startup")
+async def startup_db():
+    """Initialize database and category tree on startup."""
+    build_category_tree()
+    # Create database indexes for better performance
+    await create_indexes()
+    # Setup TTL indexes for automatic document expiration
+    await setup_ttl_indexes()
+    # Run initial cleanup of old data
+    await run_cleanup()
+    # Backfill legacy services with missing status
+    await migrate_service_status()
+    # Assign name-based slugs to businesses missing one (share links)
+    try:
+        from routes.businesses import backfill_business_slugs
+        await backfill_business_slugs()
+    except Exception as e:
+        print(f"[Startup] Business slug backfill failed: {e}")
+    # Start background cleanup scheduler (runs every 6 hours)
+    asyncio.create_task(start_cleanup_scheduler(interval_hours=6))
+
+    # Start Mux asset resolver so processing videos become playable automatically
+    from utils.mux_resolver import start_mux_resolver
+    start_mux_resolver()
+
+    # Mobility sync workers (static GTFS + GTFS-Realtime) run in-process
+    from utils.mobility_workers import start_mobility_workers
+    start_mobility_workers()
+    
+    # Start the reminder scheduler (runs every minute)
+    scheduler.add_job(
+        process_event_reminders,
+        IntervalTrigger(minutes=1),
+        id="event_reminder_job",
+        name="Process Event Reminders",
+        replace_existing=True
+    )
+    scheduler.start()
+    print("[Scheduler] Event reminder scheduler started (runs every 1 minute)")
+
+
+async def migrate_service_status():
+    """Backfill legacy services that have no status field."""
+    try:
+        result = await db.services.update_many(
+            {
+                "$or": [
+                    {"status": {"$exists": False}},
+                    {"status": None},
+                ],
+            },
+            {"$set": {"status": "published"}},
+        )
+        if result.modified_count > 0:
+            print(f"[Migration] Backfilled {result.modified_count} legacy services with status=published")
+    except Exception as e:
+        print(f"[Migration] Service status backfill failed: {e}")
+
+
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    """Clean up database connection and scheduler on shutdown."""
+    scheduler.shutdown(wait=False)
+    print("[Scheduler] Reminder scheduler stopped")

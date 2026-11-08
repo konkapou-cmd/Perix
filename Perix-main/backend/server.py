@@ -93,6 +93,11 @@ async def https_scheme_middleware(request: Request, call_next):
 async def force_https_middleware(request: Request, call_next):
     proto = request.headers.get("x-forwarded-proto", request.url.scheme or "http")
     host = (request.headers.get("host") or "").split(":")[0]
+    # Railway probes this public, read-only JSON route over internal HTTP.
+    # Exempt only its documented probe host/path, not browser/API traffic.
+    if (host == "healthcheck.railway.app" and request.method in ("GET", "HEAD")
+            and request.url.path == "/api/mobility/v2/networks"):
+        return await call_next(request)
     if proto == "http" and request.method in ("GET", "HEAD") and host not in ("localhost", "127.0.0.1"):
         return RedirectResponse(url=str(request.url.replace(scheme="https")), status_code=308)
     return await call_next(request)
@@ -538,6 +543,17 @@ async def startup_db():
     start_mux_resolver()
 
     # Mobility sync workers (static GTFS + GTFS-Realtime) run in-process
+    # Optional web rollout warmup: build current estimate templates before the
+    # ASGI startup completes/listener becomes ready. Never refresh geometry or
+    # reinterpret a zero-model overnight service window as a failed arrival.
+    if os.getenv('MOBILITY_VISUAL_PREWARM_ON_STARTUP', 'false').lower() == 'true':
+        from mobility.motion.visual_runtime import enabled as visual_enabled
+        if visual_enabled():
+            from routes.mobility import _get_active_network, _estimated_transit_vehicles
+            warm_network = await _get_active_network()
+            if warm_network:
+                warmed = await _estimated_transit_vehicles(warm_network)
+                print(f"[Mobility] Visual web startup warmup complete: {len(warmed)} estimates")
     from utils.mobility_workers import start_mobility_workers
     start_mobility_workers()
     

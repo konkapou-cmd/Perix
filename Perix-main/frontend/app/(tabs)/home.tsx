@@ -97,14 +97,17 @@ import { useLayoutPreferences } from "../../hooks/useLayoutPreferences";
 import { CityAdCircles } from "../../components/home/CityAdCircles";
 import { CarouselSection } from "../../components/home/CarouselSection";
 import { MapSection } from "../../components/home/MapSection";
+import MapScreenHeader from "../../components/city/MapScreenHeader";
+import { MAP_PAGE_GUTTER } from "../../lib/city/mapLayout";
+import { categoryIcon } from "../../lib/categoryIcons";
 import { getListings, Listing } from "../../lib/api/listings";
 import { IdentityDropdown } from "../../components/profile/IdentityDropdown";
 import { getMyBusinesses, Business } from "../../lib/api";
 import { entityRoutes, pushEntityRoute, getRentalNavigationId, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
 import { LocationSearchOverlay } from "../../components/home/LocationSearchOverlay";
 import { PostCard } from "../../components/home/PostCard";
-import { LayoutSettingsModal } from "../../components/home/LayoutSettingsModal";
 import PerixLogo from "../../components/brand/PerixLogo";
+import IllustratedIcon, { illustratedIconSource } from "../../components/icons/IllustratedIcon";
 
 function HomeSkeleton() {
   return (
@@ -129,15 +132,15 @@ export default function HomeScreen() {
   const { user, sessionToken, activeIdentity, setActiveIdentity } = useAuth();
   const { unreadMessageCount } = useBadge();
   const { openCreateSheet, openBizActions } = React.useContext(CreateFlowContext);
-  const { location: globalLocation, livePosition, setManualLocation, useLiveLocation } = useLocation();
-  const { mapBounds, isMapInitialized, refreshKey: mapRefreshKey, setMapBounds } = useMapBounds();
+  const { location: globalLocation, livePosition, userOrigin, setUserOrigin, useLiveLocation } = useLocation();
+  const { mapBounds, isMapInitialized, refreshKey: mapRefreshKey, setMapBounds, mapBaseRevision } = useMapBounds();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isDesktop } = useResponsiveLayout();
 
   const [postCategory, setPostCategory] = useState<string | null>(null);
 
-  const { homeLayout, toggleSection, setSorting, setFavoriteCategories, collapsedSections, setSectionCollapsed } = useLayoutPreferences();
+  const { homeLayout, setFavoriteCategories, collapsedSections, setSectionCollapsed } = useLayoutPreferences();
 
   const feedData = useFeedData({
     sessionToken,
@@ -216,11 +219,11 @@ export default function HomeScreen() {
   const [showNoLocationMessage, setShowNoLocationMessage] = useState(false);
   const [loadingMorePosts, setLoadingMorePosts] = useState(false);
   const [hasMorePosts, setHasMorePosts] = useState(true);
-  const [showLayoutSettings, setShowLayoutSettings] = useState(false);
   const [showLocationSearch, setShowLocationSearch] = useState(false);
   const [locatingMe, setLocatingMe] = useState(false);
   const [locateFailed, setLocateFailed] = useState(false);
   const [mapFocusToken, setMapFocusToken] = useState(0);
+  useEffect(()=>{if(mapBaseRevision)setMapFocusToken(value=>value+1);},[mapBaseRevision]);
   const [visiblePostId, setVisiblePostId] = useState<string | null>(null);
   const scrollRef = useRef<FlatList<Post>>(null);
   const viewabilityConfigRef = useRef({ itemVisiblePercentThreshold: 50, minimumViewTime: 300 }).current;
@@ -498,7 +501,7 @@ export default function HomeScreen() {
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [shareContentId, setShareContentId] = useState<string>("");
   const [shareContentTitle, setShareContentTitle] = useState<string>("");
-  const isAnyModalOpen = commentModal || editModal || calendarOpen || activitiesCalendarOpen || showThemeFilter || showBusinessTagModal || showLayoutSettings || showLocationSearch || shareModalVisible;
+  const isAnyModalOpen = commentModal || editModal || calendarOpen || activitiesCalendarOpen || showThemeFilter || showBusinessTagModal || showLocationSearch || shareModalVisible;
   const isFocused = useIsFocused();
   const wasFocusedRef = useRef(false);
 
@@ -807,6 +810,9 @@ export default function HomeScreen() {
   if (feedLoading) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }} edges={["top"]}>
+        {!(isDesktop && Platform.OS==='web') && <MapScreenHeader hideExplore logoVariant="english" right={<IdentityDropdown compact businesses={myBusinesses}
+          onSelectIdentity={(type,id,name,avatar)=>setActiveIdentity?.({type,id,name,avatar})}
+          onCreateBusiness={()=>router.push("/(tabs)/profile?createBusiness=1")} />} />}
         <HomeSkeleton />
       </SafeAreaView>
     );
@@ -815,94 +821,26 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       {!(isDesktop && Platform.OS === "web") && (
-      <View style={styles.stickyHeader}>
-        <View style={styles.brandWrap}>
-          <Animated.View style={{ opacity: brandOpacity }}><PerixLogo size="compact" /></Animated.View>
-        </View>
-        <View style={styles.stickyHeaderMiddle}>
-          <Pressable style={styles.locationSearchPill} onPress={() => setShowLocationSearch(true)}>
-            <Ionicons name="location-outline" size={13} color="#264348" />
-            <Text style={styles.locationSearchPillText} numberOfLines={1}>
-              {globalLocation?.name || t("location.searchPlaceholder", "Search city or location...")}
-            </Text>
-          </Pressable>
-          {isDesktop && Platform.OS === "web" && (
-            <>
-              <Pressable style={styles.homeNavLink} onPress={() => router.navigate("/(tabs)/home" as any)}>
-                <Text style={styles.homeNavLinkText}>{t("tabs.home") || "Home"}</Text>
-              </Pressable>
-              <Pressable style={styles.homeNavLink} onPress={() => router.push("/(tabs)/locator" as any)}>
-                <Text style={styles.homeNavLinkText}>{t("nav.explore") || "Explore"}</Text>
-              </Pressable>
-            </>
-          )}
-        </View>
-        <View style={styles.stickyHeaderRight}>
-          <View style={styles.identityDropWrap}>
-            <IdentityDropdown
-              businesses={myBusinesses}
-              onSelectIdentity={(type, id, name, avatar) => {
-                setActiveIdentity?.({ type, id, name, avatar });
-              }}
-              onCreateBusiness={() => router.push("/(tabs)/profile?createBusiness=1")}
-            />
-          </View>
-          {isDesktop && Platform.OS === "web" && (
-            <>
-              <Pressable style={styles.homeCreateBtn} onPress={() => {
-                if (!sessionToken) { router.push("/login" as any); return; }
-                if (activeIdentity?.type === "business") openBizActions();
-                else openCreateSheet();
-              }}>
-                <Ionicons name="sparkles" size={15} color="#fff" />
-                <Text style={styles.homeCreateBtnText}>{t("common.create", "Create")}</Text>
-              </Pressable>
-              <Pressable style={styles.stickyHeaderIcon} onPress={() => router.navigate("/(tabs)/messages" as any)}>
-                <Ionicons name="chatbubble-outline" size={22} color="#264348" />
-                {unreadMessageCount > 0 && (
-                  <View style={styles.homeMsgBadge}>
-                    <Text style={styles.homeMsgBadgeText}>
-                      {unreadMessageCount > 9 ? "9+" : unreadMessageCount}
-                    </Text>
-                  </View>
-                )}
-              </Pressable>
-              <Pressable style={styles.stickyHeaderIcon} onPress={() => setShowLayoutSettings(true)}>
-                <Ionicons name="options-outline" size={22} color="#264348" />
-              </Pressable>
-              <Pressable style={styles.homeUserBtn} onPress={() => router.navigate("/(tabs)/profile" as any)}>
-                <Ionicons name="menu" size={16} color="#59ABE3" />
-                {user?.profile_photo ? (
-                  <Image source={{ uri: user.profile_photo }} style={styles.homeUserAvatar} />
-                ) : (
-                  <View style={styles.homeUserAvatarPlaceholder}>
-                    <Ionicons name="person" size={15} color="#59ABE3" />
-                  </View>
-                )}
-              </Pressable>
-            </>
-          )}
-          {!(isDesktop && Platform.OS === "web") && (
-            <Pressable style={styles.stickyHeaderIcon} onPress={() => setShowLayoutSettings(true)}>
-              <Ionicons name="options-outline" size={22} color="#264348" />
-            </Pressable>
-          )}
-        </View>
+      <View style={styles.mobileHeader}>
+        <MapScreenHeader hideExplore logoVariant="english" right={<IdentityDropdown compact businesses={myBusinesses}
+          onSelectIdentity={(type,id,name,avatar)=>setActiveIdentity?.({type,id,name,avatar})}
+          onCreateBusiness={()=>router.push("/(tabs)/profile?createBusiness=1")} />}
+          brand={compactHeader=><Animated.View style={{ opacity: brandOpacity }}><PerixLogo size={compactHeader?'mobileHeader':'compact'} variant="english" /></Animated.View>} />
       </View>
       )}
 
-      {/* Desktop: the global navbar covers Home/Explore and actions; the
-          home keeps only the location search pill, matching the locator. */}
-      {isDesktop && Platform.OS === "web" && (
-        <View style={styles.desktopLocationRow}>
-          <Pressable style={[styles.locationSearchPill, styles.desktopLocationPill]} onPress={() => setShowLocationSearch(true)}>
-            <Ionicons name="location-outline" size={13} color="#264348" />
-            <Text style={styles.locationSearchPillText} numberOfLines={1}>
-              {globalLocation?.name || t("location.searchPlaceholder", "Search city or location...")}
-            </Text>
-          </Pressable>
-        </View>
-      )}
+      <CityAdCircles
+        user={user}
+        storyGroups={storyGroups}
+        onYourStoryPress={handleCreateCityAd}
+        onStoryPress={(idx) => { setStoryViewerIndex(idx); setStoryViewerOpen(true); }}
+        onAdDeleted={refreshFeed}
+        sessionToken={sessionToken}
+        activeIdentity={activeIdentity}
+        locationLabel={userOrigin?.name || t("mobility.changeLocation", "Change location")}
+        onLocationPress={()=>setShowLocationSearch(true)}
+        hideCarousel
+      />
 
       <LocationSearchOverlay
         visible={showLocationSearch}
@@ -913,12 +851,13 @@ export default function HomeScreen() {
         onSelectPlace={(lat, lng, name) => {
           const d = 0.09;
           setMapBounds({ minLat: lat - d / 2, maxLat: lat + d / 2, minLng: lng - d / 2, maxLng: lng + d / 2, centerLat: lat, centerLng: lng });
-          setManualLocation(lat, lng, name);
+          setUserOrigin(lat, lng, name);
           setMapFocusToken((t) => t + 1);
         }}
       />
 
       <FlatList
+        showsVerticalScrollIndicator={false}
         ref={scrollRef}
         data={homeLayout.sections.find(s => s.id === "posts")?.enabled !== false ? sortedPosts : []}
         keyExtractor={(item) => item.post_id}
@@ -1007,16 +946,6 @@ export default function HomeScreen() {
           </View>
         )}
 
-        <CityAdCircles
-          user={user}
-          storyGroups={storyGroups}
-          onYourStoryPress={handleCreateCityAd}
-          onStoryPress={(idx) => { console.log("[CityAd] press idx:", idx, "groups:", storyGroups.length); setStoryViewerIndex(idx); setStoryViewerOpen(true); }}
-          onAdDeleted={refreshFeed}
-          sessionToken={sessionToken}
-          activeIdentity={activeIdentity}
-        />
-
         {locateFailed && mapBounds && homeLayout.sections.find(s => s.id === "map")?.enabled !== false && (
           <View style={styles.locateErrorPill}>
             <Ionicons name="alert-circle" size={16} color={COLORS.errorText} />
@@ -1040,31 +969,19 @@ export default function HomeScreen() {
             ownerHomes={viewportHomes}
             userLocation={userLocation}
             pinLocation={pinLocation}
-            userPinImage={
-              activeIdentity?.type === "business"
-                ? (myBusinesses.find((b) => b.business_id === activeIdentity.id)?.logo_image || undefined)
-                : (user?.profile_photo || user?.picture || undefined)
-            }
+            manualOrigin={userOrigin?.kind === "manual" ? userOrigin : null}
+            userPinImage={user?.profile_photo || user?.picture || undefined}
+            userPinName={user?.name}
             onRegionChange={(bounds) => {
               setMapBounds({ ...bounds, centerLat: (bounds.minLat + bounds.maxLat) / 2, centerLng: (bounds.minLng + bounds.maxLng) / 2 });
             }}
-            onRecenter={(lat, lng) => {
-              if (typeof lat === "number" && typeof lng === "number") {
-                // Native path: the position came from the map button's own
-                // GPS fetch - center the map there.
-                const d = 0.09;
-                setMapBounds({ minLat: lat - d / 2, maxLat: lat + d / 2, minLng: lng - d / 2, maxLng: lng + d / 2, centerLat: lat, centerLng: lng });
-                setUserLocation({ latitude: lat, longitude: lng });
-                setMapFocusToken((t) => t + 1);
-              } else {
-                handleRecenterOnMe();
-              }
-            }}
+            onRecenter={handleRecenterOnMe}
             recentering={locatingMe}
             focusToken={mapFocusToken}
           />
         )}
 
+        {false && <>
         {homeLayout.sections.find(s => s.id === "events")?.enabled !== false && (
           <CarouselSection
             title={t("home.events")}
@@ -1204,6 +1121,7 @@ export default function HomeScreen() {
           <CarouselSection
             title={t("home.businesses")}
             icon="business"
+            iconSource={illustratedIconSource("home","businesses")}
             color={COLORS.pinBusiness}
             seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "businesses" } } as any}
             isCollapsed={collapsedSections.has("businesses")}
@@ -1241,6 +1159,7 @@ export default function HomeScreen() {
           <CarouselSection
             title={t("home.hotels", "Local Hotels")}
             icon="bed"
+            iconSource={illustratedIconSource("home","hotels")}
             color={COLORS.pinHotel}
             seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "hotels" } } as any}
             emptyMessage={t("home.noHotels", "No hotels nearby")}
@@ -1279,6 +1198,7 @@ export default function HomeScreen() {
           <CarouselSection
             title={t("modules.services") || "Services"}
             icon="briefcase"
+            iconSource={illustratedIconSource("home","services")}
             color={COLORS.pinService}
             seeAllRoute="/services"
             emptyMessage={t("services.noServices") || "No services nearby"}
@@ -1315,6 +1235,7 @@ export default function HomeScreen() {
             <CarouselSection
               title={t("rentals.professionalRentals", "Professional Rentals")}
               icon="business"
+              iconSource={illustratedIconSource("home","rentals")}
               color={COLORS.pinRental}
               seeAllRoute="/rentals"
               emptyMessage={t("rentals.noRentals") || "No rentals nearby"}
@@ -1346,6 +1267,7 @@ export default function HomeScreen() {
           <CarouselSection
             title={t("home.jobs") || "Jobs"}
             icon="briefcase"
+            iconSource={illustratedIconSource("home","jobs")}
             color={COLORS.pinJob}
             seeAllRoute="/(tabs)/jobs"
             emptyMessage={t("jobs.noJobs") || "No jobs nearby"}
@@ -1379,6 +1301,7 @@ export default function HomeScreen() {
           <CarouselSection
             title={t("marketplace.productsInArea", "Produkte in der Nähe")}
             icon="pricetag"
+            iconSource={illustratedIconSource("home","products")}
             color={COLORS.pinProduct}
             seeAllRoute="/marketplace/items"
             emptyMessage={t("marketplace.noProductsNearby", "Keine Produkte in der Nähe")}
@@ -1416,6 +1339,7 @@ export default function HomeScreen() {
           <CarouselSection
             title={t("marketplace.homesInArea", "Unterkünfte in der Nähe")}
             icon="home"
+            iconSource={illustratedIconSource("home","homes-nearby")}
             color={COLORS.pinHome}
             seeAllRoute="/marketplace/homes"
             emptyMessage={t("marketplace.noHomesNearby", "Keine Unterkünfte in der Nähe")}
@@ -1454,6 +1378,7 @@ export default function HomeScreen() {
           </CarouselSection>
         )}
 
+        </>}
         {homeLayout.sections.find(s => s.id === "posts")?.enabled !== false && (
           <View style={styles.card}>
             <View style={styles.sectionHeader}>
@@ -1473,6 +1398,7 @@ export default function HomeScreen() {
                   key: cat.slug,
                   label: translateCategory(cat.slug, t),
                   icon: cat.icon,
+                  iconSource: illustratedIconSource("business-root", cat.slug),
                 })),
               ]}
               onChange={(v) => setPostCategory(v === "" ? null : v)}
@@ -1503,6 +1429,7 @@ export default function HomeScreen() {
                   style={styles.categoryChip}
                   onPress={() => setFavoriteCategories(homeLayout.favoriteCategories.filter(c => c !== cat))}
                 >
+                  <IllustratedIcon kind="business-root" iconKey={cat} size={12} fallback={categoryIcon(cat)} />
                   <Text style={styles.categoryChipText}>{translateCategory(cat, t)}</Text>
                   <Ionicons name="close" size={12} color={COLORS.textMuted} />
                 </Pressable>
@@ -1752,20 +1679,13 @@ export default function HomeScreen() {
         </View>
       )}
 
-      <LayoutSettingsModal
-        visible={showLayoutSettings}
-        onClose={() => setShowLayoutSettings(false)}
-        homeLayout={homeLayout}
-        onToggleSection={toggleSection}
-        onSetSorting={setSorting}
-        onSetFavoriteCategories={setFavoriteCategories}
-      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+  mapContentGutter:{marginHorizontal:MAP_PAGE_GUTTER},
   mapPromptContainer: { paddingHorizontal: SPACING.std, paddingTop: SPACING.section, paddingBottom: SPACING.small },
   mapPromptCard: { backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.card, paddingVertical: SPACING.large, paddingHorizontal: SPACING.page, alignItems: "center", width: "100%", borderWidth: 1, borderColor: COLORS.border, shadowColor: "#0A143C", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.06, shadowRadius: 20, elevation: 3 },
   mapPromptIconContainer: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.primaryLight, alignItems: "center", justifyContent: "center", marginBottom: SPACING.std },
@@ -1837,12 +1757,14 @@ const styles = StyleSheet.create({
   postStatItem: { flexDirection: "row", alignItems: "center", gap: 4 },
   postStatText: { fontSize: 13, color: COLORS.textMuted },
   stickyHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: SPACING.small, paddingVertical: 10, backgroundColor: COLORS.background, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.border, zIndex: 10 },
+  mobileHeader:{backgroundColor:COLORS.background,zIndex:10},
+  homeLocalActions:{width:'100%',minWidth:0,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8,paddingHorizontal:16,paddingBottom:6},
   brandWrap: { position: "relative" },
   brandSun: { position: "absolute", right: 11, top: 0 },
   stickyHeaderMiddle: { flex: 1, minWidth: 0, flexDirection: "row", justifyContent: "center" },
   stickyHeaderBrand: { fontSize: 22, fontWeight: "800", color: COLORS.primary, letterSpacing: -0.5 },
   stickyHeaderSub: { fontSize: 14, color: COLORS.textMuted },
-  locationSearchPill: { flexShrink: 1, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 16, backgroundColor: "transparent" },
+  locationSearchPill: { flex:1,flexShrink: 1,minWidth:0,maxWidth:'45%', flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 16, backgroundColor: "transparent" },
   desktopLocationRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1864,10 +1786,10 @@ const styles = StyleSheet.create({
     maxWidth: 340,
     flexShrink: 1,
   },
-  locationSearchPillText: { fontSize: FONT_SIZES.caption, color: "#264348" },
+  locationSearchPillText: { fontSize: FONT_SIZES.caption, color: "#264348",flex:1,minWidth:0,flexShrink:1 },
   homeNavLink: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14 },
   homeNavLinkText: { fontSize: 14, fontWeight: "700", color: "#264348" },
-  stickyHeaderRight: { flexDirection: "row", gap: 10, marginLeft: 10, alignItems: "center" },
+  stickyHeaderRight: { flex:1,minWidth:0,maxWidth:'55%',flexDirection: "row", gap: 6, alignItems: "center" },
   stickyHeaderIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: "transparent", alignItems: "center", justifyContent: "center" },
   homeCreateBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#59ABE3", borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8 },
   homeCreateBtnText: { color: "#fff", fontWeight: "700", fontSize: 13 },
@@ -1876,7 +1798,7 @@ const styles = StyleSheet.create({
   homeUserBtn: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: "#d7e2e8", borderRadius: 20, paddingHorizontal: 8, paddingVertical: 6 },
   homeUserAvatar: { width: 24, height: 24, borderRadius: 12 },
   homeUserAvatarPlaceholder: { width: 24, height: 24, borderRadius: 12, backgroundColor: "#eef4f8", alignItems: "center", justifyContent: "center" },
-  identityDropWrap: { marginLeft: 4 },
+  identityDropWrap: { flex:1,minWidth:0,maxWidth:'100%' },
   modalContainer: { flex: 1, backgroundColor: COLORS.background },
   modalShell: { flex: 1 },
   modalShellWeb: {

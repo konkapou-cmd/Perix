@@ -55,7 +55,7 @@ test("explorer composes existing map without routing to Locator or mutation cont
   const source = fs.readFileSync(path.join(root, "components/city/CityGatewayScreen.tsx"), "utf8");
   assert.match(source, /import BusinessMap from "\.\.\/BusinessMap"/);
   assert.match(source, /markers=\{markers\}/);
-  assert.match(source, /discovery\.items\.map/);
+  assert.match(source, /resultItems\.map/);
   assert.doesNotMatch(source, /\/locator|useHomeTransit|setGlobalMapBounds/);
   assert.doesNotMatch(source.match(/<BusinessMap[\s\S]*?\/>/)[0], /\bkey=/);
   assert.match(source, /setPath\(path\.slice\(0, -1\)\)/);

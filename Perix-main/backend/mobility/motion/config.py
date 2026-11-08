@@ -12,7 +12,22 @@ from typing import Optional
 from mobility.regions import MobilityRegion, get_active_region
 
 
+# Optical station-cycle policy only; never provider timestamps or physical dwell.
+STATION_CYCLE_STOP_LEAD_S = 30.0
+# Preserve a twenty-second approach/deceleration window before parking.
+STATION_CYCLE_APPROACH_LEAD_S = 50.0
+
+
 DEFAULT_MOTION_CONFIG = {
+    "visual": {
+        "visual_rule_version": "station-relative-v1",
+        "initial_coverage_s": 40.0,
+        "rolling_coverage_s": 15.0,
+        "initial_preparation_budget_s": 2.0,
+        "relative_motion_levels": [1, 2, 3, 4, 5, 6],
+        "relative_motion_rate_per_s": 1.0,
+        "handover_min_ramp_s": 2.0,
+    },
     "common": {
         "trajectory_step_m": 5.0,
         "calibration_iterations": 10,
@@ -93,4 +108,20 @@ def motion_config_for(
         DEFAULT_MOTION_CONFIG[resolved_mode],
         (resolved_region.motion or {}).get(resolved_mode) or {},
     )
-    return {**common, **specific, "mode": resolved_mode}
+    visual = _deep_merge(DEFAULT_MOTION_CONFIG["visual"], (resolved_region.motion or {}).get("visual") or {})
+    return {**common, **specific, "mode": resolved_mode, "visual": visual}
+
+
+def visual_scale_parameters(visual: dict) -> dict:
+    """Publication-only scale marks; do not feed these into profile signatures.
+
+    Half marks guide presentation. Motion remains fully continuous, including
+    values between the marks; physical units/source clock windows are untouched.
+    """
+    result = {**visual, 'relative_motion_continuous': True,
+            'relative_motion_fractional_step': 0.5,
+            'relative_motion_level_marks': [1+i*0.5 for i in range(11)]}
+    if visual.get('visual_rule_version') == 'station-cycle-v2':
+        result.update(station_approach_lead_s=STATION_CYCLE_APPROACH_LEAD_S,
+                      station_stop_lead_s=STATION_CYCLE_STOP_LEAD_S, station_window_occurrences=3)
+    return result

@@ -1,5 +1,4 @@
-import { apiRequest, ACTIVITY_CATEGORIES, ACTIVITY_SUBCATEGORIES, ACTIVITY_TYPES, CategoryGroup } from "../api/core";
-import { EVENT_THEMES } from "../api/events";
+import { apiRequest, CategoryGroup } from "../api/core";
 import { MARKETPLACE_CATEGORIES } from "../marketplace/marketplaceTaxonomy";
 import { SERVICE_MODULES } from "../config/serviceModules";
 import { FIELD_REGISTRY } from "../fieldRegistry";
@@ -28,17 +27,19 @@ const businessChildren = (tree: CategoryGroup[], label: (slug: string) => string
 }));
 
 function publicNode(node: PublicServiceCategory, language: string): GatewayNode {
-  return { id: node.id, label: language === "el" ? node.label_el : node.label_de, icon: node.icon || "business-outline", query: { kinds: [], publicOnly: true, publicCategory: node.id }, children: node.children?.map(child => publicNode(child, language)) };
+  const label = language === "el" ? node.label_el : language === "en" ? node.label_en || node.label_de : node.label_de;
+  return { id: node.id, label, icon: node.icon || "business-outline", query: { kinds: [], publicOnly: true, publicCategory: node.id }, children: node.children?.map(child => publicNode(child, language)) };
 }
 
 export function gatewayCategories(tree: CategoryGroup[], services: PublicServiceCategory | null, label: (slug: string) => string, language = "el"): GatewayNode[] {
   const businesses = businessChildren(tree, label);
   const properties = (kinds: EntityKind[]) => (FIELD_REGISTRY.property_type.options || []).map(key => ({ id: key, label: label(key), icon: "home-outline", query: { kinds, property_type: key } }));
   return [
-    { id: "events", label: "Εκδηλώσεις", hint: "Συναυλίες, festivals, έξοδος", icon: "calendar-outline", query: query("event"), children: Object.entries(EVENT_THEMES).map(([id, value]) => ({ id, label: value.label, icon: "musical-notes-outline", query: { kinds: ["event"], themes: [id] } })) },
-    { id: "activities", label: "Δραστηριότητες", hint: "Περπάτημα, παρέες, αθλητισμός", icon: "walk-outline", query: query("activity"), children: Object.entries(ACTIVITY_CATEGORIES).map(([id, cat]) => ({ id, label: cat.label, icon: "walk-outline", query: { kinds: ["activity"], themes: Object.keys(ACTIVITY_TYPES).filter(key => ACTIVITY_TYPES[key].category === id) },
-      children: Object.entries(ACTIVITY_SUBCATEGORIES).filter(([, sub]) => sub.category === id).map(([subId, sub]) => ({ id: subId, label: sub.label, icon: "walk-outline", query: { kinds: ["activity"], themes: Object.keys(ACTIVITY_TYPES).filter(key => ACTIVITY_TYPES[key].subcategory === subId) },
-        children: Object.entries(ACTIVITY_TYPES).filter(([, type]) => type.subcategory === subId).map(([key, type]) => ({ id: key, label: type.label, icon: "walk-outline", query: { kinds: ["activity"], themes: [key] } })) })) })) },
+    services ? publicNode(services, language) : { id: "public-services", label: "Δημόσιες Υπηρεσίες", hint: "Δημόσιες υπηρεσίες και χώροι", icon: "business-outline", query: { kinds: [], publicOnly: true, publicCategory: "public-services" } },
+     // App shows event/activity pins as whole categories; their taxonomy filters
+     // remain available in Locator, but are intentionally not exposed here.
+     { id: "events", label: "Εκδηλώσεις", hint: "Συναυλίες, festivals, έξοδος", icon: "calendar-outline", query: query("event") },
+     { id: "activities", label: "Δραστηριότητες", hint: "Περπάτημα, παρέες, αθλητισμός", icon: "walk-outline", query: query("activity") },
     { id: "businesses", label: "Επιχειρήσεις", hint: "Εστίαση, αγορές, επαγγελματίες", icon: "storefront-outline", query: query("business"), children: businesses },
     { id: "hotels", label: "Ξενοδοχεία", hint: "Ξενοδοχεία της πόλης", icon: "bed-outline", query: { kinds: ["business"], root: "local-hotels" }, children: businesses.find(n => n.id === "local-hotels")?.children },
     { id: "services", label: "Υπηρεσίες", hint: "Ραντεβού, μαθήματα, πακέτα", icon: "construct-outline", query: query("service"), children: Object.entries(SERVICE_MODULES).filter(([id]) => id !== "rental_property").map(([id, value]) => ({ id, label: value.fallbackLabel, icon: "construct-outline", query: { kinds: ["service"], service_type: id } })) },
@@ -49,7 +50,6 @@ export function gatewayCategories(tree: CategoryGroup[], services: PublicService
     { id: "homes-nearby", label: "Κατοικίες κοντά μου", hint: "Αγγελίες κατοικιών", icon: "home-outline", query: query("home"), children: properties(["home"]) },
     { id: "posts", label: "Δημοσιεύσεις", hint: "Δημόσια νέα της κοινότητας", icon: "newspaper-outline", query: query("post") },
     { id: "mobility", label: "Μετακινήσεις", hint: "Τραμ, λεωφορεία, στάσεις", icon: "bus-outline", query: { kinds: [], mobilityOnly: true }, children: [["tram", "Τραμ"], ["bus", "Λεωφορεία"], ["taxi", "Ταξί"], ["stop", "Στάσεις"]].map(([id, text]) => ({ id, label: text, icon: "bus-outline", query: { kinds: [], mobilityOnly: true, mobilityMode: id } })) },
-    services ? publicNode(services, language) : { id: "public-services", label: "Δημόσιες Υπηρεσίες", hint: "Έγγραφα, οικογένεια, δήμος", icon: "business-outline", query: { kinds: [], publicOnly: true, publicCategory: "public-services" } },
     services?.children?.find(c => c.id === "ps:sos") ? { ...publicNode(services.children.find(c => c.id === "ps:sos")!, language), id: "sos" } : { id: "sos", label: "Έκτακτη ανάγκη – SOS", icon: "warning-outline", query: { kinds: [], publicOnly: true, publicCategory: "ps:sos" } },
     { id: "login", label: "Είσοδος Μελών", hint: "Σύνδεση στο Perix Home", icon: "log-in-outline", query: { kinds: [] }, action: "login" },
   ];
@@ -62,7 +62,7 @@ export const getDirectoryDetail = (kind: EntityKind, id: string) => {
   return apiRequest<DirectoryEntity>(`/public-directory/${kind}/${encodeURIComponent(id)}`, "GET");
 };
 
-export async function fetchGatewayPage(filter: GatewayQuery, bounds: CityBounds, search: string, cursors: Record<string, string | null> = {}) {
+export async function fetchGatewayPage(filter: GatewayQuery, bounds: CityBounds, search: string, cursors: Record<string, string | null> = {}, includeMobility = true) {
   const root = filter === ALL_QUERY || (!filter.publicOnly && !filter.mobilityOnly && filter.kinds.length > 1 && filter.kinds.length === ALL_QUERY.kinds.length);
   const requests: Promise<{ key: string; items: DirectoryEntity[]; cursor: string | null }>[] = filter.kinds.filter(kind => !(kind in cursors) || cursors[kind] !== null).map(async kind => {
     const params = new URLSearchParams({ min_lat: String(bounds.minLat), max_lat: String(bounds.maxLat), min_lng: String(bounds.minLng), max_lng: String(bounds.maxLng), limit: "30" });
@@ -78,7 +78,7 @@ export async function fetchGatewayPage(filter: GatewayQuery, bounds: CityBounds,
     const page = await getPublicServices({ countryCode: "DE", cityId: "de-magdeburg", categoryId: filter.publicCategory, bounds, q: search, cursor: cursors.public_service || undefined });
     return { key: "public_service", cursor: page.next_cursor, items: page.items.map(publicService => ({ id: publicService.service_id, type: "public_service" as const, title: publicService.name, address: publicService.address, latitude: publicService.latitude, longitude: publicService.longitude, description: publicService.description_el, publicService })) };
   })());
-  if ((root || filter.mobilityOnly) && !("mobility" in cursors)) requests.push((async () => {
+  if (includeMobility && (root || filter.mobilityOnly) && !("mobility" in cursors)) requests.push((async () => {
     const [vehicles, stops] = await Promise.all([getLiveVehicles(null), getTransitStops(null)]);
     const items: DirectoryEntity[] = [...vehicles.map(v => ({ id: `mobility:${v.vehicle_id}`, type: v.mode, title: `${v.mode} ${v.display_route_number || v.route_number || v.name}`, latitude: v.latitude, longitude: v.longitude,
       description: v.route_direction, facts: { source: v.position_source || "", updated_at: v.updated_at, assurance: v.estimated ? "Εκτιμώμενη θέση — όχι μετρημένο GPS" : (v.position_quality || "") } })),

@@ -1,0 +1,19 @@
+{
+  "source_tree_sha256": "da243d46565d302717704d439324b572a8bcc9e384dfa1486d0ba9d6d83bb6f6",
+  "runtime_tree_sha256": "2fd33dd4cc0ed53e11503718efb592dce30f3dcf43371770d81b18d484dadd61",
+  "runtime_zip_sha256": "05cae34cb9279f249475dd29e6aca29bc101bb243bee4e4409e189476ff4ab3c",
+  "changed_runtime_files": [
+    "backend/webdist.dat"
+  ],
+  "audit_all": 0,
+  "audit_production": 0,
+  "canonical_upstream_audit": 0,
+  "typescript_passed": true,
+  "frontend_tests": 72,
+  "backend_tests": 275,
+  "backend_skipped": 1,
+  "web_export_passed": true,
+  "android_ios_hermes_export_passed": true,
+  "native_binary_or_device_approval": false,
+  "production_approval": false
+}

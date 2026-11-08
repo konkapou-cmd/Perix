@@ -1,0 +1,23 @@
+{
+  "at_utc": "2026-10-25T22:08:52.322750+00:00",
+  "production": {
+    "deployment": "92095c5c-033d-45b8-b358-3bd2fd4abcac",
+    "service": "94882f6a-8179-43bc-bdf5-73eb1de4a059",
+    "environment": "a2b06de5-a5a6-4365-ae67-9ee519a3f7b6",
+    "project": "99643a3b-bf65-467a-8f2f-50640f519b2b",
+    "paid_routes": false,
+    "verified": 264,
+    "mismatches": []
+  },
+  "staging": {
+    "deployment": "41bc15ee-d2e2-4c1c-9a99-e390b5add33e",
+    "service": "509e0b41-9c7a-41e1-9e95-3124c958fff9",
+    "environment": "8dea60e3-332a-4fec-9394-7c682eb69b9a",
+    "project": "99643a3b-bf65-467a-8f2f-50640f519b2b",
+    "paid_routes": false,
+    "verified": 274,
+    "mismatches": []
+  },
+  "rollback_files_verified": 267,
+  "shared_WIP_excluded": true
+}

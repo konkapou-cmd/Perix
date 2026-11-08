@@ -9,6 +9,7 @@ import {
   Dimensions,
   Platform,
   TextStyle,
+  type ImageSourcePropType,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -31,6 +32,7 @@ export type TabDefinition = {
   key: ProfileTab;
   label: string;
   icon: string;
+  iconSource?: ImageSourcePropType;
   count?: number;
 };
 
@@ -547,11 +549,8 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
           active && { backgroundColor: primaryColor + "18" },
         ]}
       >
-        <Ionicons
-          name={tab.icon as any}
-          size={22}
-          color={active ? primaryColor : "#1F4788"}
-        />
+        {tab.iconSource ? <Image source={tab.iconSource} resizeMode="contain" style={{width:22,height:22}} />
+          : <Ionicons name={tab.icon as any} size={22} color={active ? primaryColor : "#1F4788"} />}
         {tab.count !== undefined && tab.count > 0 && (
           <View style={[iconStyles.badge, { backgroundColor: active ? primaryColor : "#1F4788" }]}>
             <Text style={iconStyles.badgeText}>{tab.count > 99 ? "99+" : tab.count}</Text>

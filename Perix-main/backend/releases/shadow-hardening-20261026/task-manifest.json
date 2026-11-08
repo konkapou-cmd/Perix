@@ -1,0 +1,44 @@
+{
+  "base": "accepted adaptive working tree, not clean HEAD/production",
+  "changes": {
+    "Perix-main/backend/mobility/motion/bus_time_evidence.py": {
+      "before": "65214c32f124d3c2918cbb6231ef16652f3f862b11c5a4a29a45f2e0400776cf",
+      "after": "109a1b8df5d44ea3f1d687926ca09b28fd09f3b9896ea82265bf97d9dd88275a"
+    },
+    ".github/workflows/mobility-physics-research.yml": {
+      "before": "30d9c00ed075f9091b7f6d68af9c8cbe824f4ef6526172c2dbb9be3e96ae7a1e",
+      "after": "dabc726c8eab1e9b1031bab4c7a13c705aea8f72e5db4337eacaa48d113989d8"
+    },
+    "Perix-main/backend/tests/test_shadow_rebuild_cache.py": {
+      "before": null,
+      "after": "d63bb1231213381d4b403d4d029d0ad5a249207fc213476448867a484c8c2351"
+    },
+    "Perix-main/backend/tools/benchmark_shadow_rebuild_cache.py": {
+      "before": null,
+      "after": "bb665a541185a89c0a5821931a8d144245d8d000bdfbd571871550283b628d80"
+    }
+  },
+  "patch_sha256": "32e8ac8bd503d7c979d4d3329e3bed4624aeb74e5075ca4378b744312e86175f",
+  "byte_exact_reconstructed_files": 4,
+  "protected_files_unchanged": {
+    "Perix-main/backend/tests/test_bus_temporal_position.py": "7122b6ab8071250765992d5e851f09bdd40a5d8b483c4df0b8e6eceb4a8d596b",
+    "Perix-main/backend/mobility/tomtom_control.py": "111dceaa58167b9eb75250324ff3e23f03326cfd59aba16db677f1902a381e16",
+    "Perix-main/backend/mobility/tomtom_traffic.py": "61e7166cc66c0a4398414fe93b1c6f1de8a9911cbbcdd85b80308681523bb0c2",
+    "Perix-main/backend/mobility/tomtom_scheduler.py": "58ec694f25641dbd422e01e265c110e2d16b2e41bb5bc6dd0ceaccb635490af4",
+    "Perix-main/backend/mobility/motion/tram.py": "f615c74b88b8c590a7bf6ca48a5c65ce67e74f047cce15a20fa51989286e43df",
+    "Perix-main/backend/mobility/motion/google_traffic.py": "2395e9024cc22ed35579dcf3238a807af015d44c2b5ccf0273b64f5e5831f1b2",
+    "Perix-main/backend/releases/adaptive-traffic-20261026/README.md": "684bda07446195c8b98bfc336d5a9279e6bdcb9326d1d768897d039b9509b7f6"
+  },
+  "tests": {
+    "tests": 369,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "passed": 368,
+  "supplied_chat_credential_used_or_stored": false,
+  "provider_requests": 0,
+  "production_operations": 0,
+  "flags_activated": false,
+  "commit_push": false
+}

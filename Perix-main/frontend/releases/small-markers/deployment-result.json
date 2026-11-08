@@ -1,0 +1,22 @@
+{
+  "url": "https://app.perix.eu",
+  "deployment": "92095c5c-033d-45b8-b358-3bd2fd4abcac",
+  "status": "SUCCESS",
+  "active": true,
+  "staging_deployment": "739b99c1-18d3-4591-b888-388820dd8193",
+  "rollback_deployment": "0adc9837-d717-4694-a10d-686b052ad4d3",
+  "intermediate_deployments": [
+    "2028275d-ba04-458a-b038-711020082c53",
+    "4a74b592-b157-40d8-a418-0f0d9dcc88ec"
+  ],
+  "project": "99643a3b-bf65-467a-8f2f-50640f519b2b",
+  "environment": "a2b06de5-a5a6-4365-ae67-9ee519a3f7b6",
+  "service": "94882f6a-8179-43bc-bdf5-73eb1de4a059",
+  "only_changed_server_package_member": "Perix-main/backend/webdist.dat",
+  "backend_code_or_configuration_changes": false,
+  "database_or_environment_changes": false,
+  "paid_routes_enabled": false,
+  "source_coordinates_offset_for_appearance": false,
+  "dirty_checkout_deployed": false,
+  "committed_or_pushed": false
+}

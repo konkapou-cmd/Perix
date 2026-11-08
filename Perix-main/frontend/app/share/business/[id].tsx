@@ -125,8 +125,7 @@ export default function ShareBusinessPage() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Image source={require("../../../assets/images/prx-logo.jpg")} style={styles.logo} />
-        <Text style={styles.brandName}>Perix</Text>
+        <Image source={require("../../../assets/brand/perix-watercolor-wordmark.png")} resizeMode="contain" style={styles.logo} />
       </View>
 
       <View style={styles.previewCard}>
@@ -206,7 +205,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.backgroundPage },
   content: { padding: 20, paddingBottom: 40 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: 24, paddingTop: 20 },
-  logo: { width: 40, height: 40, borderRadius: 10 },
+  logo: { width: 110, height: 40 },
   brandName: { fontSize: 24, fontWeight: "700", color: COLORS.primaryDark, marginLeft: 10 },
   errorCard: { backgroundColor: "#fff", borderRadius: 16, padding: 32, alignItems: "center", margin: 20 },
   errorTitle: { fontSize: 18, fontWeight: "600", color: "#111827", marginTop: 16, marginBottom: 8 },

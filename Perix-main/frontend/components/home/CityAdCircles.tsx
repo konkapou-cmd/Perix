@@ -21,6 +21,9 @@ interface CityAdCirclesProps {
   onStoryPress: (index: number) => void;
   onAdDeleted?: () => void;
   sessionToken?: string | null;
+  locationLabel?: string;
+  onLocationPress?: () => void;
+  hideCarousel?: boolean;
   activeIdentity?: {
     type: "user" | "business" | "artist";
     id: string;
@@ -53,7 +56,8 @@ function AdVideoPreview({ story }: { story: Story }) {
   );
 }
 
-export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPress, onAdDeleted, sessionToken, activeIdentity }: CityAdCirclesProps) {
+export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPress, onAdDeleted, sessionToken, activeIdentity,
+  locationLabel, onLocationPress, hideCarousel = false }: CityAdCirclesProps) {
   const { t } = useTranslation();
   const { myBusinesses } = useAuth();
   const isBusiness = activeIdentity?.type === "business";
@@ -70,9 +74,16 @@ export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPres
           <Ionicons name="megaphone" size={20} color="#59ABE3" />
           <Text style={styles.cardTitle}>{t("cityAd.sectionTitle", "City Ads")}</Text>
         </View>
+        {!!onLocationPress && <Pressable testID="home-city-picker" accessibilityRole="button"
+          accessibilityLabel={locationLabel || t("mobility.changeLocation", "Change location")}
+          style={styles.cityPicker} onPress={onLocationPress}>
+          <Ionicons name="location-outline" size={16} color="#064472" />
+          <Text style={styles.cityPickerText} numberOfLines={1}>{locationLabel || t("mobility.changeLocation", "Change location")}</Text>
+          <Ionicons name="chevron-down" size={14} color="#064472" />
+        </Pressable>}
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={SNAP_INTERVAL} decelerationRate="fast">
+      {!hideCarousel && <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={SNAP_INTERVAL} decelerationRate="fast">
         {storyGroups.length === 0 && !isBusiness && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>{t("cityAd.noAds", "No ads yet")}</Text>
@@ -156,7 +167,7 @@ export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPres
           </Pressable>
           );
         })}
-      </ScrollView>
+      </ScrollView>}
     </View>
   );
 }
@@ -179,7 +190,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: SPACING.small,
+    flexShrink: 1,
   },
+  cityPicker: { minWidth: 0, maxWidth: "58%", minHeight: 36, flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 10, borderRadius: 18, backgroundColor: "#EAF6FD" },
+  cityPickerText: { flexShrink: 1, minWidth: 0, color: "#064472", fontSize: FONT_SIZES.small, fontWeight: FONT_WEIGHTS.semibold },
   iconContainer: {
     width: 28,
     height: 28,

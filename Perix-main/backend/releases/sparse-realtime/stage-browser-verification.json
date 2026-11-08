@@ -1,0 +1,33 @@
+{
+  "origin": "https://backend-staging-staging-7ada.up.railway.app",
+  "entry": "entry-0a7303f92fcedbe5ac4235424257f47a.js",
+  "actual_map_loaded": true,
+  "actual_source_marker_selected": "est_magdeburg:de-magdeburg-mvb:net_c90c160d4ce6:2026-10-25:9:769193",
+  "selected_journey": "de-magdeburg-mvb:net_c90c160d4ce6:2026-10-25:769193",
+  "selected_direction": "Reform",
+  "position_not_gps_disclosure_visible": true,
+  "propagation_disclosure_visible": true,
+  "anchor_name": "Raiffeisenstraße",
+  "anchor_delay_seconds": 51,
+  "unknown_trip_update_time_disclosed": true,
+  "derived_times_caption": "RT-derived",
+  "marker_scale_at_zoom_15": 0.44,
+  "marker_scale_at_zoom_11": 0.34,
+  "selection_and_disclosure_retained_across_zoom": true,
+  "overview": {
+    "zoom": 11,
+    "members": 40,
+    "choices": 40,
+    "all_exact_source_ids": true,
+    "frame_height": 300,
+    "sheet_top": 72,
+    "sheet_bottom": 274,
+    "below_top_controls": true,
+    "above_attribution": true
+  },
+  "screenshot": "stage-timing-disclosure.png",
+  "live_source_correction_observed": false,
+  "live_gps_observation_tested": false,
+  "synthetic_live_vehicles_inserted": false,
+  "production_changed": false
+}

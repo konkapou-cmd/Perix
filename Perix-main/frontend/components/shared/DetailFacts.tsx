@@ -1,24 +1,26 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View, type ImageSourcePropType } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SPACING } from "../../lib/designTokens";
 
 type DetailFactProps = {
   icon: keyof typeof Ionicons.glyphMap;
+  iconSource?: ImageSourcePropType;
   label: string;
   value: string;
   accentColor?: string;
   onPress?: () => void;
 };
 
-export function DetailFact({ icon, label, value, accentColor = "#59ABE3", onPress }: DetailFactProps) {
+export function DetailFact({ icon, iconSource, label, value, accentColor = "#59ABE3", onPress }: DetailFactProps) {
   return (
     <Pressable
       style={({ pressed }) => [styles.row, pressed && onPress ? styles.rowPressed : null]}
       onPress={onPress}
       disabled={!onPress}
     >
-      <Ionicons name={icon} size={18} color={accentColor} style={styles.icon} />
+      {iconSource ? <Image source={iconSource} resizeMode="contain" style={[styles.icon,{width:18,height:18}]} />
+        : <Ionicons name={icon} size={18} color={accentColor} style={styles.icon} />}
       <Text style={styles.label}>{label}</Text>
       <Text style={styles.value} numberOfLines={1}>{value}</Text>
       {onPress ? <Ionicons name="chevron-forward" size={16} color="#264348" style={styles.chevron} /> : null}

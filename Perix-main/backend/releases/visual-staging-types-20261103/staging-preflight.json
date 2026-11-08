@@ -1,0 +1,10 @@
+{
+  "deployment": "2c4a3dc0-6a5f-4c96-9856-19810774491b",
+  "standalone_mongo": true,
+  "endpoint_matches_stage_private_domain": true,
+  "app_initial_database_env_matches": true,
+  "app_processes": 1,
+  "candidate_database_empty": false,
+  "reuse_verified_qa_database": true,
+  "database_strategy": "Retain verified dedicated QA namespace; no database deletion"
+}

@@ -9,6 +9,7 @@ import pytest
 
 from routes import mobility as routes
 from mobility import arrivals, detour_guard, display_labels, generations, overrides, v2
+from mobility.domain import NETWORK_ID
 from mobility.motion import engine
 
 
@@ -174,6 +175,10 @@ async def test_marker_board_and_trip_use_the_same_effective_time_and_revision(en
     assert board["eta_seconds"] == marker["next_stop_eta_seconds"] == 260
     assert board["source_predicted_arrival"] == details["stops"][1]["source_predicted"] == "00:01"
     assert board["eta_source"] == "PERIX_ESTIMATE" and board["source_eta_source"] == "REALTIME"
+    assert (board["trip_id"], board["trip_instance_id"], board["network_version_id"], board["service_date"]
+            ) == ("T", "v:2026-10-24:T", "v", "2026-10-24")
+    assert board["pattern_id"] == "p" and board["vehicle_id"] == "est_test"
+    assert (board["position_latitude"], board["position_longitude"]) == (52.124, 11.6312)
     assert details["stops"][0]["passed"] and not details["stops"][1]["passed"]
     assert s.rt == before
 
@@ -186,6 +191,40 @@ async def test_domplatz_distance_uses_the_served_platform_not_the_group_point(en
     assert result["distance_to_stop_m"] < 15  # group point would be roughly 150m
     assert await arrivals.unified_arrivals("physical:station", platform_id="P") == []
     assert await arrivals.unified_arrivals("physical:station", platform_id="wrong-station") == []
+
+
+@pytest.mark.asyncio
+async def test_departure_board_links_a_vehicle_on_the_verified_immediate_block_predecessor(endpoints, monkeypatch):
+    s=endpoints
+    route=s.network["routes"][0]
+    previous={"trip_id":"PREV","block_id":"verified-block","headsign":"Center","stop_ids":["A","Q"],
+        "start":"00:00","end":"00:01","stop_times":{"A":"00:00","Q":"00:01"}}
+    target={"trip_id":"T","block_id":"verified-block","headsign":"Outer","stop_ids":["Q","A"],
+        "start":"00:03","end":"00:04","stop_times":{"Q":"00:03","A":"00:04"}}
+    route["trips"]=[previous,target]
+    s.domain["trip_templates"]=[
+        {"trip_id":"PREV","trip_instance_id":f"{NETWORK_ID}:v:2026-10-24:PREV","pattern_id":"p-prev",
+         "route_number":"N2","mode":"bus","stop_ids":["A","Q"]},
+        {"trip_id":"T","trip_instance_id":f"{NETWORK_ID}:v:2026-10-24:T","pattern_id":"p",
+         "route_number":"N2","mode":"bus","stop_ids":["Q","A"]},
+    ]
+    s.domain["patterns"]=[
+        {"pattern_id":"p-prev","route_number":"N2","mode":"bus","stop_ids":["A","Q"]},
+        {"pattern_id":"p","route_number":"N2","mode":"bus","stop_ids":["Q","A"]},
+    ]
+    previous_vehicle={**s.vehicle,"vehicle_id":routes._estimated_vehicle_id(s.network,"N2","PREV"),
+        "trip_id":"PREV","pattern_id":"p-prev","route_number":"N2","mode":"bus",
+        "run_identity_basis":"GTFS_BLOCK","latitude":52.124,"longitude":11.6312}
+    monkeypatch.setattr(routes,"_all_active_vehicles",AsyncMock(return_value=[previous_vehicle]))
+    monkeypatch.setattr(routes,"_now_service_seconds",lambda *args:100)
+    result=(await arrivals.unified_arrivals("physical:station",platform_id="Q"))[0]
+    assert result["trip_id"]=="T" and result["platform_id"]=="Q"
+    assert result["vehicle_link_basis"]=="VERIFIED_BLOCK_PREDECESSOR"
+    assert result["vehicle_id"]==previous_vehicle["vehicle_id"]
+    assert result["position_trip_id"]=="PREV"
+    assert result["position_trip_instance_id"]==f"{NETWORK_ID}:v:2026-10-24:PREV"
+    assert result["position_pattern_id"]=="p-prev"
+    assert (result["position_latitude"],result["position_longitude"])==(52.124,11.6312)
 
 
 @pytest.mark.asyncio

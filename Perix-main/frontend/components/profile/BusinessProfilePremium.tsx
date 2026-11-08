@@ -54,6 +54,7 @@ import { useLocalizedAddress } from "../../lib/localizedAddress";
 import { COLORS, resolveCategory } from "../../lib/designTokens";
 import { hasServiceModules, getAllowedModules, getDefaultModule, getCategoryIcon } from "../../lib/config/serviceCategoryMatrix";
 import { getServiceModuleIcon, getServiceModuleLabel, getServiceModuleTabLabel } from "../../lib/config/serviceModules";
+import { illustratedIconSource } from "../icons/IllustratedIcon";
 import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
 import { useThemeStyles } from "../../hooks/useThemeStyles";
 import useResponsiveLayout from "../../hooks/useResponsiveLayout";
@@ -351,6 +352,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
             key: tabKey,
             label: tabServiceLabel(s.type),
             icon: serviceIcon(s.type),
+            iconSource: illustratedIconSource("service-module",s.type),
             count,
           });
         }
@@ -390,6 +392,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
             key: tabKey,
             label: tabServiceLabel(s.type),
             icon: serviceIcon(s.type),
+            iconSource: illustratedIconSource("service-module",s.type),
             count,
           });
         }
@@ -401,6 +404,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           key: `svc:${resolvedCat}:${defaultModule}`,
           label: tabServiceLabel(defaultModule, t("services.services", "Dienste")),
           icon: serviceIcon(defaultModule) || getCategoryIcon(rootCat) || "construct",
+          iconSource: illustratedIconSource("service-module",defaultModule),
           count: 0,
         });
       }

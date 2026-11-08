@@ -1,0 +1,875 @@
+{
+  "semantics": "SYNTHETIC_CLOCKS_THROUGH_EXACT_HASH_VERIFIED_PRODUCTION_ENGINE_NOT_HISTORICAL_GPS",
+  "production_files_verified": 281,
+  "backend_patch_applied": false,
+  "scenarios": {
+    "eta45": [
+      [
+        {
+          "server_timestamp": "2026-10-27T00:00:15+00:00",
+          "server_epoch_ms": 1793059215000.0,
+          "service_seconds": 15,
+          "trip_instance_id": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+          "motion_plan_revision": "37757d60e8141f15cb48",
+          "raw_gtfs_rt_arrival_s": 60,
+          "effective_physical_arrival_s": 60,
+          "remaining_distance_m": 341.34566005238605,
+          "next_timeline_index": 1,
+          "effective_eta_seconds": 45,
+          "displayed_eta_minutes": 1,
+          "position_assurance": "MODEL_ESTIMATE",
+          "observed_gps_arrival": false,
+          "marker": {
+            "id": "N5:first",
+            "journeyId": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+            "latitude": 52.000527491151956,
+            "longitude": 11.0,
+            "type": "bus",
+            "label": "N5",
+            "estimated": true,
+            "positionState": "ON_PATTERN",
+            "motionState": "MOVING",
+            "speed": 28.15,
+            "progressM": 58.65433994761397,
+            "estimateRevision": "673129c9da62:da436ab429f95e02",
+            "path": [
+              {
+                "latitude": 52.0,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00359728642368,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00719457284735,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.01079185927102,
+                "longitude": 11.0
+              }
+            ]
+          }
+        }
+      ],
+      [
+        {
+          "server_timestamp": "2026-10-27T00:00:19+00:00",
+          "server_epoch_ms": 1793059219000.0,
+          "service_seconds": 19,
+          "trip_instance_id": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+          "motion_plan_revision": "37757d60e8141f15cb48",
+          "raw_gtfs_rt_arrival_s": 60,
+          "effective_physical_arrival_s": 60,
+          "remaining_distance_m": 306.4389937754752,
+          "next_timeline_index": 1,
+          "effective_eta_seconds": 41,
+          "displayed_eta_minutes": 1,
+          "position_assurance": "MODEL_ESTIMATE",
+          "observed_gps_arrival": false,
+          "marker": {
+            "id": "N5:first",
+            "journeyId": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+            "latitude": 52.00084141434369,
+            "longitude": 11.0,
+            "type": "bus",
+            "label": "N5",
+            "estimated": true,
+            "positionState": "ON_PATTERN",
+            "motionState": "MOVING",
+            "speed": 32.96,
+            "progressM": 93.5610062245248,
+            "estimateRevision": "673129c9da62:da436ab429f95e02",
+            "path": [
+              {
+                "latitude": 52.0,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00359728642368,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00719457284735,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.01079185927102,
+                "longitude": 11.0
+              }
+            ]
+          }
+        }
+      ]
+    ],
+    "rapid_stop": [
+      [
+        {
+          "server_timestamp": "2026-10-27T00:00:58+00:00",
+          "server_epoch_ms": 1793059258000.0,
+          "service_seconds": 58,
+          "trip_instance_id": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+          "motion_plan_revision": "30114bfac3c925231ebf",
+          "raw_gtfs_rt_arrival_s": 60,
+          "effective_physical_arrival_s": 60,
+          "remaining_distance_m": 1.2165344581727595,
+          "next_timeline_index": 1,
+          "effective_eta_seconds": 2,
+          "displayed_eta_minutes": 1,
+          "position_assurance": "MODEL_ESTIMATE",
+          "observed_gps_arrival": false,
+          "marker": {
+            "id": "N5:first",
+            "journeyId": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+            "latitude": 52.00358634586645,
+            "longitude": 11.0,
+            "type": "bus",
+            "label": "N5",
+            "estimated": true,
+            "positionState": "ON_PATTERN",
+            "motionState": "MOVING",
+            "speed": 4.38,
+            "progressM": 398.78346554182724,
+            "estimateRevision": "673129c9da62:da436ab429f95e02",
+            "path": [
+              {
+                "latitude": 52.0,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00359728642368,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00719457284735,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.01079185927102,
+                "longitude": 11.0
+              }
+            ]
+          }
+        }
+      ],
+      [
+        {
+          "server_timestamp": "2026-10-27T00:01:06+00:00",
+          "server_epoch_ms": 1793059266000.0,
+          "service_seconds": 66,
+          "trip_instance_id": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+          "motion_plan_revision": "30114bfac3c925231ebf",
+          "raw_gtfs_rt_arrival_s": 120,
+          "effective_physical_arrival_s": 120,
+          "remaining_distance_m": 395.53641170434327,
+          "next_timeline_index": 2,
+          "effective_eta_seconds": 54,
+          "displayed_eta_minutes": 1,
+          "position_assurance": "MODEL_ESTIMATE",
+          "observed_gps_arrival": false,
+          "marker": {
+            "id": "N5:first",
+            "journeyId": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+            "latitude": 52.003637428437614,
+            "longitude": 11.0,
+            "type": "bus",
+            "label": "N5",
+            "estimated": true,
+            "positionState": "ON_PATTERN",
+            "motionState": "MOVING",
+            "speed": 8.03,
+            "progressM": 404.46358829565673,
+            "estimateRevision": "673129c9da62:da436ab429f95e02",
+            "path": [
+              {
+                "latitude": 52.0,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00359728642368,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00719457284735,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.01079185927102,
+                "longitude": 11.0
+              }
+            ]
+          }
+        }
+      ]
+    ],
+    "anchor": [
+      [
+        {
+          "server_timestamp": "2026-10-27T00:00:59+00:00",
+          "server_epoch_ms": 1793059259000.0,
+          "service_seconds": 59,
+          "trip_instance_id": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+          "motion_plan_revision": "24036dc877bb4290e106",
+          "raw_gtfs_rt_arrival_s": 60,
+          "effective_physical_arrival_s": 60,
+          "remaining_distance_m": 0.30413361454316146,
+          "next_timeline_index": 1,
+          "effective_eta_seconds": 1,
+          "displayed_eta_minutes": 1,
+          "position_assurance": "MODEL_ESTIMATE",
+          "observed_gps_arrival": false,
+          "marker": {
+            "id": "N5:first",
+            "journeyId": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+            "latitude": 52.003594551284365,
+            "longitude": 11.0,
+            "type": "bus",
+            "label": "N5",
+            "estimated": true,
+            "positionState": "ON_PATTERN",
+            "motionState": "MOVING",
+            "speed": 2.19,
+            "progressM": 399.69586638545684,
+            "estimateRevision": "673129c9da62:da436ab429f95e02",
+            "path": [
+              {
+                "latitude": 52.0,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00359728642368,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00719457284735,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.01079185927102,
+                "longitude": 11.0
+              }
+            ]
+          }
+        }
+      ],
+      [
+        {
+          "server_timestamp": "2026-10-27T00:01:00+00:00",
+          "server_epoch_ms": 1793059260000.0,
+          "service_seconds": 60,
+          "trip_instance_id": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+          "motion_plan_revision": "24036dc877bb4290e106",
+          "raw_gtfs_rt_arrival_s": 60,
+          "effective_physical_arrival_s": 60,
+          "remaining_distance_m": 0.0,
+          "next_timeline_index": 1,
+          "effective_eta_seconds": 0,
+          "displayed_eta_minutes": 0,
+          "position_assurance": "MODEL_ESTIMATE",
+          "observed_gps_arrival": false,
+          "marker": {
+            "id": "N5:first",
+            "journeyId": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+            "latitude": 52.00359728642368,
+            "longitude": 11.0,
+            "type": "bus",
+            "label": "N5",
+            "estimated": true,
+            "positionState": "ON_PATTERN",
+            "motionState": "MOVING",
+            "speed": 0.0,
+            "progressM": 400.0,
+            "estimateRevision": "673129c9da62:da436ab429f95e02",
+            "path": [
+              {
+                "latitude": 52.0,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00359728642368,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00719457284735,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.01079185927102,
+                "longitude": 11.0
+              }
+            ]
+          }
+        }
+      ],
+      [
+        {
+          "server_timestamp": "2026-10-27T00:01:01+00:00",
+          "server_epoch_ms": 1793059261000.0,
+          "service_seconds": 61,
+          "trip_instance_id": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+          "motion_plan_revision": "24036dc877bb4290e106",
+          "raw_gtfs_rt_arrival_s": 60,
+          "effective_physical_arrival_s": 60,
+          "remaining_distance_m": 0.0,
+          "next_timeline_index": 1,
+          "effective_eta_seconds": 0,
+          "displayed_eta_minutes": 0,
+          "position_assurance": "MODEL_ESTIMATE",
+          "observed_gps_arrival": false,
+          "marker": {
+            "id": "N5:first",
+            "journeyId": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+            "latitude": 52.00359728642368,
+            "longitude": 11.0,
+            "type": "bus",
+            "label": "N5",
+            "estimated": true,
+            "positionState": "ON_PATTERN",
+            "motionState": "DWELL",
+            "speed": 0.0,
+            "progressM": 400.0,
+            "estimateRevision": "673129c9da62:da436ab429f95e02",
+            "path": [
+              {
+                "latitude": 52.0,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00359728642368,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00719457284735,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.01079185927102,
+                "longitude": 11.0
+              }
+            ]
+          }
+        }
+      ],
+      [
+        {
+          "server_timestamp": "2026-10-27T00:01:02+00:00",
+          "server_epoch_ms": 1793059262000.0,
+          "service_seconds": 62,
+          "trip_instance_id": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+          "motion_plan_revision": "24036dc877bb4290e106",
+          "raw_gtfs_rt_arrival_s": 60,
+          "effective_physical_arrival_s": 60,
+          "remaining_distance_m": 0.0,
+          "next_timeline_index": 1,
+          "effective_eta_seconds": 0,
+          "displayed_eta_minutes": 0,
+          "position_assurance": "MODEL_ESTIMATE",
+          "observed_gps_arrival": false,
+          "marker": {
+            "id": "N5:first",
+            "journeyId": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+            "latitude": 52.00359728642368,
+            "longitude": 11.0,
+            "type": "bus",
+            "label": "N5",
+            "estimated": true,
+            "positionState": "ON_PATTERN",
+            "motionState": "DWELL",
+            "speed": 0.0,
+            "progressM": 400.0,
+            "estimateRevision": "673129c9da62:da436ab429f95e02",
+            "path": [
+              {
+                "latitude": 52.0,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00359728642368,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00719457284735,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.01079185927102,
+                "longitude": 11.0
+              }
+            ]
+          }
+        }
+      ],
+      [
+        {
+          "server_timestamp": "2026-10-27T00:01:03+00:00",
+          "server_epoch_ms": 1793059263000.0,
+          "service_seconds": 63,
+          "trip_instance_id": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+          "motion_plan_revision": "24036dc877bb4290e106",
+          "raw_gtfs_rt_arrival_s": 120,
+          "effective_physical_arrival_s": 120,
+          "remaining_distance_m": 399.7210257315215,
+          "next_timeline_index": 2,
+          "effective_eta_seconds": 57,
+          "displayed_eta_minutes": 1,
+          "position_assurance": "MODEL_ESTIMATE",
+          "observed_gps_arrival": false,
+          "marker": {
+            "id": "N5:first",
+            "journeyId": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+            "latitude": 52.00359979529954,
+            "longitude": 11.0,
+            "type": "bus",
+            "label": "N5",
+            "estimated": true,
+            "positionState": "ON_PATTERN",
+            "motionState": "MOVING",
+            "speed": 2.01,
+            "progressM": 400.2789742684785,
+            "estimateRevision": "673129c9da62:da436ab429f95e02",
+            "path": [
+              {
+                "latitude": 52.0,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00359728642368,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00719457284735,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.01079185927102,
+                "longitude": 11.0
+              }
+            ]
+          }
+        }
+      ]
+    ],
+    "earlier30": [
+      [
+        {
+          "server_timestamp": "2026-10-27T00:00:15+00:00",
+          "server_epoch_ms": 1793059215000.0,
+          "service_seconds": 15,
+          "trip_instance_id": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+          "motion_plan_revision": "3a12586a6eedbe9c4f12",
+          "raw_gtfs_rt_arrival_s": 90,
+          "effective_physical_arrival_s": 91,
+          "remaining_distance_m": 373.93140446772713,
+          "next_timeline_index": 1,
+          "effective_eta_seconds": 76,
+          "displayed_eta_minutes": 2,
+          "position_assurance": "MODEL_ESTIMATE",
+          "observed_gps_arrival": false,
+          "marker": {
+            "id": "N5:first",
+            "journeyId": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+            "latitude": 52.00023444051198,
+            "longitude": 11.0,
+            "type": "bus",
+            "label": "N5",
+            "estimated": true,
+            "positionState": "ON_PATTERN",
+            "motionState": "MOVING",
+            "speed": 12.51,
+            "progressM": 26.068595532272877,
+            "estimateRevision": "673129c9da62:da436ab429f95e02",
+            "path": [
+              {
+                "latitude": 52.0,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00359728642368,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00719457284735,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.01079185927102,
+                "longitude": 11.0
+              }
+            ]
+          }
+        }
+      ],
+      [
+        {
+          "server_timestamp": "2026-10-27T00:00:19+00:00",
+          "server_epoch_ms": 1793059219000.0,
+          "service_seconds": 19,
+          "trip_instance_id": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+          "motion_plan_revision": "7044cd56cecc7161035d",
+          "raw_gtfs_rt_arrival_s": 60,
+          "effective_physical_arrival_s": 60,
+          "remaining_distance_m": 358.1743867237755,
+          "next_timeline_index": 1,
+          "effective_eta_seconds": 41,
+          "displayed_eta_minutes": 1,
+          "position_assurance": "MODEL_ESTIMATE",
+          "observed_gps_arrival": false,
+          "marker": {
+            "id": "N5:first",
+            "journeyId": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+            "latitude": 52.000376146777,
+            "longitude": 11.0,
+            "type": "bus",
+            "label": "N5",
+            "estimated": true,
+            "positionState": "ON_PATTERN",
+            "motionState": "MOVING",
+            "speed": 12.93,
+            "progressM": 41.82561327622449,
+            "estimateRevision": "673129c9da62:da436ab429f95e02",
+            "path": [
+              {
+                "latitude": 52.0,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00359728642368,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00719457284735,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.01079185927102,
+                "longitude": 11.0
+              }
+            ]
+          }
+        }
+      ]
+    ],
+    "identities": [
+      [
+        {
+          "server_timestamp": "2026-10-27T00:00:15+00:00",
+          "server_epoch_ms": 1793059215000.0,
+          "service_seconds": 15,
+          "trip_instance_id": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+          "motion_plan_revision": "37757d60e8141f15cb48",
+          "raw_gtfs_rt_arrival_s": 60,
+          "effective_physical_arrival_s": 60,
+          "remaining_distance_m": 341.34566005238605,
+          "next_timeline_index": 1,
+          "effective_eta_seconds": 45,
+          "displayed_eta_minutes": 1,
+          "position_assurance": "MODEL_ESTIMATE",
+          "observed_gps_arrival": false,
+          "marker": {
+            "id": "N5:first",
+            "journeyId": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+            "latitude": 52.000527491151956,
+            "longitude": 11.0,
+            "type": "bus",
+            "label": "N5",
+            "estimated": true,
+            "positionState": "ON_PATTERN",
+            "motionState": "MOVING",
+            "speed": 28.15,
+            "progressM": 58.65433994761397,
+            "estimateRevision": "673129c9da62:da436ab429f95e02",
+            "path": [
+              {
+                "latitude": 52.0,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00359728642368,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00719457284735,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.01079185927102,
+                "longitude": 11.0
+              }
+            ]
+          }
+        },
+        {
+          "server_timestamp": "2026-10-27T00:00:15+00:00",
+          "server_epoch_ms": 1793059215000.0,
+          "service_seconds": 15,
+          "trip_instance_id": "de-magdeburg-mvb:offline-v:2026-10-27:N5:second",
+          "motion_plan_revision": "2bb559a5a2e06148b999",
+          "raw_gtfs_rt_arrival_s": 65,
+          "effective_physical_arrival_s": 65,
+          "remaining_distance_m": 373.93140446772713,
+          "next_timeline_index": 1,
+          "effective_eta_seconds": 50,
+          "displayed_eta_minutes": 1,
+          "position_assurance": "MODEL_ESTIMATE",
+          "observed_gps_arrival": false,
+          "marker": {
+            "id": "N5:second",
+            "journeyId": "de-magdeburg-mvb:offline-v:2026-10-27:N5:second",
+            "latitude": 52.00023444051198,
+            "longitude": 11.0,
+            "type": "bus",
+            "label": "N5",
+            "estimated": true,
+            "positionState": "ON_PATTERN",
+            "motionState": "MOVING",
+            "speed": 18.77,
+            "progressM": 26.068595532272877,
+            "estimateRevision": "673129c9da62:73ba16e56a8ef623",
+            "path": [
+              {
+                "latitude": 52.0,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00359728642368,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00719457284735,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.01079185927102,
+                "longitude": 11.0
+              }
+            ]
+          }
+        },
+        {
+          "server_timestamp": "2026-10-27T00:00:15+00:00",
+          "server_epoch_ms": 1793059215000.0,
+          "service_seconds": 15,
+          "trip_instance_id": "de-magdeburg-mvb:offline-v:2026-10-27:N4:first",
+          "motion_plan_revision": "bf00881c63c489e5f9d8",
+          "raw_gtfs_rt_arrival_s": 70,
+          "effective_physical_arrival_s": 70,
+          "remaining_distance_m": 393.4828511169318,
+          "next_timeline_index": 1,
+          "effective_eta_seconds": 55,
+          "displayed_eta_minutes": 1,
+          "position_assurance": "MODEL_ESTIMATE",
+          "observed_gps_arrival": false,
+          "marker": {
+            "id": "N4:first",
+            "journeyId": "de-magdeburg-mvb:offline-v:2026-10-27:N4:first",
+            "latitude": 52.000058610127994,
+            "longitude": 11.0,
+            "type": "bus",
+            "label": "N4",
+            "estimated": true,
+            "positionState": "ON_PATTERN",
+            "motionState": "MOVING",
+            "speed": 9.38,
+            "progressM": 6.517148883068217,
+            "estimateRevision": "673129c9da62:9f6719d579f05a48",
+            "path": [
+              {
+                "latitude": 52.0,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00359728642368,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00719457284735,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.01079185927102,
+                "longitude": 11.0
+              }
+            ]
+          }
+        }
+      ],
+      [
+        {
+          "server_timestamp": "2026-10-27T00:00:19+00:00",
+          "server_epoch_ms": 1793059219000.0,
+          "service_seconds": 19,
+          "trip_instance_id": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+          "motion_plan_revision": "37757d60e8141f15cb48",
+          "raw_gtfs_rt_arrival_s": 60,
+          "effective_physical_arrival_s": 60,
+          "remaining_distance_m": 306.4389937754752,
+          "next_timeline_index": 1,
+          "effective_eta_seconds": 41,
+          "displayed_eta_minutes": 1,
+          "position_assurance": "MODEL_ESTIMATE",
+          "observed_gps_arrival": false,
+          "marker": {
+            "id": "N5:first",
+            "journeyId": "de-magdeburg-mvb:offline-v:2026-10-27:N5:first",
+            "latitude": 52.00084141434369,
+            "longitude": 11.0,
+            "type": "bus",
+            "label": "N5",
+            "estimated": true,
+            "positionState": "ON_PATTERN",
+            "motionState": "MOVING",
+            "speed": 32.96,
+            "progressM": 93.5610062245248,
+            "estimateRevision": "673129c9da62:da436ab429f95e02",
+            "path": [
+              {
+                "latitude": 52.0,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00359728642368,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00719457284735,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.01079185927102,
+                "longitude": 11.0
+              }
+            ]
+          }
+        },
+        {
+          "server_timestamp": "2026-10-27T00:00:19+00:00",
+          "server_epoch_ms": 1793059219000.0,
+          "service_seconds": 19,
+          "trip_instance_id": "de-magdeburg-mvb:offline-v:2026-10-27:N5:second",
+          "motion_plan_revision": "2bb559a5a2e06148b999",
+          "raw_gtfs_rt_arrival_s": 65,
+          "effective_physical_arrival_s": 65,
+          "remaining_distance_m": 348.9055527567452,
+          "next_timeline_index": 1,
+          "effective_eta_seconds": 46,
+          "displayed_eta_minutes": 1,
+          "position_assurance": "MODEL_ESTIMATE",
+          "observed_gps_arrival": false,
+          "marker": {
+            "id": "N5:second",
+            "journeyId": "de-magdeburg-mvb:offline-v:2026-10-27:N5:second",
+            "latitude": 52.00045950340348,
+            "longitude": 11.0,
+            "type": "bus",
+            "label": "N5",
+            "estimated": true,
+            "positionState": "ON_PATTERN",
+            "motionState": "MOVING",
+            "speed": 26.28,
+            "progressM": 51.094447243254834,
+            "estimateRevision": "673129c9da62:73ba16e56a8ef623",
+            "path": [
+              {
+                "latitude": 52.0,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00359728642368,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00719457284735,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.01079185927102,
+                "longitude": 11.0
+              }
+            ]
+          }
+        },
+        {
+          "server_timestamp": "2026-10-27T00:00:19+00:00",
+          "server_epoch_ms": 1793059219000.0,
+          "service_seconds": 19,
+          "trip_instance_id": "de-magdeburg-mvb:offline-v:2026-10-27:N4:first",
+          "motion_plan_revision": "bf00881c63c489e5f9d8",
+          "raw_gtfs_rt_arrival_s": 70,
+          "effective_physical_arrival_s": 70,
+          "remaining_distance_m": 378.88443761885895,
+          "next_timeline_index": 1,
+          "effective_eta_seconds": 51,
+          "displayed_eta_minutes": 1,
+          "position_assurance": "MODEL_ESTIMATE",
+          "observed_gps_arrival": false,
+          "marker": {
+            "id": "N4:first",
+            "journeyId": "de-magdeburg-mvb:offline-v:2026-10-27:N4:first",
+            "latitude": 52.0001898968147,
+            "longitude": 11.0,
+            "type": "bus",
+            "label": "N4",
+            "estimated": true,
+            "positionState": "ON_PATTERN",
+            "motionState": "MOVING",
+            "speed": 16.89,
+            "progressM": 21.115562381141032,
+            "estimateRevision": "673129c9da62:9f6719d579f05a48",
+            "path": [
+              {
+                "latitude": 52.0,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00359728642368,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.00719457284735,
+                "longitude": 11.0
+              },
+              {
+                "latitude": 52.01079185927102,
+                "longitude": 11.0
+              }
+            ]
+          }
+        }
+      ]
+    ]
+  },
+  "physical_config": {
+    "trajectory_step_m": 5.0,
+    "calibration_iterations": 10,
+    "plan_cache_seconds": 12.0,
+    "infrastructure_total_tolerance_m": 25.0,
+    "infrastructure_total_tolerance_ratio": 0.02,
+    "acceleration_mps2": 1.2,
+    "braking_mps2": 1.4,
+    "max_speed_kmh": 60.0,
+    "default_speed_kmh": {
+      "motorway": 60.0,
+      "trunk": 60.0,
+      "primary": 60.0,
+      "secondary": 55.0,
+      "tertiary": 50.0,
+      "unclassified": 45.0,
+      "residential": 35.0,
+      "service": 25.0,
+      "living_street": 15.0
+    },
+    "turn_speed_kmh": {
+      "20": 40.0,
+      "40": 30.0,
+      "70": 20.0
+    },
+    "road_signal_enabled": true,
+    "road_signal_cycle_s": 60.0,
+    "road_signal_green_ratio": 0.65,
+    "road_signal_max_hold_s": 35.0,
+    "road_signal_min_stop_s": 3.0,
+    "mode": "bus"
+  },
+  "no_network_or_google_calls": true
+}

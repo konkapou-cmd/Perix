@@ -1,0 +1,7 @@
+{
+  "actual_home_update_branch_executed": true,
+  "explicit_virtual_revision_resets": true,
+  "same_revision_does_not_reset": true,
+  "gps_does_not_reset": true,
+  "marker_identity_preserved": true
+}

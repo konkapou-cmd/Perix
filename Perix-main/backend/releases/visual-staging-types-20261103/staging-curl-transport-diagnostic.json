@@ -1,0 +1,29 @@
+[
+  {
+    "path": "/api/ping-deploy",
+    "response_code": 200,
+    "time_namelookup": 0.121396,
+    "time_connect": 0.188077,
+    "time_appconnect": 0.575859,
+    "time_starttransfer": 1.898182,
+    "time_total": 1.898232
+  },
+  {
+    "path": "/api/mobility/v2/map",
+    "response_code": 200,
+    "time_namelookup": 0.016111,
+    "time_connect": 1.090627,
+    "time_appconnect": 2.408528,
+    "time_starttransfer": 3.085136,
+    "time_total": 3.087399
+  },
+  {
+    "path": "/api/mobility/v2/vehicles?motion_preview=true",
+    "response_code": 200,
+    "time_namelookup": 0.123949,
+    "time_connect": 0.125924,
+    "time_appconnect": 0.199569,
+    "time_starttransfer": 0.285102,
+    "time_total": 0.28515
+  }
+]

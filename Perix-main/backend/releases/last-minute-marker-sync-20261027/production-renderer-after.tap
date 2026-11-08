@@ -1,0 +1,21 @@
+✔ 45 seconds legitimately rounds to one minute through the existing ETA adapter (188.991ms)
+✔ bus: same trip, same plan revision and server timestamp has no extra poll of render delay (5.6264ms)
+✔ tram: same trip, same plan revision and server timestamp has no extra poll of render delay (2.2816ms)
+✔ 30-second earlier source revision uses the newest backend position, not a delayed tween (2.0194ms)
+✔ a short stop between polls does not leave a departing virtual bus rendered before the stop (2.0373ms)
+✔ stop anchor and required two-second source dwell are preserved without extrapolation (5.5809ms)
+✔ two N5 and one N4 keep exact journey identities and independent rendered positions (3.3667ms)
+✔ real GPS interpolation remains unchanged (2.0464ms)
+✔ estimated taxi interpolation remains unchanged (2.0152ms)
+✔ unmarked backward jitter still uses the existing no-backtracking guard (7.1684ms)
+✔ missing canonical progress does not activate the new estimated-sample branch (2.7731ms)
+✔ model-only source timestamps never become observed GPS/boarding evidence (0.4722ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 840.2191
+

@@ -58,8 +58,8 @@ self.addEventListener("push", (event) => {
       try {
         await self.registration.showNotification(title, {
           body,
-          icon: "/pwa/icon-192.png",
-          badge: "/pwa/icon-192.png",
+          icon: "/pwa/perix-watercolor-192.png",
+          badge: "/pwa/perix-watercolor-192.png",
           tag: payload.tag || "perix-notification",
           renotify: true,
           data: payload.data || {},

@@ -1,0 +1,25 @@
+{
+  "native_task_source_changes_unchanged": 28,
+  "native_report_unchanged": true,
+  "runtime_source_edits_this_audit": 0,
+  "production_mutations_this_audit": 0,
+  "external_traffic_requests": 0,
+  "new_gtfs_downloads": 0,
+  "deployed_source_hashes": {
+    "mobility\\generations.py": "af3e046175e38acbeb109ad979c3e524961e8d40ae2250c32645ca22d985117a",
+    "mobility\\graph.py": "b7e7c7a285f2a32f819a671cc3d29f16dc8468c6fbebdc8169f86c6f64df06c6",
+    "mobility\\osm_store.py": "c2f16a397e40ac19e791b4de239c07e1b332c62b634b6d6f2b6aa9519c65a135",
+    "mobility\\realtime_trip_identity.py": "6f46e98dd7092a77b495a500881e1e8ec6920a2788d550ba1dbb02e5e769fe97",
+    "mobility\\rebuild_queue.py": "6b00de23e4d33b90bb130d498f143c75905c30731b0cd57230be980ca0c43a42",
+    "mobility\\regions.py": "454c7ce9958321fdf08edd3501db56fa9d2c5c9964455ebb8e6115ac56fb652d",
+    "mobility\\roads.py": "40a8e2fe6d35b476b4041169deaa69e16fdb395b9735105ed5aaecb94d218c66",
+    "mobility\\schedule_revision.py": "7a77acc6183e7833e6b6dc718db84820c556748395b04b2ad7deea2375474cc7",
+    "mobility\\service_clock.py": "d419af891fc185cd1f6ec0a83f419818ad63c3e222b376504ee022ee4e79be1e",
+    "routes\\mobility.py": "9a7270892ea7d2888a035587fdaa9d361921c26fd0a96d19556be3966e05fbf4",
+    "utils\\gtfs.py": "1a5839d74469f4fd8b017f49443491827f3e0ca9ebd80a67bf99d7e15326f2a4",
+    "utils\\mobility_workers.py": "2d14ca68be4095e28736bd2fe76d1915b5c9188e3fd27052b14399c1c81312f7",
+    "mobility\\motion\\engine.py": "bda7e1fdfb6d0e461426f807651157f988be54ab233267c98b00b496fe9fed8b",
+    "mobility\\motion\\handover.py": "a60a2a58345e64d613633d278326cb52c0578c24bf0e22edbb002435d467b550",
+    "mobility\\motion\\source_reconciliation.py": "771f1c819c55b8833775020cf611e09e4a9040935acec8773e7aec5dfa7c86df"
+  }
+}

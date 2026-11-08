@@ -69,9 +69,11 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }}>
+    <SafeAreaView testID="perix-login-page" style={{ flex: 1, backgroundColor: "#ffffff" }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView
+          testID="perix-login-scroll"
+          style={{ backgroundColor: "#fff" }}
           contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
         >
@@ -264,7 +266,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingVertical: 24,
     paddingHorizontal: 24,
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
   },

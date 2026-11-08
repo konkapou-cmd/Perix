@@ -1,0 +1,7 @@
+{
+  "name": "@perix/glob-compat",
+  "version": "1.0.1",
+  "private": true,
+  "main": "index.js",
+  "dependencies": { "glob-modern": "npm:glob@14.0.3" }
+}

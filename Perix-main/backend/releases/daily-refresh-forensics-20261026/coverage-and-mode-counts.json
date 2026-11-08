@@ -1,0 +1,90 @@
+{
+  "node_grid_south_to_north_west_to_east": [
+    [
+      3066,
+      5074,
+      4146,
+      7546
+    ],
+    [
+      1920,
+      21081,
+      543,
+      2616
+    ],
+    [
+      7498,
+      24292,
+      25861,
+      94
+    ],
+    [
+      3137,
+      8467,
+      9519,
+      3868
+    ]
+  ],
+  "tile_lat_step": 0.0625,
+  "tile_lon_step": 0.0875,
+  "graph_version": 1792950897,
+  "version_mode_counts": [
+    {
+      "version": "net_7c4078011f7f",
+      "service_date": "2026-10-26",
+      "counts": {
+        "bus": {
+          "routes": 25,
+          "trips": 1805
+        },
+        "tram": {
+          "routes": 9,
+          "trips": 1971
+        }
+      },
+      "patterns": {
+        "bus": 93,
+        "tram": 66
+      },
+      "state": "BLOCKED_CHANGED_PATTERNS"
+    },
+    {
+      "version": "net_51aa9c9d9334",
+      "service_date": "2026-10-26",
+      "counts": {
+        "bus": {
+          "routes": 25,
+          "trips": 1805
+        },
+        "tram": {
+          "routes": 9,
+          "trips": 1971
+        }
+      },
+      "patterns": {
+        "bus": 93,
+        "tram": 66
+      },
+      "state": "BLOCKED_CHANGED_PATTERNS"
+    },
+    {
+      "version": "net_7f0605d2409e",
+      "service_date": "2026-10-25",
+      "counts": {
+        "bus": {
+          "routes": 22,
+          "trips": 1153
+        },
+        "tram": {
+          "routes": 8,
+          "trips": 974
+        }
+      },
+      "patterns": {
+        "bus": 68,
+        "tram": 45
+      },
+      "state": "ACTIVE_READY"
+    }
+  ]
+}

@@ -1,0 +1,571 @@
+--- /dev/null
++++ b/Perix-main/backend/mobility/service_notices.json
+@@ -0,0 +1,17 @@
++[
++  {
++    "notice_id": "mvb-halberstaedter-bridge-2026-10-08",
++    "region_id": "magdeburg",
++    "network_id": "de-magdeburg-mvb",
++    "route_numbers": ["13", "N3", "N5"],
++    "modes": ["tram", "bus"],
++    "valid_from": "2026-10-17",
++    "valid_until": null,
++    "review_through": "2026-10-25",
++    "obsolete_stop_names": ["Jordanstraße"],
++    "source_kind": "OPERATOR_PUBLIC_NOTICE",
++    "source_url": "https://www.mvbnet.de/brueckensperrung-in-der-halberstaedter-strasse-linien-13-n3-und-n5-fahren-veraendert/",
++    "reviewed_at": "2026-10-24T16:12:00Z",
++    "message": "MVB: Umleitung über Hertzstraße, Raiffeisenstraße und Am Fuchsberg; Jordanstraße entfällt. Seit 17.10. nicht im Fahrplan enthalten. Fahrzeit etwa fünf Minuten länger. Kartenposition ist keine bestätigte Fahrzeugortung."
++  }
++]
+--- /dev/null
++++ b/Perix-main/backend/mobility/service_notices.py
+@@ -0,0 +1,63 @@
++"""Source-backed timetable advisories; never geometry, clocks or closures.
++
++An operator notice can establish that a timetable is obsolete without proving
++an OSM edge chain or a measured vehicle location. Surface that conflict without
++silently rerouting, suppressing vehicles or inventing stop times.
++"""
++from datetime import date
++from pathlib import Path
++import json
++
++
++def notices_for_domain(domain: dict, records=None) -> dict[str, dict]:
++    network = (domain or {}).get("network") or {}
++    try:
++        day = date.fromisoformat(str(network.get("service_date") or ""))
++    except ValueError:
++        return {}
++    if records is None:
++        try:
++            records = json.loads((Path(__file__).parent / "service_notices.json").read_text(encoding="utf-8"))
++        except (OSError, ValueError):
++            return {}
++    names = {}
++    for stop in (domain or {}).get("stops") or []:
++        for sid in [stop.get("stop_id"), *(stop.get("stop_ids") or []),
++                    *(p.get("platform_id") for p in stop.get("platforms") or [])]:
++            if sid is not None:
++                names[str(sid)] = str(stop.get("name") or "")
++    result = {}
++    for record in records:
++        if (record.get("region_id") != network.get("region_id")
++                or record.get("network_id") != network.get("network_id")
++                or record.get("source_kind") != "OPERATOR_PUBLIC_NOTICE"
++                or not record.get("source_url") or not record.get("reviewed_at")):
++            continue
++        try:
++            if day < date.fromisoformat(record["valid_from"]):
++                continue
++            if record.get("valid_until") and day > date.fromisoformat(record["valid_until"]):
++                continue
++            review_due = day > date.fromisoformat(record["review_through"])
++        except (KeyError, ValueError, TypeError):
++            continue
++        for pattern in (domain or {}).get("patterns") or []:
++            if (str(pattern.get("route_number")) not in record.get("route_numbers", [])
++                    or pattern.get("mode") not in record.get("modes", [])):
++                continue
++            # Stop matching confines the advisory to obsolete sequences; a
++            # corrected importer generation must clear it automatically.
++            obsolete = set(record.get("obsolete_stop_names") or [])
++            if not obsolete or not obsolete.intersection(names.get(str(s)) for s in pattern.get("stop_ids") or []):
++                continue
++            result[str(pattern["pattern_id"])] = {
++                "route_number": str(pattern["route_number"]), "mode": pattern["mode"],
++                "direction": pattern.get("direction"),
++                "status": "OPERATOR_NOTICE_REVIEW_REQUIRED" if review_due else "OPERATOR_DIVERSION_NOT_IN_TIMETABLE",
++                "notice_id": record["notice_id"], "source_url": record["source_url"],
++                "reviewed_at": record["reviewed_at"], "source_kind": record["source_kind"],
++                "message": "Operator notice requires revalidation; the stored timetable conflict is unresolved."
++                    if review_due else record["message"], "position_verified": False,
++                "review_required": review_due,
++            }
++    return result
+--- a/Perix-main/backend/mobility/v2.py
++++ b/Perix-main/backend/mobility/v2.py
+@@ -482,6 +482,8 @@
+         for p in patterns
+         if (p.get("geometry") or {}).get("detour_status") not in warning_states
+     ]
++    from mobility.service_notices import notices_for_domain
++    diversion_warnings.extend(notices_for_domain(domain).values())
+     return {"lines": lines, "stops": stops,
+             "diversion_warnings": diversion_warnings[:100]}
+ 
+@@ -1351,6 +1353,8 @@
+     }
+     from mobility.detour_guard import detour_states_for_domain
+     detour_states = await detour_states_for_domain(domain) if domain else {}
++    from mobility.service_notices import notices_for_domain
++    service_notices = notices_for_domain(domain) if domain else {}
+     now = datetime.now().astimezone()
+     out = []
+     for v in vehicles:
+@@ -1428,6 +1432,9 @@
+                 "network_version_id": (network or {}).get("version_id"),
+                 "service_date": service_date,
+                 "trip_id": trip_id,
++                "trip_selection_basis": v.get("trip_selection_basis"),
++                "run_identity_basis": v.get("run_identity_basis"),
++                "service_notice": service_notices.get(str(v.get("pattern_id") or "")) if estimated else None,
+                 "delay_minutes": v.get("delay_minutes") or 0,
+                 "estimated": estimated,
+                 "next_stop_id": v.get("next_stop_id"),
+--- a/Perix-main/backend/routes/mobility.py
++++ b/Perix-main/backend/routes/mobility.py
+@@ -1319,25 +1319,38 @@
+ 
+ def _chain_trips(route: dict, delays: Optional[dict] = None, skip_trip_ids: Optional[set] = None,
+                  effective_windows: Optional[dict] = None) -> List[dict]:
+-    """Group consecutive predicted trips into one physical vehicle run.
+-    Trips in skip_trip_ids (operator-canceled) are excluded entirely."""
++    """Source-identified virtual journeys; join only source-verified blocks.
++
++    Build topology from scheduled clocks before applying realtime/retention.
++    A delay refresh must not regroup journeys or change an icon's run identity.
++    Terminus proximity is not proof that two trips share a physical vehicle.
++    Without a source block, keep each existing dated trip as its own virtual
++    journey using the existing source-derived ID function, never a made-up GPS
++    vehicle. This also prevents simultaneous source trips masking each other.
++    """
+     windows = []
+     for trip in route.get("trips", []):
+         if skip_trip_ids and str(trip.get("trip_id") or "") in skip_trip_ids:
+             continue
+         rt = (delays or {}).get(str(trip.get("trip_id") or ""))
+-        w = _trip_window(route, trip, rt)
++        if str((rt or {}).get("trip_schedule_relationship") or "").upper() in ("CANCELED", "DELETED"):
++            continue
++        w = _trip_window(route, trip)
+         if w:
+             windows.append({"trip": trip, **w})
+ 
+-    windows.sort(key=lambda x: x["start"])
++    windows.sort(key=lambda x: (x["start"], str(x["trip"].get("trip_id") or "")))
+     runs: List[dict] = []
+     for w in windows:
+         attached = False
+-        for run in runs:
++        for run in (runs if w["trip"].get("block_id") else ()):
+             ls = run["last_stop"]
+             fs = w["first_stop"]
++            previous_block = str(run["trips"][-1]["trip"].get("block_id") or "")
++            next_block = str(w["trip"].get("block_id") or "")
+             if (
++                bool(previous_block) and previous_block == next_block
++                and
+                 _haversine_km(ls.get("lat"), ls.get("lng"), fs.get("lat"), fs.get("lng")) < 0.08
+                 and run["end"] <= w["start"] <= run["end"] + 900
+             ):
+@@ -1355,10 +1368,16 @@
+                     "last_stop": w["last_stop"],
+                 }
+             )
+-    # Preserve existing run grouping/IDs. Extend only known physical windows so
+-    # a delayed trip cannot disappear at its expired raw clock.
++    # Keep source clocks distinct from PERIX retention. An extended predecessor
++    # must not mask a successor whose own source window has already started.
+     for run in runs:
+         for window in run["trips"]:
++            realtime = (delays or {}).get(str(window["trip"].get("trip_id")))
++            source = _trip_window(route, window["trip"], realtime) if realtime else None
++            if source:
++                window.update(source)
++            window["source_start"] = window["start"]
++            window["source_end"] = window["end"]
+             known = (effective_windows or {}).get(str(window["trip"].get("trip_id")))
+             if known:
+                 window["start"] = max(window["start"], known["start"])
+@@ -1366,6 +1385,27 @@
+         run["start"] = min(w["start"] for w in run["trips"])
+         run["end"] = max(w["end"] for w in run["trips"])
+     return runs
++
++
++def _select_run_trip(run: dict, now_sec: int) -> tuple:
++    """Resolve source-active journeys before cache-only inferred continuity.
++
++    No additional vehicles, replacement positions or changed clocks are made.
++    A verified same-block predecessor may still be held by its effective plan;
++    mere terminus proximity is not evidence of a shared physical vehicle.
++    """
++    retained = next((w for w in run["trips"] if w["start"] <= now_sec <= w["end"]), None)
++    source_active = [w for w in run["trips"]
++                     if w.get("source_start", w["start"]) <= now_sec <= w.get("source_end", w["end"])]
++    if source_active:
++        current = max(source_active, key=lambda w: (w.get("source_start", w["start"]),
++                                                   str(w["trip"].get("trip_id") or "")))
++        current_block = str(current["trip"].get("block_id") or "")
++        if (retained is not None and retained is not current and current_block
++                and current_block == str(retained["trip"].get("block_id") or "")):
++            return retained, "VERIFIED_BLOCK_RETAINED"
++        return current, "SOURCE_ACTIVE"
++    return retained, "PERIX_RETAINED" if retained is not None else "NO_ACTIVE_WINDOW"
+ 
+ 
+ async def _realtime_delays_for(trip_ids: List[str], network: Optional[dict] = None, *, collection=None) -> dict:
+@@ -1521,11 +1561,7 @@
+                 continue
+             # Determine the trip the vehicle is on RIGHT NOW first (window
+             # check), so suppression can be trip-scoped.
+-            active = None
+-            for w in run["trips"]:
+-                if w["start"] <= now_sec <= w["end"]:
+-                    active = w
+-                    break
++            active, selection_basis = _select_run_trip(run, now_sec)
+             before = None
+             after = None
+             for w in run["trips"]:
+@@ -1533,6 +1569,13 @@
+                     before = w
+                 if w["start"] >= now_sec and after is None:
+                     after = w
++            # A geometric schedule chain does not locate an actual vehicle in
++            # its layover. Do not park a speculative bus/tram for a whole gap.
++            # Preserve only the existing 60s trip-edge grace and active trips
++            # whose canonical geometry is still pending.
++            if (active is None and before is not None and after is not None
++                    and now_sec > before["end"] + 60 and now_sec < after["start"] - 60):
++                continue
+             current_trip = None
+             if active is not None:
+                 current_trip = active["trip"]
+@@ -1653,6 +1696,8 @@
+                     # directions at each turnaround)
+                     "route_direction": str(current_trip.get("headsign") or headsign),
+                     "trip_id": current_trip.get("trip_id"),
++                    "trip_selection_basis": selection_basis,
++                    "run_identity_basis": "GTFS_BLOCK" if current_trip.get("block_id") else "DATED_SOURCE_TRIP",
+                     "latitude": pos["lat"],
+                     "longitude": pos["lng"],
+                     "heading": heading,
+--- /dev/null
++++ b/Perix-main/backend/tests/test_trip_selection_coverage.py
+@@ -0,0 +1,187 @@
++"""Offline regressions: source journeys must not be hidden by inferred runs."""
++from copy import deepcopy
++from types import SimpleNamespace
++from unittest.mock import AsyncMock, Mock
++
++import pytest
++
++from routes import mobility as routes
++from mobility import overrides
++from mobility.motion import engine
++
++
++def route_fixture():
++    return {"route_number": "6", "mode": "tram", "stops": [
++        {"stop_id": "A", "name": "Diesdorf", "lat": 52.129, "lng": 11.569},
++        {"stop_id": "B", "name": "Hauptbahnhof", "lat": 52.129, "lng": 11.628},
++    ], "trips": [
++        {"trip_id": "out", "headsign": "Hauptbahnhof", "stop_ids": ["A", "B"],
++         "stop_times": {"A": "17:44", "B": "17:58"}},
++        {"trip_id": "back", "headsign": "Diesdorf", "stop_ids": ["B", "A"],
++         "stop_times": {"B": "18:00", "A": "18:14"}},
++    ]}
++
++
++def identity(runs):
++    return [[w["trip"]["trip_id"] for w in run["trips"]] for run in runs]
++
++
++def test_realtime_does_not_regroup_or_change_virtual_run_identity():
++    route = route_fixture()
++    original = deepcopy(route)
++    base = routes._chain_trips(route)
++    delayed = routes._chain_trips(route, {"out": {"delay_seconds": 600}})
++    early = routes._chain_trips(route, {"back": {"delay_seconds": -180}})
++    assert identity(base) == identity(delayed) == identity(early) == [["out"], ["back"]]
++    assert delayed[0]["trips"][0]["source_end"] == 17 * 3600 + 58 * 60 + 600
++    assert route == original
++
++
++def test_source_active_successor_wins_over_unverified_cached_predecessor():
++    # Production route 6, 2026-10-24 18:03:36: source predecessor 844818
++    # ended at 64792; successor 956987 began at 64800 and was omitted.
++    old = {"trip": {"trip_id": "844818"}, "start": 63952, "end": 65500,
++           "source_start": 63952, "source_end": 64792}
++    new = {"trip": {"trip_id": "956987"}, "start": 64800, "end": 65640,
++           "source_start": 64800, "source_end": 65640}
++    selected, basis = routes._select_run_trip({"trips": [old, new]}, 65016)
++    assert selected is new and basis == "SOURCE_ACTIVE"
++    assert old["end"] == 65500  # no clock/coordinate surgery to conceal conflict
++
++
++def test_a_late_trip_is_retained_when_no_source_successor_is_active():
++    runs = routes._chain_trips(route_fixture(), effective_windows={
++        "out": {"start": 63840, "end": 65300},
++    })
++    selected, basis = routes._select_run_trip(runs[0], 17 * 3600 + 59 * 60)
++    assert selected["trip"]["trip_id"] == "out"
++    assert basis == "PERIX_RETAINED"
++
++
++def test_verified_same_block_retains_physical_continuity():
++    route = route_fixture()
++    for trip in route["trips"]:
++        trip["block_id"] = "operator-block"
++    run = routes._chain_trips(route, effective_windows={"out": {"start": 63840, "end": 65300}})[0]
++    selected, basis = routes._select_run_trip(run, 65016)
++    assert selected["trip"]["trip_id"] == "out"
++    assert basis == "VERIFIED_BLOCK_RETAINED"
++
++
++@pytest.mark.parametrize("blocks", [("one", "two"), ("one", None), (None, "two")])
++def test_distinct_or_incomplete_source_blocks_are_not_merged(blocks):
++    route = route_fixture()
++    for trip, block in zip(route["trips"], blocks):
++        trip["block_id"] = block
++    assert identity(routes._chain_trips(route)) == [["out"], ["back"]]
++
++
++@pytest.mark.parametrize("relationship", ["CANCELED", "DELETED"])
++def test_provider_cancellation_is_never_replaced_by_a_virtual_vehicle(relationship):
++    runs = routes._chain_trips(route_fixture(), {"back": {"trip_schedule_relationship": relationship}})
++    assert identity(runs) == [["out"]]
++    assert identity(routes._chain_trips(route_fixture(), skip_trip_ids={"out"})) == [["back"]]
++
++
++@pytest.fixture
++def fleet(monkeypatch):
++    route = route_fixture()
++    route["trips"][1]["stop_times"] = {"B": "18:10", "A": "18:24"}
++    net = {"version_id": "v", "service_date": "2026-10-24", "routes": [route]}
++    monkeypatch.setattr(routes, "db", SimpleNamespace(mobility_live=SimpleNamespace(
++        find=Mock(return_value=SimpleNamespace(to_list=AsyncMock(return_value=[]))))))
++    monkeypatch.setattr(routes, "_realtime_delays_for", AsyncMock(return_value={}))
++    monkeypatch.setattr(overrides, "canceled_trip_ids", AsyncMock(return_value=set()))
++    monkeypatch.setattr(engine, "cached_trip_windows", lambda **kwargs: {})
++    monkeypatch.setattr(routes, "_estimate_trip_position", AsyncMock(return_value={
++        "latitude": 52.13, "longitude": 11.62, "delay_minutes": 0,
++        "position_source": "SCHEDULE_ESTIMATE", "pattern_id": "exact-pattern",
++        "progress_m": 50, "_effective_timeline": None,
++    }))
++    return net
++
++
++@pytest.mark.asyncio
++async def test_inferred_long_layover_does_not_invent_a_parked_vehicle(fleet, monkeypatch):
++    monkeypatch.setattr(routes, "_now_service_seconds", lambda *args: 18 * 3600 + 4 * 60)
++    assert await routes._compute_estimated_transit_vehicles(fleet) == []
++
++
++@pytest.mark.asyncio
++@pytest.mark.parametrize("now", [17 * 3600 + 57 * 60, 18 * 3600 + 11 * 60])
++async def test_active_trips_keep_existing_positions_and_exact_run_id(fleet, monkeypatch, now):
++    monkeypatch.setattr(routes, "_now_service_seconds", lambda *args: now)
++    vehicles = await routes._compute_estimated_transit_vehicles(fleet)
++    assert len(vehicles) == 1
++    vehicle = vehicles[0]
++    assert vehicle["latitude"] == 52.13 and vehicle["longitude"] == 11.62
++    assert vehicle["trip_id"] == ("out" if now < 18 * 3600 else "back")
++    assert vehicle["vehicle_id"].endswith(":6:" + vehicle["trip_id"])
++    assert vehicle["trip_selection_basis"] == "SOURCE_ACTIVE"
++    assert vehicle["run_identity_basis"] == "DATED_SOURCE_TRIP"
++
++
++@pytest.mark.asyncio
++@pytest.mark.parametrize("now", [17 * 3600 + 58 * 60 + 30, 18 * 3600 + 9 * 60 + 30])
++async def test_existing_sixty_second_trip_edge_grace_is_retained(fleet, monkeypatch, now):
++    monkeypatch.setattr(routes, "_now_service_seconds", lambda *args: now)
++    vehicles = await routes._compute_estimated_transit_vehicles(fleet)
++    assert len(vehicles) == 1 and vehicles[0]["position_state"] == "TURNAROUND_ANCHOR"
++
++
++@pytest.mark.asyncio
++async def test_two_overlapping_source_journeys_are_not_merged_into_one_inferred_physical_bus(fleet, monkeypatch):
++    route = fleet["routes"][0]
++    route["trips"][0]["stop_times"]["B"] = "18:15"
++    monkeypatch.setattr(routes, "_now_service_seconds", lambda *args: 18 * 3600 + 12 * 60)
++    vehicles = await routes._compute_estimated_transit_vehicles(fleet)
++    assert {v["trip_id"] for v in vehicles} == {"out", "back"}
++    assert len({v["vehicle_id"] for v in vehicles}) == 2
++    for v in vehicles:
++        assert v["vehicle_id"].endswith(":6:" + v["trip_id"])
++        assert v["estimated"] is True and v["run_identity_basis"] == "DATED_SOURCE_TRIP"
++
++
++def notice_domain():
++    return {"network": {"region_id": "magdeburg", "network_id": "de-magdeburg-mvb", "service_date": "2026-10-24"},
++            "stops": [{"stop_id": "physical:jordan", "name": "Jordanstraße", "stop_ids": ["J-east", "J-west"]}],
++            "patterns": [{"pattern_id": "13:real", "route_number": "13", "mode": "tram", "stop_ids": ["S", "J-east", "H"]},
++                         {"pattern_id": "9:real", "route_number": "9", "mode": "tram", "stop_ids": ["S", "J-east", "H"]}]}
++
++
++def test_operator_notice_warns_without_changing_any_geometry_or_clocks():
++    from mobility.service_notices import notices_for_domain
++    domain = notice_domain()
++    original = deepcopy(domain)
++    notices = notices_for_domain(domain)
++    assert list(notices) == ["13:real"]
++    assert notices["13:real"]["status"] == "OPERATOR_DIVERSION_NOT_IN_TIMETABLE"
++    assert notices["13:real"]["position_verified"] is False
++    assert notices["13:real"]["source_url"].startswith("https://www.mvbnet.de/")
++    assert domain == original
++
++
++def test_notice_clears_when_importer_stop_sequence_has_been_corrected():
++    from mobility.service_notices import notices_for_domain
++    domain = notice_domain()
++    domain["patterns"][0]["stop_ids"] = ["S", "Hertz", "Raiffeisen", "Fuchsberg", "H"]
++    assert notices_for_domain(domain) == {}
++
++
++def test_stale_operator_review_is_not_presented_as_fresh_indefinitely():
++    from mobility.service_notices import notices_for_domain
++    domain = notice_domain()
++    domain["network"]["service_date"] = "2026-10-26"
++    notice = notices_for_domain(domain)["13:real"]
++    assert notice["status"] == "OPERATOR_NOTICE_REVIEW_REQUIRED"
++    assert notice["review_required"] is True
++
++
++@pytest.mark.parametrize("change", ["region", "network", "date", "before_start"])
++def test_operator_notice_never_leaks_to_other_regions_or_service_days(change):
++    from mobility.service_notices import notices_for_domain
++    domain = notice_domain()
++    key, value = {"region": ("region_id", "other"), "network": ("network_id", "other"),
++                  "date": ("service_date", "invalid"), "before_start": ("service_date", "2026-10-16")}[change]
++    domain["network"][key] = value
++    assert notices_for_domain(domain) == {}
+--- a/Perix-main/frontend/app/(tabs)/locator.tsx
++++ b/Perix-main/frontend/app/(tabs)/locator.tsx
+@@ -27,6 +27,7 @@
+ import { useMobilityNetwork } from "../../hooks/useMobilityNetwork";
+ import { canonicalVehicleLine, stopVisibilityBucket } from "../../lib/mobilityNetwork";
+ import MobilityDataStatus from "../../components/shared/MobilityDataStatus";
++import MobilityServiceWarnings, { MobilityServiceWarning } from "../../components/shared/MobilityServiceWarnings";
+ import type { TrafficContext } from "../../lib/api/mobility";
+ import { SkeletonBox, EmptyState } from "../../components/shared";
+ import DatePickerModal from "../../components/shared/DatePickerModal";
+@@ -133,7 +134,7 @@
+   const [taxiRequesting, setTaxiRequesting] = useState(false);
+   const [transitMapLines, setTransitMapLines] = useState<V2MapLine[]>([]);
+   const [physicalStops, setPhysicalStops] = useState<TransitStopMarker[]>([]);
+-  const [diversionWarnings, setDiversionWarnings] = useState<{route_number: string; mode?: string; status: string}[]>([]);
++  const [diversionWarnings, setDiversionWarnings] = useState<MobilityServiceWarning[]>([]);
+   const [mapZoom, setMapZoom] = useState<number | null>(null);
+   const [mobilityMapZoom, setMobilityMapZoom] = useState<number | null>(null);
+   const [mobilityMapBounds, setMobilityMapBounds] = useState<{ minLat: number; maxLat: number; minLng: number; maxLng: number; centerLat: number; centerLng: number } | null>(null);
+@@ -1663,15 +1664,7 @@
+       {/* Mobility: Bus/Taxi live view */}
+       {isMobilityTab && (
+         <View style={styles.mobilityPanel}>
+-          {diversionWarnings.length > 0 && (
+-            <View style={{ padding: 9, borderRadius: 9, backgroundColor: "#EDF4FB", marginBottom: 8 }}>
+-              <Text style={{ color: "#264348", fontSize: 12, fontWeight: "600" }}>
+-                {t("mobility.detourPending", "Umleitung wird geprüft: {{lines}}", {
+-                  lines: [...new Set(diversionWarnings.map((w) => w.route_number))].join(", "),
+-                })}
+-              </Text>
+-            </View>
+-          )}
++          <MobilityServiceWarnings warnings={diversionWarnings} />
+           <View style={styles.mobilityToggle}>
+             <Pressable
+               style={[styles.mobilityToggleOption, mobilityMode === "all" && styles.mobilityToggleOptionActive]}
+--- /dev/null
++++ b/Perix-main/frontend/components/shared/MobilityServiceWarnings.tsx
+@@ -0,0 +1,37 @@
++import { Linking, Pressable, Text, View } from "react-native";
++import { useTranslation } from "react-i18next";
++
++export type MobilityServiceWarning = {
++  route_number: string; mode?: string; status: string;
++  message?: string; source_url?: string; notice_id?: string;
++};
++
++export default function MobilityServiceWarnings({ warnings }: { warnings: MobilityServiceWarning[] }) {
++  const { t } = useTranslation();
++  if (!warnings.length) return null;
++  const notices = warnings.filter(w => w.status === "OPERATOR_DIVERSION_NOT_IN_TIMETABLE"
++    || w.status === "OPERATOR_NOTICE_REVIEW_REQUIRED");
++  const other = warnings.filter(w => !notices.includes(w));
++  const uniqueNotices = notices.filter((w, i) => notices.findIndex(x =>
++    (x.notice_id || x.route_number) === (w.notice_id || w.route_number)) === i);
++  return <View style={{ padding: 9, borderRadius: 9, backgroundColor: "#EDF4FB", marginBottom: 8 }}>
++    {other.length > 0 ? <Text style={{ color: "#264348", fontSize: 12, fontWeight: "600" }}>
++      {t("mobility.detourPending", "Umleitung wird geprüft: {{lines}}", {
++        lines: [...new Set(other.map(w => w.route_number))].join(", "),
++      })}
++    </Text> : null}
++    {uniqueNotices.map(w => <View key={`${w.notice_id}:${w.route_number}`}>
++      <Text style={{ color: "#264348", fontSize: 12, fontWeight: "600" }}>
++        {t("mobility.operatorTimetableConflict", "{{line}}: operator diversion is not reflected in the timetable. Map positions and times may be inaccurate.", {
++          line: [...new Set(notices.filter(x => (x.notice_id || x.route_number) === (w.notice_id || w.route_number))
++            .map(x => x.route_number))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).join(", "),
++        })}
++      </Text>
++      {w.message ? <Text style={{ color: "#264348", fontSize: 12, marginTop: 4 }}>{w.message}</Text> : null}
++      {w.source_url?.startsWith("https://") ? <Pressable accessibilityRole="link"
++        onPress={() => { Linking.openURL(w.source_url!).catch(() => {}); }} style={{ paddingVertical: 8 }}>
++        <Text style={{ color: "#096BFF", fontSize: 12 }}>{t("mobility.operatorNotice", "Operator notice")}</Text>
++      </Pressable> : null}
++    </View>)}
++  </View>;
++}
+--- /dev/null
++++ b/Perix-main/frontend/tests/mobility-service-warnings.test.cjs
+@@ -0,0 +1,57 @@
++/* global __dirname */
++const assert = require('node:assert/strict');
++const fs = require('node:fs');
++const path = require('node:path');
++const vm = require('node:vm');
++const ts = require('typescript');
++const test = require('node:test');
++
++function mount(warnings) {
++  const exports = {}, links = [];
++  const source = fs.readFileSync(path.join(__dirname, '../components/shared/MobilityServiceWarnings.tsx'), 'utf8');
++  const jsx = (type, props) => ({ type, props });
++  const mocks = {
++    'react/jsx-runtime': { jsx, jsxs: jsx },
++    'react-native': { View: 'View', Text: 'Text', Pressable: 'Pressable', Linking: { openURL: url => { links.push(url); return Promise.resolve(); } } },
++    'react-i18next': { useTranslation: () => ({ t: (_key, fallback, values = {}) => fallback.replace(/{{(\w+)}}/g, (_, k) => values[k]) }) },
++  };
++  vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS,
++    target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText, { exports, require: name => mocks[name] });
++  const tree = exports.default({ warnings });
++  const all = [];
++  function visit(node) { if (!node) return; if (Array.isArray(node)) return node.forEach(visit);
++    if (typeof node === 'object') { all.push(node); visit(node.props?.children); } }
++  visit(tree);
++  return { tree, all, links, text: all.filter(x => x.type === 'Text').map(x => x.props.children).join(' ') };
++}
++
++test('operator timetable conflict is explicit, deduplicated by route/notice, and links to its actual source', () => {
++  const warning = { route_number: '13', status: 'OPERATOR_DIVERSION_NOT_IN_TIMETABLE', notice_id: 'bridge',
++    message: 'Jordanstraße entfällt; via Am Fuchsberg.', source_url: 'https://www.mvbnet.de/operator-notice/' };
++  const ui = mount([warning, { ...warning, direction: 'opposite' }]);
++  assert.match(ui.text, /13: operator diversion is not reflected in the timetable/);
++  assert.match(ui.text, /Map positions and times may be inaccurate/);
++  assert.match(ui.text, /Am Fuchsberg/);
++  const links = ui.all.filter(x => x.type === 'Pressable');
++  assert.equal(links.length, 1); links[0].props.onPress();
++  assert.equal(ui.links[0], warning.source_url);
++});
++
++test('existing geometry warnings remain visible; no warning leaves no banner', () => {
++  assert.equal(mount([]).tree, null);
++  assert.match(mount([{ route_number: '6', status: 'OSM_VERIFICATION_REQUIRED' }]).text, /Umleitung wird geprüft: 6/);
++});
++
++test('one operator notice groups its affected routes instead of repeating a large banner', () => {
++  const warnings = ['N3', '13', 'N5', '13'].map(route_number => ({ route_number, notice_id: 'bridge',
++    status: 'OPERATOR_DIVERSION_NOT_IN_TIMETABLE', message: 'One operator message', source_url: 'https://www.mvbnet.de/notice/' }));
++  const ui = mount(warnings);
++  assert.match(ui.text, /13, N3, N5: operator diversion/);
++  assert.equal(ui.all.filter(x => x.type === 'Pressable').length, 1);
++  assert.equal(ui.text.match(/One operator message/g).length, 1);
++});
++
++test('untrusted non-HTTPS schemes never become actionable operator links', () => {
++  const ui = mount([{ route_number: '13', status: 'OPERATOR_NOTICE_REVIEW_REQUIRED', source_url: 'javascript:alert(1)' }]);
++  assert.equal(ui.all.filter(x => x.type === 'Pressable').length, 0);
++});

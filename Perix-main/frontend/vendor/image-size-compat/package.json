@@ -1,0 +1,8 @@
+{
+  "name": "@perix/image-size-compat",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "types": "index.d.ts",
+  "dependencies": { "image-size-modern": "npm:image-size@2.0.4" }
+}

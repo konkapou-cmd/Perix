@@ -1,0 +1,281 @@
+{
+  "source_provenance": {
+    "supplier": "Geofabrik / OpenStreetMap",
+    "license": "ODbL-1.0",
+    "url": "https://download.geofabrik.de/europe/germany/sachsen-anhalt-latest.osm.pbf",
+    "sha256": "ba1d36bfa5bcc08933000c1304f56ce090729fe6b158f8241f4d9909f851253c",
+    "source_timestamp": "2026-10-25T21:21:21Z",
+    "polygon_contains_bbox": true,
+    "polygon_sha256": "8cfaba37360087feff109a4e7c5e4462b8f6a3687429f06af3b5b5d6d257a360",
+    "missing_node_references": 0,
+    "extracted_at": "2026-10-26T11:34:21.130873+00:00"
+  },
+  "source_coverage": {
+    "roads": {
+      "bbox": [
+        52.0,
+        11.45,
+        52.25,
+        11.8
+      ],
+      "expected": 30027,
+      "failed": 0,
+      "complete": true
+    },
+    "rails": {
+      "bbox": [
+        52.0,
+        11.45,
+        52.25,
+        11.8
+      ],
+      "expected": 865,
+      "failed": 0,
+      "complete": true
+    },
+    "signals": {
+      "bbox": [
+        52.0,
+        11.45,
+        52.25,
+        11.8
+      ],
+      "expected": 2814,
+      "failed": 0,
+      "complete": true
+    }
+  },
+  "source_contract_validated_by_existing_deployed_importer": true,
+  "pattern_results": [
+    {
+      "pattern_id": "56:5368b7d9e2",
+      "line": "56",
+      "selected_ways": 962,
+      "missing_pairs": [],
+      "validation": {
+        "valid": true,
+        "max_platform_distance_m": 20.1,
+        "missing_platforms": 0,
+        "projection_ordered": true,
+        "projection_positions_m": [
+          0.0,
+          761.6,
+          1227.6,
+          4667.0,
+          4906.4,
+          5488.3,
+          9195.9,
+          9985.0,
+          10414.7,
+          10725.1
+        ]
+      },
+      "max_node_snap_m": 12.04312871494905,
+      "max_edge_snap_m": 12.04312871494905,
+      "infrastructure_built": true,
+      "edge_count": 661
+    },
+    {
+      "pattern_id": "56:31ae567775",
+      "line": "56",
+      "selected_ways": 4406,
+      "missing_pairs": [],
+      "validation": {
+        "valid": true,
+        "max_platform_distance_m": 22.3,
+        "missing_platforms": 0,
+        "projection_ordered": true,
+        "projection_positions_m": [
+          7.7,
+          313.3,
+          767.6,
+          1530.3,
+          3200.6,
+          6558.3,
+          7140.3,
+          7707.1,
+          11378.8,
+          11844.3,
+          12628.2,
+          13555.1,
+          13874.6,
+          14242.9,
+          14576.9,
+          15016.3,
+          15436.7,
+          16269.4
+        ]
+      },
+      "max_node_snap_m": 28.418968839290265,
+      "max_edge_snap_m": 28.418968839290265,
+      "infrastructure_built": true,
+      "edge_count": 1077
+    },
+    {
+      "pattern_id": "56:cf42f1d537",
+      "line": "56",
+      "selected_ways": 961,
+      "missing_pairs": [],
+      "validation": {
+        "valid": true,
+        "max_platform_distance_m": 22.3,
+        "missing_platforms": 0,
+        "projection_ordered": true,
+        "projection_positions_m": [
+          7.7,
+          313.3,
+          767.6,
+          1530.3,
+          4660.1,
+          5242.1,
+          5808.9,
+          9480.7,
+          9946.2,
+          10730.0
+        ]
+      },
+      "max_node_snap_m": 7.738607388944651,
+      "max_edge_snap_m": 7.738607388944651,
+      "infrastructure_built": true,
+      "edge_count": 667
+    },
+    {
+      "pattern_id": "56:31e03e1a20",
+      "line": "56",
+      "selected_ways": 961,
+      "missing_pairs": [],
+      "validation": {
+        "valid": true,
+        "max_platform_distance_m": 22.3,
+        "missing_platforms": 0,
+        "projection_ordered": true,
+        "projection_positions_m": [
+          7.7,
+          313.3,
+          767.6,
+          1530.3,
+          8281.7,
+          8747.2,
+          9531.0
+        ]
+      },
+      "max_node_snap_m": 7.738607388944651,
+      "max_edge_snap_m": 7.738607388944651,
+      "infrastructure_built": true,
+      "edge_count": 589
+    },
+    {
+      "pattern_id": "57:85ade62306",
+      "line": "57",
+      "selected_ways": 2769,
+      "missing_pairs": [],
+      "validation": {
+        "valid": true,
+        "max_platform_distance_m": 23.5,
+        "missing_platforms": 0,
+        "projection_ordered": true,
+        "projection_positions_m": [
+          4.1,
+          404.4,
+          1061.2,
+          1634.4,
+          2034.6,
+          2161.5,
+          2754.9,
+          3330.4,
+          4191.6,
+          4788.2,
+          5321.7
+        ]
+      },
+      "max_node_snap_m": 12.59766510206511,
+      "max_edge_snap_m": 12.59766510206511,
+      "infrastructure_built": true,
+      "edge_count": 233
+    },
+    {
+      "pattern_id": "57:eaa2f964fd",
+      "line": "57",
+      "selected_ways": 2655,
+      "missing_pairs": [],
+      "validation": {
+        "valid": true,
+        "max_platform_distance_m": 24.6,
+        "missing_platforms": 0,
+        "projection_ordered": true,
+        "projection_positions_m": [
+          0.0,
+          444.6,
+          958.6,
+          1772.6,
+          2500.1,
+          3066.7,
+          3627.2,
+          4319.5,
+          4703.1
+        ]
+      },
+      "max_node_snap_m": 15.164880969875965,
+      "max_edge_snap_m": 15.164880969875965,
+      "infrastructure_built": true,
+      "edge_count": 214
+    },
+    {
+      "pattern_id": "59:aa7727a8ad",
+      "line": "59",
+      "selected_ways": 1185,
+      "missing_pairs": [],
+      "validation": {
+        "valid": true,
+        "max_platform_distance_m": 24.1,
+        "missing_platforms": 0,
+        "projection_ordered": true,
+        "projection_positions_m": [
+          0.0,
+          462.5,
+          730.8,
+          1154.1,
+          1615.8,
+          1932.6,
+          2417.0
+        ]
+      },
+      "max_node_snap_m": 8.961830688586788,
+      "max_edge_snap_m": 8.961830688586788,
+      "infrastructure_built": true,
+      "edge_count": 199
+    },
+    {
+      "pattern_id": "59:2b12646995",
+      "line": "59",
+      "selected_ways": 1212,
+      "missing_pairs": [],
+      "validation": {
+        "valid": true,
+        "max_platform_distance_m": 24.1,
+        "missing_platforms": 0,
+        "projection_ordered": true,
+        "projection_positions_m": [
+          0.0,
+          720.3,
+          1037.8,
+          1461.1,
+          1922.7,
+          2214.9,
+          2707.6,
+          2967.5
+        ]
+      },
+      "max_node_snap_m": 15.56788884081921,
+      "max_edge_snap_m": 15.56788884081921,
+      "infrastructure_built": true,
+      "edge_count": 239
+    }
+  ],
+  "geometry_valid_count": 8,
+  "infrastructure_valid_count": 8,
+  "existing_candidate_ready_count": 151,
+  "offline_only": true,
+  "production_mutations": 0,
+  "external_routing_requests": 0
+}

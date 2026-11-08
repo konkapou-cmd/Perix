@@ -6,6 +6,8 @@ import { useTranslation } from "react-i18next";
 import { SectionHeader } from "../shared/SectionHeader";
 import { CARD_WIDTH } from "../shared/CarouselCard";
 import { COLORS, SPACING } from "../../lib/designTokens";
+import { MAP_PAGE_GUTTER } from "../../lib/city/mapLayout";
+import type { ImageSourcePropType } from "react-native";
 
 interface FilterOption {
   key: string;
@@ -15,6 +17,7 @@ interface FilterOption {
 interface CarouselSectionProps {
   title: string;
   icon: keyof typeof Ionicons.glyphMap;
+  iconSource?: ImageSourcePropType;
   color?: string;
   activeFilterTextColor?: string;
   seeAllRoute?: any;
@@ -31,7 +34,7 @@ interface CarouselSectionProps {
   children: React.ReactNode;
 }
 
-export function CarouselSection({ title, icon, color, activeFilterTextColor, seeAllRoute, filters, emptyMessage, hideWhenEmpty, layout = "carousel", children }: CarouselSectionProps) {
+export function CarouselSection({ title, icon, iconSource, color, activeFilterTextColor, seeAllRoute, filters, emptyMessage, hideWhenEmpty, layout = "carousel", children }: CarouselSectionProps) {
   const router = useRouter();
   const { t } = useTranslation();
   const hasContent = React.Children.count(children) > 0;
@@ -45,6 +48,7 @@ export function CarouselSection({ title, icon, color, activeFilterTextColor, see
         <View style={styles.headerLeft}>
           <SectionHeader
             icon={icon}
+            iconSource={iconSource}
             title={title}
             accent={accent}
             titleColor="#1F4788"
@@ -92,9 +96,10 @@ export function CarouselSection({ title, icon, color, activeFilterTextColor, see
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.background,
-    marginHorizontal: 0,
+    marginHorizontal: MAP_PAGE_GUTTER,
     marginBottom: 10,
-    padding: SPACING.small,
+    paddingVertical: SPACING.small,
+    paddingHorizontal: 0,
   },
   headerRow: {
     flexDirection: "row",

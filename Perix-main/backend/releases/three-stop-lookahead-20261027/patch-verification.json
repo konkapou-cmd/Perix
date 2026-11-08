@@ -1,0 +1,51 @@
+{
+  "preexisting_source_files_snapshotted": 503,
+  "protected_preexisting_files_unchanged": 501,
+  "modified_existing_source_files": [
+    "Perix-main/backend/mobility/motion/config.py",
+    "Perix-main/backend/mobility/motion/engine.py"
+  ],
+  "diff_stats": {
+    "Perix-main/backend/mobility/motion/config.py": {
+      "added": 3,
+      "removed": 0
+    },
+    "Perix-main/backend/mobility/motion/engine.py": {
+      "added": 76,
+      "removed": 0
+    },
+    "Perix-main/backend/tests/test_mobility_motion_lookahead.py": {
+      "added": 244,
+      "removed": 0
+    }
+  },
+  "source_hashes_after": {
+    "Perix-main/backend/mobility/motion/config.py": "56875dcdd9385b00dfc93253aa4ab21aba12e816e833647b442ec1f00b751c25",
+    "Perix-main/backend/mobility/motion/engine.py": "40c56645110a421caac700e8102e5566dfb7120147ed0ebdc5e07b36caab9249",
+    "Perix-main/backend/tests/test_mobility_motion_lookahead.py": "6fac3461056008ce138b49636f822b2a1726bb4f36711182981fb2227e70ee38"
+  },
+  "production_actions": 0,
+  "patch_forward_check_passed": true,
+  "patch_reverse_check_passed": true,
+  "patch_sha256": "f27f2be9ca95338bb680192b2ec6a4a796e0c066b8523afda2c81a8478cfbdc2",
+  "tests": {
+    "baseline-regression.xml": {
+      "tests": 525,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "new-unit-results.xml": {
+      "tests": 34,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "regression-results.xml": {
+      "tests": 559,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  }
+}

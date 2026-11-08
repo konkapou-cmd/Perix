@@ -1,0 +1,17 @@
+{
+  "scope": "Actual new staged web build, DOM/network/hash/console observations",
+  "app_loaded": true,
+  "locator_mobility_loaded": true,
+  "percent_encoded_greek_query_loaded": true,
+  "google_maps_js_loaded": true,
+  "application_api_origins": [
+    "https://backend-staging-staging-7ada.up.railway.app"
+  ],
+  "served_entry": "entry-d469c8bcad21c86a71ad19f1c8ca7894.js",
+  "served_entry_sha256": "3bee43025a4bfaf8260a5e109b4e230b7c03ccd2464eb46c889f02e1fba27855",
+  "console_errors_app": 0,
+  "console_errors_locator": 0,
+  "qa_trips_still_canceled": true,
+  "new_screenshot_captured": false,
+  "screenshot_limit": "Tool required a visible desktop tab; no old screenshot was relabeled as this build."
+}

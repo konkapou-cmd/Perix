@@ -1,0 +1,125 @@
+"""Routes package - all API route modules."""
+from fastapi import APIRouter
+
+from routes.auth import router as auth_router
+from routes.posts import router as posts_router
+from routes.messages import router as messages_router
+from routes.businesses import router as businesses_router
+from routes.artists import router as artists_router
+from routes.events import router as events_router
+from routes.activities import router as activities_router
+from routes.profiles import router as profiles_router
+from routes.feed import router as feed_router
+from routes.notifications import router as notifications_router
+from routes.media import router as media_router
+from routes.categories import router as categories_router
+from routes.uploads import router as uploads_router
+from routes.jobs import router as jobs_router
+from routes.admin import router as admin_router
+from routes.search import router as search_router
+from routes.music import router as music_router
+from routes.friend_requests import router as friend_requests_router
+from routes.contacts import router as contacts_router
+from routes.analytics import router as analytics_router
+from routes.preview import router as preview_router
+from routes.saved import router as saved_router
+from routes.stories import router as stories_router
+from routes.story_analytics import router as story_analytics_router
+from routes.ws import router as ws_router
+from routes.rentals import router as rentals_router
+from routes.services import router as services_router
+from routes.places import router as places_router
+from routes.mux import router as mux_router
+from routes.mux_proxy import router as mux_proxy_router
+from routes.listings import router as listings_router
+from routes.reports import router as reports_router
+from routes.mobility import router as mobility_router
+from routes.account_deletion import router as account_deletion_router
+from routes.push_web import router as push_web_router
+
+# Create main API router
+api_router = APIRouter(prefix="/api")
+
+# Include all route modules
+api_router.include_router(auth_router)
+api_router.include_router(posts_router)
+api_router.include_router(messages_router)
+api_router.include_router(businesses_router)
+api_router.include_router(artists_router)
+api_router.include_router(events_router)
+api_router.include_router(activities_router)
+api_router.include_router(profiles_router)
+api_router.include_router(feed_router)
+api_router.include_router(notifications_router)
+api_router.include_router(media_router)
+api_router.include_router(categories_router)
+api_router.include_router(uploads_router)
+api_router.include_router(jobs_router)
+api_router.include_router(admin_router)
+api_router.include_router(search_router)
+api_router.include_router(music_router)
+api_router.include_router(friend_requests_router)
+api_router.include_router(contacts_router)
+api_router.include_router(analytics_router)
+api_router.include_router(preview_router)
+api_router.include_router(saved_router)
+api_router.include_router(stories_router)
+api_router.include_router(story_analytics_router)
+api_router.include_router(ws_router)
+api_router.include_router(rentals_router)
+api_router.include_router(services_router)
+api_router.include_router(places_router)
+api_router.include_router(mux_router)
+api_router.include_router(mux_proxy_router)
+api_router.include_router(listings_router)
+api_router.include_router(mobility_router)
+from mobility.v2 import router as mobility_v2_router
+from mobility.editor import router as mobility_editor_router
+from mobility.telemetry import router as mobility_telemetry_router
+
+api_router.include_router(mobility_v2_router)
+api_router.include_router(mobility_editor_router)
+api_router.include_router(mobility_telemetry_router)
+api_router.include_router(reports_router)
+api_router.include_router(account_deletion_router)
+api_router.include_router(push_web_router)
+
+
+@api_router.get("/")
+async def root():
+    return {"message": "Perix - City Social Media API"}
+
+
+@api_router.get("/version")
+async def version():
+    """Deployment identity: exact git sha + graph state, so frontend and
+    backend versions can be compared in two seconds."""
+    import os
+    import time
+
+    from mobility import geometry_cache
+    from mobility.osm_store import active_version
+    from mobility.regions import get_active_region
+    from routes.mobility import _get_active_network
+
+    region = get_active_region()
+    try:
+        network = await _get_active_network()
+        network_version = (network or {}).get("version_id")
+    except Exception:
+        network_version = None
+    try:
+        graph_v = await active_version()
+    except Exception:
+        graph_v = None
+    return {
+        "service": "backend",
+        "git_sha": os.getenv("GIT_SHA", ""),
+        "built_at": os.getenv("BUILT_AT", ""),
+        "region_id": region.region_id,
+        "network_id": region.network_id,
+        "network_version": network_version,
+        "osm_graph_version": graph_v,
+        "geometry_revision": geometry_cache.revision(),
+        "server_time": time.time(),
+    }

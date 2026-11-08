@@ -1,11 +1,12 @@
 import React from "react";
-import { View, Text, Pressable, StyleSheet, ViewStyle } from "react-native";
+import { View, Text, Pressable, StyleSheet, ViewStyle, Image, type ImageSourcePropType } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SPACING } from "../../lib/designTokens";
 
 type SectionHeaderProps = {
   icon?: keyof typeof Ionicons.glyphMap;
+  iconSource?: ImageSourcePropType;
   title: string;
   count?: number;
   onSeeAll?: () => void;
@@ -17,6 +18,7 @@ type SectionHeaderProps = {
 
 export const SectionHeader = ({
   icon,
+  iconSource,
   title,
   count,
   onSeeAll,
@@ -30,9 +32,10 @@ export const SectionHeader = ({
   return (
     <View style={[styles.row, style]}>
       <View style={styles.left}>
-        {icon && (
+        {(icon || iconSource) && (
           <View style={[styles.iconContainer, { backgroundColor: COLORS.background }]}>
-            <Ionicons name={icon} size={16} color={accent} />
+            {iconSource ? <Image source={iconSource} resizeMode="contain" style={{width:16,height:16}} />
+              : <Ionicons name={icon!} size={16} color={accent} />}
           </View>
         )}
         <Text style={[styles.title, titleColor ? { color: titleColor } : null]} numberOfLines={1}>{title}</Text>

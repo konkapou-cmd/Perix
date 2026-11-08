@@ -1,0 +1,3089 @@
+{
+  "type": "REAL_GTFS_RT_NATIVE_SHADOW_REPLAY",
+  "canonical_service_date": "2026-10-26",
+  "network_version": "net_7c4078011f7f",
+  "frozen_bus_trips": 1805,
+  "network_active": false,
+  "network_generation_state": "BLOCKED_CHANGED_PATTERNS",
+  "replay_max_trips": 6,
+  "ready_bus_bundles": 85,
+  "captures": [
+    {
+      "index": 0,
+      "received_at": "2026-10-26T09:01:10.565361+00:00",
+      "http_status": 200,
+      "feed_timestamp": 1793005255,
+      "entities": 99249,
+      "sha256": "8de6f45010bdb17569ddd6048786601d99a39d58d08b8afe9a41a99514dfa906",
+      "exact_bus_trip_matches": 171,
+      "local_stop_overlap_updates": 496,
+      "changed_local_stop_predicted_epochs": 0
+    },
+    {
+      "index": 1,
+      "received_at": "2026-10-26T09:02:21.155171+00:00",
+      "http_status": 200,
+      "feed_timestamp": 1793005315,
+      "entities": 99755,
+      "sha256": "d0060ebfefe543ef2d104439deade93611d0366f22f76c31c8ac771b79a12261",
+      "exact_bus_trip_matches": 173,
+      "local_stop_overlap_updates": 498,
+      "changed_local_stop_predicted_epochs": 4
+    },
+    {
+      "index": 2,
+      "received_at": "2026-10-26T09:03:34.560452+00:00",
+      "http_status": 200,
+      "feed_timestamp": 1793005375,
+      "entities": 99876,
+      "sha256": "baa3eeff5fc81bf235a0f7e74c62664489d6ceaadf0e5ca2c14b351b8b01938b",
+      "exact_bus_trip_matches": 173,
+      "local_stop_overlap_updates": 495,
+      "changed_local_stop_predicted_epochs": 16
+    },
+    {
+      "index": 3,
+      "received_at": "2026-10-26T09:04:43.165823+00:00",
+      "http_status": 200,
+      "feed_timestamp": 1793005465,
+      "entities": 99977,
+      "sha256": "1371fc26f93cd4e780f2641723486ed7a80c4629e3fe0db1e35ac3a9a276e5e0",
+      "exact_bus_trip_matches": 174,
+      "local_stop_overlap_updates": 501,
+      "changed_local_stop_predicted_epochs": 15
+    }
+  ],
+  "rejections": {
+    "TRIP_NOT_IN_FROZEN_BUS_NETWORK": 396565,
+    "NOT_ACTIVE_AT_CAPTURE": 523,
+    "NO_READY_CANONICAL_BUNDLE": 75,
+    "REPLAY_TRIP_LIMIT_NOT_A_VALIDITY_REJECTION": 73
+  },
+  "real_eta_revision_examples_unbound_if_marked": [
+    {
+      "trip": "266517",
+      "start_date": "20261026",
+      "stop_id": "41235",
+      "stop_sequence": 11,
+      "previous_predicted_epoch": 1793005053,
+      "new_predicted_epoch": 1793005093,
+      "eta_revision_s": 40,
+      "bound_to_canonical_bus": true,
+      "mode": "bus"
+    },
+    {
+      "trip": "215884",
+      "start_date": "20261026",
+      "stop_id": "421746",
+      "stop_sequence": 0,
+      "previous_predicted_epoch": 1793004712,
+      "new_predicted_epoch": 1793004660,
+      "eta_revision_s": -52,
+      "bound_to_canonical_bus": false,
+      "mode": "UNVERIFIED"
+    },
+    {
+      "trip": "178639",
+      "start_date": "20261026",
+      "stop_id": "517605",
+      "stop_sequence": 21,
+      "previous_predicted_epoch": 1793005800,
+      "new_predicted_epoch": 1793005861,
+      "eta_revision_s": 61,
+      "bound_to_canonical_bus": false,
+      "mode": "UNVERIFIED"
+    },
+    {
+      "trip": "489273",
+      "start_date": "20261026",
+      "stop_id": "666594",
+      "stop_sequence": 0,
+      "previous_predicted_epoch": 1793005061,
+      "new_predicted_epoch": 1793005020,
+      "eta_revision_s": -41,
+      "bound_to_canonical_bus": false,
+      "mode": "UNVERIFIED"
+    },
+    {
+      "trip": "799511",
+      "start_date": "20261026",
+      "stop_id": "311738",
+      "stop_sequence": 0,
+      "previous_predicted_epoch": 1793005270,
+      "new_predicted_epoch": 1793005209,
+      "eta_revision_s": -61,
+      "bound_to_canonical_bus": true,
+      "mode": "bus"
+    },
+    {
+      "trip": "1519078",
+      "start_date": "20261026",
+      "stop_id": "311738",
+      "stop_sequence": 0,
+      "previous_predicted_epoch": 1793004840,
+      "new_predicted_epoch": 1793004873,
+      "eta_revision_s": 33,
+      "bound_to_canonical_bus": true,
+      "mode": "bus"
+    },
+    {
+      "trip": "949562",
+      "start_date": "20261026",
+      "stop_id": "193099",
+      "stop_sequence": 4,
+      "previous_predicted_epoch": 1793004828,
+      "new_predicted_epoch": 1793004820,
+      "eta_revision_s": -8,
+      "bound_to_canonical_bus": true,
+      "mode": "bus"
+    },
+    {
+      "trip": "949562",
+      "start_date": "20261026",
+      "stop_id": "229233",
+      "stop_sequence": 10,
+      "previous_predicted_epoch": 1793005368,
+      "new_predicted_epoch": 1793005308,
+      "eta_revision_s": -60,
+      "bound_to_canonical_bus": true,
+      "mode": "bus"
+    },
+    {
+      "trip": "489273",
+      "start_date": "20261026",
+      "stop_id": "666594",
+      "stop_sequence": 0,
+      "previous_predicted_epoch": 1793005020,
+      "new_predicted_epoch": 1793005061,
+      "eta_revision_s": 41,
+      "bound_to_canonical_bus": false,
+      "mode": "UNVERIFIED"
+    },
+    {
+      "trip": "985652",
+      "start_date": "20261026",
+      "stop_id": "221801",
+      "stop_sequence": 0,
+      "previous_predicted_epoch": 1793005022,
+      "new_predicted_epoch": 1793005052,
+      "eta_revision_s": 30,
+      "bound_to_canonical_bus": false,
+      "mode": "UNVERIFIED"
+    },
+    {
+      "trip": "590951",
+      "start_date": "20261026",
+      "stop_id": "603713",
+      "stop_sequence": 0,
+      "previous_predicted_epoch": 1793005089,
+      "new_predicted_epoch": 1793005031,
+      "eta_revision_s": -58,
+      "bound_to_canonical_bus": true,
+      "mode": "bus"
+    },
+    {
+      "trip": "594380",
+      "start_date": "20261026",
+      "stop_id": "176603",
+      "stop_sequence": 0,
+      "previous_predicted_epoch": 1793005140,
+      "new_predicted_epoch": 1793005200,
+      "eta_revision_s": 60,
+      "bound_to_canonical_bus": true,
+      "mode": "bus"
+    },
+    {
+      "trip": "1885473",
+      "start_date": "20261026",
+      "stop_id": "521411",
+      "stop_sequence": 0,
+      "previous_predicted_epoch": 1793005388,
+      "new_predicted_epoch": 1793005476,
+      "eta_revision_s": 88,
+      "bound_to_canonical_bus": true,
+      "mode": "bus"
+    },
+    {
+      "trip": "1002165",
+      "start_date": "20261026",
+      "stop_id": "624110",
+      "stop_sequence": 18,
+      "previous_predicted_epoch": 1793005120,
+      "new_predicted_epoch": 1793005133,
+      "eta_revision_s": 13,
+      "bound_to_canonical_bus": false,
+      "mode": "UNVERIFIED"
+    },
+    {
+      "trip": "1002551",
+      "start_date": "20261026",
+      "stop_id": "311738",
+      "stop_sequence": 0,
+      "previous_predicted_epoch": 1793005280,
+      "new_predicted_epoch": 1793005371,
+      "eta_revision_s": 91,
+      "bound_to_canonical_bus": true,
+      "mode": "bus"
+    },
+    {
+      "trip": "1209627",
+      "start_date": "20261026",
+      "stop_id": "380541",
+      "stop_sequence": 11,
+      "previous_predicted_epoch": 1793005051,
+      "new_predicted_epoch": 1793005090,
+      "eta_revision_s": 39,
+      "bound_to_canonical_bus": true,
+      "mode": "bus"
+    },
+    {
+      "trip": "820046",
+      "start_date": "20261026",
+      "stop_id": "83801",
+      "stop_sequence": 8,
+      "previous_predicted_epoch": 1793005178,
+      "new_predicted_epoch": 1793005266,
+      "eta_revision_s": 88,
+      "bound_to_canonical_bus": true,
+      "mode": "bus"
+    },
+    {
+      "trip": "678105",
+      "start_date": "20261026",
+      "stop_id": "521411",
+      "stop_sequence": 0,
+      "previous_predicted_epoch": 1793004350,
+      "new_predicted_epoch": 1793004340,
+      "eta_revision_s": -10,
+      "bound_to_canonical_bus": true,
+      "mode": "bus"
+    },
+    {
+      "trip": "271058",
+      "start_date": "20261026",
+      "stop_id": "229233",
+      "stop_sequence": 0,
+      "previous_predicted_epoch": 1793005029,
+      "new_predicted_epoch": 1793005019,
+      "eta_revision_s": -10,
+      "bound_to_canonical_bus": true,
+      "mode": "bus"
+    },
+    {
+      "trip": "215884",
+      "start_date": "20261026",
+      "stop_id": "421746",
+      "stop_sequence": 0,
+      "previous_predicted_epoch": 1793004660,
+      "new_predicted_epoch": 1793004712,
+      "eta_revision_s": 52,
+      "bound_to_canonical_bus": false,
+      "mode": "UNVERIFIED"
+    },
+    {
+      "trip": "1432304",
+      "start_date": "20261026",
+      "stop_id": "60888",
+      "stop_sequence": 0,
+      "previous_predicted_epoch": 1793005680,
+      "new_predicted_epoch": 1793005777,
+      "eta_revision_s": 97,
+      "bound_to_canonical_bus": false,
+      "mode": "UNVERIFIED"
+    },
+    {
+      "trip": "619934",
+      "start_date": "20261026",
+      "stop_id": "29981",
+      "stop_sequence": 0,
+      "previous_predicted_epoch": 1793004900,
+      "new_predicted_epoch": 1793004877,
+      "eta_revision_s": -23,
+      "bound_to_canonical_bus": false,
+      "mode": "UNVERIFIED"
+    },
+    {
+      "trip": "1703288",
+      "start_date": "20261026",
+      "stop_id": "29981",
+      "stop_sequence": 0,
+      "previous_predicted_epoch": 1793006331,
+      "new_predicted_epoch": 1793006408,
+      "eta_revision_s": 77,
+      "bound_to_canonical_bus": false,
+      "mode": "UNVERIFIED"
+    },
+    {
+      "trip": "149893",
+      "start_date": "20261026",
+      "stop_id": "544011",
+      "stop_sequence": 0,
+      "previous_predicted_epoch": 1793004720,
+      "new_predicted_epoch": 1793004752,
+      "eta_revision_s": 32,
+      "bound_to_canonical_bus": true,
+      "mode": "bus"
+    },
+    {
+      "trip": "187777",
+      "start_date": "20261026",
+      "stop_id": "221801",
+      "stop_sequence": 0,
+      "previous_predicted_epoch": 1793005244,
+      "new_predicted_epoch": 1793005304,
+      "eta_revision_s": 60,
+      "bound_to_canonical_bus": true,
+      "mode": "bus"
+    },
+    {
+      "trip": "1761281",
+      "start_date": "20261026",
+      "stop_id": "377171",
+      "stop_sequence": 0,
+      "previous_predicted_epoch": 1793004480,
+      "new_predicted_epoch": 1793004482,
+      "eta_revision_s": 2,
+      "bound_to_canonical_bus": false,
+      "mode": "UNVERIFIED"
+    },
+    {
+      "trip": "1002551",
+      "start_date": "20261026",
+      "stop_id": "311738",
+      "stop_sequence": 0,
+      "previous_predicted_epoch": 1793005371,
+      "new_predicted_epoch": 1793005279,
+      "eta_revision_s": -92,
+      "bound_to_canonical_bus": true,
+      "mode": "bus"
+    },
+    {
+      "trip": "408517",
+      "start_date": "20261026",
+      "stop_id": "60888",
+      "stop_sequence": 0,
+      "previous_predicted_epoch": 1793007412,
+      "new_predicted_epoch": 1793007483,
+      "eta_revision_s": 71,
+      "bound_to_canonical_bus": false,
+      "mode": "UNVERIFIED"
+    },
+    {
+      "trip": "820046",
+      "start_date": "20261026",
+      "stop_id": "83801",
+      "stop_sequence": 8,
+      "previous_predicted_epoch": 1793005266,
+      "new_predicted_epoch": 1793005178,
+      "eta_revision_s": -88,
+      "bound_to_canonical_bus": true,
+      "mode": "bus"
+    },
+    {
+      "trip": "491847",
+      "start_date": "20261026",
+      "stop_id": "355967",
+      "stop_sequence": 2,
+      "previous_predicted_epoch": 1793005146,
+      "new_predicted_epoch": 1793005131,
+      "eta_revision_s": -15,
+      "bound_to_canonical_bus": true,
+      "mode": "bus"
+    }
+  ],
+  "comparisons": [
+    {
+      "rows": [
+        {
+          "trip": "258003",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005255,
+          "calculation_service_s": 36070,
+          "sample_offset_s": 0.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 4121.705496214106,
+              "speed_kmh": 12.58,
+              "next_stop": "123033",
+              "gtfs_eta_service_s": 36081,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 19.22063207872452,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 7.915,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 4121.705496214106,
+              "speed_kmh": 12.58,
+              "next_stop": "123033",
+              "gtfs_eta_service_s": 36081,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 19.22063207872452,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 7.915,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 4121.705496214106,
+              "speed_kmh": 12.58,
+              "next_stop": "123033",
+              "gtfs_eta_service_s": 36081,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 19.22063207872452,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 7.915,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 0.0,
+          "native_boundary_position_jump_m": null,
+          "native_boundary_speed_jump_kmh": null,
+          "previous_next_gtfs_eta_service_s": null,
+          "next_target_revision_s": null,
+          "native_reasons": []
+        },
+        {
+          "trip": "258003",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005255,
+          "calculation_service_s": 36070,
+          "sample_offset_s": 30.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 4236.999898642388,
+              "speed_kmh": 28.07,
+              "next_stop": "382903",
+              "gtfs_eta_service_s": 36141,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 290.6429357798761,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 7.915,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 4236.999898642388,
+              "speed_kmh": 28.07,
+              "next_stop": "382903",
+              "gtfs_eta_service_s": 36141,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 290.6429357798761,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 7.915,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 4236.999898642388,
+              "speed_kmh": 28.07,
+              "next_stop": "382903",
+              "gtfs_eta_service_s": 36141,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 290.6429357798761,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 7.915,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 0.0,
+          "native_boundary_position_jump_m": null,
+          "native_boundary_speed_jump_kmh": null,
+          "previous_next_gtfs_eta_service_s": null,
+          "next_target_revision_s": null,
+          "native_reasons": []
+        },
+        {
+          "trip": "258003",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005315,
+          "calculation_service_s": 36141,
+          "sample_offset_s": 0.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 4527.642834422264,
+              "speed_kmh": 0.0,
+              "next_stop": "143098",
+              "gtfs_eta_service_s": 36321,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 783.0247977105446,
+              "fit": "NATIVE_RECALIBRATED",
+              "target_error_s": 3.126388037344441e-13,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": "UNCHANGED_CURRENT_TARGET_RETAINED",
+              "inferred_slowdown_s": 73.99077356678359,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 4527.642834422264,
+              "speed_kmh": 0.0,
+              "next_stop": "143098",
+              "gtfs_eta_service_s": 36321,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 783.0247977105446,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 4527.642834422264,
+              "speed_kmh": 0.0,
+              "next_stop": "143098",
+              "gtfs_eta_service_s": 36321,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 783.0247977105446,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 0.0,
+          "native_boundary_position_jump_m": 0.0,
+          "native_boundary_speed_jump_kmh": 0.0,
+          "previous_next_gtfs_eta_service_s": 36321,
+          "next_target_revision_s": 0,
+          "native_reasons": [
+            {
+              "shadow_only": true,
+              "selected": "UNCHANGED_CURRENT_TARGET_RETAINED",
+              "target_error_s": 3.126388037344441e-13,
+              "reference_remaining_s": 106.00922643321641,
+              "target_remaining_s": 180.0,
+              "inferred_slowdown_s": 73.99077356678359,
+              "inferred_cause": "UNKNOWN_NOT_OBSERVED_TRAFFIC",
+              "initial_speed_kmh": 0.0,
+              "remaining_distance_m": 783.0247977105446,
+              "rebuilds": 1,
+              "physics_violations": 0,
+              "reasons": [],
+              "backward_phases": 0,
+              "selection_basis": "TARGET_FEASIBILITY_THEN_FEWEST_STOPS_AND_SPEED_MANOEUVRES",
+              "candidates": [],
+              "position_envelope_samples_m": [],
+              "uncertainty": "EVALUATED_SCENARIOS_NOT_CONFIDENCE_INTERVAL",
+              "observed_vehicle_position": false
+            }
+          ]
+        },
+        {
+          "trip": "258003",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005315,
+          "calculation_service_s": 36141,
+          "sample_offset_s": 30.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 4651.498393728154,
+              "speed_kmh": 20.1,
+              "next_stop": "143098",
+              "gtfs_eta_service_s": 36321,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 659.1692384046546,
+              "fit": "NATIVE_RECALIBRATED",
+              "target_error_s": 3.126388037344441e-13,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": "UNCHANGED_CURRENT_TARGET_RETAINED",
+              "inferred_slowdown_s": 73.99077356678359,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 4651.498393728154,
+              "speed_kmh": 20.1,
+              "next_stop": "143098",
+              "gtfs_eta_service_s": 36321,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 659.1692384046546,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 4651.498393728154,
+              "speed_kmh": 20.1,
+              "next_stop": "143098",
+              "gtfs_eta_service_s": 36321,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 659.1692384046546,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 0.0,
+          "native_boundary_position_jump_m": null,
+          "native_boundary_speed_jump_kmh": null,
+          "previous_next_gtfs_eta_service_s": 36321,
+          "next_target_revision_s": 0,
+          "native_reasons": [
+            {
+              "shadow_only": true,
+              "selected": "UNCHANGED_CURRENT_TARGET_RETAINED",
+              "target_error_s": 3.126388037344441e-13,
+              "reference_remaining_s": 106.00922643321641,
+              "target_remaining_s": 180.0,
+              "inferred_slowdown_s": 73.99077356678359,
+              "inferred_cause": "UNKNOWN_NOT_OBSERVED_TRAFFIC",
+              "initial_speed_kmh": 0.0,
+              "remaining_distance_m": 783.0247977105446,
+              "rebuilds": 1,
+              "physics_violations": 0,
+              "reasons": [],
+              "backward_phases": 0,
+              "selection_basis": "TARGET_FEASIBILITY_THEN_FEWEST_STOPS_AND_SPEED_MANOEUVRES",
+              "candidates": [],
+              "position_envelope_samples_m": [],
+              "uncertainty": "EVALUATED_SCENARIOS_NOT_CONFIDENCE_INTERVAL",
+              "observed_vehicle_position": false
+            }
+          ]
+        }
+      ],
+      "update_decisions": {
+        "COLD_START_NO_PREVIOUS_STATE": 1,
+        "RECALIBRATED_FROM_PREVIOUS_CURVE": 1,
+        "UNCHANGED_PREDICTION_NO_REBUILD": 2
+      },
+      "timing_scope": "LOCAL_COMPARISON_WALL_MS_NOT_PUBLIC_API_LATENCY",
+      "timing_samples_ms": {
+        "A": [
+          438.0417000502348,
+          12.642999994568527
+        ],
+        "B": [
+          929.469000082463,
+          100.33619997557253
+        ],
+        "C": [
+          477.60600002948195,
+          58.18559997715056,
+          15.443399897776544,
+          16.57029998023063
+        ]
+      },
+      "timing_events": [
+        {
+          "source_epoch": 1793005255,
+          "reason": "COLD_START_NO_PREVIOUS_STATE",
+          "rebuilt": true,
+          "C_ms": 477.60600002948195,
+          "A_ms": 438.0417000502348,
+          "B_ms": 929.469000082463
+        },
+        {
+          "source_epoch": 1793005315,
+          "reason": "RECALIBRATED_FROM_PREVIOUS_CURVE",
+          "rebuilt": true,
+          "C_ms": 58.18559997715056,
+          "A_ms": 12.642999994568527,
+          "B_ms": 100.33619997557253
+        },
+        {
+          "source_epoch": 1793005375,
+          "reason": "UNCHANGED_PREDICTION_NO_REBUILD",
+          "rebuilt": false,
+          "C_ms": 15.443399897776544
+        },
+        {
+          "source_epoch": 1793005465,
+          "reason": "UNCHANGED_PREDICTION_NO_REBUILD",
+          "rebuilt": false,
+          "C_ms": 16.57029998023063
+        }
+      ],
+      "timings_ms": {
+        "A": {
+          "n": 2,
+          "p50": 225.34235002240166,
+          "p95": 416.7717650474515
+        },
+        "B": {
+          "n": 2,
+          "p50": 514.9026000290178,
+          "p95": 888.0123600771185
+        },
+        "C": {
+          "n": 4,
+          "p50": 37.377949978690594,
+          "p95": 414.69294002163207
+        }
+      },
+      "route_number": "53",
+      "direction": "Eichplatz"
+    },
+    {
+      "rows": [
+        {
+          "trip": "1209627",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005255,
+          "calculation_service_s": 36070,
+          "sample_offset_s": 0.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 6162.513268365845,
+              "speed_kmh": 42.42,
+              "next_stop": "199035",
+              "gtfs_eta_service_s": 36091,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 167.2449241121949,
+              "fit": "RECOVERY_BLEND",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 27.492,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 6162.513268365845,
+              "speed_kmh": 42.42,
+              "next_stop": "199035",
+              "gtfs_eta_service_s": 36091,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 167.2449241121949,
+              "fit": "RECOVERY_BLEND",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 27.492,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 6162.513268365845,
+              "speed_kmh": 42.42,
+              "next_stop": "199035",
+              "gtfs_eta_service_s": 36091,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 167.2449241121949,
+              "fit": "RECOVERY_BLEND",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 27.492,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 0.0,
+          "native_boundary_position_jump_m": null,
+          "native_boundary_speed_jump_kmh": null,
+          "previous_next_gtfs_eta_service_s": null,
+          "next_target_revision_s": null,
+          "native_reasons": []
+        },
+        {
+          "trip": "1209627",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005255,
+          "calculation_service_s": 36070,
+          "sample_offset_s": 30.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 6352.263894421179,
+              "speed_kmh": 1.47,
+              "next_stop": "387987",
+              "gtfs_eta_service_s": 36211,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 733.6088497993978,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 27.492,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 6352.263894421179,
+              "speed_kmh": 1.47,
+              "next_stop": "387987",
+              "gtfs_eta_service_s": 36211,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 733.6088497993978,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 27.492,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 6352.263894421179,
+              "speed_kmh": 1.47,
+              "next_stop": "387987",
+              "gtfs_eta_service_s": 36211,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 733.6088497993978,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 27.492,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 0.0,
+          "native_boundary_position_jump_m": null,
+          "native_boundary_speed_jump_kmh": null,
+          "previous_next_gtfs_eta_service_s": null,
+          "next_target_revision_s": null,
+          "native_reasons": []
+        },
+        {
+          "trip": "1209627",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005315,
+          "calculation_service_s": 36141,
+          "sample_offset_s": 0.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 6450.852021559388,
+              "speed_kmh": 44.9,
+              "next_stop": "387987",
+              "gtfs_eta_service_s": 36211,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 635.0207226611892,
+              "fit": "NATIVE_RECALIBRATED",
+              "target_error_s": -4.263256414560601e-14,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": "UNCHANGED_CURRENT_TARGET_RETAINED",
+              "inferred_slowdown_s": 18.41476983782715,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 6450.852021559388,
+              "speed_kmh": 33.09,
+              "next_stop": "387987",
+              "gtfs_eta_service_s": 36211,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 635.0207226611892,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 6450.852021559388,
+              "speed_kmh": 33.09,
+              "next_stop": "387987",
+              "gtfs_eta_service_s": 36211,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 635.0207226611892,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 11.809999999999995,
+          "native_boundary_position_jump_m": 0.0,
+          "native_boundary_speed_jump_kmh": 0.0,
+          "previous_next_gtfs_eta_service_s": 36211,
+          "next_target_revision_s": 0,
+          "native_reasons": [
+            {
+              "shadow_only": true,
+              "selected": "UNCHANGED_CURRENT_TARGET_RETAINED",
+              "target_error_s": -4.263256414560601e-14,
+              "reference_remaining_s": 51.58523016217285,
+              "target_remaining_s": 70.0,
+              "inferred_slowdown_s": 18.41476983782715,
+              "inferred_cause": "UNKNOWN_NOT_OBSERVED_TRAFFIC",
+              "initial_speed_kmh": 44.90047158014194,
+              "remaining_distance_m": 635.0207226611892,
+              "rebuilds": 1,
+              "physics_violations": 0,
+              "reasons": [],
+              "backward_phases": 0,
+              "selection_basis": "TARGET_FEASIBILITY_THEN_FEWEST_STOPS_AND_SPEED_MANOEUVRES",
+              "candidates": [],
+              "position_envelope_samples_m": [],
+              "uncertainty": "EVALUATED_SCENARIOS_NOT_CONFIDENCE_INTERVAL",
+              "observed_vehicle_position": false
+            }
+          ]
+        },
+        {
+          "trip": "1209627",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005315,
+          "calculation_service_s": 36141,
+          "sample_offset_s": 30.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 6821.456353352071,
+              "speed_kmh": 13.29,
+              "next_stop": "387987",
+              "gtfs_eta_service_s": 36211,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 264.4163908685059,
+              "fit": "NATIVE_RECALIBRATED",
+              "target_error_s": -4.263256414560601e-14,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": "UNCHANGED_CURRENT_TARGET_RETAINED",
+              "inferred_slowdown_s": 18.41476983782715,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 6756.846807573259,
+              "speed_kmh": 36.85,
+              "next_stop": "387987",
+              "gtfs_eta_service_s": 36211,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 329.0259366473183,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 6756.846807573259,
+              "speed_kmh": 36.85,
+              "next_stop": "387987",
+              "gtfs_eta_service_s": 36211,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 329.0259366473183,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 64.60954577881239,
+          "speed_delta_c_minus_b_kmh": -23.560000000000002,
+          "native_boundary_position_jump_m": null,
+          "native_boundary_speed_jump_kmh": null,
+          "previous_next_gtfs_eta_service_s": 36211,
+          "next_target_revision_s": 0,
+          "native_reasons": [
+            {
+              "shadow_only": true,
+              "selected": "UNCHANGED_CURRENT_TARGET_RETAINED",
+              "target_error_s": -4.263256414560601e-14,
+              "reference_remaining_s": 51.58523016217285,
+              "target_remaining_s": 70.0,
+              "inferred_slowdown_s": 18.41476983782715,
+              "inferred_cause": "UNKNOWN_NOT_OBSERVED_TRAFFIC",
+              "initial_speed_kmh": 44.90047158014194,
+              "remaining_distance_m": 635.0207226611892,
+              "rebuilds": 1,
+              "physics_violations": 0,
+              "reasons": [],
+              "backward_phases": 0,
+              "selection_basis": "TARGET_FEASIBILITY_THEN_FEWEST_STOPS_AND_SPEED_MANOEUVRES",
+              "candidates": [],
+              "position_envelope_samples_m": [],
+              "uncertainty": "EVALUATED_SCENARIOS_NOT_CONFIDENCE_INTERVAL",
+              "observed_vehicle_position": false
+            }
+          ]
+        },
+        {
+          "trip": "1209627",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005375,
+          "calculation_service_s": 36214,
+          "sample_offset_s": 0.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 7087.174337274434,
+              "speed_kmh": 3.12,
+              "next_stop": "83801",
+              "gtfs_eta_service_s": 36399,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 647.2408025995692,
+              "fit": "NATIVE_RECALIBRATED",
+              "target_error_s": -0.0013161180924612381,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": "SMOOTH_INFERRED_SLOWDOWN",
+              "inferred_slowdown_s": 119.76603837977638,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 7087.174337274434,
+              "speed_kmh": 1.1,
+              "next_stop": "83801",
+              "gtfs_eta_service_s": 36399,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 647.2408025995692,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 7087.174337274434,
+              "speed_kmh": 1.1,
+              "next_stop": "83801",
+              "gtfs_eta_service_s": 36399,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 647.2408025995692,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 2.02,
+          "native_boundary_position_jump_m": 0.0,
+          "native_boundary_speed_jump_kmh": 0.0,
+          "previous_next_gtfs_eta_service_s": 36331,
+          "next_target_revision_s": 68,
+          "native_reasons": [
+            {
+              "shadow_only": true,
+              "selected": "UNCHANGED_CURRENT_TARGET_RETAINED",
+              "target_error_s": -4.263256414560601e-14,
+              "reference_remaining_s": 51.58523016217285,
+              "target_remaining_s": 70.0,
+              "inferred_slowdown_s": 18.41476983782715,
+              "inferred_cause": "UNKNOWN_NOT_OBSERVED_TRAFFIC",
+              "initial_speed_kmh": 44.90047158014194,
+              "remaining_distance_m": 635.0207226611892,
+              "rebuilds": 1,
+              "physics_violations": 0,
+              "reasons": [],
+              "backward_phases": 0,
+              "selection_basis": "TARGET_FEASIBILITY_THEN_FEWEST_STOPS_AND_SPEED_MANOEUVRES",
+              "candidates": [],
+              "position_envelope_samples_m": [],
+              "uncertainty": "EVALUATED_SCENARIOS_NOT_CONFIDENCE_INTERVAL",
+              "observed_vehicle_position": false
+            },
+            {
+              "shadow_only": true,
+              "selected": "SMOOTH_INFERRED_SLOWDOWN",
+              "target_error_s": -0.0013161180924612381,
+              "reference_remaining_s": 65.23396162022362,
+              "target_remaining_s": 185.0,
+              "inferred_slowdown_s": 119.76603837977638,
+              "inferred_cause": "UNKNOWN_NOT_OBSERVED_TRAFFIC",
+              "initial_speed_kmh": 3.1238233292555226,
+              "remaining_distance_m": 647.2408025995692,
+              "rebuilds": 37,
+              "physics_violations": 0,
+              "reasons": [],
+              "backward_phases": 0,
+              "selection_basis": "TARGET_FEASIBILITY_THEN_FEWEST_STOPS_AND_SPEED_MANOEUVRES",
+              "candidates": [
+                {
+                  "name": "SMOOTH_INFERRED_SLOWDOWN",
+                  "target_error_s": -0.0013161180924612381,
+                  "hypothetical_signal_id": null,
+                  "hold_s": 0.0,
+                  "extra_stops": 0,
+                  "acceleration_switches": 1,
+                  "total_speed_variation_kmh": 22.44197256918198
+                },
+                {
+                  "name": "TURN_WEIGHTED_HYPOTHESIS",
+                  "target_error_s": -0.0050088056241577306,
+                  "hypothetical_signal_id": null,
+                  "hold_s": 0.0,
+                  "extra_stops": 0,
+                  "acceleration_switches": 3,
+                  "total_speed_variation_kmh": 144.68667395468003
+                }
+              ],
+              "position_envelope_samples_m": [
+                [
+                  7247.415951016548,
+                  7438.232804045735
+                ],
+                [
+                  7411.640681614151,
+                  7466.361831995174
+                ],
+                [
+                  7494.490859944613,
+                  7575.865412211753
+                ]
+              ],
+              "uncertainty": "EVALUATED_SCENARIOS_NOT_CONFIDENCE_INTERVAL",
+              "observed_vehicle_position": false
+            }
+          ]
+        },
+        {
+          "trip": "1209627",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005375,
+          "calculation_service_s": 36214,
+          "sample_offset_s": 30.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 7189.715369995769,
+              "speed_kmh": 12.78,
+              "next_stop": "83801",
+              "gtfs_eta_service_s": 36399,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 544.6997698782343,
+              "fit": "NATIVE_RECALIBRATED",
+              "target_error_s": -0.0013161180924612381,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": "SMOOTH_INFERRED_SLOWDOWN",
+              "inferred_slowdown_s": 119.76603837977638,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 7149.508104445843,
+              "speed_kmh": 13.86,
+              "next_stop": "83801",
+              "gtfs_eta_service_s": 36399,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 584.9070354281603,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 7149.508104445843,
+              "speed_kmh": 13.86,
+              "next_stop": "83801",
+              "gtfs_eta_service_s": 36399,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 584.9070354281603,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 40.20726554992598,
+          "speed_delta_c_minus_b_kmh": -1.08,
+          "native_boundary_position_jump_m": null,
+          "native_boundary_speed_jump_kmh": null,
+          "previous_next_gtfs_eta_service_s": 36331,
+          "next_target_revision_s": 68,
+          "native_reasons": [
+            {
+              "shadow_only": true,
+              "selected": "UNCHANGED_CURRENT_TARGET_RETAINED",
+              "target_error_s": -4.263256414560601e-14,
+              "reference_remaining_s": 51.58523016217285,
+              "target_remaining_s": 70.0,
+              "inferred_slowdown_s": 18.41476983782715,
+              "inferred_cause": "UNKNOWN_NOT_OBSERVED_TRAFFIC",
+              "initial_speed_kmh": 44.90047158014194,
+              "remaining_distance_m": 635.0207226611892,
+              "rebuilds": 1,
+              "physics_violations": 0,
+              "reasons": [],
+              "backward_phases": 0,
+              "selection_basis": "TARGET_FEASIBILITY_THEN_FEWEST_STOPS_AND_SPEED_MANOEUVRES",
+              "candidates": [],
+              "position_envelope_samples_m": [],
+              "uncertainty": "EVALUATED_SCENARIOS_NOT_CONFIDENCE_INTERVAL",
+              "observed_vehicle_position": false
+            },
+            {
+              "shadow_only": true,
+              "selected": "SMOOTH_INFERRED_SLOWDOWN",
+              "target_error_s": -0.0013161180924612381,
+              "reference_remaining_s": 65.23396162022362,
+              "target_remaining_s": 185.0,
+              "inferred_slowdown_s": 119.76603837977638,
+              "inferred_cause": "UNKNOWN_NOT_OBSERVED_TRAFFIC",
+              "initial_speed_kmh": 3.1238233292555226,
+              "remaining_distance_m": 647.2408025995692,
+              "rebuilds": 37,
+              "physics_violations": 0,
+              "reasons": [],
+              "backward_phases": 0,
+              "selection_basis": "TARGET_FEASIBILITY_THEN_FEWEST_STOPS_AND_SPEED_MANOEUVRES",
+              "candidates": [
+                {
+                  "name": "SMOOTH_INFERRED_SLOWDOWN",
+                  "target_error_s": -0.0013161180924612381,
+                  "hypothetical_signal_id": null,
+                  "hold_s": 0.0,
+                  "extra_stops": 0,
+                  "acceleration_switches": 1,
+                  "total_speed_variation_kmh": 22.44197256918198
+                },
+                {
+                  "name": "TURN_WEIGHTED_HYPOTHESIS",
+                  "target_error_s": -0.0050088056241577306,
+                  "hypothetical_signal_id": null,
+                  "hold_s": 0.0,
+                  "extra_stops": 0,
+                  "acceleration_switches": 3,
+                  "total_speed_variation_kmh": 144.68667395468003
+                }
+              ],
+              "position_envelope_samples_m": [
+                [
+                  7247.415951016548,
+                  7438.232804045735
+                ],
+                [
+                  7411.640681614151,
+                  7466.361831995174
+                ],
+                [
+                  7494.490859944613,
+                  7575.865412211753
+                ]
+              ],
+              "uncertainty": "EVALUATED_SCENARIOS_NOT_CONFIDENCE_INTERVAL",
+              "observed_vehicle_position": false
+            }
+          ]
+        }
+      ],
+      "update_decisions": {
+        "COLD_START_NO_PREVIOUS_STATE": 1,
+        "RECALIBRATED_FROM_PREVIOUS_CURVE": 2,
+        "UNCHANGED_PREDICTION_NO_REBUILD": 1
+      },
+      "timing_scope": "LOCAL_COMPARISON_WALL_MS_NOT_PUBLIC_API_LATENCY",
+      "timing_samples_ms": {
+        "A": [
+          549.1450999397784,
+          43.10120001900941,
+          26.91930008586496
+        ],
+        "B": [
+          1150.7433999795467,
+          222.2621999680996,
+          175.5187000380829
+        ],
+        "C": [
+          573.2574999565259,
+          96.13499999977648,
+          197.17709999531507,
+          27.207800070755184
+        ]
+      },
+      "timing_events": [
+        {
+          "source_epoch": 1793005255,
+          "reason": "COLD_START_NO_PREVIOUS_STATE",
+          "rebuilt": true,
+          "C_ms": 573.2574999565259,
+          "A_ms": 549.1450999397784,
+          "B_ms": 1150.7433999795467
+        },
+        {
+          "source_epoch": 1793005315,
+          "reason": "RECALIBRATED_FROM_PREVIOUS_CURVE",
+          "rebuilt": true,
+          "C_ms": 96.13499999977648,
+          "A_ms": 43.10120001900941,
+          "B_ms": 222.2621999680996
+        },
+        {
+          "source_epoch": 1793005375,
+          "reason": "RECALIBRATED_FROM_PREVIOUS_CURVE",
+          "rebuilt": true,
+          "C_ms": 197.17709999531507,
+          "A_ms": 26.91930008586496,
+          "B_ms": 175.5187000380829
+        },
+        {
+          "source_epoch": 1793005465,
+          "reason": "UNCHANGED_PREDICTION_NO_REBUILD",
+          "rebuilt": false,
+          "C_ms": 27.207800070755184
+        }
+      ],
+      "timings_ms": {
+        "A": {
+          "n": 3,
+          "p50": 43.10120001900941,
+          "p95": 498.5407099477015
+        },
+        "B": {
+          "n": 3,
+          "p50": 222.2621999680996,
+          "p95": 1057.895279978402
+        },
+        "C": {
+          "n": 4,
+          "p50": 146.65604999754578,
+          "p95": 516.8454399623441
+        }
+      },
+      "route_number": "71",
+      "direction": "S-Bahnhof Neustadt"
+    },
+    {
+      "rows": [
+        {
+          "trip": "820046",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005255,
+          "calculation_service_s": 36070,
+          "sample_offset_s": 0.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 4763.472124950228,
+              "speed_kmh": 10.92,
+              "next_stop": "521411",
+              "gtfs_eta_service_s": 36158,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 278.5615539613209,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 104.655,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 4763.472124950228,
+              "speed_kmh": 10.92,
+              "next_stop": "521411",
+              "gtfs_eta_service_s": 36158,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 278.5615539613209,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 104.655,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 4763.472124950228,
+              "speed_kmh": 10.92,
+              "next_stop": "521411",
+              "gtfs_eta_service_s": 36158,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 278.5615539613209,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 104.655,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 0.0,
+          "native_boundary_position_jump_m": null,
+          "native_boundary_speed_jump_kmh": null,
+          "previous_next_gtfs_eta_service_s": null,
+          "next_target_revision_s": null,
+          "native_reasons": []
+        },
+        {
+          "trip": "820046",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005255,
+          "calculation_service_s": 36070,
+          "sample_offset_s": 30.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 4854.451282997064,
+              "speed_kmh": 10.34,
+              "next_stop": "521411",
+              "gtfs_eta_service_s": 36158,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 187.58239591448546,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 104.655,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 4854.451282997064,
+              "speed_kmh": 10.34,
+              "next_stop": "521411",
+              "gtfs_eta_service_s": 36158,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 187.58239591448546,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 104.655,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 4854.451282997064,
+              "speed_kmh": 10.34,
+              "next_stop": "521411",
+              "gtfs_eta_service_s": 36158,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 187.58239591448546,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 104.655,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 0.0,
+          "native_boundary_position_jump_m": null,
+          "native_boundary_speed_jump_kmh": null,
+          "previous_next_gtfs_eta_service_s": null,
+          "next_target_revision_s": null,
+          "native_reasons": []
+        },
+        {
+          "trip": "820046",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005315,
+          "calculation_service_s": 36141,
+          "sample_offset_s": 0.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 5004.550051726436,
+              "speed_kmh": 8.52,
+              "next_stop": "521411",
+              "gtfs_eta_service_s": 36158,
+              "gtfs_prediction_basis": "RT_EXPLICIT",
+              "distance_to_stop_m": 37.48362718511271,
+              "fit": "NATIVE_RECALIBRATED",
+              "target_error_s": 3.552713678800501e-15,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": "UNCHANGED_CURRENT_TARGET_RETAINED",
+              "inferred_slowdown_s": 6.969620500027219,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 5004.550051726436,
+              "speed_kmh": 5.03,
+              "next_stop": "521411",
+              "gtfs_eta_service_s": 36158,
+              "gtfs_prediction_basis": "RT_EXPLICIT",
+              "distance_to_stop_m": 37.48362718511271,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 5004.550051726436,
+              "speed_kmh": 5.03,
+              "next_stop": "521411",
+              "gtfs_eta_service_s": 36158,
+              "gtfs_prediction_basis": "RT_EXPLICIT",
+              "distance_to_stop_m": 37.48362718511271,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 3.4899999999999993,
+          "native_boundary_position_jump_m": 0.0,
+          "native_boundary_speed_jump_kmh": 0.0,
+          "previous_next_gtfs_eta_service_s": 36158,
+          "next_target_revision_s": 0,
+          "native_reasons": [
+            {
+              "shadow_only": true,
+              "selected": "UNCHANGED_CURRENT_TARGET_RETAINED",
+              "target_error_s": 3.552713678800501e-15,
+              "reference_remaining_s": 10.030379499972781,
+              "target_remaining_s": 17.0,
+              "inferred_slowdown_s": 6.969620500027219,
+              "inferred_cause": "UNKNOWN_NOT_OBSERVED_TRAFFIC",
+              "initial_speed_kmh": 8.523102010962292,
+              "remaining_distance_m": 37.48362718511271,
+              "rebuilds": 1,
+              "physics_violations": 0,
+              "reasons": [],
+              "backward_phases": 0,
+              "selection_basis": "TARGET_FEASIBILITY_THEN_FEWEST_STOPS_AND_SPEED_MANOEUVRES",
+              "candidates": [],
+              "position_envelope_samples_m": [],
+              "uncertainty": "EVALUATED_SCENARIOS_NOT_CONFIDENCE_INTERVAL",
+              "observed_vehicle_position": false
+            }
+          ]
+        },
+        {
+          "trip": "820046",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005315,
+          "calculation_service_s": 36141,
+          "sample_offset_s": 30.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 5042.033678911549,
+              "speed_kmh": 0.0,
+              "next_stop": "521411",
+              "gtfs_eta_service_s": 36158,
+              "gtfs_prediction_basis": "RT_EXPLICIT",
+              "distance_to_stop_m": 0.0,
+              "fit": null,
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 5042.033678911549,
+              "speed_kmh": 0.0,
+              "next_stop": "521411",
+              "gtfs_eta_service_s": 36158,
+              "gtfs_prediction_basis": "RT_EXPLICIT",
+              "distance_to_stop_m": 0.0,
+              "fit": null,
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 5042.033678911549,
+              "speed_kmh": 0.0,
+              "next_stop": "521411",
+              "gtfs_eta_service_s": 36158,
+              "gtfs_prediction_basis": "RT_EXPLICIT",
+              "distance_to_stop_m": 0.0,
+              "fit": null,
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 0.0,
+          "native_boundary_position_jump_m": null,
+          "native_boundary_speed_jump_kmh": null,
+          "previous_next_gtfs_eta_service_s": 36158,
+          "next_target_revision_s": 0,
+          "native_reasons": [
+            {
+              "shadow_only": true,
+              "selected": "UNCHANGED_CURRENT_TARGET_RETAINED",
+              "target_error_s": 3.552713678800501e-15,
+              "reference_remaining_s": 10.030379499972781,
+              "target_remaining_s": 17.0,
+              "inferred_slowdown_s": 6.969620500027219,
+              "inferred_cause": "UNKNOWN_NOT_OBSERVED_TRAFFIC",
+              "initial_speed_kmh": 8.523102010962292,
+              "remaining_distance_m": 37.48362718511271,
+              "rebuilds": 1,
+              "physics_violations": 0,
+              "reasons": [],
+              "backward_phases": 0,
+              "selection_basis": "TARGET_FEASIBILITY_THEN_FEWEST_STOPS_AND_SPEED_MANOEUVRES",
+              "candidates": [],
+              "position_envelope_samples_m": [],
+              "uncertainty": "EVALUATED_SCENARIOS_NOT_CONFIDENCE_INTERVAL",
+              "observed_vehicle_position": false
+            }
+          ]
+        },
+        {
+          "trip": "820046",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005375,
+          "calculation_service_s": 36214,
+          "sample_offset_s": 0.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 5042.033678911549,
+              "speed_kmh": 0.0,
+              "next_stop": "521411",
+              "gtfs_eta_service_s": 36246,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 0.0,
+              "fit": "DWELL",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 5042.033678911549,
+              "speed_kmh": 0.0,
+              "next_stop": "521411",
+              "gtfs_eta_service_s": 36246,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 0.0,
+              "fit": "DWELL",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 5042.033678911549,
+              "speed_kmh": 0.0,
+              "next_stop": "521411",
+              "gtfs_eta_service_s": 36246,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 0.0,
+              "fit": "DWELL",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 0.0,
+          "native_boundary_position_jump_m": 0.0,
+          "native_boundary_speed_jump_kmh": 0.0,
+          "previous_next_gtfs_eta_service_s": 36158,
+          "next_target_revision_s": 88,
+          "native_reasons": [
+            {
+              "shadow_only": true,
+              "selected": "UNCHANGED_CURRENT_TARGET_RETAINED",
+              "target_error_s": 3.552713678800501e-15,
+              "reference_remaining_s": 10.030379499972781,
+              "target_remaining_s": 17.0,
+              "inferred_slowdown_s": 6.969620500027219,
+              "inferred_cause": "UNKNOWN_NOT_OBSERVED_TRAFFIC",
+              "initial_speed_kmh": 8.523102010962292,
+              "remaining_distance_m": 37.48362718511271,
+              "rebuilds": 1,
+              "physics_violations": 0,
+              "reasons": [],
+              "backward_phases": 0,
+              "selection_basis": "TARGET_FEASIBILITY_THEN_FEWEST_STOPS_AND_SPEED_MANOEUVRES",
+              "candidates": [],
+              "position_envelope_samples_m": [],
+              "uncertainty": "EVALUATED_SCENARIOS_NOT_CONFIDENCE_INTERVAL",
+              "observed_vehicle_position": false
+            }
+          ]
+        },
+        {
+          "trip": "820046",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005375,
+          "calculation_service_s": 36214,
+          "sample_offset_s": 30.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 5042.033678911549,
+              "speed_kmh": 0.0,
+              "next_stop": "521411",
+              "gtfs_eta_service_s": 36246,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 0.0,
+              "fit": "DWELL",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 5042.033678911549,
+              "speed_kmh": 0.0,
+              "next_stop": "521411",
+              "gtfs_eta_service_s": 36246,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 0.0,
+              "fit": "DWELL",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 5042.033678911549,
+              "speed_kmh": 0.0,
+              "next_stop": "521411",
+              "gtfs_eta_service_s": 36246,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 0.0,
+              "fit": "DWELL",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 0.0,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 0.0,
+          "native_boundary_position_jump_m": null,
+          "native_boundary_speed_jump_kmh": null,
+          "previous_next_gtfs_eta_service_s": 36158,
+          "next_target_revision_s": 88,
+          "native_reasons": [
+            {
+              "shadow_only": true,
+              "selected": "UNCHANGED_CURRENT_TARGET_RETAINED",
+              "target_error_s": 3.552713678800501e-15,
+              "reference_remaining_s": 10.030379499972781,
+              "target_remaining_s": 17.0,
+              "inferred_slowdown_s": 6.969620500027219,
+              "inferred_cause": "UNKNOWN_NOT_OBSERVED_TRAFFIC",
+              "initial_speed_kmh": 8.523102010962292,
+              "remaining_distance_m": 37.48362718511271,
+              "rebuilds": 1,
+              "physics_violations": 0,
+              "reasons": [],
+              "backward_phases": 0,
+              "selection_basis": "TARGET_FEASIBILITY_THEN_FEWEST_STOPS_AND_SPEED_MANOEUVRES",
+              "candidates": [],
+              "position_envelope_samples_m": [],
+              "uncertainty": "EVALUATED_SCENARIOS_NOT_CONFIDENCE_INTERVAL",
+              "observed_vehicle_position": false
+            }
+          ]
+        }
+      ],
+      "update_decisions": {
+        "COLD_START_NO_PREVIOUS_STATE": 1,
+        "RECALIBRATED_FROM_PREVIOUS_CURVE": 2
+      },
+      "timing_scope": "LOCAL_COMPARISON_WALL_MS_NOT_PUBLIC_API_LATENCY",
+      "timing_samples_ms": {
+        "A": [
+          327.65699992887676,
+          1.2058999855071306,
+          0.5311999702826142
+        ],
+        "B": [
+          608.8045999640599,
+          16.839400050230324,
+          0.22489996626973152
+        ],
+        "C": [
+          342.53409993834794,
+          23.786599980667233,
+          17.453699954785407
+        ]
+      },
+      "timing_events": [
+        {
+          "source_epoch": 1793005255,
+          "reason": "COLD_START_NO_PREVIOUS_STATE",
+          "rebuilt": true,
+          "C_ms": 342.53409993834794,
+          "A_ms": 327.65699992887676,
+          "B_ms": 608.8045999640599
+        },
+        {
+          "source_epoch": 1793005315,
+          "reason": "RECALIBRATED_FROM_PREVIOUS_CURVE",
+          "rebuilt": true,
+          "C_ms": 23.786599980667233,
+          "A_ms": 1.2058999855071306,
+          "B_ms": 16.839400050230324
+        },
+        {
+          "source_epoch": 1793005375,
+          "reason": "RECALIBRATED_FROM_PREVIOUS_CURVE",
+          "rebuilt": true,
+          "C_ms": 17.453699954785407,
+          "A_ms": 0.5311999702826142,
+          "B_ms": 0.22489996626973152
+        }
+      ],
+      "timings_ms": {
+        "A": {
+          "n": 3,
+          "p50": 1.2058999855071306,
+          "p95": 295.01188993453974
+        },
+        "B": {
+          "n": 3,
+          "p50": 16.839400050230324,
+          "p95": 549.6080799726769
+        },
+        "C": {
+          "n": 3,
+          "p50": 23.786599980667233,
+          "p95": 310.65934994257987
+        }
+      },
+      "route_number": "69",
+      "direction": "S-Bahnhof Neustadt"
+    },
+    {
+      "rows": [
+        {
+          "trip": "678105",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005255,
+          "calculation_service_s": 36070,
+          "sample_offset_s": 0.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 6048.110728560706,
+              "speed_kmh": 20.91,
+              "next_stop": "325129",
+              "gtfs_eta_service_s": 36110,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 203.39566926056432,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 10.715,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 6048.110728560706,
+              "speed_kmh": 20.91,
+              "next_stop": "325129",
+              "gtfs_eta_service_s": 36110,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 203.39566926056432,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 10.715,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 6048.110728560706,
+              "speed_kmh": 20.91,
+              "next_stop": "325129",
+              "gtfs_eta_service_s": 36110,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 203.39566926056432,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 10.715,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 0.0,
+          "native_boundary_position_jump_m": null,
+          "native_boundary_speed_jump_kmh": null,
+          "previous_next_gtfs_eta_service_s": null,
+          "next_target_revision_s": null,
+          "native_reasons": []
+        },
+        {
+          "trip": "678105",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005255,
+          "calculation_service_s": 36070,
+          "sample_offset_s": 30.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 6222.369199994695,
+              "speed_kmh": 20.52,
+              "next_stop": "325129",
+              "gtfs_eta_service_s": 36110,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 29.137197826575175,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 10.715,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 6222.369199994695,
+              "speed_kmh": 20.52,
+              "next_stop": "325129",
+              "gtfs_eta_service_s": 36110,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 29.137197826575175,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 10.715,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 6222.369199994695,
+              "speed_kmh": 20.52,
+              "next_stop": "325129",
+              "gtfs_eta_service_s": 36110,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 29.137197826575175,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 10.715,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 0.0,
+          "native_boundary_position_jump_m": null,
+          "native_boundary_speed_jump_kmh": null,
+          "previous_next_gtfs_eta_service_s": null,
+          "next_target_revision_s": null,
+          "native_reasons": []
+        },
+        {
+          "trip": "678105",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005375,
+          "calculation_service_s": 36214,
+          "sample_offset_s": 0.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 6987.390617996037,
+              "speed_kmh": 30.07,
+              "next_stop": "356010",
+              "gtfs_eta_service_s": 36292,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 77.47947604311958,
+              "fit": "NATIVE_RECALIBRATED",
+              "target_error_s": -0.0023123423965500933,
+              "plan_max_arrival_target_error_s": 3.351,
+              "selected_scenario": "SMOOTH_INFERRED_SLOWDOWN",
+              "inferred_slowdown_s": 62.300398607037245,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 6987.390617996037,
+              "speed_kmh": 5.68,
+              "next_stop": "356010",
+              "gtfs_eta_service_s": 36292,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 77.47947604311958,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 3.351,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 6987.390617996037,
+              "speed_kmh": 5.68,
+              "next_stop": "356010",
+              "gtfs_eta_service_s": 36292,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 77.47947604311958,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 3.351,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 24.39,
+          "native_boundary_position_jump_m": 0.0,
+          "native_boundary_speed_jump_kmh": 0.0,
+          "previous_next_gtfs_eta_service_s": 36230,
+          "next_target_revision_s": 62,
+          "native_reasons": [
+            {
+              "shadow_only": true,
+              "selected": "SMOOTH_INFERRED_SLOWDOWN",
+              "target_error_s": -0.0023123423965500933,
+              "reference_remaining_s": 15.699601392962755,
+              "target_remaining_s": 78.0,
+              "inferred_slowdown_s": 62.300398607037245,
+              "inferred_cause": "UNKNOWN_NOT_OBSERVED_TRAFFIC",
+              "initial_speed_kmh": 30.066778176614974,
+              "remaining_distance_m": 77.47947604311958,
+              "rebuilds": 37,
+              "physics_violations": 0,
+              "reasons": [],
+              "backward_phases": 0,
+              "selection_basis": "TARGET_FEASIBILITY_THEN_FEWEST_STOPS_AND_SPEED_MANOEUVRES",
+              "candidates": [
+                {
+                  "name": "SMOOTH_INFERRED_SLOWDOWN",
+                  "target_error_s": -0.0023123423965500933,
+                  "hypothetical_signal_id": null,
+                  "hold_s": 0.0,
+                  "extra_stops": 0,
+                  "acceleration_switches": 0,
+                  "total_speed_variation_kmh": 30.066778176614974
+                },
+                {
+                  "name": "TURN_WEIGHTED_HYPOTHESIS",
+                  "target_error_s": 0.013140988103089057,
+                  "hypothetical_signal_id": null,
+                  "hold_s": 0.0,
+                  "extra_stops": 0,
+                  "acceleration_switches": 2,
+                  "total_speed_variation_kmh": 57.35468755582521
+                }
+              ],
+              "position_envelope_samples_m": [
+                [
+                  7024.396589750514,
+                  7027.238615162542
+                ],
+                [
+                  7033.1095331454935,
+                  7040.609399286281
+                ],
+                [
+                  7041.822476540472,
+                  7053.98018341002
+                ]
+              ],
+              "uncertainty": "EVALUATED_SCENARIOS_NOT_CONFIDENCE_INTERVAL",
+              "observed_vehicle_position": false
+            }
+          ]
+        },
+        {
+          "trip": "678105",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005375,
+          "calculation_service_s": 36214,
+          "sample_offset_s": 30.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 7034.4382681522475,
+              "speed_kmh": 2.47,
+              "next_stop": "356010",
+              "gtfs_eta_service_s": 36292,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 30.431825886908882,
+              "fit": "NATIVE_RECALIBRATED",
+              "target_error_s": -0.0023123423965500933,
+              "plan_max_arrival_target_error_s": 3.351,
+              "selected_scenario": "SMOOTH_INFERRED_SLOWDOWN",
+              "inferred_slowdown_s": 62.300398607037245,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 7022.097999705464,
+              "speed_kmh": 3.82,
+              "next_stop": "356010",
+              "gtfs_eta_service_s": 36292,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 42.77209433369262,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 3.351,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 7022.097999705464,
+              "speed_kmh": 3.82,
+              "next_stop": "356010",
+              "gtfs_eta_service_s": 36292,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 42.77209433369262,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 3.351,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 12.340268446783739,
+          "speed_delta_c_minus_b_kmh": -1.3499999999999996,
+          "native_boundary_position_jump_m": null,
+          "native_boundary_speed_jump_kmh": null,
+          "previous_next_gtfs_eta_service_s": 36230,
+          "next_target_revision_s": 62,
+          "native_reasons": [
+            {
+              "shadow_only": true,
+              "selected": "SMOOTH_INFERRED_SLOWDOWN",
+              "target_error_s": -0.0023123423965500933,
+              "reference_remaining_s": 15.699601392962755,
+              "target_remaining_s": 78.0,
+              "inferred_slowdown_s": 62.300398607037245,
+              "inferred_cause": "UNKNOWN_NOT_OBSERVED_TRAFFIC",
+              "initial_speed_kmh": 30.066778176614974,
+              "remaining_distance_m": 77.47947604311958,
+              "rebuilds": 37,
+              "physics_violations": 0,
+              "reasons": [],
+              "backward_phases": 0,
+              "selection_basis": "TARGET_FEASIBILITY_THEN_FEWEST_STOPS_AND_SPEED_MANOEUVRES",
+              "candidates": [
+                {
+                  "name": "SMOOTH_INFERRED_SLOWDOWN",
+                  "target_error_s": -0.0023123423965500933,
+                  "hypothetical_signal_id": null,
+                  "hold_s": 0.0,
+                  "extra_stops": 0,
+                  "acceleration_switches": 0,
+                  "total_speed_variation_kmh": 30.066778176614974
+                },
+                {
+                  "name": "TURN_WEIGHTED_HYPOTHESIS",
+                  "target_error_s": 0.013140988103089057,
+                  "hypothetical_signal_id": null,
+                  "hold_s": 0.0,
+                  "extra_stops": 0,
+                  "acceleration_switches": 2,
+                  "total_speed_variation_kmh": 57.35468755582521
+                }
+              ],
+              "position_envelope_samples_m": [
+                [
+                  7024.396589750514,
+                  7027.238615162542
+                ],
+                [
+                  7033.1095331454935,
+                  7040.609399286281
+                ],
+                [
+                  7041.822476540472,
+                  7053.98018341002
+                ]
+              ],
+              "uncertainty": "EVALUATED_SCENARIOS_NOT_CONFIDENCE_INTERVAL",
+              "observed_vehicle_position": false
+            }
+          ]
+        }
+      ],
+      "update_decisions": {
+        "COLD_START_NO_PREVIOUS_STATE": 1,
+        "UNCHANGED_PREDICTION_NO_REBUILD": 2,
+        "RECALIBRATED_FROM_PREVIOUS_CURVE": 1
+      },
+      "timing_scope": "LOCAL_COMPARISON_WALL_MS_NOT_PUBLIC_API_LATENCY",
+      "timing_samples_ms": {
+        "A": [
+          479.99370004981756,
+          40.98359995987266
+        ],
+        "B": [
+          1256.6982000134885,
+          216.31329995580018
+        ],
+        "C": [
+          494.1860999679193,
+          24.48809996712953,
+          94.71950004808605,
+          23.378900019451976
+        ]
+      },
+      "timing_events": [
+        {
+          "source_epoch": 1793005255,
+          "reason": "COLD_START_NO_PREVIOUS_STATE",
+          "rebuilt": true,
+          "C_ms": 494.1860999679193,
+          "A_ms": 479.99370004981756,
+          "B_ms": 1256.6982000134885
+        },
+        {
+          "source_epoch": 1793005315,
+          "reason": "UNCHANGED_PREDICTION_NO_REBUILD",
+          "rebuilt": false,
+          "C_ms": 24.48809996712953
+        },
+        {
+          "source_epoch": 1793005375,
+          "reason": "RECALIBRATED_FROM_PREVIOUS_CURVE",
+          "rebuilt": true,
+          "C_ms": 94.71950004808605,
+          "A_ms": 40.98359995987266,
+          "B_ms": 216.31329995580018
+        },
+        {
+          "source_epoch": 1793005465,
+          "reason": "UNCHANGED_PREDICTION_NO_REBUILD",
+          "rebuilt": false,
+          "C_ms": 23.378900019451976
+        }
+      ],
+      "timings_ms": {
+        "A": {
+          "n": 2,
+          "p50": 260.4886500048451,
+          "p95": 458.0431950453203
+        },
+        "B": {
+          "n": 2,
+          "p50": 736.5057499846444,
+          "p95": 1204.678955010604
+        },
+        "C": {
+          "n": 4,
+          "p50": 59.60380000760779,
+          "p95": 434.2661099799442
+        }
+      },
+      "route_number": "71",
+      "direction": "Stephan-Sch\u00fctze-Platz"
+    },
+    {
+      "rows": [
+        {
+          "trip": "304360",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005255,
+          "calculation_service_s": 36070,
+          "sample_offset_s": 0.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 5721.772398939547,
+              "speed_kmh": 30.0,
+              "next_stop": "125810",
+              "gtfs_eta_service_s": 36013,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 127.20163117403081,
+              "fit": "PHYSICS_LIMITED",
+              "target_error_s": 75.74,
+              "plan_max_arrival_target_error_s": 75.742,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 5721.772398939547,
+              "speed_kmh": 30.0,
+              "next_stop": "125810",
+              "gtfs_eta_service_s": 36013,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 127.20163117403081,
+              "fit": "PHYSICS_LIMITED",
+              "target_error_s": 75.74,
+              "plan_max_arrival_target_error_s": 75.742,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 5721.772398939547,
+              "speed_kmh": 30.0,
+              "next_stop": "125810",
+              "gtfs_eta_service_s": 36013,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 127.20163117403081,
+              "fit": "PHYSICS_LIMITED",
+              "target_error_s": 75.74,
+              "plan_max_arrival_target_error_s": 75.742,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 0.0,
+          "native_boundary_position_jump_m": null,
+          "native_boundary_speed_jump_kmh": null,
+          "previous_next_gtfs_eta_service_s": null,
+          "next_target_revision_s": null,
+          "native_reasons": []
+        },
+        {
+          "trip": "304360",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005255,
+          "calculation_service_s": 36070,
+          "sample_offset_s": 30.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 5904.80759689461,
+              "speed_kmh": 23.44,
+              "next_stop": "294082",
+              "gtfs_eta_service_s": 36073,
+              "gtfs_prediction_basis": "RT_EXPLICIT",
+              "distance_to_stop_m": 314.9164058120941,
+              "fit": "PHYSICS_LIMITED",
+              "target_error_s": 70.07,
+              "plan_max_arrival_target_error_s": 75.742,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 5904.80759689461,
+              "speed_kmh": 23.44,
+              "next_stop": "294082",
+              "gtfs_eta_service_s": 36073,
+              "gtfs_prediction_basis": "RT_EXPLICIT",
+              "distance_to_stop_m": 314.9164058120941,
+              "fit": "PHYSICS_LIMITED",
+              "target_error_s": 70.07,
+              "plan_max_arrival_target_error_s": 75.742,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 5904.80759689461,
+              "speed_kmh": 23.44,
+              "next_stop": "294082",
+              "gtfs_eta_service_s": 36073,
+              "gtfs_prediction_basis": "RT_EXPLICIT",
+              "distance_to_stop_m": 314.9164058120941,
+              "fit": "PHYSICS_LIMITED",
+              "target_error_s": 70.07,
+              "plan_max_arrival_target_error_s": 75.742,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 0.0,
+          "native_boundary_position_jump_m": null,
+          "native_boundary_speed_jump_kmh": null,
+          "previous_next_gtfs_eta_service_s": null,
+          "next_target_revision_s": null,
+          "native_reasons": []
+        }
+      ],
+      "update_decisions": {
+        "COLD_START_NO_PREVIOUS_STATE": 1
+      },
+      "timing_scope": "LOCAL_COMPARISON_WALL_MS_NOT_PUBLIC_API_LATENCY",
+      "timing_samples_ms": {
+        "A": [
+          215.25320003274828
+        ],
+        "B": [
+          449.3725999491289
+        ],
+        "C": [
+          246.39540002681315
+        ]
+      },
+      "timing_events": [
+        {
+          "source_epoch": 1793005255,
+          "reason": "COLD_START_NO_PREVIOUS_STATE",
+          "rebuilt": true,
+          "C_ms": 246.39540002681315,
+          "A_ms": 215.25320003274828,
+          "B_ms": 449.3725999491289
+        }
+      ],
+      "timings_ms": {
+        "A": {
+          "n": 1,
+          "p50": 215.25320003274828,
+          "p95": 215.25320003274828
+        },
+        "B": {
+          "n": 1,
+          "p50": 449.3725999491289,
+          "p95": 449.3725999491289
+        },
+        "C": {
+          "n": 1,
+          "p50": 246.39540002681315,
+          "p95": 246.39540002681315
+        }
+      },
+      "route_number": "61",
+      "direction": "Friedensh\u00f6he"
+    },
+    {
+      "rows": [
+        {
+          "trip": "491847",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005255,
+          "calculation_service_s": 36070,
+          "sample_offset_s": 0.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 1747.823069041424,
+              "speed_kmh": 2.1,
+              "next_stop": "410077",
+              "gtfs_eta_service_s": 36186,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 469.65380429520997,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 26.741,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 1747.823069041424,
+              "speed_kmh": 2.1,
+              "next_stop": "410077",
+              "gtfs_eta_service_s": 36186,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 469.65380429520997,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 26.741,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 1747.823069041424,
+              "speed_kmh": 2.1,
+              "next_stop": "410077",
+              "gtfs_eta_service_s": 36186,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 469.65380429520997,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 26.741,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 0.0,
+          "native_boundary_position_jump_m": null,
+          "native_boundary_speed_jump_kmh": null,
+          "previous_next_gtfs_eta_service_s": null,
+          "next_target_revision_s": null,
+          "native_reasons": []
+        },
+        {
+          "trip": "491847",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005255,
+          "calculation_service_s": 36070,
+          "sample_offset_s": 30.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 1830.8814790635874,
+              "speed_kmh": 17.84,
+              "next_stop": "410077",
+              "gtfs_eta_service_s": 36186,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 386.5953942730466,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 26.741,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 1830.8814790635874,
+              "speed_kmh": 17.84,
+              "next_stop": "410077",
+              "gtfs_eta_service_s": 36186,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 386.5953942730466,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 26.741,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 1830.8814790635874,
+              "speed_kmh": 17.84,
+              "next_stop": "410077",
+              "gtfs_eta_service_s": 36186,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 386.5953942730466,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 26.741,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 0.0,
+          "native_boundary_position_jump_m": null,
+          "native_boundary_speed_jump_kmh": null,
+          "previous_next_gtfs_eta_service_s": null,
+          "next_target_revision_s": null,
+          "native_reasons": []
+        },
+        {
+          "trip": "491847",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005315,
+          "calculation_service_s": 36141,
+          "sample_offset_s": 0.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 2053.0807456553057,
+              "speed_kmh": 19.58,
+              "next_stop": "410077",
+              "gtfs_eta_service_s": 36186,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 164.39612768132838,
+              "fit": "NATIVE_RECALIBRATED",
+              "target_error_s": 1.4210854715202004e-14,
+              "plan_max_arrival_target_error_s": 26.741,
+              "selected_scenario": "UNCHANGED_CURRENT_TARGET_RETAINED",
+              "inferred_slowdown_s": 24.67117999648853,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 2053.0807456553057,
+              "speed_kmh": 8.85,
+              "next_stop": "410077",
+              "gtfs_eta_service_s": 36186,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 164.39612768132838,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 26.741,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 2053.0807456553057,
+              "speed_kmh": 8.85,
+              "next_stop": "410077",
+              "gtfs_eta_service_s": 36186,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 164.39612768132838,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 26.741,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 10.729999999999999,
+          "native_boundary_position_jump_m": 0.0,
+          "native_boundary_speed_jump_kmh": 0.0,
+          "previous_next_gtfs_eta_service_s": 36186,
+          "next_target_revision_s": 0,
+          "native_reasons": [
+            {
+              "shadow_only": true,
+              "selected": "UNCHANGED_CURRENT_TARGET_RETAINED",
+              "target_error_s": 1.4210854715202004e-14,
+              "reference_remaining_s": 20.32882000351147,
+              "target_remaining_s": 45.0,
+              "inferred_slowdown_s": 24.67117999648853,
+              "inferred_cause": "UNKNOWN_NOT_OBSERVED_TRAFFIC",
+              "initial_speed_kmh": 19.58224953549923,
+              "remaining_distance_m": 164.39612768132838,
+              "rebuilds": 1,
+              "physics_violations": 0,
+              "reasons": [],
+              "backward_phases": 0,
+              "selection_basis": "TARGET_FEASIBILITY_THEN_FEWEST_STOPS_AND_SPEED_MANOEUVRES",
+              "candidates": [],
+              "position_envelope_samples_m": [],
+              "uncertainty": "EVALUATED_SCENARIOS_NOT_CONFIDENCE_INTERVAL",
+              "observed_vehicle_position": false
+            }
+          ]
+        },
+        {
+          "trip": "491847",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005315,
+          "calculation_service_s": 36141,
+          "sample_offset_s": 30.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 2196.769790505624,
+              "speed_kmh": 9.94,
+              "next_stop": "410077",
+              "gtfs_eta_service_s": 36186,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 20.70708283101021,
+              "fit": "NATIVE_RECALIBRATED",
+              "target_error_s": 1.4210854715202004e-14,
+              "plan_max_arrival_target_error_s": 26.741,
+              "selected_scenario": "UNCHANGED_CURRENT_TARGET_RETAINED",
+              "inferred_slowdown_s": 24.67117999648853,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 2189.9261451542898,
+              "speed_kmh": 13.22,
+              "next_stop": "410077",
+              "gtfs_eta_service_s": 36186,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 27.5507281823443,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 26.741,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 2189.9261451542898,
+              "speed_kmh": 13.22,
+              "next_stop": "410077",
+              "gtfs_eta_service_s": 36186,
+              "gtfs_prediction_basis": "RT_PROPAGATED",
+              "distance_to_stop_m": 27.5507281823443,
+              "fit": "NATURAL_STRETCH",
+              "target_error_s": 0.0,
+              "plan_max_arrival_target_error_s": 26.741,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 6.843645351334089,
+          "speed_delta_c_minus_b_kmh": -3.280000000000001,
+          "native_boundary_position_jump_m": null,
+          "native_boundary_speed_jump_kmh": null,
+          "previous_next_gtfs_eta_service_s": 36186,
+          "next_target_revision_s": 0,
+          "native_reasons": [
+            {
+              "shadow_only": true,
+              "selected": "UNCHANGED_CURRENT_TARGET_RETAINED",
+              "target_error_s": 1.4210854715202004e-14,
+              "reference_remaining_s": 20.32882000351147,
+              "target_remaining_s": 45.0,
+              "inferred_slowdown_s": 24.67117999648853,
+              "inferred_cause": "UNKNOWN_NOT_OBSERVED_TRAFFIC",
+              "initial_speed_kmh": 19.58224953549923,
+              "remaining_distance_m": 164.39612768132838,
+              "rebuilds": 1,
+              "physics_violations": 0,
+              "reasons": [],
+              "backward_phases": 0,
+              "selection_basis": "TARGET_FEASIBILITY_THEN_FEWEST_STOPS_AND_SPEED_MANOEUVRES",
+              "candidates": [],
+              "position_envelope_samples_m": [],
+              "uncertainty": "EVALUATED_SCENARIOS_NOT_CONFIDENCE_INTERVAL",
+              "observed_vehicle_position": false
+            }
+          ]
+        },
+        {
+          "trip": "491847",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005465,
+          "calculation_service_s": 36283,
+          "sample_offset_s": 0.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 2851.3136456223506,
+              "speed_kmh": 27.29,
+              "next_stop": "71585",
+              "gtfs_eta_service_s": 36240,
+              "gtfs_prediction_basis": "RT_EXPLICIT",
+              "distance_to_stop_m": 1003.7175904437886,
+              "fit": "NATIVE_PHYSICS_LIMITED",
+              "target_error_s": 122.56450193645207,
+              "plan_max_arrival_target_error_s": 149.305,
+              "selected_scenario": "SMOOTH_INFERRED_SLOWDOWN",
+              "inferred_slowdown_s": 0.0,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 2851.3136456223506,
+              "speed_kmh": 27.29,
+              "next_stop": "71585",
+              "gtfs_eta_service_s": 36240,
+              "gtfs_prediction_basis": "RT_EXPLICIT",
+              "distance_to_stop_m": 1003.7175904437886,
+              "fit": "PHYSICS_LIMITED",
+              "target_error_s": 122.56,
+              "plan_max_arrival_target_error_s": 149.305,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 2851.3136456223506,
+              "speed_kmh": 27.29,
+              "next_stop": "71585",
+              "gtfs_eta_service_s": 36240,
+              "gtfs_prediction_basis": "RT_EXPLICIT",
+              "distance_to_stop_m": 1003.7175904437886,
+              "fit": "PHYSICS_LIMITED",
+              "target_error_s": 122.56,
+              "plan_max_arrival_target_error_s": 149.305,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 0.0,
+          "native_boundary_position_jump_m": 0.0,
+          "native_boundary_speed_jump_kmh": 0.0,
+          "previous_next_gtfs_eta_service_s": 36426,
+          "next_target_revision_s": -186,
+          "native_reasons": [
+            {
+              "shadow_only": true,
+              "selected": "UNCHANGED_CURRENT_TARGET_RETAINED",
+              "target_error_s": 1.4210854715202004e-14,
+              "reference_remaining_s": 20.32882000351147,
+              "target_remaining_s": 45.0,
+              "inferred_slowdown_s": 24.67117999648853,
+              "inferred_cause": "UNKNOWN_NOT_OBSERVED_TRAFFIC",
+              "initial_speed_kmh": 19.58224953549923,
+              "remaining_distance_m": 164.39612768132838,
+              "rebuilds": 1,
+              "physics_violations": 0,
+              "reasons": [],
+              "backward_phases": 0,
+              "selection_basis": "TARGET_FEASIBILITY_THEN_FEWEST_STOPS_AND_SPEED_MANOEUVRES",
+              "candidates": [],
+              "position_envelope_samples_m": [],
+              "uncertainty": "EVALUATED_SCENARIOS_NOT_CONFIDENCE_INTERVAL",
+              "observed_vehicle_position": false
+            },
+            {
+              "shadow_only": true,
+              "selected": "SMOOTH_INFERRED_SLOWDOWN",
+              "target_error_s": 122.56450193645207,
+              "reference_remaining_s": 79.56450193645207,
+              "target_remaining_s": -43.0,
+              "inferred_slowdown_s": 0.0,
+              "inferred_cause": "UNKNOWN_NOT_OBSERVED_TRAFFIC",
+              "initial_speed_kmh": 27.292338393064906,
+              "remaining_distance_m": 1003.7175904437886,
+              "rebuilds": 3,
+              "physics_violations": 0,
+              "reasons": [],
+              "backward_phases": 0,
+              "selection_basis": "TARGET_FEASIBILITY_THEN_FEWEST_STOPS_AND_SPEED_MANOEUVRES",
+              "candidates": [
+                {
+                  "name": "SMOOTH_INFERRED_SLOWDOWN",
+                  "target_error_s": 122.56450193645207,
+                  "hypothetical_signal_id": null,
+                  "hold_s": 0.0,
+                  "extra_stops": 0,
+                  "acceleration_switches": 1,
+                  "total_speed_variation_kmh": 72.7076616069351
+                },
+                {
+                  "name": "TURN_WEIGHTED_HYPOTHESIS",
+                  "target_error_s": 122.56450193645207,
+                  "hypothetical_signal_id": null,
+                  "hold_s": 0.0,
+                  "extra_stops": 0,
+                  "acceleration_switches": 1,
+                  "total_speed_variation_kmh": 72.7076616069351
+                }
+              ],
+              "position_envelope_samples_m": [
+                [
+                  2851.3136456223506,
+                  2851.3136456223506
+                ],
+                [
+                  2851.3136456223506,
+                  2851.3136456223506
+                ],
+                [
+                  2851.3136456223506,
+                  2851.3136456223506
+                ]
+              ],
+              "uncertainty": "EVALUATED_SCENARIOS_NOT_CONFIDENCE_INTERVAL",
+              "observed_vehicle_position": false
+            }
+          ]
+        },
+        {
+          "trip": "491847",
+          "service_date": "2026-10-26",
+          "source_epoch": 1793005465,
+          "calculation_service_s": 36283,
+          "sample_offset_s": 30.0,
+          "sample_semantics": "MODELED_NOT_OBSERVED_POSITION",
+          "models": {
+            "C": {
+              "progress_m": 3247.0280699646896,
+              "speed_kmh": 50.0,
+              "next_stop": "71585",
+              "gtfs_eta_service_s": 36240,
+              "gtfs_prediction_basis": "RT_EXPLICIT",
+              "distance_to_stop_m": 608.0031661014496,
+              "fit": "NATIVE_PHYSICS_LIMITED",
+              "target_error_s": 122.56450193645207,
+              "plan_max_arrival_target_error_s": 149.305,
+              "selected_scenario": "SMOOTH_INFERRED_SLOWDOWN",
+              "inferred_slowdown_s": 0.0,
+              "observed_vehicle_state": false
+            },
+            "A": {
+              "progress_m": 3247.0280699646896,
+              "speed_kmh": 50.0,
+              "next_stop": "71585",
+              "gtfs_eta_service_s": 36240,
+              "gtfs_prediction_basis": "RT_EXPLICIT",
+              "distance_to_stop_m": 608.0031661014496,
+              "fit": "PHYSICS_LIMITED",
+              "target_error_s": 122.56,
+              "plan_max_arrival_target_error_s": 149.305,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            },
+            "B": {
+              "progress_m": 3247.0280699646896,
+              "speed_kmh": 50.0,
+              "next_stop": "71585",
+              "gtfs_eta_service_s": 36240,
+              "gtfs_prediction_basis": "RT_EXPLICIT",
+              "distance_to_stop_m": 608.0031661014496,
+              "fit": "PHYSICS_LIMITED",
+              "target_error_s": 122.56,
+              "plan_max_arrival_target_error_s": 149.305,
+              "selected_scenario": null,
+              "inferred_slowdown_s": null,
+              "observed_vehicle_state": false
+            }
+          },
+          "position_delta_c_minus_b_m": 0.0,
+          "speed_delta_c_minus_b_kmh": 0.0,
+          "native_boundary_position_jump_m": null,
+          "native_boundary_speed_jump_kmh": null,
+          "previous_next_gtfs_eta_service_s": 36426,
+          "next_target_revision_s": -186,
+          "native_reasons": [
+            {
+              "shadow_only": true,
+              "selected": "UNCHANGED_CURRENT_TARGET_RETAINED",
+              "target_error_s": 1.4210854715202004e-14,
+              "reference_remaining_s": 20.32882000351147,
+              "target_remaining_s": 45.0,
+              "inferred_slowdown_s": 24.67117999648853,
+              "inferred_cause": "UNKNOWN_NOT_OBSERVED_TRAFFIC",
+              "initial_speed_kmh": 19.58224953549923,
+              "remaining_distance_m": 164.39612768132838,
+              "rebuilds": 1,
+              "physics_violations": 0,
+              "reasons": [],
+              "backward_phases": 0,
+              "selection_basis": "TARGET_FEASIBILITY_THEN_FEWEST_STOPS_AND_SPEED_MANOEUVRES",
+              "candidates": [],
+              "position_envelope_samples_m": [],
+              "uncertainty": "EVALUATED_SCENARIOS_NOT_CONFIDENCE_INTERVAL",
+              "observed_vehicle_position": false
+            },
+            {
+              "shadow_only": true,
+              "selected": "SMOOTH_INFERRED_SLOWDOWN",
+              "target_error_s": 122.56450193645207,
+              "reference_remaining_s": 79.56450193645207,
+              "target_remaining_s": -43.0,
+              "inferred_slowdown_s": 0.0,
+              "inferred_cause": "UNKNOWN_NOT_OBSERVED_TRAFFIC",
+              "initial_speed_kmh": 27.292338393064906,
+              "remaining_distance_m": 1003.7175904437886,
+              "rebuilds": 3,
+              "physics_violations": 0,
+              "reasons": [],
+              "backward_phases": 0,
+              "selection_basis": "TARGET_FEASIBILITY_THEN_FEWEST_STOPS_AND_SPEED_MANOEUVRES",
+              "candidates": [
+                {
+                  "name": "SMOOTH_INFERRED_SLOWDOWN",
+                  "target_error_s": 122.56450193645207,
+                  "hypothetical_signal_id": null,
+                  "hold_s": 0.0,
+                  "extra_stops": 0,
+                  "acceleration_switches": 1,
+                  "total_speed_variation_kmh": 72.7076616069351
+                },
+                {
+                  "name": "TURN_WEIGHTED_HYPOTHESIS",
+                  "target_error_s": 122.56450193645207,
+                  "hypothetical_signal_id": null,
+                  "hold_s": 0.0,
+                  "extra_stops": 0,
+                  "acceleration_switches": 1,
+                  "total_speed_variation_kmh": 72.7076616069351
+                }
+              ],
+              "position_envelope_samples_m": [
+                [
+                  2851.3136456223506,
+                  2851.3136456223506
+                ],
+                [
+                  2851.3136456223506,
+                  2851.3136456223506
+                ],
+                [
+                  2851.3136456223506,
+                  2851.3136456223506
+                ]
+              ],
+              "uncertainty": "EVALUATED_SCENARIOS_NOT_CONFIDENCE_INTERVAL",
+              "observed_vehicle_position": false
+            }
+          ]
+        }
+      ],
+      "update_decisions": {
+        "COLD_START_NO_PREVIOUS_STATE": 1,
+        "RECALIBRATED_FROM_PREVIOUS_CURVE": 2,
+        "UNCHANGED_PREDICTION_NO_REBUILD": 1
+      },
+      "timing_scope": "LOCAL_COMPARISON_WALL_MS_NOT_PUBLIC_API_LATENCY",
+      "timing_samples_ms": {
+        "A": [
+          316.069099935703,
+          277.108300011605,
+          455.989999929443
+        ],
+        "B": [
+          1163.390600006096,
+          1003.2829999690875,
+          514.6564999595284
+        ],
+        "C": [
+          366.41090002376586,
+          313.5938999475911,
+          29.30739999283105,
+          518.5095999622717
+        ]
+      },
+      "timing_events": [
+        {
+          "source_epoch": 1793005255,
+          "reason": "COLD_START_NO_PREVIOUS_STATE",
+          "rebuilt": true,
+          "C_ms": 366.41090002376586,
+          "A_ms": 316.069099935703,
+          "B_ms": 1163.390600006096
+        },
+        {
+          "source_epoch": 1793005315,
+          "reason": "RECALIBRATED_FROM_PREVIOUS_CURVE",
+          "rebuilt": true,
+          "C_ms": 313.5938999475911,
+          "A_ms": 277.108300011605,
+          "B_ms": 1003.2829999690875
+        },
+        {
+          "source_epoch": 1793005375,
+          "reason": "UNCHANGED_PREDICTION_NO_REBUILD",
+          "rebuilt": false,
+          "C_ms": 29.30739999283105
+        },
+        {
+          "source_epoch": 1793005465,
+          "reason": "RECALIBRATED_FROM_PREVIOUS_CURVE",
+          "rebuilt": true,
+          "C_ms": 518.5095999622717,
+          "A_ms": 455.989999929443,
+          "B_ms": 514.6564999595284
+        }
+      ],
+      "timings_ms": {
+        "A": {
+          "n": 3,
+          "p50": 316.069099935703,
+          "p95": 441.997909930069
+        },
+        "B": {
+          "n": 3,
+          "p50": 1003.2829999690875,
+          "p95": 1147.3798400023952
+        },
+        "C": {
+          "n": 4,
+          "p50": 340.0023999856785,
+          "p95": 495.6947949714958
+        }
+      },
+      "route_number": "66",
+      "direction": "B\u00f6rdepark West"
+    }
+  ],
+  "comparison_rows": 28,
+  "actual_vehicle_accuracy": null,
+  "accuracy_status": "NO_INDEPENDENT_VEHICLE_OBSERVATIONS",
+  "external_traffic_requests": 0,
+  "production_modified": false,
+  "limitation": "Never rebind different trip IDs/dates by similar stops or route proximity."
+}

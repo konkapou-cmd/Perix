@@ -26,6 +26,7 @@ import { ContentHero, ContentGallery, ContentMap } from "../../components/shared
 import { DetailFacts, DetailFact } from "../../components/shared/DetailFacts";
 import ErrorState from "../../components/shared/ErrorState";
 import { BottomCTA } from "../../components/shared/BottomCTA";
+import { illustratedIconSource } from "../../components/icons/IllustratedIcon";
 
 const SERVICES_ACCENT = "#7B3FF2";
 
@@ -324,7 +325,7 @@ function ServiceDetailPage() {
             hideBack
             flush
             badges={[
-              { icon: getTypeIcon(service.type), text: getTypeLabel(service.type), color: SERVICES_ACCENT },
+              { icon: getTypeIcon(service.type), iconSource: illustratedIconSource("service-module",service.type), text: getTypeLabel(service.type), color: SERVICES_ACCENT },
               ...(service.price ? [{ icon: "cash", text: formatPrice(service.price), color: "#FFC400" }] : []),
             ]}
             subtitle={service.address ? { text: service.address, icon: "location" } : undefined}
@@ -335,6 +336,7 @@ function ServiceDetailPage() {
           <DetailFacts>
             <DetailFact
               icon={getTypeIcon(service.type) as any}
+              iconSource={illustratedIconSource("service-module",service.type)}
               label={t("services.serviceCategory", "Kategorie")}
               value={getTypeLabel(service.type)}
               accentColor={SERVICES_ACCENT}

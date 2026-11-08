@@ -1,0 +1,448 @@
+--- a/Perix-main/frontend/components/BusinessMap.web.tsx
++++ b/Perix-main/frontend/components/BusinessMap.web.tsx
+@@ -135,7 +135,13 @@
+ 
+ // Vehicle icon scale: smaller, proportional city vehicles. zoom 10 -> 0.35,
+ // zoom 14 -> 0.78, zoom 16 -> 0.89, zoom 18+ -> 1.05.
+-const vehicleScale = (zoom: number) => 0.78 * Math.max(0.45, Math.min(1.35, zoom / 14));
++const vehicleScale = (zoom: number): number => {
++  if (zoom < 12) return 0.34;
++  if (zoom < 14) return 0.38;
++  if (zoom < 16) return 0.44;
++  if (zoom < 18) return 0.52;
++  return 0.61;
++};
+ 
+ const haversineMeters = (
+   a: { lat?: number; lng?: number; latitude?: number; longitude?: number },
+--- a/Perix-main/frontend/public/google-mobility-map.html
++++ b/Perix-main/frontend/public/google-mobility-map.html
+@@ -104,6 +104,7 @@
+           try { rec.marker.setIcon(makeVehicleIcon(rec)); } catch (e) {}
+         }
+       });
++      updateVehicleStacks();
+     });
+     MAP.addListener("bounds_changed", function () {
+       var now = Date.now();
+@@ -237,7 +238,11 @@
+   }
+ 
+   function vehicleScale(zoom) {
+-    return 0.78 * Math.max(0.45, Math.min(1.35, zoom / 14));
++    if (zoom < 12) return 0.34;
++    if (zoom < 14) return 0.38;
++    if (zoom < 16) return 0.44;
++    if (zoom < 18) return 0.52;
++    return 0.61;
+   }
+ 
+   function makeVehicleIcon(v) {
+@@ -263,7 +268,10 @@
+     });
+     marker.setIcon(makeVehicleIcon(v));
+     marker.setOpacity(v.estimated ? 0.72 : 1);
+-    marker.addListener("click", function () { closeVehicleStack(); post("markerPress", { id: v.id }); });
++    marker.addListener("click", function () {
++      if (openVehicleChoices(v.id)) return;
++      closeVehicleStack(); post("markerPress", { id: v.id });
++    });
+     return marker;
+   }
+ 
+@@ -310,6 +318,7 @@
+         rec.animStart = null;
+       }
+     });
++    if (now - STACK_LAST_REFRESH >= 250) updateVehicleStacks();
+     updateApproach();
+     if (active) ANIM_RAF = requestAnimationFrame(loopTick);
+     else { ANIM_RUNNING = false; ANIM_RAF = null; }
+@@ -427,6 +436,7 @@
+           label: v.label,
+           direction: v.direction || null,
+           estimated: !!v.estimated,
++          scale: vehicleScale(MAP.getZoom()),
+           heading: typeof v.heading === "number" ? v.heading : 0,
+           positionState: v.positionState || null,
+           motionState: v.motionState || null,
+@@ -484,33 +494,55 @@
+     updateApproach();
+   }
+ 
+-  // Stationary source positions may coincide. Expose every real payload ID
+-  // with a count/menu instead of moving coordinates or inventing vehicles.
++  // Overview collisions are UI groups only. Every source marker stays at its
++  // canonical position; menus select exact IDs, never invented GPS offsets.
+   var VEHICLE_STACKS = {};
++  var VEHICLE_STACK_KEYS = {};
+   var STACK_INFO = null;
++  var STACK_PANEL = null;
++  var STACK_CONTENT = null;
+   var STACK_OPEN_KEY = null;
++  var STACK_OPEN_KIND = null;
++  var STACK_OPEN_MEMBERS = [];
++  var STACK_LAST_REFRESH = 0;
++
++  function openVehicleChoices(id) {
++    var key = VEHICLE_STACK_KEYS[id];
++    if (!key || !VEHICLE_STACKS[key]) return false;
++    openVehicleStack(key, id);
++    return true;
++  }
+ 
+   function closeVehicleStack() {
+     if (STACK_INFO) STACK_INFO.close();
++    if (STACK_PANEL && STACK_PANEL.parentNode) STACK_PANEL.parentNode.removeChild(STACK_PANEL);
++    STACK_PANEL = null;
++    STACK_CONTENT = null;
+     STACK_OPEN_KEY = null;
+-  }
+-
+-  function openVehicleStack(key) {
++    STACK_OPEN_KIND = null;
++    STACK_OPEN_MEMBERS = [];
++  }
++
++  function openVehicleStack(key, selectedId) {
+     var stack = VEHICLE_STACKS[key];
+     if (!stack || !google.maps.InfoWindow) return;
++    closeVehicleStack();
+     var content = document.createElement("div");
+     content.style.fontFamily = "Arial, sans-serif";
+     content.style.maxWidth = "270px";
+-    content.style.maxHeight = "260px";
++    var mapHeight = MAP && MAP.getDiv ? MAP.getDiv().clientHeight : 0;
++    content.style.maxHeight = Math.max(100, Math.min(260, mapHeight > 0 ? mapHeight - 100 : 260)) + "px";
+     content.style.overflowY = "auto";
+     var heading = document.createElement("div");
+-    heading.textContent = stack.members.length + " vehicles at this map point";
++    heading.textContent = stack.members.length + (stack.kind === "overview"
++      ? " overlapping vehicles at this zoom" : " vehicles at this map point");
+     heading.style.fontWeight = "700";
+     heading.style.padding = "4px 0 8px";
+     content.appendChild(heading);
+     stack.members.forEach(function (id) {
+       var rec = VEHICLES[id];
+       if (!rec) return;
++      var selectedJourney = rec.journeyId;
+       var button = document.createElement("button");
+       button.type = "button";
+       button.textContent = (rec.type === "tram" ? "Tram " : "Bus ") + (rec.label || "")
+@@ -520,34 +552,110 @@
+       button.addEventListener("click", function (event) {
+         if (event && event.stopPropagation) event.stopPropagation();
+         closeVehicleStack();
+-        if (VEHICLES[id]) post("markerPress", { id: id });
++        if (VEHICLES[id] && VEHICLES[id].journeyId === selectedJourney) post("markerPress", { id: id });
+       });
+       content.appendChild(button);
+     });
+-    if (!STACK_INFO) STACK_INFO = new google.maps.InfoWindow({ maxWidth: 270 });
+-    STACK_INFO.setContent(content);
+-    STACK_INFO.open({ map: MAP, anchor: stack.marker, shouldFocus: false });
++    STACK_CONTENT = content;
++    if (stack.kind === "overview" && document.body) {
++      // Keep choices below the parent's area/location controls and above map
++      // attribution. This is a UI sheet, never an offset vehicle coordinate.
++      var panel = document.createElement("div");
++      var height = mapHeight > 0 ? mapHeight : 300;
++      panel.setAttribute("role", "dialog");
++      panel.setAttribute("aria-label", "Choose a vehicle");
++      panel.setAttribute("data-perix-overview-choices", "true");
++      panel.style.cssText = "position:fixed;left:8px;right:64px;bottom:26px;max-width:320px;margin:0 auto;padding:8px;background:#fff;color:#070A2E;border:1px solid #DCE3EB;border-radius:12px;box-shadow:0 3px 14px #070A2E33;z-index:10000;box-sizing:border-box;";
++      panel.style.maxHeight = Math.max(100, height - 96) + "px";
++      content.style.maxWidth = "none";
++      content.style.maxHeight = Math.max(80, height - 116) + "px";
++      heading.style.paddingRight = "36px";
++      var close = document.createElement("button");
++      close.type = "button"; close.textContent = "×";
++      close.setAttribute("aria-label", "Close vehicle choices");
++      close.style.cssText = "position:absolute;right:4px;top:4px;width:36px;height:36px;border:0;border-radius:8px;background:#fff;color:#070A2E;font-size:23px;cursor:pointer;z-index:1;";
++      close.addEventListener("click", closeVehicleStack);
++      panel.appendChild(content); panel.appendChild(close);
++      ["click", "pointerdown", "touchstart"].forEach(function (name) {
++        panel.addEventListener(name, function (event) { if (event.stopPropagation) event.stopPropagation(); });
++      });
++      panel.addEventListener("keydown", function (event) { if (event.key === "Escape") closeVehicleStack(); });
++      document.body.appendChild(panel);
++      STACK_PANEL = panel;
++    } else {
++      if (!STACK_INFO) STACK_INFO = new google.maps.InfoWindow({ maxWidth: 270 });
++      STACK_INFO.setContent(content);
++      var sourceAnchor = VEHICLES[selectedId || stack.members[0]];
++      STACK_INFO.open({ map: MAP, anchor: stack.kind === "overview" && sourceAnchor ? sourceAnchor.marker : stack.marker, shouldFocus: false });
++    }
+     STACK_OPEN_KEY = key;
++    STACK_OPEN_KIND = stack.kind;
++    STACK_OPEN_MEMBERS = stack.members.map(function (id) { return { id: id, journey: VEHICLES[id].journeyId }; });
+   }
+ 
+   function updateVehicleStacks() {
++    STACK_LAST_REFRESH = Date.now();
+     var groups = {};
++    var zoom = MAP && MAP.getZoom ? MAP.getZoom() : 15;
++    var projection = zoom < 14 && MAP && MAP.getProjection ? MAP.getProjection() : null;
++    var overview = zoom < 14 && projection && typeof projection.fromLatLngToPoint === "function";
++    var entries = [];
++    // A moving group may split while a passenger scrolls. Keep that valid
++    // source-ID snapshot selectable, but never keep expired/replaced journeys.
++    if (STACK_OPEN_KIND === "overview" && (zoom >= 14 || STACK_OPEN_MEMBERS.some(function (entry) {
++      return !VEHICLES[entry.id] || VEHICLES[entry.id].journeyId !== entry.journey;
++    }))) closeVehicleStack();
+     Object.keys(VEHICLES).sort().forEach(function (id) {
+       var rec = VEHICLES[id];
+       if (!rec || (rec.type !== "bus" && rec.type !== "tram")) return;
+       var holding = rec.positionState === "STOP_ANCHOR" || rec.positionState === "TURNAROUND_ANCHOR"
+         || ["DWELL", "AT_STOP", "SIGNAL_HOLD", "TURNAROUND", "PARKED"].indexOf(rec.motionState) >= 0 || rec.speed === 0;
+-      if (!holding) return;
++      if (!overview && !holding) return;
+       var point = rec.marker.getPosition ? rec.marker.getPosition() : rec.marker.position;
+       if (!point) return;
+       var lat = typeof point.lat === "function" ? point.lat() : point.lat;
+       var lng = typeof point.lng === "function" ? point.lng() : point.lng;
+       if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
++      if (overview) {
++        var projected = projection.fromLatLngToPoint(typeof point.lat === "function" ? point
++          : new google.maps.LatLng(lat, lng));
++        if (!projected || !Number.isFinite(projected.x) || !Number.isFinite(projected.y)) return;
++        var size = Math.max(16, Math.round((rec.type === "tram" ? 82 : 64) * vehicleScale(zoom)));
++        entries.push({ id: id, point: { lat: lat, lng: lng }, x: projected.x * Math.pow(2, zoom),
++          y: projected.y * Math.pow(2, zoom), hitSize: Math.max(size + 16, 42) });
++        return;
++      }
+       var key = lat.toFixed(5) + ":" + lng.toFixed(5);
+-      if (!groups[key]) groups[key] = { point: { lat: lat, lng: lng }, members: [] };
++      if (!groups[key]) groups[key] = { point: { lat: lat, lng: lng }, members: [], kind: "coincident" };
+       groups[key].members.push(id);
+     });
++    if (overview) {
++      // Connected screen-space hit boxes, including moving vehicles. World
++      // projection makes this independent of camera pan and tile requests.
++      var parents = entries.map(function (_, i) { return i; });
++      function root(i) { while (parents[i] !== i) { parents[i] = parents[parents[i]]; i = parents[i]; } return i; }
++      var worldWidth = 256 * Math.pow(2, zoom);
++      for (var i = 0; i < entries.length; i++) {
++        for (var j = i + 1; j < entries.length; j++) {
++          var dx = Math.abs(entries[i].x - entries[j].x);
++          dx = Math.min(dx, worldWidth - dx);
++          var threshold = (entries[i].hitSize + entries[j].hitSize) / 2;
++          if (dx < threshold && Math.abs(entries[i].y - entries[j].y) < threshold) parents[root(j)] = root(i);
++        }
++      }
++      var connected = {};
++      entries.forEach(function (entry, i) {
++        var r = root(i);
++        if (!connected[r]) connected[r] = { point: entry.point, members: [], kind: "overview" };
++        connected[r].members.push(entry.id);
++      });
++      Object.keys(connected).forEach(function (r) {
++        var group = connected[r];
++        groups["overview:" + JSON.stringify(group.members)] = group;
++      });
++    }
+     var seen = {};
++    VEHICLE_STACK_KEYS = {};
+     Object.keys(groups).forEach(function (key) {
+       var group = groups[key];
+       if (group.members.length < 2) return;
+@@ -561,20 +669,29 @@
+         VEHICLE_STACKS[key] = stack;
+         stack.marker.addListener("click", function () { openVehicleStack(key); });
+       }
++      stack.kind = group.kind;
+       if (stack.signature !== signature) {
+-        if (STACK_OPEN_KEY === key) closeVehicleStack();
++        if (STACK_OPEN_KEY === key && STACK_OPEN_KIND !== "overview") closeVehicleStack();
+         stack.signature = signature;
+         stack.marker.setIcon({ url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(
+           '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="24"><rect x="1" y="1" width="24" height="22" rx="9" fill="#096BFF" stroke="#fff" stroke-width="2"/><text x="13" y="17" text-anchor="middle" font-family="Arial" font-weight="700" font-size="13" fill="#fff">' + group.members.length + '</text></svg>'),
+-          scaledSize: new google.maps.Size(26, 24), anchor: new google.maps.Point(-12, 28) });
++          scaledSize: new google.maps.Size(26, 24), anchor: group.kind === "overview"
++            ? new google.maps.Point(13, 12) : new google.maps.Point(-12, 28) });
+       }
+       stack.members = group.members;
+-      setMarkerPos(stack.marker, group.point.lat, group.point.lng);
++      group.members.forEach(function (id) { VEHICLE_STACK_KEYS[id] = key; });
++      var anchorId = group.members[0];
++      if (stack.anchorId !== anchorId && typeof stack.marker.bindTo === "function") {
++        stack.marker.bindTo("position", VEHICLES[anchorId].marker);
++        stack.anchorId = anchorId;
++      }
++      if (!stack.anchorId) setMarkerPos(stack.marker, group.point.lat, group.point.lng);
+       if (stack.marker.setTitle) stack.marker.setTitle(group.members.length + " vehicles — tap to choose");
+     });
+     Object.keys(VEHICLE_STACKS).forEach(function (key) {
+       if (seen[key]) return;
+-      if (STACK_OPEN_KEY === key) closeVehicleStack();
++      if (STACK_OPEN_KEY === key && STACK_OPEN_KIND !== "overview") closeVehicleStack();
++      if (typeof VEHICLE_STACKS[key].marker.unbindAll === "function") VEHICLE_STACKS[key].marker.unbindAll();
+       detachMarker(VEHICLE_STACKS[key].marker);
+       delete VEHICLE_STACKS[key];
+     });
+--- /dev/null
++++ b/Perix-main/frontend/tests/mobility-overview-grouping.test.cjs
+@@ -0,0 +1,163 @@
++/* global __dirname */
++const assert = require('node:assert/strict');
++const fs = require('node:fs');
++const path = require('node:path');
++const vm = require('node:vm');
++const test = require('node:test');
++
++function pageAt(initialZoom = 11) {
++  let zoom = initialZoom, now = 10000;
++  const messages = [], mapListeners = {};
++  function LatLng(lat, lng) { this.lat = () => lat; this.lng = () => lng; }
++  function Marker(options) {
++    Object.assign(this, options); this.listeners = {}; this.bindings = {};
++    this.setPosition = p => { this.position = p; };
++    this.getPosition = () => this.bindings.position?.getPosition() || this.position;
++    this.setIcon = icon => { this.icon = icon; };
++    this.setMap = map => { this.map = map; };
++    this.setTitle = title => { this.title = title; };
++    this.setOpacity = () => {};
++    this.bindTo = (key, marker) => { this.bindings[key] = marker; };
++    this.unbindAll = () => { this.bindings = {}; };
++    this.addListener = (name, fn) => { this.listeners[name] = fn; };
++  }
++  const element = () => ({ style: {}, children: [], listeners: {},
++    appendChild(e) { this.children.push(e); }, setAttribute(k, v) { this[k] = v; },
++    addEventListener(k, fn) { this.listeners[k] = fn; },
++  });
++  const context = vm.createContext({
++    window: { parent: { postMessage: d => messages.push(d) }, location: { origin: 'https://test.invalid' }, addEventListener() {} },
++    document: { getElementById: element, createElement: element }, requestAnimationFrame: () => 1,
++    Date: class extends Date { static now() { return now; } },
++    google: { maps: { Marker, LatLng, Size: function (w, h) { this.width = w; this.height = h; },
++      Point: function (x, y) { this.x = x; this.y = y; },
++      Map: function () { this.addListener = (n, fn) => { mapListeners[n] = fn; }; this.getZoom = () => zoom;
++        this.getProjection = () => ({ fromLatLngToPoint: p => ({ x: p.lng(), y: p.lat() }) }); },
++      InfoWindow: function () { this.setContent = c => { this.content = c; }; this.open = () => { this.closed = false; };
++        this.close = () => { this.closed = true; }; },
++    } },
++  });
++  const html = fs.readFileSync(path.join(__dirname, '../public/google-mobility-map.html'), 'utf8');
++  vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1], context);
++  context.initMap(); messages.length = 0;
++  return { page: context, messages, zoom(value) { zoom = value; mapListeners.zoom_changed(); },
++    advance(ms) { now += ms; context.loopTick(); } };
++}
++
++const sample = (id, x, overrides = {}) => ({ id, journeyId: 'dated:' + id, type: 'bus', label: id,
++  latitude: 52, longitude: x, heading: 90, motionState: 'MOVING', speed: 20, estimated: true, ...overrides });
++
++test('overview groups moving screen-overlap without changing source coordinates, marker instances or IDs', () => {
++  const h = pageAt();
++  const fleet = [sample('a', 11), sample('b', 11.01, { type: 'tram' }), sample('far', 12)];
++  h.page.drawVehicles(fleet);
++  const markers = Object.fromEntries(Object.entries(h.page.VEHICLES).map(([id, r]) => [id, r.marker]));
++  const stacks = Object.values(h.page.VEHICLE_STACKS);
++  assert.equal(stacks.length, 1); assert.deepEqual(Array.from(stacks[0].members), ['a', 'b']);
++  assert.equal(stacks[0].kind, 'overview');
++  for (const v of fleet) assert.deepEqual(JSON.parse(JSON.stringify(markers[v.id].position)), { lat: v.latitude, lng: v.longitude });
++  h.page.VEHICLES.b.marker.listeners.click();
++  assert.match(h.page.STACK_INFO.content.children[0].textContent, /overlapping vehicles at this zoom/);
++  const buttons = h.page.STACK_INFO.content.children.slice(1);
++  assert.deepEqual(buttons.map(b => b['data-perix-vehicle-id']), ['a', 'b']);
++  buttons.forEach(b => b.listeners.click({ stopPropagation() {} }));
++  assert.deepEqual(h.messages.map(m => m.id), ['a', 'b']);
++  h.zoom(14);
++  assert.equal(Object.keys(h.page.VEHICLE_STACKS).length, 0);
++  for (const [id, marker] of Object.entries(markers)) assert.equal(h.page.VEHICLES[id].marker, marker);
++  h.page.VEHICLES.b.marker.listeners.click(); assert.equal(h.messages.at(-1).id, 'b');
++});
++
++test('group counts are exact and transitive; taxis never enter transit selection groups', () => {
++  const h = pageAt();
++  h.page.drawVehicles([sample('a', 11), sample('b', 11.015), sample('c', 11.03), sample('taxi', 11, { type: 'taxi' })]);
++  const stack = Object.values(h.page.VEHICLE_STACKS)[0];
++  assert.deepEqual(Array.from(stack.members), ['a', 'b', 'c']);
++  assert.equal(h.page.VEHICLE_STACK_KEYS.taxi, undefined);
++  assert.ok(decodeURIComponent(stack.marker.icon.url).includes('>3</text>'));
++});
++
++test('overview count hit boxes stay centered on a member and participate in collision grouping', () => {
++  const h = pageAt();
++  // 40px between pairs: body-only bus hit boxes (38px) would miss the
++  // 42px count target and allow another group's badge to steal taps.
++  h.page.drawVehicles([sample('a', 11), sample('b', 11.001), sample('c', 11 + 40 / 2048), sample('d', 11 + 41 / 2048)]);
++  const groups = Object.values(h.page.VEHICLE_STACKS);
++  assert.equal(groups.length, 1); assert.equal(groups[0].members.length, 4);
++  assert.equal(groups[0].marker.icon.anchor.x, 13);
++  assert.equal(groups[0].marker.icon.anchor.y, 12);
++});
++
++test('count badges follow an actual member, never an average/fake position; expired members remove stale choices', () => {
++  const h = pageAt(); const first = sample('a', 11), second = sample('b', 11.01);
++  h.page.drawVehicles([first, second]); const stack = Object.values(h.page.VEHICLE_STACKS)[0];
++  stack.marker.listeners.click();
++  h.page.VEHICLES.a.marker.setPosition({ lat: 52, lng: 11.005 });
++  assert.deepEqual(JSON.parse(JSON.stringify(stack.marker.getPosition())), { lat: 52, lng: 11.005 });
++  h.page.drawVehicles([first]);
++  assert.equal(Object.keys(h.page.VEHICLE_STACKS).length, 0);
++  assert.equal(stack.marker.map, null); assert.deepEqual(stack.marker.bindings, {});
++  assert.equal(h.page.STACK_INFO.closed, true); assert.equal(h.page.VEHICLE_STACK_KEYS.b, undefined);
++});
++
++test('a dated journey change closes the old popup even when source ID and group members stay the same', () => {
++  const h = pageAt(); const fleet = [sample('a', 11), sample('b', 11.01)];
++  h.page.drawVehicles(fleet); Object.values(h.page.VEHICLE_STACKS)[0].marker.listeners.click();
++  h.page.drawVehicles([{ ...fleet[0], journeyId: 'tomorrow:a' }, fleet[1]]);
++  assert.equal(h.page.STACK_INFO.closed, true);
++});
++
++test('scrolling choices survive a moving overview group split, but stale dated buttons cannot select a replacement trip', () => {
++  const h = pageAt(); const fleet = [sample('a', 11), sample('b', 11.01)];
++  h.page.drawVehicles(fleet); h.page.VEHICLES.b.marker.listeners.click();
++  const oldButton = h.page.STACK_INFO.content.children[1];
++  h.page.drawVehicles([fleet[0], { ...fleet[1], longitude: 12 }]);
++  assert.equal(Object.keys(h.page.VEHICLE_STACKS).length, 0);
++  assert.equal(h.page.STACK_INFO.closed, false, 'valid choices must not disappear while scrolling');
++  assert.deepEqual(Array.from(h.page.STACK_OPEN_MEMBERS, x => x.id), ['a', 'b']);
++  h.page.drawVehicles([{ ...fleet[0], journeyId: 'tomorrow:a' }, { ...fleet[1], longitude: 12 }]);
++  assert.equal(h.page.STACK_INFO.closed, true);
++  oldButton.listeners.click({ stopPropagation() {} });
++  assert.equal(h.messages.length, 0, 'an old dated selection cannot silently target a replacement journey');
++});
++
++test('normal/close zooms retain exact stationary coincidence selection but never group nearby moving vehicles', () => {
++  const h = pageAt(19);
++  h.page.drawVehicles([sample('a', 11), sample('b', 11.000001)]);
++  assert.equal(Object.keys(h.page.VEHICLE_STACKS).length, 0);
++  h.page.drawVehicles([sample('a', 11, { speed: 0 }), sample('b', 11, { speed: 0 })]);
++  assert.equal(Object.values(h.page.VEHICLE_STACKS)[0].kind, 'coincident');
++});
++
++test('overview choices use a bounded dismissible sheet instead of an InfoWindow under area controls', () => {
++  const h = pageAt();
++  const body = { children: [], appendChild(node) { this.children.push(node); node.parentNode = this; },
++    removeChild(node) { this.children = this.children.filter(n => n !== node); node.parentNode = null; } };
++  h.page.document.body = body;
++  h.page.MAP.getDiv = () => ({ clientHeight: 300 });
++  h.page.drawVehicles([sample('a', 11), sample('b', 11.01)]);
++  h.page.VEHICLES.a.marker.listeners.click();
++  const panel = h.page.STACK_PANEL;
++  assert.ok(panel); assert.equal(panel.role, 'dialog');
++  assert.equal(panel.style.maxHeight, '204px');
++  assert.equal(h.page.STACK_CONTENT.style.maxHeight, '184px');
++  assert.equal(h.page.STACK_INFO, null);
++  assert.ok(panel.style.cssText.includes('bottom:26px'));
++  assert.ok(panel.style.cssText.includes('right:64px'));
++  panel.children[1].listeners.click();
++  assert.equal(h.page.STACK_PANEL, null); assert.equal(body.children.length, 0);
++  assert.equal(h.page.STACK_OPEN_MEMBERS.length, 0);
++});
++
++test('new vehicles retain the smaller scale through heading-only polls at an unchanged zoom', () => {
++  for (const [zoom, bus, tram] of [[11, 22, 28], [14, 28, 36], [17, 33, 43], [19, 39, 50]]) {
++    const h = pageAt(zoom);
++    for (const [type, width] of [['bus', bus], ['tram', tram]]) {
++      const v = sample(type, 11, { type }); h.page.drawVehicles([v]);
++      const marker = h.page.VEHICLES[type].marker; assert.equal(marker.icon.scaledSize.width, width);
++      h.page.drawVehicles([{ ...v, heading: 180 }]);
++      assert.equal(h.page.VEHICLES[type].marker, marker);
++      assert.equal(marker.icon.scaledSize.width, width);
++    }
++  }
++});

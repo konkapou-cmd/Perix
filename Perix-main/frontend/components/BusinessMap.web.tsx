@@ -6,6 +6,17 @@ import { formatEventDate } from "../lib/formatDate";
 import { translateCategory } from "../lib/categoryTranslation";
 import { COLORS } from "../lib/designTokens";
 import { useTranslation } from "react-i18next";
+import { acceptVisualPublication, applyGatewayTransitUpdate, authorizePreview, sampleAuthorizedPreview } from "../lib/city/transitPublication";
+import { sampleVisualPath } from "../lib/city/transitPath";
+import { stationQueueOffsets, smoothQueueOffset, StationQueueCandidate } from "../lib/city/stationQueue";
+import { measureVisualApplication } from "../lib/city/transitPublication";
+import { groupTransitStopIcons, transitStopPins } from "../lib/city/visualGeometry";
+import { createUserPinElement, mapEntityPinSize, profileInitial, transitStopAppearance } from "../lib/city/mapPresentation";
+import { declutterLandmarks, landmarkAppearance, landmarkHasBusinessBehind, landmarkOpacity } from "../lib/city/landmarks";
+import { SUPPLEMENT_LANDMARK_IMAGES } from "../lib/city/supplementLandmarkImages.generated";
+import type { SupplementLandmark } from "../lib/city/supplementLandmarks.generated";
+import type { MotionPreview } from "../lib/api/mobility";
+import { MOBILITY_VIEW_SOURCES, vehicleMobilityViewAngle, stopMobilityViewAngle } from "../lib/mobilityViewSources.generated";
 import { getCurrentLanguageSync } from "../i18n";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
@@ -18,9 +29,22 @@ type MapMarker = {
   description?: string;
   pinColor?: string;
   pinInnerColor?: string;
+  pinImage?: string | null;
+  selectionCompass?: boolean;
   type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service" | "product" | "bus" | "tram" | "taxi";
   heading?: number | null;
   estimated?: boolean;
+  visualEstimate?: boolean;
+  journeyId?: string | null;
+  publicationStatus?: "READY" | "PENDING" | "HIDDEN" | null;
+  patternId?: string | null;
+  planRevision?: string | null;
+  estimateRevision?: string | null;
+  geometryFingerprint?: string | null;
+  motionPreview?: MotionPreview | null;
+  nextTimelineIndex?: number | null;
+  distanceToNextStopM?: number | null;
+  nextStopEtaSeconds?: number | null;
   label?: string | null;
   /** The canonical line geometry the vehicle rides - animations follow
    *  every curve of the road/rail instead of cutting straight across. */
@@ -53,6 +77,7 @@ type Props = {
     longitudeDelta: number;
   } | null;
   focusToken?: number;
+  focusZoom?: number;
   businesses?: Business[];
   events?: EventItem[];
   activities?: ActivityItem[];
@@ -62,6 +87,8 @@ type Props = {
   services?: Service[];
   markers?: MapMarker[];
   extraMarkers?: MapMarker[];
+  /** Used by /app only: never invent movement between modeled samples. */
+  authoritativeTransit?: boolean;
   /** Thin transit route lines drawn under the markers (bus/tram networks). */
   transitLines?: {
     points: { latitude: number; longitude: number }[];
@@ -73,6 +100,10 @@ type Props = {
   onTransitLineClick?: (routeNumber: string, patternId?: string) => void;
   /** Transit stops rendered as clickable bus/tram pins (zoom-aware). */
   transitStops?: {
+    physical_stop_id?: string;
+    platform_id?: string;
+    platform_code?: string | null;
+    stop_ids?: string[];
     stop_id: string;
     name: string;
     latitude: number;
@@ -81,20 +112,32 @@ type Props = {
     routes: { route_number: string; mode: "bus" | "tram" }[];
     platforms?: {
       platform_id: string;
+      platform_code?: string | null;
       latitude?: number | null;
       longitude?: number | null;
       name?: string;
       directions?: string[];
+      modes?: ('bus' | 'tram')[];
+      routes?: string[];
       side?: string | null;
     }[];
+    platform_ids?: string[];
+    platform_codes?: string[];
   }[];
   onTransitStopPress?: (stop: {
+    platform_id?: string;
+    platform_code?: string | null;
+    stop_ids?: string[];
+    platform_ids?: string[];
+    platform_codes?: string[];
     stop_id: string;
     name: string;
     latitude: number;
     longitude: number;
     modes: ("bus" | "tram")[];
     routes: { route_number: string; mode: "bus" | "tram" }[];
+    platforms?: {platform_id:string;platform_code?:string|null;name?:string;latitude?:number|null;longitude?:number|null;
+      modes?:('bus'|'tram')[];routes?:string[];directions?:string[]}[];
   }) => void;
   /** Journey-plan route: walking legs light blue, tram green, bus blue. */
   planLines?: {
@@ -105,13 +148,17 @@ type Props = {
   }[];
   showUserLocation?: boolean;
   userPinImage?: string | null;
+  userPinName?: string | null;
   pinLocation?: { latitude: number; longitude: number } | null;
+  /** Supplement diorama landmarks (MD-X001..MD-X070): zoom-smart, decluttered, tap opens Google directions. */
+  landmarks?: SupplementLandmark[];
   onRegionChange?: (bounds: MapBounds) => void;
   onRegionChangeComplete?: (bounds: MapBounds) => void;
   onZoomChange?: (zoom: number) => void;
   onMarkerPress?: (markerId: string) => void;
   onMapPress?: (latitude: number, longitude: number) => void;
   height?: number;
+  horizontalInset?: number;
   disabled?: boolean;
   disabledHint?: string;
   staticMode?: boolean;
@@ -214,6 +261,13 @@ const escapeHtml = (s: string) =>
 const routePlateText = (num: string, x: number, fontSize: number, y: number) =>
   `<text x="${x}" y="${y}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="${fontSize}" fill="#ffffff">${escapeHtml(num)}</text>`;
 
+const resolveMapAssetUri=(asset:any):string=>{
+  if(typeof asset==="string")return asset;
+  if(asset && typeof asset.uri==="string")return asset.uri;
+  const resolver=(RNImage as any).resolveAssetSource;
+  return typeof resolver==="function" ? resolver(asset)?.uri || "" : "";
+};
+
 const busSvg = (label?: string | null, deg = 0) => {
   const num = (label || "").trim();
   const plate = num
@@ -292,6 +346,7 @@ const tramSvg = (label?: string | null, deg = 0) => {
 
 let googleScriptLoaded = false;
 let googleScriptPromise: Promise<void> | null = null;
+let transitRouteLabelStylesInstalled = false;
 
 /** Native google.maps.Marker icon for a transit vehicle: SVG data URL,
  *  scaled size + SVG-internal rotation (deterministic - the icon faces
@@ -302,6 +357,17 @@ const makeVehicleIcon = (google: any, rec: any) => {
   const canvas = isTram ? 82 : 64;
   const w = Math.max(16, Math.round(canvas * rec.scale));
   const heading = typeof rec.heading === "number" ? rec.heading : 0;
+  if (rec.type === "bus" || rec.type === "tram") {
+    const kind=rec.type as "bus"|"tram";
+    const viewAngle=vehicleMobilityViewAngle(heading);
+    const uri=resolveMapAssetUri(MOBILITY_VIEW_SOURCES[kind][viewAngle]);
+    return {
+      url:uri,
+      scaledSize:new google.maps.Size(w,w),
+      anchor:new google.maps.Point(w/2-(rec.queueOffset?.x || 0),w/2-(rec.queueOffset?.y || 0)),
+      labelOrigin:new google.maps.Point(w/2,w+2),
+    };
+  }
   // SVG is drawn facing RIGHT (east): rotate so the nose points at the
   // heading. heading 0 (north) -> -90; heading 90 (east) -> 0.
   const deg = Math.round((heading - 90) * 10) / 10;
@@ -310,8 +376,27 @@ const makeVehicleIcon = (google: any, rec: any) => {
       "data:image/svg+xml;charset=UTF-8," +
       encodeURIComponent(isTram ? tramSvg(rec.label, deg) : busSvg(rec.label, deg)),
     scaledSize: new google.maps.Size(w, w),
-    anchor: new google.maps.Point(Math.round(w / 2), Math.round(w / 2)),
+    // Queue decoration only: the marker's geographic coordinate stays exact.
+    anchor: new google.maps.Point(w/2-(rec.queueOffset?.x || 0), w/2-(rec.queueOffset?.y || 0)),
   };
+};
+
+const vehicleMarkerLabel=(rec:any)=>{
+  if((rec.type!=="bus"&&rec.type!=="tram") || !rec.label)return null;
+  if(!transitRouteLabelStylesInstalled && typeof document!=="undefined"){
+    const style=document.createElement("style");style.id="perix-transit-route-label-styles";
+    style.textContent=".gm-style .perix-route-label{line-height:1.2!important;color:#fff!important;text-shadow:none!important;border:1px solid #fff!important;border-radius:.5em!important;padding:0 .35em!important;white-space:nowrap!important}.gm-style .perix-route-label-bus{background:#1E3A8A!important}.gm-style .perix-route-label-tram{background:#166534!important}";
+    document.head.appendChild(style);transitRouteLabelStylesInstalled=true;
+  }
+  return {text:String(rec.label),className:`perix-route-label perix-route-label-${rec.type}`,
+    fontFamily:"Arial, sans-serif",fontSize:`${Math.max(8,Math.round(9*rec.scale))}px`,fontWeight:"800"};
+};
+const updateVehicleMarkerIcon=(google:any,rec:any)=>{
+  rec.marker.setIcon(makeVehicleIcon(google,rec));
+  const label=vehicleMarkerLabel(rec),key=`${label}|${rec.scale}`;
+  if(rec.routeLabelKey===key)return;
+  rec.routeLabelKey=key;
+  rec.marker.setLabel(label);
 };
 
 /** Kick off the Google Maps script load early (before a map mounts) so the
@@ -355,6 +440,7 @@ export default function BusinessMap({
   initialRegion,
   focusRegion,
   focusToken,
+  focusZoom,
   businesses = [],
   events = [],
   activities = [],
@@ -364,6 +450,8 @@ export default function BusinessMap({
   services = [],
   markers,
   extraMarkers,
+  landmarks,
+  authoritativeTransit = false,
   transitLines,
   onTransitLineClick,
   transitStops,
@@ -371,6 +459,7 @@ export default function BusinessMap({
   planLines,
   showUserLocation,
   userPinImage,
+  userPinName,
   pinLocation,
   onRegionChange,
   onRegionChangeComplete,
@@ -378,6 +467,7 @@ export default function BusinessMap({
   onMarkerPress,
   onMapPress,
   height = 300,
+  horizontalInset = 16,
   disabled = false,
   disabledHint = "Tap to enable location",
   staticMode = false,
@@ -387,7 +477,31 @@ export default function BusinessMap({
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const [mapReady, setMapReady] = useState(false);
+  const [stopViewportRevision, setStopViewportRevision] = useState(0);
+  const [mapHeading, setMapHeading] = useState(0);
   const mapReadyRef = useRef(false);
+  const mapReadyMonotonicRef = useRef<number | undefined>(undefined);
+  const recordVisualApplication = (rec: any) => {
+    if (!rec.authorizedPreview) return;
+    rec.visualLoadTiming = measureVisualApplication(rec.authorizedPreview, performance.now(), mapReadyMonotonicRef.current);
+    const debug = (window as any).__perixDebug || ((window as any).__perixDebug = {});
+    debug.visualLastApplied = rec.visualLoadTiming;
+    const rect = mapDivRef.current?.getBoundingClientRect();
+    const bounds = mapRef.current?.getBounds?.();
+    const position = rec.marker.getPosition?.();
+    if (debug.visualFirstApplied || debug.visualFirstFramePending || document.visibilityState !== 'visible'
+        || !rect?.width || !rect.height || !bounds || !position || !bounds.contains(position)) return;
+    debug.visualFirstFramePending = true;
+    requestAnimationFrame(() => {
+      debug.visualFirstFramePending = false;
+      const sample = rec.authorizedPreview && sampleAuthorizedPreview(rec.authorizedPreview, performance.now());
+      if (!sample || sample.expired || document.visibilityState !== 'visible') return;
+      debug.visualFirstApplied = rec.visualLoadTiming;
+      debug.visualFirstFrameAfterApplyMs = performance.now();
+      debug.visualPageToFirstFrameMs = debug.visualFirstFrameAfterApplyMs
+        - debug.visualFirstApplied.navigation_started_monotonic_ms;
+    });
+  };
   const [mapError, setMapError] = useState(false);
   const [enabling, setEnabling] = useState(false);
   const enablingRef = useRef(false);
@@ -410,22 +524,58 @@ export default function BusinessMap({
   const onZoomChangeRef = useRef(onZoomChange);
   onZoomChangeRef.current = onZoomChange;
 
-  // Continuous vehicle motion: positions are interpolated in GEOGRAPHIC
-  // space between polls (requestAnimationFrame), so vehicles glide along
-  // their routes instead of jumping every 4s. After reaching the latest
-  // poll target the marker EXTRAPOLATES at the same speed until the next
-  // poll - live-like continuous motion. Zooming in makes the same
-  // geographic step cover more pixels - motion appears faster naturally.
+  // Visual estimates follow the authorized source-clock curve in geographic
+  // space, independent of camera/zoom and React renders. Only the separate
+  // legacy GPS branch below uses bounded interpolation/extrapolation.
   const animRunningRef = useRef(false);
   const animRafRef = useRef<number | null>(null);
   const lastFrameRef = useRef<number>(0);
   const loopTick = () => {
     let active = false;
+    const queueCandidates: StationQueueCandidate[] = [];
     const now = Date.now();
     lastFrameRef.current = now;
     markersRef.current.forEach((rec: any) => {
-      if (!rec || rec.animStart == null || !rec.marker) return;
+      if (!rec || !rec.marker) return;
       try {
+        if (rec.authorizedPreview && rec.path && rec.cum) {
+          const sample = sampleAuthorizedPreview(rec.authorizedPreview, performance.now());
+          if (!sample || (rec.progNow != null && sample.progressM + 1e-5 < rec.progNow)) {
+            rec.authorizedPreview = null;
+          } else {
+            rec.progNow = sample.progressM;
+            rec.visualStopIndex = sample.stopOccurrenceIndex;
+            rec.visualState = sample.state;
+            rec.display_eta_seconds = sample.displayEtaSeconds;
+            rec.countdown_event = sample.countdownEvent;
+            rec.countdown_seconds = sample.countdownSeconds;
+            rec.station_cycle_state = sample.stationCycleState;
+            rec.relative_motion_level = sample.relativeMotionLevel;
+            const point = sampleVisualPath(rec.path, rec.cum, sample.progressM);
+            if (point) {
+              rec.marker.setPosition({lat:point.lat,lng:point.lng});
+              if (!(window as any).__perixDebug?.visualFirstApplied) recordVisualApplication(rec);
+              if (point.heading != null) {
+                rec.heading=point.heading;
+                const delta=rec.paintedVisualHeading == null ? 360
+                  : Math.abs(((point.heading-rec.paintedVisualHeading+540)%360)-180);
+                if (delta>=1 && performance.now()-(rec.lastVisualHeadingPaint || 0)>=80) {
+                  updateVehicleMarkerIcon((window as any).google,rec);
+                  rec.paintedVisualHeading=point.heading;rec.lastVisualHeadingPaint=performance.now();
+                }
+              }
+              if (!sample.expired) queueCandidates.push({ id: rec.vehicleId, mode: rec.type, estimated: rec.estimated,
+                state: sample.state, stopId: sample.stationStopId, latitude: point.lat, longitude: point.lng,
+                heading: point.heading, departureAtMs: sample.stationDepartureAtMs, arrivalAtMs: sample.stationArrivalAtMs,
+                sizePx: Math.max(16,Math.round((rec.type === 'tram' ? 82 : 64)*rec.scale)) });
+            }
+            else rec.authorizedPreview = null;
+            if (sample.expired) { rec.authorizedPreview = null; rec.marker.setVisible(false); }
+            else if (rec.authorizedPreview) active = true;
+          }
+          return;
+        }
+        if (rec.animStart == null) return;
         const t = (now - rec.animStart) / Math.max(1, rec.animDuration || 1000);
         // Extrapolation cap: keep gliding at the same speed for up to 3x
         // the glide duration after the target - a late poll stays smooth.
@@ -459,6 +609,21 @@ export default function BusinessMap({
         dbg.lastAnimError = String(e);
       }
     });
+    // Separate only simultaneously waiting estimated tram symbols on the same
+    // directed platform. No source progress, ETA, path or preview is rewritten.
+    const queueOffsets = stationQueueOffsets(queueCandidates,mapRef.current?.getHeading?.() || 0);
+    const queueNow = performance.now();
+    markersRef.current.forEach((rec: any) => {
+      if (!rec.marker || rec.type !== 'tram' || !rec.estimated) return;
+      const target = queueOffsets.get(rec.vehicleId) || { x: 0, y: 0, rank: 0 };
+      const previous = rec.queueOffset;
+      rec.queueOffset = smoothQueueOffset(previous,target,queueNow-(rec.queueOffsetAt ?? queueNow));
+      rec.queueOffsetAt = queueNow;
+      if (!previous || Math.hypot(rec.queueOffset.x-previous.x,rec.queueOffset.y-previous.y)>0.05) {
+        updateVehicleMarkerIcon((window as any).google,rec);
+      }
+      if (Math.hypot(rec.queueOffset.x-target.x,rec.queueOffset.y-target.y)>0.05) active = true;
+    });
     if (active) {
       animRafRef.current = requestAnimationFrame(loopTick);
     } else {
@@ -472,6 +637,57 @@ export default function BusinessMap({
     if (animRunningRef.current && Date.now() - lastFrameRef.current < 1000) return;
     animRunningRef.current = true;
     animRafRef.current = requestAnimationFrame(loopTick);
+  };
+  const installGatewayPreview = (rec: any, rep: MapMarker) => {
+    rec.authorizedPreview = null;
+    if (!rep.path || rep.path.length < 2 || rep.progressM == null || rep.publicationStatus === "PENDING") return;
+    const cumulative = polylineCumulative(rep.path);
+    const sampledPoint = pointAtProgress(rep.path, cumulative, rep.progressM);
+    if (!Number.isFinite(sampledPoint.lat) || !Number.isFinite(sampledPoint.lng)
+        || haversineMeters({ lat: rep.latitude, lng: rep.longitude }, sampledPoint) > 10) return;
+    const preview = authorizePreview(rep.motionPreview, { estimated: !!rep.estimated, mode: rep.type,
+      journeyId: rep.journeyId, patternId: rep.patternId, planRevision: rep.planRevision,
+      progressM: rep.progressM, pathLengthM: cumulative[cumulative.length - 1],
+      geometryFingerprint: rep.geometryFingerprint, nextTimelineIndex: rep.nextTimelineIndex,
+      distanceToNextStopM: rep.distanceToNextStopM, nextStopEtaSeconds: rep.nextStopEtaSeconds }, Date.now(), performance.now());
+    if (!preview) return;
+    rec.path = rep.path;
+    rec.cum = cumulative;
+    rec.authorizedPreview = preview;
+    kickAnim();
+  };
+  const installVisualPreview = (rec: any, rep: MapMarker) => {
+    const sameGeometry = rec.visualGeometryFingerprint === rep.geometryFingerprint;
+    const cumulative = sameGeometry && rec.cum ? rec.cum : rep.path && polylineCumulative(rep.path);
+    let preview = rep.motionPreview;
+    if (!rep.path || rep.path.length < 2 || !cumulative || rep.progressM == null) preview = null;
+    else {
+      const point = pointAtProgress(rep.path, cumulative, rep.progressM);
+      if (!Number.isFinite(point.lat) || !Number.isFinite(point.lng)
+          || haversineMeters({ lat: rep.latitude, lng: rep.longitude },point)>10) preview = null;
+    }
+    const result = acceptVisualPublication(rec,preview,{ estimated:!!rep.estimated,mode:rep.type,
+      journeyId:rep.journeyId,patternId:rep.patternId,planRevision:rep.planRevision,
+      progressM:rep.progressM,pathLengthM:cumulative?.[cumulative.length-1] ?? 0,
+      geometryFingerprint:rep.geometryFingerprint,nextTimelineIndex:rep.nextTimelineIndex,
+      distanceToNextStopM:rep.distanceToNextStopM,nextStopEtaSeconds:rep.nextStopEtaSeconds },
+      rep.publicationStatus,Date.now(),performance.now());
+    if (result === 'hidden') rec.marker.setVisible(false);
+    if (result === 'updated') {
+      rec.path=rep.path; rec.cum=cumulative; rec.visualGeometryFingerprint=rep.geometryFingerprint;
+      rec.estimateRevision=rep.estimateRevision ?? null; rec.journeyId=rep.journeyId ?? null;
+      const current = rec.authorizedPreview && sampleAuthorizedPreview(rec.authorizedPreview,performance.now());
+      if (current) {
+        rec.visualStopIndex=current.stopOccurrenceIndex; rec.visualState=current.state;
+        rec.display_eta_seconds=current.displayEtaSeconds; rec.relative_motion_level=current.relativeMotionLevel;
+        rec.countdown_event=current.countdownEvent;rec.countdown_seconds=current.countdownSeconds;rec.station_cycle_state=current.stationCycleState;
+      }
+      rec.marker.setPosition(pointAtProgress(rec.path,rec.cum,rec.progNow));
+      rec.marker.setVisible(true);
+      recordVisualApplication(rec);
+    }
+    if (rec.authorizedPreview) kickAnim();
+    return result;
   };
   const setVehicleTarget = (rec: any, pos: { lat: number; lng: number }, nowTs: number, targetProgressM?: number | null) => {
     // Anchored states never animate: the vehicle stands exactly on its
@@ -608,6 +824,7 @@ export default function BusinessMap({
       title: business.name,
       type: "business" as const,
       description: business.category,
+      pinImage: business.profile_photo || business.logo_image || business.cover_image,
       pinColor: business.root_category === "hotels" ? COLORS.pinHotel : COLORS.pinBusiness,
     })),
     ...events
@@ -619,6 +836,7 @@ export default function BusinessMap({
         title: event.title,
         type: "event" as const,
         description: event.location || formatEventDate(event.start_time),
+        pinImage: event.creator?.profile_photo || event.artist?.profile_photo || event.business?.logo_image || event.cover_image_url,
         pinColor: COLORS.pinEvent,
       })),
     ...activities
@@ -630,6 +848,7 @@ export default function BusinessMap({
         title: activity.title,
         type: "activity" as const,
         description: activity.location || `${formatEventDate(activity.date)} ${activity.time || ''}`,
+        pinImage: activity.creator?.profile_photo || activity.tagged_business?.logo_image || activity.cover_image_url,
         pinColor: COLORS.pinActivity,
       })),
     ...artists
@@ -641,6 +860,7 @@ export default function BusinessMap({
         title: artist.name,
         type: "artist" as const,
         description: artist.town || artist.genres?.join(", ") || "",
+        pinImage: artist.profile_photo || artist.cover_photo,
         pinColor: COLORS.pinClosed,
       })),
     ...rentals
@@ -652,6 +872,7 @@ export default function BusinessMap({
         title: rental.title,
         type: "rental" as const,
         description: rental.rent_price || rental.address || "",
+        pinImage: rental.business_logo || (rental as any).owner_photo || rental.cover_image,
         pinColor: COLORS.pinRental,
       })),
     ...jobs
@@ -663,6 +884,7 @@ export default function BusinessMap({
         title: job.title,
         type: "job" as const,
         description: job.work_location || "",
+        pinImage: (job as any).business_logo,
         pinColor: COLORS.pinJob,
       })),
     ...services
@@ -674,6 +896,7 @@ export default function BusinessMap({
         title: service.name,
         type: "service" as const,
         description: service.address || "",
+        pinImage: (service as any).business_logo || service.cover_image_url,
         pinColor: COLORS.pinService,
       })),
   ];
@@ -688,8 +911,9 @@ export default function BusinessMap({
     const parts: string[] = [];
     allMarkers.forEach((m) => {
       parts.push(
-        `${m.id}|${m.latitude}|${m.longitude}|${m.pinColor || ""}|${m.pinInnerColor || ""}` +
-        `|s${m.positionState || ""}|p${m.progressM ?? ""}` +
+        `${m.id}|${m.latitude}|${m.longitude}|${m.pinColor || ""}|${m.pinInnerColor || ""}|${m.pinImage || ""}|compass${!!m.selectionCompass}` +
+        `|h${m.heading ?? ""}|s${m.positionState || ""}|p${m.progressM ?? ""}|j${m.journeyId || ""}|u${m.publicationStatus || ""}|e${!!m.estimated}|label${m.label || ""}` +
+        `|r${m.planRevision || ""}|g${m.geometryFingerprint || ""}|c${m.motionPreview?.client_received_at_ms ?? ""}` +
         (m.path && m.path.length ? `|l${m.path.length}:${m.path[0]?.latitude}` : "")
       );
     });
@@ -699,7 +923,7 @@ export default function BusinessMap({
   const groupedMarkers = useMemo(() => {
     const groups = new Map<string, MapMarker[]>();
     allMarkers.forEach((m) => {
-      const key = `${m.latitude.toFixed(5)}_${m.longitude.toFixed(5)}`;
+      const key = `${m.selectionCompass ? m.id + ':' : ''}${m.latitude.toFixed(5)}_${m.longitude.toFixed(5)}`;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(m);
     });
@@ -717,6 +941,7 @@ export default function BusinessMap({
         count: items.length,
         pinColor: items.length === 1 ? items[0].pinColor ?? COLORS.pinClosed : "#264348",
         pinInnerColor: items.length === 1 ? items[0].pinInnerColor : undefined,
+        pinImage: items.length === 1 ? items[0].pinImage : undefined,
         memberColors: items.length > 1 ? uniqueColors.slice(0, 4) : [],
         type: items[0].type,
         heading: items[0].heading ?? null,
@@ -742,7 +967,8 @@ export default function BusinessMap({
         const google = (window as any).google;
         const map = new google.maps.Map(mapDivRef.current, {
           center: { lat: centerLat, lng: centerLng },
-          zoom: 14,
+          zoom: Number.isFinite(focusZoom) ? focusZoom : 14,
+          isFractionalZoomEnabled: true,
           disableDefaultUI: staticMode,
           zoomControl: !staticMode,
           mapTypeControl: false,
@@ -785,6 +1011,8 @@ export default function BusinessMap({
           lastBoundsRef.current = key;
           if (debounceRef.current) clearTimeout(debounceRef.current);
           debounceRef.current = setTimeout(() => {
+            if (cancelled) return;
+            setStopViewportRevision(value => value + 1);
             onRegionChangeCompleteRef.current?.({ minLat: sw.lat(), maxLat: ne.lat(), minLng: sw.lng(), maxLng: ne.lng() });
           }, 500);
           onRegionChangeRef.current?.({ minLat: sw.lat(), maxLat: ne.lat(), minLng: sw.lng(), maxLng: ne.lng() });
@@ -795,6 +1023,7 @@ export default function BusinessMap({
         });
 
         map.addListener("zoom_changed", () => {
+          setStopViewportRevision(value => value + 1);
           const zoom = map.getZoom() || 14;
           const scale = Math.max(0.8, Math.min(1.7, zoom / 12));
           const vscale = vehicleScale(zoom);
@@ -805,10 +1034,17 @@ export default function BusinessMap({
           });
           onZoomChangeRef.current?.(zoom);
         });
+        map.addListener("heading_changed", () => {
+          const heading=map.getHeading?.() || 0;
+          setMapHeading((previous:number)=>Math.abs(previous-heading)<0.1?previous:heading);
+          setStopViewportRevision(value=>value+1);
+        });
 
         if (cancelled) return;
         mapRef.current = map;
         mapReadyRef.current = true;
+        mapReadyMonotonicRef.current = performance.now();
+        setMapHeading(map.getHeading?.() || 0);
         setMapReady(true);
         console.log("[WebMap] initialized zoom=" + map.getZoom());
         onZoomChangeRef.current?.(map.getZoom() || 14);
@@ -850,6 +1086,15 @@ export default function BusinessMap({
     const transitMarkers: MapMarker[] = [];
     groupedMarkers.forEach((group) => {
       const transitItems = group.items.filter((i) => i.type === "bus" || i.type === "tram");
+      if (authoritativeTransit && transitItems.length && transitItems.length !== group.items.length) {
+        // A vehicle sharing coordinates with a place must remain an individual
+        // moving vehicle rather than being swallowed by a static cluster.
+        transitItems.forEach((m) => transitMarkers.push(m));
+        const places = group.items.filter((i) => i.type !== "bus" && i.type !== "tram");
+        pinGroups.push({ ...group, items: places, count: places.length, type: places[0].type,
+          pinColor: places.length === 1 ? places[0].pinColor ?? COLORS.pinClosed : "#264348" });
+        return;
+      }
       if (transitItems.length > 0 && transitItems.length === group.items.length) {
         transitItems.forEach((m) => transitMarkers.push(m));
         return;
@@ -872,14 +1117,16 @@ export default function BusinessMap({
 
     pinGroups.forEach((group) => {
       const isGroup = group.count > 1;
+      const isTaxi=group.count===1 && group.items[0].type==="taxi";
       const baseSize = isGroup
         ? (group.count < 3 ? 26 : group.count < 10 ? 30 : group.count < 30 ? 34 : 40)
-        : 22;
+        : isTaxi ? 22 : 28;
       const baseFont = group.count >= 100 ? 9 : group.count >= 10 ? 10.5 : 12;
-      const sizePx = Math.round(baseSize * zoomScale);
+      const sizePx = isGroup || isTaxi ? Math.round(baseSize * zoomScale) : mapEntityPinSize(zoom);
       const innerSize = Math.round(Math.max(6, 8 * zoomScale));
       const fontSize = Math.min(17, baseFont * zoomScale);
       const pinColor = group.pinColor || "#264348";
+      const profileImage=!isGroup && !isTaxi ? group.pinImage : undefined;
 
       // Container div (positioned by OverlayView)
       const container = document.createElement("div");
@@ -902,7 +1149,16 @@ export default function BusinessMap({
       pin.style.boxSizing = "border-box";
       container.appendChild(pin);
 
-      if (isGroup) {
+      if (!isGroup && group.items[0].selectionCompass) {
+        pin.setAttribute("data-testid", "perix-destination-compass");
+        pin.style.width = "38px"; pin.style.height = "38px";
+        pin.style.backgroundColor = "transparent"; pin.style.border = "0"; pin.style.boxShadow = "none";
+        const image = document.createElement("img");
+        const asset = require("../assets/brand/perix-compass.png");
+        image.src = resolveMapAssetUri(asset);
+        image.alt = group.items[0].title || "PERIX"; image.style.width = "100%"; image.style.height = "100%";
+        pin.appendChild(image);
+      } else if (isGroup) {
         const countText = document.createElement("div");
         countText.textContent = String(group.count);
         countText.style.color = "#ffffff";
@@ -946,6 +1202,27 @@ export default function BusinessMap({
           });
         };
         markersRef.current.push({ overlay: null as any, resize });
+      } else if (profileImage) {
+        pin.style.overflow="hidden";
+        const fallback=document.createElement("div");
+        fallback.textContent=profileInitial(group.items[0].title);
+        fallback.style.width=innerSize+"px";fallback.style.height=innerSize+"px";
+        fallback.style.borderRadius="50%";fallback.style.backgroundColor=pinColor;
+        fallback.style.color="#fff";fallback.style.display="flex";fallback.style.alignItems="center";fallback.style.justifyContent="center";
+        fallback.style.fontFamily="Arial,sans-serif";fallback.style.fontWeight="800";fallback.style.fontSize=Math.max(8,innerSize*0.7)+"px";
+        pin.appendChild(fallback);
+        const avatar=document.createElement("img");
+        avatar.src=profileImage;avatar.alt=group.items[0].title || "";avatar.draggable=false;
+        avatar.style.position="absolute";avatar.style.left="2px";avatar.style.top="2px";
+        avatar.style.width=Math.max(0,sizePx-4)+"px";avatar.style.height=Math.max(0,sizePx-4)+"px";
+        avatar.style.borderRadius="50%";avatar.style.objectFit="cover";avatar.style.display="block";
+        avatar.onerror=()=>{avatar.style.display="none";};pin.appendChild(avatar);
+        const resize=(scale:number)=>{
+          const px=Math.min(44,Math.max(24,Math.round(28*scale)));
+          pin.style.width=px+"px";pin.style.height=px+"px";
+          avatar.style.width=Math.max(0,px-4)+"px";avatar.style.height=Math.max(0,px-4)+"px";
+        };
+        markersRef.current.push({overlay:null as any,resize});
       } else if (group.pinInnerColor) {
         const inner = document.createElement("div");
         inner.style.width = innerSize + "px";
@@ -955,7 +1232,7 @@ export default function BusinessMap({
         pin.appendChild(inner);
 
         const resize = (scale: number) => {
-          const px = Math.round(baseSize * scale);
+          const px = isTaxi ? Math.round(baseSize*scale) : Math.min(44,Math.max(24,Math.round(28*scale)));
           pin.style.width = px + "px";
           pin.style.height = px + "px";
           const ins = Math.round(Math.max(6, 8 * scale));
@@ -965,7 +1242,7 @@ export default function BusinessMap({
         markersRef.current.push({ overlay: null as any, resize });
       } else {
         const resize = (scale: number) => {
-          const px = Math.round(baseSize * scale);
+          const px = isTaxi ? Math.round(baseSize*scale) : Math.min(44,Math.max(24,Math.round(28*scale)));
           pin.style.width = px + "px";
           pin.style.height = px + "px";
         };
@@ -1021,6 +1298,41 @@ export default function BusinessMap({
       const existing = existingTransit.get(rep.id);
       if (existing) {
         const rec = existing;
+        if (rep.visualEstimate && rep.estimated) {
+          const result = installVisualPreview(rec,rep);
+          rec.heading=sampleVisualPath(rec.path || [],rec.cum || [],rec.progNow)?.heading
+            ?? (typeof rep.heading === 'number' ? rep.heading : 0);
+          rec.label=rep.label; rec.type=rep.type; rec.scale=vScale; rec.estimated=true;
+          updateVehicleMarkerIcon(google,rec);
+          rec.marker.setOpacity(result === 'held' ? 0.45 : 0.72);
+          markersRef.current.push(rec);
+          return;
+        }
+        if ((authoritativeTransit || rep.visualEstimate) && rep.estimated) {
+          rec.authorizedPreview = null;
+          if (rec.journeyId === rep.journeyId && rec.estimateRevision === rep.estimateRevision
+              && typeof rec.progNow === "number" && typeof rep.progressM === "number"
+              && rep.progressM + 0.15 < rec.progNow) {
+            // A delayed sample cannot rewind the same estimate revision.
+            rec.animStart = null;
+            markersRef.current.push(rec);
+            return;
+          }
+          const result = applyGatewayTransitUpdate(rec, rep);
+          rec.heading = typeof rep.heading === "number" ? rep.heading : 0;
+          rec.label = rep.label;
+          rec.type = rep.type;
+          rec.scale = vScale;
+          rec.estimated = true;
+          if (result === "updated") {
+            rec.estimateRevision = rep.estimateRevision ?? null;
+            installGatewayPreview(rec, rep);
+          }
+          updateVehicleMarkerIcon(google, rec);
+          rec.marker.setOpacity(result === "held" || rep.publicationStatus === "PENDING" ? 0.45 : 0.72);
+          markersRef.current.push(rec);
+          return;
+        }
         // Keep the vehicle's canonical path fresh (the resolved line can
         // change once, e.g. when the geometry worker completes it).
         const pathChanged = rep.path != null && rec.path !== rep.path;
@@ -1049,14 +1361,19 @@ export default function BusinessMap({
         rec.type = rep.type;
         rec.label = rep.label;
         rec.estimated = rep.estimated ?? false;
+        rec.journeyId = rep.journeyId ?? null;
         rec.positionState = rep.positionState ?? null;
         setVehicleTarget(rec, { lat: rep.latitude, lng: rep.longitude }, Date.now(), rep.progressM ?? null);
-        rec.marker.setIcon(makeVehicleIcon(google, rec));
+        updateVehicleMarkerIcon(google, rec);
         rec.marker.setOpacity(rec.estimated ? 0.72 : 1);
         markersRef.current.push(rec);
         return;
       }
 
+      // A pending new estimate has no ready model position to display. Existing
+      // ready journeys may hold their last point; new ones wait for readiness.
+      if (authoritativeTransit && rep.estimated && rep.publicationStatus === "PENDING") return;
+      if (rep.visualEstimate && rep.publicationStatus !== "READY") return;
       const marker = new google.maps.Marker({
         map: mapRef.current,
         position: { lat: rep.latitude, lng: rep.longitude },
@@ -1068,7 +1385,7 @@ export default function BusinessMap({
         resize: (_zoomScaleArg: number, vScaleArg?: number) => {
           const ns = vScaleArg ?? vehicleScale(mapRef.current?.getZoom?.() || 14);
           rec.scale = ns;
-          rec.marker.setIcon(makeVehicleIcon(google, rec));
+          updateVehicleMarkerIcon(google, rec);
         },
         vehicleId: rep.id,
         heading: typeof rep.heading === "number" ? rep.heading : 0,
@@ -1076,6 +1393,8 @@ export default function BusinessMap({
         type: rep.type,
         label: rep.label,
         estimated: rep.estimated ?? false,
+        journeyId: rep.journeyId ?? null,
+        estimateRevision: rep.estimateRevision ?? null,
         isTransit: true,
         positionState: rep.positionState ?? null,
         geoFrom: { lat: rep.latitude, lng: rep.longitude },
@@ -1098,8 +1417,10 @@ export default function BusinessMap({
         rec.progFrom = startProg;
         rec.progTo = null;
       }
-      marker.setIcon(makeVehicleIcon(google, rec));
-      marker.setOpacity(rec.estimated ? 0.72 : 1);
+      updateVehicleMarkerIcon(google, rec);
+      marker.setOpacity(authoritativeTransit && rec.estimated && rep.publicationStatus === "PENDING" ? 0.45 : rec.estimated ? 0.72 : 1);
+      if (rep.visualEstimate && rec.estimated) installVisualPreview(rec,rep);
+      else if (authoritativeTransit && rec.estimated) installGatewayPreview(rec, rep);
       marker.addListener("click", () => {
         onMarkerPress?.(rep.id);
       });
@@ -1191,8 +1512,8 @@ export default function BusinessMap({
     });
   }, [planLines, mapReady]);
 
-  // Transit stops as CLICKABLE bus/tram pins (zoom-aware detail:
-  // tiny icon < 12, full pin 12+, route numbers 14+, stop name 16+).
+  // Same-name nearby bus/tram platforms share one clickable stop pin. At close
+  // zoom show platform codes below it; route numbers are never rendered here.
   // PERSISTENT: pins are cached per (id + zoom bucket) and reused - zoom
   // and pan never destroy/recreate the same pin, only bucket crossings
   // (12/14/16) rebuild their appearance.
@@ -1201,7 +1522,7 @@ export default function BusinessMap({
   useEffect(() => {
     if (!mapRef.current || !mapReadyRef.current) return;
     const zoom = mapRef.current?.getZoom?.() || 14;
-    if (!transitStops || transitStops.length === 0 || zoom < 11) {
+    if (!transitStops || transitStops.length === 0) {
       stopsCacheRef.current.forEach((rec) => {
         try { rec.overlay.setMap(null); } catch (e) {}
       });
@@ -1211,17 +1532,19 @@ export default function BusinessMap({
     }
     const google = (window as any).google;
     const bounds = mapRef.current.getBounds();
-    const list = (transitStops || []).filter(
+    const visiblePins = transitStopPins(transitStops || []).filter(
       (s) =>
         !bounds ||
         (s.latitude >= bounds.getSouthWest().lat() && s.latitude <= bounds.getNorthEast().lat() &&
           s.longitude >= bounds.getSouthWest().lng() && s.longitude <= bounds.getNorthEast().lng())
     );
-    // Cap the pins (skip evenly) to avoid DOM overload
-    const stride = Math.max(1, Math.ceil(list.length / 300));
-    const showBadges = zoom >= 14;
-    const showNames = zoom >= 16;
-    const bucket = zoom < 12 ? "mini" : zoom < 14 ? "pin" : zoom < 16 ? "badges" : "names";
+    const list = groupTransitStopIcons(visiblePins);
+    // Reduce decoration, not physical network presence, on dense views.
+    const appearance = transitStopAppearance(zoom);
+    const viewAngle=stopMobilityViewAngle(mapHeading);
+    const showPlatformCodes = appearance.platforms;
+    const showNames = appearance.names;
+    const bucket = appearance.bucket;
     class StopOverlay extends google.maps.OverlayView {
       div: HTMLDivElement;
       pos: { lat: number; lng: number };
@@ -1237,6 +1560,7 @@ export default function BusinessMap({
       }
       draw(this: any) {
         const overlayProjection = this.getProjection();
+        if (!overlayProjection) return;
         const point = overlayProjection.fromLatLngToDivPixel(new google.maps.LatLng(this.pos.lat, this.pos.lng));
         if (point) {
           this.div.style.left = point.x + "px";
@@ -1248,12 +1572,19 @@ export default function BusinessMap({
       }
     }
     const seenKeys = new Set<string>();
-    const buildPin = (s: any, lat: number, lng: number, withBadges: boolean, platformDirections?: string[], platformSide?: string | null, key?: string, nameOverride?: string, badgeRoutes?: any[]) => {
+    const buildPin = (s: any, lat: number, lng: number, key?: string) => {
       const hasBus = s.modes.includes("bus");
       const hasTram = s.modes.includes("tram");
       const pinColor = hasBus && hasTram ? "#264348" : hasTram ? "#8B0000" : "#1E3A8A";
-      const platforms = (s as any).platforms || [];
       const container = document.createElement("div");
+      container.dataset.physicalStopId = s.physical_stop_id || s.stop_id;
+      container.dataset.platformId = s.platform_id || '';
+      container.dataset.platformIds = (s.platform_ids || []).join(',');
+      container.dataset.stopBucket = appearance.bucket;
+      container.dataset.stopVisualSize = String(appearance.size);
+      container.dataset.latitude = String(lat);
+      container.dataset.longitude = String(lng);
+      container.title = s.platform_codes?.length ? `${s.name} · ${s.platform_codes.join(' · ')}` : s.name;
       container.style.position = "absolute";
       container.style.transform = "translate(-50%, -50%)";
       container.style.pointerEvents = "auto";
@@ -1263,11 +1594,15 @@ export default function BusinessMap({
       container.style.flexDirection = "column";
       container.style.alignItems = "center";
 
-      if (zoom < 12) {
+      if (appearance.dot) {
         const mini = document.createElement("div");
-        mini.textContent = hasBus && hasTram ? "🚏" : hasTram ? "🚋" : "🚌";
-        mini.style.fontSize = "13px";
-        mini.style.filter = "drop-shadow(0 1px 1px rgba(0,0,0,0.4))";
+        mini.style.width = `${appearance.size}px`;
+        mini.style.height = `${appearance.size}px`;
+        mini.style.borderRadius = "50%";
+        mini.style.backgroundColor = pinColor;
+        mini.style.border = "1px solid #fff";
+        mini.style.boxSizing = "border-box";
+        container.style.minWidth = "12px";container.style.minHeight = "12px";container.style.justifyContent = "center";
         container.appendChild(mini);
       } else {
         const pin = document.createElement("div");
@@ -1275,70 +1610,36 @@ export default function BusinessMap({
         pin.style.alignItems = "center";
         pin.style.justifyContent = "center";
         pin.style.gap = "3px";
-        pin.style.padding = "3px 6px";
+        pin.style.padding = appearance.names ? "3px 5px" : "2px 3px";
         pin.style.borderRadius = "9px";
         pin.style.backgroundColor = pinColor;
-        pin.style.border = "2px solid #ffffff";
+        pin.style.border = "1px solid #ffffff";
         pin.style.boxShadow = "0 1px 4px rgba(0,0,0,0.4)";
         pin.style.boxSizing = "border-box";
         pin.style.fontFamily = "Arial, sans-serif";
-        if (hasBus) {
-          const ic = document.createElement("span");
-          ic.textContent = "🚌";
-          ic.style.fontSize = "11px";
-          pin.appendChild(ic);
-        }
-        if (hasTram) {
-          const ic = document.createElement("span");
-          ic.textContent = "🚋";
-          ic.style.fontSize = "11px";
+        if (hasBus || hasTram) {
+          const ic = document.createElement("img");
+          ic.src = resolveMapAssetUri(MOBILITY_VIEW_SOURCES.bus_stop[viewAngle]);
+          ic.alt = "";ic.draggable=false;ic.style.width=`${appearance.icon}px`;ic.style.height=`${appearance.icon}px`;
+          ic.style.objectFit="contain";ic.style.display="block";
           pin.appendChild(ic);
         }
         container.appendChild(pin);
 
-        if (withBadges) {
-          const badges = document.createElement("div");
-          badges.style.display = "flex";
-          badges.style.gap = "2px";
-          badges.style.marginTop = "1px";
-          const broutes = (badgeRoutes && badgeRoutes.length ? badgeRoutes : s.routes).slice(0, 3);
-          broutes.forEach((r: any) => {
-            const b = document.createElement("span");
-            b.textContent = r.route_number;
-            b.style.backgroundColor = r.mode === "tram" ? "#8B0000" : "#1E3A8A";
-            b.style.color = "#ffffff";
-            b.style.fontSize = "9px";
-            b.style.fontWeight = "800";
-            b.style.fontFamily = "Arial, sans-serif";
-            b.style.borderRadius = "6px";
-            b.style.padding = "0 4px";
-            b.style.border = "1px solid #ffffff";
-            b.style.lineHeight = "12px";
-            badges.appendChild(b);
-          });
-          container.appendChild(badges);
+        const platformCodes=Array.isArray(s.platform_codes)?s.platform_codes.filter(Boolean):[];
+        if(showPlatformCodes && platformCodes.length){
+          const codes=document.createElement("div");
+          codes.textContent=Array.from(new Set(platformCodes)).join(" · ");
+          codes.dataset.platformCodes=platformCodes.join(",");
+          codes.style.fontSize="9px";codes.style.fontWeight="800";codes.style.fontFamily="Arial, sans-serif";
+          codes.style.color="#264348";codes.style.backgroundColor="rgba(255,255,255,0.94)";
+          codes.style.borderRadius="6px";codes.style.padding="1px 4px";codes.style.marginTop="1px";
+          codes.style.whiteSpace="nowrap";codes.style.maxWidth="120px";codes.style.overflow="hidden";codes.style.textOverflow="ellipsis";
+          container.appendChild(codes);
         }
-        if (platformDirections && platformDirections.length > 0) {
-          const dirEl = document.createElement("div");
-          const sideLabel = (platformSide ?? "") ? `${platformSide === "left" ? "L" : "R"} · ` : "";
-          dirEl.textContent = sideLabel + platformDirections.slice(0, 2).join(" · ");
-          dirEl.style.fontSize = "9px";
-          dirEl.style.fontWeight = "700";
-          dirEl.style.fontFamily = "Arial, sans-serif";
-          dirEl.style.color = "#264348";
-          dirEl.style.backgroundColor = "rgba(255,255,255,0.92)";
-          dirEl.style.borderRadius = "6px";
-          dirEl.style.padding = "1px 4px";
-          dirEl.style.marginTop = "1px";
-          dirEl.style.whiteSpace = "nowrap";
-          dirEl.style.maxWidth = "120px";
-          dirEl.style.overflow = "hidden";
-          dirEl.style.textOverflow = "ellipsis";
-          container.appendChild(dirEl);
-        }
-        if (showNames && !platformDirections) {
+        if (showNames) {
           const nameEl = document.createElement("div");
-          nameEl.textContent = nameOverride || s.name;
+          nameEl.textContent = s.name;
           nameEl.style.fontSize = "10px";
           nameEl.style.fontWeight = "700";
           nameEl.style.fontFamily = "Arial, sans-serif";
@@ -1357,6 +1658,15 @@ export default function BusinessMap({
         onTransitStopPress?.(s as any);
       });
 
+      const existing = key && stopsCacheRef.current.get(key);
+      if (existing) {
+        existing.container.replaceWith(container);
+        existing.overlay.div = container;
+        existing.overlay.pos = { lat, lng };
+        existing.overlay.draw();
+        existing.container = container;
+        return;
+      }
       const overlay = new StopOverlay(container, { lat, lng });
       overlay.setMap(mapRef.current);
       transitStopsRef.current.push(overlay);
@@ -1364,61 +1674,14 @@ export default function BusinessMap({
       else stopsCacheRef.current.set(`anon:${lat},${lng}`, { overlay, container });
     };
 
-    list.forEach((s, i) => {
-      if (i % stride !== 0) return;
-      // Normal zoom: ONE pin per stop place (clean, not overloaded).
-      // Deep zoom (>= 16): the opposite-direction stops appear too - one
-      // pin per REAL stop position (platform clusters deduped at 25m so
-      // L/R twins of the same island stay one), labeled with their
-      // directions instead of the name.
-      const platforms = (s as any).platforms || [];
-      if (zoom >= 16 && platforms.length >= 1) {
-        const mainKey = `stop:${s.stop_id}:${bucket}`;
-        seenKeys.add(mainKey);
-        if (!stopsCacheRef.current.has(mainKey)) {
-          buildPin(s, s.latitude, s.longitude, showBadges, undefined, null, mainKey);
-        }
-        const clusters: { lat: number; lng: number; directions: string[]; routeNums: Set<string> }[] = [];
-        for (const p of platforms) {
-          if (p.latitude == null || p.longitude == null) continue;
-          const near = clusters.find(
-            (c) =>
-              Math.sqrt((c.lat - p.latitude) ** 2 + (c.lng - p.longitude) ** 2) * 111000 < 25
-          );
-          if (near) {
-            for (const d of p.directions || []) {
-              if (!near.directions.includes(d)) near.directions.push(d);
-            }
-            for (const rn of p.routes || []) near.routeNums.add(rn);
-          } else {
-            clusters.push({
-              lat: p.latitude,
-              lng: p.longitude,
-              directions: [...(p.directions || [])],
-              routeNums: new Set<string>(p.routes || []),
-            });
-          }
-        }
-        for (const c of clusters) {
-          const dMain =
-            Math.sqrt((s.latitude - c.lat) ** 2 + (s.longitude - c.lng) ** 2) * 111000;
-          if (dMain < 25) continue;
-          const k = `dir:${s.stop_id}:${c.lat.toFixed(5)},${c.lng.toFixed(5)}`;
-          seenKeys.add(k);
-          if (!stopsCacheRef.current.has(k)) {
-            const cRoutes = Array.from(c.routeNums).map((rn) => {
-              const rr = (s.routes || []).find((x: any) => x.route_number === rn);
-              return rr || { route_number: rn, mode: s.modes[0] || "bus" };
-            });
-            buildPin(s, c.lat, c.lng, true, c.directions, null, k, undefined, cRoutes);
-          }
-        }
-        return;
-      }
-      const key = `stop:${s.stop_id}:${bucket}:${s.modes.includes("bus") ? "b" : ""}${s.modes.includes("tram") ? "t" : ""}`;
+    list.forEach((s) => {
+      const identity=(s.platform_ids?.length?s.platform_ids.slice().sort():s.stop_ids?.length?s.stop_ids.slice().sort():[s.stop_id]).join('|');
+      const key = `stop:${identity}:name:${String(s.name).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase()}`;
       seenKeys.add(key);
-      if (!stopsCacheRef.current.has(key)) {
-        buildPin(s, s.latitude, s.longitude, showBadges, undefined, null, key);
+      const signature = JSON.stringify([bucket, showPlatformCodes, viewAngle, s.name, s.latitude, s.longitude, s.modes, s.platform_ids, s.platform_codes]);
+      if (stopsCacheRef.current.get(key)?.signature !== signature) {
+        buildPin(s, s.latitude, s.longitude, key);
+        stopsCacheRef.current.get(key).signature = signature;
       }
     });
 
@@ -1430,7 +1693,7 @@ export default function BusinessMap({
       }
     });
     transitStopsRef.current = Array.from(stopsCacheRef.current.values()).map((r) => r.overlay);
-  }, [transitStops, mapReady]);
+  }, [transitStops, mapReady, stopViewportRevision, mapHeading]);
 
   // Fly to location
   useEffect(() => {
@@ -1450,7 +1713,8 @@ export default function BusinessMap({
     if (!map || !mapReadyRef.current) return;
     // The "you are here" pin only shows at the live device location.
     const pinPos = pinLocation;
-    const imageKey = userPinImage || "";
+    const initial = profileInitial(userPinName);
+    const imageKey = `${userPinImage || ""}|${initial}`;
     if (!showUserLocation || !pinPos) {
       if (userLocationOverlayRef.current) {
         try { userLocationOverlayRef.current.setMap(null); } catch (e) {}
@@ -1477,39 +1741,7 @@ export default function BusinessMap({
     container.style.position = "absolute";
     container.style.pointerEvents = "none";
 
-    if (userPinImage) {
-      // User pin with the profile photo (user or business avatar)
-      const pin = document.createElement("div");
-      pin.style.width = "34px";
-      pin.style.height = "34px";
-      pin.style.borderRadius = "50%";
-      pin.style.border = "3px solid #ffffff";
-      pin.style.boxShadow = "0 1px 6px rgba(0,0,0,0.45)";
-      pin.style.backgroundColor = "#59ABE3";
-      pin.style.overflow = "hidden";
-      pin.style.transform = "translate(-50%, -50%)";
-      pin.style.boxSizing = "border-box";
-      const img = document.createElement("img");
-      img.src = userPinImage;
-      img.style.width = "100%";
-      img.style.height = "100%";
-      img.style.objectFit = "cover";
-      img.style.borderRadius = "50%";
-      img.onerror = () => { img.style.display = "none"; };
-      pin.appendChild(img);
-      container.appendChild(pin);
-    } else {
-      const dot = document.createElement("div");
-      dot.style.width = "16px";
-      dot.style.height = "16px";
-      dot.style.borderRadius = "50%";
-      dot.style.backgroundColor = "#59ABE3";
-      dot.style.border = "3px solid #ffffff";
-      dot.style.boxShadow = "0 1px 5px rgba(0,0,0,0.4)";
-      dot.style.transform = "translate(-50%, -50%)";
-      dot.style.boxSizing = "border-box";
-      container.appendChild(dot);
-    }
+    container.appendChild(createUserPinElement(document,userPinImage,userPinName));
 
     class UserOverlay extends google.maps.OverlayView {
       div: HTMLDivElement;
@@ -1524,6 +1756,7 @@ export default function BusinessMap({
       }
       draw(this: any) {
         const overlayProjection = this.getProjection();
+        if (!overlayProjection) return;
         const point = overlayProjection.fromLatLngToDivPixel(new google.maps.LatLng(this.pos.lat, this.pos.lng));
         if (point) {
           this.div.style.left = point.x + "px";
@@ -1539,7 +1772,7 @@ export default function BusinessMap({
     overlay.setMap(map);
     userLocationOverlayRef.current = overlay;
     userLocImageRef.current = imageKey;
-  }, [location, showUserLocation, mapReady, userPinImage, pinLocation]);
+  }, [location, showUserLocation, mapReady, userPinImage, userPinName, pinLocation]);
 
   // Pan when the initialRegion-based center changes (e.g. home map bounds updates)
   useEffect(() => {
@@ -1555,12 +1788,12 @@ export default function BusinessMap({
   useEffect(() => {
     if (!mapRef.current || !mapReadyRef.current || !focusToken || !focusRegion) return;
     mapRef.current.panTo({ lat: focusRegion.latitude, lng: focusRegion.longitude });
-    mapRef.current.setZoom(14);
-  }, [focusToken, mapReady]);
+    mapRef.current.setZoom(Number.isFinite(focusZoom) ? focusZoom : 14);
+  }, [focusToken, focusZoom, mapReady]);
 
   if (disabled) {
     return (
-      <View style={[s.wrap, { height }]}>
+      <View style={[s.wrap, { height, marginHorizontal:horizontalInset }]}>
         <Pressable
           style={s.disabledOverlay}
           onPress={() => {
@@ -1629,7 +1862,7 @@ export default function BusinessMap({
   }
 
   return (
-    <View style={[s.wrap, { height }]}>
+    <View style={[s.wrap, { height, marginHorizontal:horizontalInset }]}>
       {!mapReady && !mapError && (
         <View style={s.loading}><ActivityIndicator size="large" color="#000" /></View>
       )}

@@ -1,0 +1,92 @@
+{
+  "en": {
+    "selectCard": "Enter an address or tap a result card to choose your destination.",
+    "go": "Go", "preview": "Google Maps route preview", "close": "Close route preview", "walking": "Walking", "transit": "Transit", "driving": "Driving",
+    "open": "Open in Google Maps", "refresh": "Update preview from selected origin",
+    "note": "Google Maps preview, not live navigation. Opening it sends the origin and destination to Google. Its route may differ from PERIX directions. If the preview is unavailable, use the link below.",
+    "noOrigin": "Select a starting point in the existing location selector or use your location to preview the route.",
+    "missingKey": "A configured Google Maps browser key is required for the preview.",
+    "failed": "Could not open the preview or link. Update the preview or try Google Maps again.", "mapPoint": "Selected map point"
+  },
+  "de": {
+    "selectCard": "Adresse eingeben oder eine Ergebniskarte als Ziel auswählen.",
+    "go": "Los", "preview": "Routenvorschau in Google Maps", "close": "Routenvorschau schließen", "walking": "Zu Fuß", "transit": "ÖPNV", "driving": "Auto",
+    "open": "In Google Maps öffnen", "refresh": "Vorschau ab gewähltem Startpunkt aktualisieren",
+    "note": "Google-Maps-Vorschau, keine Live-Navigation. Beim Öffnen werden Start und Ziel an Google gesendet. Die Route kann von PERIX abweichen. Falls die Vorschau nicht verfügbar ist, nutzen Sie den Link unten.",
+    "noOrigin": "Wählen Sie einen Startpunkt in der vorhandenen Standortauswahl oder nutzen Sie Ihren Standort für die Routenvorschau.",
+    "missingKey": "Für die Vorschau wird ein konfigurierter Google-Maps-Browserschlüssel benötigt.",
+    "failed": "Vorschau oder Link konnten nicht geöffnet werden. Aktualisieren Sie die Vorschau oder versuchen Sie Google Maps erneut.", "mapPoint": "Gewählter Kartenpunkt"
+  },
+  "el": {
+    "selectCard": "Γράψε διεύθυνση ή πάτησε μια κάρτα για να επιλέξεις προορισμό.",
+    "go": "Πήγαινε", "preview": "Προεπισκόπηση διαδρομής Google Maps", "close": "Κλείσιμο προεπισκόπησης", "walking": "Πόδια", "transit": "Μέσα", "driving": "Αυτοκίνητο",
+    "open": "Άνοιγμα στο Google Maps", "refresh": "Ενημέρωση από την επιλεγμένη αφετηρία",
+    "note": "Προεπισκόπηση Google Maps, όχι ζωντανή πλοήγηση. Το άνοιγμα στέλνει αφετηρία και προορισμό στην Google. Η διαδρομή μπορεί να διαφέρει από τις οδηγίες PERIX. Αν δεν εμφανίζεται, χρησιμοποιήστε τον σύνδεσμο παρακάτω.",
+    "noOrigin": "Επιλέξτε αφετηρία από την υπάρχουσα επιλογή τοποθεσίας ή χρησιμοποιήστε τη θέση σας για την προεπισκόπηση.",
+    "missingKey": "Η προεπισκόπηση απαιτεί ρυθμισμένο Google Maps browser key.",
+    "failed": "Δεν άνοιξε η προεπισκόπηση ή ο σύνδεσμος. Ενημερώστε την προεπισκόπηση ή δοκιμάστε ξανά το Google Maps.", "mapPoint": "Επιλεγμένο σημείο χάρτη"
+  },
+  "es": {
+    "selectCard": "Introduce una dirección o toca una tarjeta para elegir tu destino.",
+    "go": "Ir", "preview": "Vista previa de ruta en Google Maps", "close": "Cerrar vista previa", "walking": "A pie", "transit": "Transporte", "driving": "Coche",
+    "open": "Abrir en Google Maps", "refresh": "Actualizar desde el origen seleccionado",
+    "note": "Vista previa de Google Maps, no navegación en directo. Al abrirla se envían el origen y el destino a Google. La ruta puede diferir de PERIX. Si no está disponible, use el enlace inferior.",
+    "noOrigin": "Seleccione un punto de partida en el selector de ubicación existente o use su ubicación para ver la ruta.",
+    "missingKey": "La vista previa requiere una clave de navegador de Google Maps configurada.",
+    "failed": "No se pudo abrir la vista previa o el enlace. Actualice la vista previa o vuelva a intentar Google Maps.", "mapPoint": "Punto seleccionado en el mapa"
+  },
+  "sq": {
+    "selectCard": "Shkruaj një adresë ose prek një kartë për të zgjedhur destinacionin.",
+    "go": "Shko", "preview": "Parapamje e itinerarit në Google Maps", "close": "Mbyll parapamjen", "walking": "Në këmbë", "transit": "Transport publik", "driving": "Makinë",
+    "open": "Hap në Google Maps", "refresh": "Përditëso nga pikënisja e zgjedhur",
+    "note": "Parapamje Google Maps, jo navigim i drejtpërdrejtë. Hapja dërgon pikënisjen dhe destinacionin te Google. Itinerari mund të ndryshojë nga PERIX. Nëse nuk shfaqet, përdorni lidhjen më poshtë.",
+    "noOrigin": "Zgjidhni pikënisjen në përzgjedhësin ekzistues të vendndodhjes ose përdorni vendndodhjen tuaj për parapamjen.",
+    "missingKey": "Parapamja kërkon një çelës të konfiguruar Google Maps për shfletuesin.",
+    "failed": "Parapamja ose lidhja nuk u hap. Përditësoni parapamjen ose provoni sërish Google Maps.", "mapPoint": "Pikë e zgjedhur në hartë"
+  },
+  "fr": {
+    "selectCard": "Saisissez une adresse ou touchez une fiche pour choisir votre destination.",
+    "go": "Y aller", "preview": "Aperçu de l’itinéraire Google Maps", "close": "Fermer l’aperçu", "walking": "À pied", "transit": "Transports", "driving": "Voiture",
+    "open": "Ouvrir dans Google Maps", "refresh": "Actualiser depuis le départ sélectionné",
+    "note": "Aperçu Google Maps, pas de navigation en direct. L’ouverture envoie le départ et la destination à Google. L’itinéraire peut différer de PERIX. Si l’aperçu est indisponible, utilisez le lien ci-dessous.",
+    "noOrigin": "Choisissez un départ dans le sélecteur de lieu existant ou utilisez votre position pour l’aperçu.",
+    "missingKey": "L’aperçu nécessite une clé navigateur Google Maps configurée.",
+    "failed": "Impossible d’ouvrir l’aperçu ou le lien. Actualisez l’aperçu ou réessayez Google Maps.", "mapPoint": "Point sélectionné sur la carte"
+  },
+  "it": {
+    "selectCard": "Inserisci un indirizzo o tocca una scheda per scegliere la destinazione.",
+    "go": "Vai", "preview": "Anteprima percorso Google Maps", "close": "Chiudi anteprima", "walking": "A piedi", "transit": "Mezzi", "driving": "Auto",
+    "open": "Apri in Google Maps", "refresh": "Aggiorna dalla partenza selezionata",
+    "note": "Anteprima Google Maps, non navigazione dal vivo. L’apertura invia partenza e destinazione a Google. Il percorso può differire da PERIX. Se non disponibile, usa il link qui sotto.",
+    "noOrigin": "Scegli una partenza nel selettore di posizione esistente o usa la tua posizione per l’anteprima.",
+    "missingKey": "L’anteprima richiede una chiave browser Google Maps configurata.",
+    "failed": "Impossibile aprire l’anteprima o il link. Aggiorna l’anteprima o riprova Google Maps.", "mapPoint": "Punto selezionato sulla mappa"
+  },
+  "sr": {
+    "selectCard": "Unesite adresu ili dodirnite karticu da izaberete odredište.",
+    "go": "Kreni", "preview": "Pregled rute u Google Maps", "close": "Zatvori pregled", "walking": "Peške", "transit": "Prevoz", "driving": "Automobil",
+    "open": "Otvori u Google Maps", "refresh": "Ažuriraj od izabranog polazišta",
+    "note": "Pregled Google Maps, ne navigacija uživo. Otvaranje šalje polazište i odredište Google-u. Ruta može da se razlikuje od PERIX-a. Ako pregled nije dostupan, koristite vezu ispod.",
+    "noOrigin": "Izaberite polazište u postojećem biraču lokacije ili koristite svoju lokaciju za pregled rute.",
+    "missingKey": "Za pregled je potreban podešen Google Maps ključ za pregledač.",
+    "failed": "Pregled ili veza nisu otvoreni. Ažurirajte pregled ili pokušajte ponovo Google Maps.", "mapPoint": "Izabrana tačka na mapi"
+  },
+  "pl": {
+    "selectCard": "Wpisz adres lub dotknij karty, aby wybrać cel.",
+    "go": "Idź", "preview": "Podgląd trasy Google Maps", "close": "Zamknij podgląd", "walking": "Pieszo", "transit": "Komunikacja", "driving": "Samochód",
+    "open": "Otwórz w Google Maps", "refresh": "Odśwież od wybranego punktu startowego",
+    "note": "Podgląd Google Maps, nie nawigacja na żywo. Otwarcie wysyła początek i cel do Google. Trasa może różnić się od PERIX. Jeśli podgląd jest niedostępny, użyj linku poniżej.",
+    "noOrigin": "Wybierz początek w istniejącym selektorze lokalizacji lub użyj swojej lokalizacji do podglądu trasy.",
+    "missingKey": "Podgląd wymaga skonfigurowanego klucza przeglądarkowego Google Maps.",
+    "failed": "Nie udało się otworzyć podglądu lub linku. Odśwież podgląd albo spróbuj ponownie Google Maps.", "mapPoint": "Wybrany punkt na mapie"
+  },
+  "ru": {
+    "selectCard": "Введите адрес или нажмите на карточку, чтобы выбрать цель.",
+    "go": "В путь", "preview": "Предпросмотр маршрута Google Maps", "close": "Закрыть предпросмотр", "walking": "Пешком", "transit": "Транспорт", "driving": "Автомобиль",
+    "open": "Открыть в Google Maps", "refresh": "Обновить от выбранной точки отправления",
+    "note": "Предпросмотр Google Maps, не навигация в реальном времени. При открытии начало и цель передаются Google. Маршрут может отличаться от PERIX. Если просмотр недоступен, используйте ссылку ниже.",
+    "noOrigin": "Выберите начало в существующем выборе местоположения или используйте свою позицию для просмотра маршрута.",
+    "missingKey": "Для предпросмотра нужен настроенный браузерный ключ Google Maps.",
+    "failed": "Не удалось открыть предпросмотр или ссылку. Обновите просмотр или попробуйте Google Maps снова.", "mapPoint": "Выбранная точка на карте"
+  }
+}

@@ -1,0 +1,212 @@
+{
+  "base": "task-start dirty WIP; not HEAD and not production",
+  "baseline_directory": "C:\\Users\\PC\\AppData\\Local\\Temp\\opencode\\perix-native-baseline-20261026T090044Z",
+  "changes": {
+    "Perix-main/backend/mobility/tomtom_control.py": {
+      "before": "111dceaa58167b9eb75250324ff3e23f03326cfd59aba16db677f1902a381e16",
+      "after": null
+    },
+    "Perix-main/backend/mobility/tomtom_sampling.py": {
+      "before": "c3dc374f53f1a29b97829fa48f5cf71bb7d7c92ab64b94d50bedd4df7627af8c",
+      "after": null
+    },
+    "Perix-main/backend/mobility/tomtom_schedule.py": {
+      "before": "bf701c45aa8d31e03fa561afec02b185b928e515140d4d650e91c93d0f02079c",
+      "after": null
+    },
+    "Perix-main/backend/mobility/tomtom_scheduler.py": {
+      "before": "58ec694f25641dbd422e01e265c110e2d16b2e41bb5bc6dd0ceaccb635490af4",
+      "after": null
+    },
+    "Perix-main/backend/mobility/tomtom_temporal.py": {
+      "before": "0350b2dcf89ef512f7a02ee1f1ac39f8c1dceaf2451dbd2a3b8e3733a1a71350",
+      "after": null
+    },
+    "Perix-main/backend/mobility/tomtom_traffic.py": {
+      "before": "61e7166cc66c0a4398414fe93b1c6f1de8a9911cbbcdd85b80308681523bb0c2",
+      "after": null
+    },
+    "Perix-main/backend/mobility/v2.py": {
+      "before": "7edb1bac9c41432dff3ef6f119a7445592d26a1ba4c7f5b2482ee0c7ed70a04e",
+      "after": "66e8bc1e220adf7ea6776e24bcd1dbeceaf3de738dd8c4fe466718a2de2421c9"
+    },
+    "Perix-main/backend/mobility/motion/bus_time_evidence.py": {
+      "before": "109a1b8df5d44ea3f1d687926ca09b28fd09f3b9896ea82265bf97d9dd88275a",
+      "after": null
+    },
+    "Perix-main/backend/mobility/motion/engine.py": {
+      "before": "68797833e546f792ebc23a2dd82696c8028ee8680abcfb87e48c5dacadc04c7d",
+      "after": "a6331a1ac614aa4daa7da90ed80fc6bdb5bf671944ed29afe245c998c04bd0dc"
+    },
+    "Perix-main/backend/mobility/motion/time_allocation.py": {
+      "before": "757d54425453a471eda405ffee89c8cb1949584e3d62da50676d4c8ce1eb8e81",
+      "after": "623e5254234907a24c572123900a8cb64c39613e5aa21c5896ba16fdbbf5b739"
+    },
+    "Perix-main/backend/mobility/motion/traffic.py": {
+      "before": "d58506263331200c9f38e36cfa3795d12bb31cb5849466feff3756af8f1ff1cb",
+      "after": "372976d0dd617e271ae49c1829ab1c2d8ab634372e3e2bee8ccfa724a5e78c41"
+    },
+    "Perix-main/backend/tests/test_adaptive_traffic_sampling.py": {
+      "before": "8396dc4bdcdf946721039268cf3e4d9364311fd125469eefe5b4e70973fd73b0",
+      "after": null
+    },
+    "Perix-main/backend/tests/test_bus_temporal_position.py": {
+      "before": "7122b6ab8071250765992d5e851f09bdd40a5d8b483c4df0b8e6eceb4a8d596b",
+      "after": null
+    },
+    "Perix-main/backend/tests/test_mobility_time_allocation.py": {
+      "before": "86df27997ac7793a49f9c7bb423e070939b721bb51cef957de12a3bfc2960c7b",
+      "after": "0b0fb1a523934eda0ecbd4188f29ac0d47451ea1dff1c93369da9eb3bc2e9acb"
+    },
+    "Perix-main/backend/tests/test_shadow_rebuild_cache.py": {
+      "before": "d63bb1231213381d4b403d4d029d0ad5a249207fc213476448867a484c8c2351",
+      "after": null
+    },
+    "Perix-main/backend/tests/test_tomtom_evidence.py": {
+      "before": "635fb2e543d4a24c65a31f8bbbfd987b37ef229cd324f504d4522d2990c77a83",
+      "after": null
+    },
+    "Perix-main/backend/tests/test_tomtom_sampling_control.py": {
+      "before": "d08b425314c0fb7996a37901d1023b09ec5f6f0b090da92238a4fd3238eca7aa",
+      "after": null
+    },
+    "Perix-main/backend/tools/benchmark_adaptive_traffic.py": {
+      "before": "66540fc61eb42fc4e22014d10f3062d00d76e445ab6d9f229d696d3541934338",
+      "after": null
+    },
+    "Perix-main/backend/tools/benchmark_shadow_rebuild_cache.py": {
+      "before": "bb665a541185a89c0a5821931a8d144245d8d000bdfbd571871550283b628d80",
+      "after": null
+    },
+    "Perix-main/backend/tools/benchmark_time_allocation.py": {
+      "before": "afe6a973734f64b8da2abc4fdebdce156ee0b0f2c2d5c1c2647aedfc1ce92251",
+      "after": null
+    },
+    "Perix-main/backend/tools/mobility_physics_research.py": {
+      "before": "5823043b568972f0e9cf0b1c9147b7566cbac7808cd50876c114668686031809",
+      "after": null
+    },
+    "Perix-main/backend/mobility/sampling_policies/magdeburg-weekly-v1.json": {
+      "before": "aae20ccf4162c99deda41ee1e7cf454c8ef752e3bac8e5549194249b9f954feb",
+      "after": null
+    },
+    "Perix-main/backend/utils/mobility_workers.py": {
+      "before": "33dab57c9b5b61f84e49a0e451752dd93564325096a9c330ed3f0b4a2a1bad0c",
+      "after": "5ddf37f3464ab98b2c2324c8d2f642025ccb4f2ea7d6edcbbfdaaabc7aac7ef7"
+    },
+    ".github/workflows/mobility-physics-research.yml": {
+      "before": "dabc726c8eab1e9b1031bab4c7a13c705aea8f72e5db4337eacaa48d113989d8",
+      "after": "35aa0cd43c5c77543aaa2fad26bfe4e0b5cda2ab6527bfa04701d7d414aeb2ec"
+    },
+    "Perix-main/backend/mobility/motion/native_recalibration.py": {
+      "before": null,
+      "after": "495c4bc42d47d6bb7f4f8fba6e4579a93c18405d25a9a078868a4000078cf036"
+    },
+    "Perix-main/backend/mobility/motion/native_realtime.py": {
+      "before": null,
+      "after": "578a9f8dc333d08473de5e7bf6d062a658b948e0979a8e23529dc898b2b458bb"
+    },
+    "Perix-main/backend/tests/test_native_recalibration.py": {
+      "before": null,
+      "after": "1685b66b8d8f54b019f2a9a86237e040754ccd171aff08d8d2085addf6b48cb4"
+    },
+    "Perix-main/backend/tools/replay_native_recalibration.py": {
+      "before": null,
+      "after": "8464779bcc35c7f422ca686593e36b2ff6f530ae3641cafd992f8753e6696e73"
+    }
+  },
+  "source_files_changed_added_removed": 28,
+  "modified_files": [
+    "Perix-main/backend/mobility/v2.py",
+    "Perix-main/backend/mobility/motion/engine.py",
+    "Perix-main/backend/mobility/motion/time_allocation.py",
+    "Perix-main/backend/mobility/motion/traffic.py",
+    "Perix-main/backend/tests/test_mobility_time_allocation.py",
+    "Perix-main/backend/utils/mobility_workers.py",
+    ".github/workflows/mobility-physics-research.yml"
+  ],
+  "added_files": [
+    "Perix-main/backend/mobility/motion/native_recalibration.py",
+    "Perix-main/backend/mobility/motion/native_realtime.py",
+    "Perix-main/backend/tests/test_native_recalibration.py",
+    "Perix-main/backend/tools/replay_native_recalibration.py"
+  ],
+  "removed_files": [
+    "Perix-main/backend/mobility/tomtom_control.py",
+    "Perix-main/backend/mobility/tomtom_sampling.py",
+    "Perix-main/backend/mobility/tomtom_schedule.py",
+    "Perix-main/backend/mobility/tomtom_scheduler.py",
+    "Perix-main/backend/mobility/tomtom_temporal.py",
+    "Perix-main/backend/mobility/tomtom_traffic.py",
+    "Perix-main/backend/mobility/motion/bus_time_evidence.py",
+    "Perix-main/backend/tests/test_adaptive_traffic_sampling.py",
+    "Perix-main/backend/tests/test_bus_temporal_position.py",
+    "Perix-main/backend/tests/test_shadow_rebuild_cache.py",
+    "Perix-main/backend/tests/test_tomtom_evidence.py",
+    "Perix-main/backend/tests/test_tomtom_sampling_control.py",
+    "Perix-main/backend/tools/benchmark_adaptive_traffic.py",
+    "Perix-main/backend/tools/benchmark_shadow_rebuild_cache.py",
+    "Perix-main/backend/tools/benchmark_time_allocation.py",
+    "Perix-main/backend/tools/mobility_physics_research.py",
+    "Perix-main/backend/mobility/sampling_policies/magdeburg-weekly-v1.json"
+  ],
+  "byte_exact_forward_and_reverse_patch_verified": true,
+  "protected_hashes_unchanged": {
+    "Perix-main/backend/mobility/motion/bus.py": "263426d40a06e7bdb72c2bc6a3125e1b80aa1560186befc0a04673f0260b2de5",
+    "Perix-main/backend/mobility/motion/tram.py": "f615c74b88b8c590a7bf6ca48a5c65ce67e74f047cce15a20fa51989286e43df",
+    "Perix-main/backend/mobility/motion/common.py": "b44b03f383178c0600766f226646edbf12a6c9d27e23b3a1b0a24d21137f15f1",
+    "Perix-main/backend/mobility/motion/config.py": "e5d56759e84e12272a8c77dca70abec911add8d84e0f229f8e5897c6a0662e87",
+    "Perix-main/backend/mobility/motion/handover.py": "baf8affa06362713bad79a1e9883acdfecc1888c34925e0ef08e119654fb2c58",
+    "Perix-main/backend/mobility/motion/google_traffic.py": "2395e9024cc22ed35579dcf3238a807af015d44c2b5ccf0273b64f5e5831f1b2",
+    "Perix-main/backend/mobility/traffic_profiles.py": "9f211c7b72d61129aa230f019bc471e84b8924e2da77f2ff0024e263fc0a6c2c",
+    "Perix-main/backend/releases/adaptive-traffic-20261026/README.md": "684bda07446195c8b98bfc336d5a9279e6bdcb9326d1d768897d039b9509b7f6",
+    "Perix-main/backend/releases/area-selection/README.md": "ade3c1947da69abf484190d60338cb6cc0bff39b3536b30659faf7e6a6829a8b",
+    "Perix-main/backend/releases/magdeburg-eta-approach/README.md": "80e5b31c0628427c661615b64f934a36bbc246fbf073ece95a06fe9f4a811784",
+    "Perix-main/backend/releases/magdeburg-occurrence-fix/README.md": "e6a93f3dc27893ddc75f3bf9f4b6ff83655e156ceac52d4ea0fb81c859585a02",
+    "Perix-main/backend/releases/neighbor-timing/README.md": "b5f4172441e2ceaa0426c3e8f741d2c1123e7ef2f23448fa7f0c0a05d3440657",
+    "Perix-main/backend/releases/physics-time-allocation-20261026/README.md": "403c9ddf74bd130c6b12fc0a780e2e304d462bd3e99af531cbe3b0bc08055dc7",
+    "Perix-main/backend/releases/shadow-hardening-20261026/README.md": "5216758c7c64b97cd2515fc49de372619d78d5d3b7db1c435fbc1782fc57647e",
+    "Perix-main/backend/releases/sparse-realtime/README.md": "713afa58626b25dd39eeedb2a43fdbc294e5a1f0f252a64d2e5844a2500c9466",
+    "Perix-main/backend/releases/targeted-coverage/README.md": "94aae3150503392b0816dec432f6cf58f08e5f1d35ace04dc5651f07e32db5e8",
+    "Perix-main/backend/releases/neighbor-timing/production-d91ff576/README.md": "e5e19dac85c860fb8d80d7f29be9aca3e5646b70770416f818ce26f5afe0ec95"
+  },
+  "new_units": {
+    "tests": 44,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "regression": {
+    "tests": 415,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "evaluation_input_hashes": {
+    "C:\\Users\\PC\\AppData\\Local\\Temp\\opencode\\perix-native-canonical-20261026.json": "eb429ee6077463370e691faa03e5942761a1d221a7016c5607f6994038431d7b",
+    "C:\\Users\\PC\\AppData\\Local\\Temp\\opencode\\perix-native-canonical-net_7c4078011f7f.json": "668ebb6e99ac9b10699ac666803580395a38c651e471d6fa150c4bab18bf326d",
+    "C:\\Users\\PC\\AppData\\Local\\Temp\\opencode\\perix-native-gtfs-capture-20261026\\feed-0.pb": "8de6f45010bdb17569ddd6048786601d99a39d58d08b8afe9a41a99514dfa906",
+    "C:\\Users\\PC\\AppData\\Local\\Temp\\opencode\\perix-native-gtfs-capture-20261026\\feed-1.pb": "d0060ebfefe543ef2d104439deade93611d0366f22f76c31c8ac771b79a12261",
+    "C:\\Users\\PC\\AppData\\Local\\Temp\\opencode\\perix-native-gtfs-capture-20261026\\feed-2.pb": "baa3eeff5fc81bf235a0f7e74c62664489d6ceaadf0e5ca2c14b351b8b01938b",
+    "C:\\Users\\PC\\AppData\\Local\\Temp\\opencode\\perix-native-gtfs-capture-20261026\\feed-3.pb": "1371fc26f93cd4e780f2641723486ed7a80c4629e3fe0db1e35ac3a9a276e5e0"
+  },
+  "artifact_hashes": {
+    "new-unit-results.xml": "b1b6f1a748e82dc9ed1915b206f19ae8edbaa97d909185d991ccf1c76928f2b2",
+    "production-identity.json": "38aa2876301675bff7cdabb0d2f53c469a692eb42f7d6ffdb41a65775c13d3ac",
+    "README.md": "86d469ed45106c8cbe9b448802a044411c3238087a0aab2ddd5ff919ce364112",
+    "real-gtfs-candidate-replay.json": "5b0312d0f9eb40f2559577af2ff4845178fc72ef094a7524d475218c32979f4e",
+    "real-gtfs-replay.json": "c1bd8457886e341522d6efde3d50134071791b7c8e2acee7935b61e98c10d4fc",
+    "real-replay-summary.json": "94784017117274595df94747ce94e9fb93cdeade83fe89213a88acff9888f06c",
+    "regression-results.xml": "712ff61e63ba8b5b5ee8dd4375768e955bbb25bb07e1aeca2188b80b2518eb4f",
+    "task-only-delta.patch": "4be27ab9548a80e00a3f62e4001b943014930dc5075bb8e17df247da8b25b3b1"
+  },
+  "external_traffic_requests": 0,
+  "gtfs_feed_http_requests": 4,
+  "production_read_only_capture": true,
+  "production_mutations": 0,
+  "deployment": false,
+  "commit_push": false,
+  "passenger_change": false,
+  "native_runtime_flag_activated": false,
+  "independent_vehicle_accuracy": null
+}

@@ -52,6 +52,38 @@ def _hhmm(s: str) -> str:
     return f"{int(p[0]):02d}:{int(p[1]):02d}"
 
 
+def _source_time(value: str) -> str:
+    """Keep source seconds, including GTFS hours >=24; never fabricate them."""
+    parts = str(value or '').strip().split(':')
+    if len(parts) != 3:
+        return _hhmm(value)
+    return f'{int(parts[0]):02d}:{int(parts[1]):02d}:{int(parts[2]):02d}'
+
+
+def _feed_info(zf: zipfile.ZipFile) -> Optional[dict]:
+    """Archive-supplied publisher record, or None when absent/unusable.
+
+    Returns only a name and URL within strict bounds. Never raises for
+    missing or malformed content; never guesses a provider or licence.
+    """
+    try:
+        rows = _rows(zf, "feed_info.txt")
+    except Exception:
+        return None
+    if not rows:
+        return None
+    name = str(rows[0].get("feed_publisher_name") or "").strip()
+    url = str(rows[0].get("feed_publisher_url") or "").strip()
+    if not name or len(name) > 200 or not url or len(url) > 500:
+        return None
+    if " " in url or "\t" in url:
+        return None
+    lowered = url.lower()
+    if not (lowered.startswith("http://") or lowered.startswith("https://")):
+        return None
+    return {"publisher_name": name, "publisher_url": url}
+
+
 def _active_service_ids(zf: zipfile.ZipFile, service_date: date) -> set:
     active = set()
     weekday = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"][
@@ -119,6 +151,8 @@ def _parse_zip(source, service_date, agency_regex, timezone) -> dict:
         if not agency_ids:
             raise ValueError(f"No agency matched /{resolved_agency_regex}/ in agency.txt")
 
+        feed_info = _feed_info(zf)
+
         service_ids = _active_service_ids(zf, sd)
         if not service_ids:
             raise ValueError(f"No active services for {sd}")
@@ -144,7 +178,10 @@ def _parse_zip(source, service_date, agency_regex, timezone) -> dict:
             }
 
         trips = {}
+        catalogue_trip_routes = {}
         for r in _rows(zf, "trips.txt"):
+            if r.get('route_id') in selected_routes:
+                catalogue_trip_routes[r['trip_id']] = r['route_id']
             if r.get("route_id") not in selected_routes or r.get("service_id") not in service_ids:
                 continue
             trips[r["trip_id"]] = {
@@ -177,8 +214,11 @@ def _parse_zip(source, service_date, agency_regex, timezone) -> dict:
         # Stop times (streaming - the nationwide file has millions of rows).
         # Arrival and departure are kept SEPARATE: a vehicle arrives, dwells
         # and then departs - realistic stop behavior, not one shared time.
+        catalogue_modes = defaultdict(set)
         for r in _iter_rows(zf, "stop_times.txt"):
             tid = r.get("trip_id")
+            if tid in catalogue_trip_routes and r.get('stop_id') in stops:
+                catalogue_modes[r['stop_id']].add(selected_routes[catalogue_trip_routes[tid]]['mode'])
             if tid not in trips or r.get("stop_id") not in stops:
                 continue
             arr = r.get("arrival_time") or ""
@@ -186,7 +226,7 @@ def _parse_zip(source, service_date, agency_regex, timezone) -> dict:
             if not dep:
                 continue
             trips[tid]["times"].append(
-                (int(r.get("stop_sequence") or 0), r["stop_id"], _hhmm(arr or dep), _hhmm(dep))
+                (int(r.get("stop_sequence") or 0), r["stop_id"], _source_time(arr or dep), _source_time(dep))
             )
 
         # Shapes (streaming, keep only shapes referenced by the selected trips)
@@ -235,19 +275,20 @@ def _parse_zip(source, service_date, agency_regex, timezone) -> dict:
             stop_times = {}
             stop_times_arrival = {}
             for _seq, sid, _arr, dep in seqs:
-                stop_times.setdefault(sid, dep)
+                stop_times.setdefault(sid, _hhmm(dep))
                 if sid not in g["_seen"]:
                     g["_seen"].add(sid)
                     g["_stop_ids"].append(sid)
             for _seq, sid, arr, _dep in seqs:
-                stop_times_arrival.setdefault(sid, arr)
+                stop_times_arrival.setdefault(sid, _hhmm(arr))
             headsign = t["headsign"] or stops[seqs[-1][1]]["name"]
             g["trips"].append(
                 {
                     "trip_id": tid,
                     "headsign": headsign,
-                    "start": seqs[0][3],
-                    "end": seqs[-1][3],
+                    "start": _hhmm(seqs[0][3]),
+                    "end": _hhmm(seqs[-1][3]),
+                    "source_time_seconds_preserved": True,
                     "block_id": t["block_id"],
                     # Preserve the original static GTFS IDs for cross-feed
                     # identity verification. A public route number is NOT
@@ -307,5 +348,11 @@ def _parse_zip(source, service_date, agency_regex, timezone) -> dict:
             "service_date": sd.isoformat(),
             "timezone": resolved_timezone,
             "country": region.country,
+            "feed_info": feed_info,
+            # Agency-scoped physical inventory includes non-serving weekdays.
+            # No trip clocks/headsigns are promoted into this catalogue.
+            "stop_catalogue": [{**stops[sid], 'modes': sorted(modes)}
+                               for sid, modes in sorted(catalogue_modes.items())
+                               if -90 <= stops[sid]['lat'] <= 90 and -180 <= stops[sid]['lng'] <= 180],
             "routes": routes_out,
         }

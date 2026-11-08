@@ -393,22 +393,13 @@ function PushNotificationManager() {
 }
 
 export default function RootLayout() {
+  const pathname = usePathname();
   // Initialize notification channels on app start
   useEffect(() => {
     try {
       initializeNotificationChannels();
     } catch (error) {
       console.error('Error initializing notifications:', error);
-    }
-  }, []);
-
-  // Preload the Google Maps script on web so the first map opens instantly
-  // instead of waiting for the script to load when the map mounts.
-  useEffect(() => {
-    if (Platform.OS === "web") {
-      import("../components/BusinessMap.web")
-        .then((m) => m.preloadGoogleMaps?.())
-        .catch(() => {});
     }
   }, []);
 
@@ -432,7 +423,8 @@ export default function RootLayout() {
                     <PushNotificationManager />
                     <UploadProvider>
                       <GlobalWebChrome>
-                        <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }} />
+                         <Stack screenOptions={{ headerShown: false, animation: "slide_from_right",
+                           contentStyle: ["/", "/app", "/login"].includes(pathname) ? { backgroundColor: "#fff" } : undefined }} />
                       </GlobalWebChrome>
                       <CityAwareBanners />
                     </UploadProvider>

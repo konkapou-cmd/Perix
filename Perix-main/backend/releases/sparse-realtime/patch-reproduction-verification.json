@@ -1,0 +1,8 @@
+{
+  "patch_sha256": "fab39bde72a6cc3c43ef93a8b786c071f4bd9dba367df26d1022fd7e02b94fa0",
+  "git_apply_check_passed": true,
+  "reconstructed_files_matching": 27,
+  "mismatches": [],
+  "baseline_deployment": "92095c5c-033d-45b8-b358-3bd2fd4abcac",
+  "shared_WIP_modified": false
+}

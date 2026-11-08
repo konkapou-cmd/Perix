@@ -10,6 +10,7 @@ import {
   View,
   ActivityIndicator,
   useWindowDimensions,
+  type ViewStyle,
 } from "react-native";
 import { useEvent } from "expo";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -280,7 +281,10 @@ const styles = StyleSheet.create({
     // position: fixed on web — inside an RN Modal the ancestor height chain
     // collapses, so absolute + inset 0 falls back to the video's intrinsic
     // size (video rendered at 1072x1920 overflowing the screen).
-    position: Platform.OS === "web" ? "fixed" : "absolute",
+    // React Native's types omit this supported react-native-web CSS value.
+    // Keep the extension at the web-only boundary so all other styles retain
+    // their specific View/Text/Image inference (not a broad style union).
+    position: Platform.OS === "web" ? ("fixed" as ViewStyle["position"]) : "absolute",
     top: 0,
     left: 0,
     right: 0,

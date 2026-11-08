@@ -2,90 +2,42 @@
  * Top Navigation Bar Component - Airbnb Style
  * Replaces sidebar navigation on desktop with a clean top navbar
  */
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   Pressable,
   StyleSheet,
   Platform,
-  Image,
-  TextInput,
 } from "react-native";
-import { useRouter, usePathname } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useBadge } from "../context/BadgeContext";
 import { COLORS } from "../lib/designTokens";
-import PerixLogo from "./brand/PerixLogo";
+import MapScreenHeader from "./city/MapScreenHeader";
+import { IdentityDropdown } from "./profile/IdentityDropdown";
+import { getMyBusinesses, type Business } from "../lib/api";
 
-export default function TopNavbar({ onCreatePress, brandLogo = false }: { onCreatePress?: () => void; brandLogo?: boolean }) {
+export default function TopNavbar({ onCreatePress }: { onCreatePress?: () => void }) {
   const { t } = useTranslation();
   const router = useRouter();
+  const { sessionToken, setActiveIdentity } = useAuth();
   const pathname = usePathname();
-  const { user } = useAuth();
+  const isHome = pathname === "/home" || pathname === "/(tabs)/home";
+  const isLocator = pathname === "/locator" || pathname === "/(tabs)/locator";
+  const [businesses, setBusinesses] = useState<Business[]>([]);
   const { unreadMessageCount } = useBadge();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-  const [showUserMenu, setShowUserMenu] = useState(false);
 
-  const navItems = [
-    { key: "home", label: t("tabs.home") || "Home", path: "/" },
-    { key: "explore", label: t("nav.explore") || "Explore", path: "/locator" },
-  ];
-
-  const isActive = (path: string) => {
-    if (path === "/") return pathname === "/" || pathname === "/home" || pathname.includes("/home");
-    return pathname.includes(path.replace("/", ""));
-  };
+  useEffect(() => {
+    if (!sessionToken) { setBusinesses([]); return; }
+    getMyBusinesses(sessionToken).then(setBusinesses).catch(() => setBusinesses([]));
+  }, [sessionToken]);
 
   return (
-    <View style={styles.navbar}>
-      <View style={styles.container}>
-        {/* Left: Logo — matches the app home brand (blue Perıx + sun) */}
-        <Pressable 
-          style={styles.logoSection}
-          onPress={() => router.navigate("/(tabs)/home" as any)}
-          data-testid="navbar-logo"
-        >
-          {brandLogo ? <PerixLogo /> : <View style={styles.brandWrap}>
-            <Text style={styles.logoText}>Perıx</Text>
-            <Ionicons name="sunny" size={9} color="#FFC93C" style={styles.brandSun} />
-          </View>}
-        </Pressable>
-
-        {/* Center: Navigation Links */}
-        <View style={styles.navLinks}>
-          {navItems.map((item) => {
-            const active = isActive(item.path);
-            const hovered = hoveredItem === item.key;
-            
-            return (
-              <Pressable
-                key={item.key}
-                style={[
-                  styles.navLink,
-                  active && styles.navLinkActive,
-                  hovered && !active && styles.navLinkHover,
-                ]}
-                onPress={() => router.push(item.path as any)}
-                onHoverIn={() => setHoveredItem(item.key)}
-                onHoverOut={() => setHoveredItem(null)}
-                data-testid={`navbar-${item.key}`}
-              >
-                <Text style={[
-                  styles.navLinkText,
-                  active && styles.navLinkTextActive,
-                ]}>
-                  {item.label}
-                </Text>
-                {active && <View style={styles.activeIndicator} />}
-              </Pressable>
-            );
-          })}
-        </View>
-
-        {/* Right: Actions */}
+    <MapScreenHeader hideExplore={isHome} exploreOnly={isLocator} logoVariant={isHome || isLocator ? "english" : undefined} right={
         <View style={styles.rightSection}>
           {/* Create Button — mirrors the app's bottom-bar create tab */}
           <Pressable
@@ -126,32 +78,13 @@ export default function TopNavbar({ onCreatePress, brandLogo = false }: { onCrea
           {/* Create Post — removed from the desktop navbar; the home page
               covers posting via the unified bar. */}
 
-          {/* User Menu */}
-          <Pressable
-            style={[
-              styles.userButton,
-              hoveredItem === "user" && styles.userButtonHover,
-            ]}
-            onPress={() => router.navigate("/(tabs)/profile" as any)}
-            onHoverIn={() => setHoveredItem("user")}
-            onHoverOut={() => setHoveredItem(null)}
-            data-testid="navbar-user"
-          >
-            <Ionicons name="menu" size={16} color="#59ABE3" />
-            {user?.profile_photo ? (
-              <Image
-                source={{ uri: user.profile_photo }}
-                style={styles.userAvatar}
-              />
-            ) : (
-              <View style={styles.userAvatarPlaceholder}>
-                <Ionicons name="person" size={16} color="#59ABE3" />
-              </View>
-            )}
-          </Pressable>
+          {/* User Menu / account type switcher */}
+          <IdentityDropdown compact businesses={businesses}
+            onSelectIdentity={(type,id,name,avatar)=>setActiveIdentity?.({type,id,name,avatar})}
+            onAfterSelect={()=>router.navigate("/(tabs)/profile" as any)}
+            onCreateBusiness={()=>router.push("/(tabs)/profile?createBusiness=1" as any)} />
         </View>
-      </View>
-    </View>
+    } />
   );
 }
 
@@ -306,38 +239,5 @@ const styles = StyleSheet.create({
     color: COLORS.background,
     fontSize: 10,
     fontWeight: "700",
-  },
-  userButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 6,
-    paddingLeft: 12,
-    paddingRight: 6,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    ...Platform.select({
-      web: {
-        cursor: "pointer" as any,
-        transition: "all 0.15s ease" as any,
-      },
-    }),
-  },
-  userButtonHover: {
-    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-  },
-  userAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-  },
-  userAvatarPlaceholder: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.divider,
-    alignItems: "center",
-    justifyContent: "center",
   },
 });

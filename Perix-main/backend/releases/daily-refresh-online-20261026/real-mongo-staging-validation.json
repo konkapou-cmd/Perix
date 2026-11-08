@@ -1,0 +1,26 @@
+{
+  "all_checks": true,
+  "real_mongo": true,
+  "result_recovered_by_persisted_state_and_repeat_blocked_gate": true,
+  "checks": {
+    "single_concurrent_attempt": true,
+    "graph_attempt_cap_and_alarm": true,
+    "new_graph_recovery": true,
+    "expired_owner_no_activation": true,
+    "unknown_outcome_readback": true,
+    "imported_layers_complete": true,
+    "full_preparation": true,
+    "strict_activation_readback": true,
+    "blocked_candidate_rejected_409": true
+  },
+  "mongo_database": "perix_daily_rollout_20261026_bc3a8978",
+  "candidate": "net_96515012ef40",
+  "service_date": "2026-10-26",
+  "ready": 159,
+  "expected": 159,
+  "reused": 151,
+  "rebuilt": 8,
+  "graph": 1793042460,
+  "production_mutations": 0,
+  "test_fixture": "Read-only current staging transit clone, eight source generations withheld in isolated database only"
+}

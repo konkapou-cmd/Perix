@@ -44,6 +44,7 @@ import {
 import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
 import ProgressivePicker from "../../components/navigation/ProgressivePicker";
 import AdaptiveVideo from "../../components/AdaptiveVideo";
+import IllustratedIcon from "../../components/icons/IllustratedIcon";
 
 export default function JobsScreen() {
   const { t } = useTranslation();
@@ -444,6 +445,7 @@ export default function JobsScreen() {
                   setCategoryModalVisible(false);
                 }}
               >
+                <IllustratedIcon kind="business-root" iconKey={category.slug} size={20} fallback="grid-outline" />
                 <Text style={styles.categoryModalItemText}>{translateCategory(category.slug, t)}</Text>
               </Pressable>
             ))}
@@ -481,6 +483,7 @@ export default function JobsScreen() {
                   setSubcategoryModalVisible(false);
                 }}
               >
+                <IllustratedIcon kind="business-subcategory" iconKey={sub.slug} size={20} fallback="ellipse-outline" />
                 <Text style={styles.categoryModalItemText}>{translateCategory(sub.slug, t)}</Text>
               </Pressable>
             ))}
@@ -796,11 +799,15 @@ const styles = StyleSheet.create({
     color: "#264348",
   },
   categoryModalItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#f3f4f6",
   },
   categoryModalItemText: {
+    flex: 1,
     fontSize: 16,
     color: "#374151",
   },

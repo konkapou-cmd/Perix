@@ -363,6 +363,9 @@ async def create_indexes():
             ("osm_snapshot_v", 1),
         ],
     )
+    # Optical journey anchors: _id is already unique; expired synthetic/visual
+    # state is removed independently of source schedules and GPS observations.
+    await _safe_create_index(db.mobility_visual_progress_state, 'expires_at', expireAfterSeconds=0)
     # Phase 2.4 physical alignment evidence over append-only raw GPS.
     await _safe_create_index(
         db.mobility_position_observations,

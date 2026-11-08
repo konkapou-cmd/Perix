@@ -20,6 +20,7 @@ import { useIsFocused } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import Constants from "expo-constants";
 import { Ionicons } from "@expo/vector-icons";
+import IllustratedIcon from "../../components/icons/IllustratedIcon";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 
@@ -3558,6 +3559,7 @@ currentUserId={businessDetail?.business?.business_id}
                       setBizCategoryModalVisible(false);
                     }}
                   >
+                    <IllustratedIcon kind="business-root" iconKey={category.slug} size={20} fallback="grid-outline" />
                     <Text style={styles.modalItemText}>{translateCategory(category.slug, t)}</Text>
                   </Pressable>
                 ))}
@@ -3586,8 +3588,9 @@ currentUserId={businessDetail?.business?.business_id}
                           active ? prev.filter(s => s !== sub.slug) : [...prev, sub.slug]
                         );
                       }}
-                    >
-                      <Text style={styles.modalItemText}>{translateCategory(sub.slug, t)}</Text>
+                      >
+                        <IllustratedIcon kind="business-subcategory" iconKey={sub.slug} size={20} fallback="ellipse-outline" />
+                        <Text style={styles.modalItemText}>{translateCategory(sub.slug, t)}</Text>
                       {active && <Ionicons name="checkmark-circle" size={20} color={COLORS.primaryDark} />}
                     </Pressable>
                   );
@@ -3642,7 +3645,7 @@ currentUserId={businessDetail?.business?.business_id}
               {sortCategoriesByLabel(categoryTree, t).map((cat) => (
                 <Pressable
                   key={cat.slug}
-                  style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, backgroundColor: pickerRoot === cat.slug ? COLORS.textPrimary : "#f3f4f6", borderWidth: 1, borderColor: pickerRoot === cat.slug ? COLORS.textPrimary : "#e5e7eb" }}
+                  style={{ flexDirection:"row",alignItems:"center",gap:6,paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, backgroundColor: pickerRoot === cat.slug ? COLORS.textPrimary : "#f3f4f6", borderWidth: 1, borderColor: pickerRoot === cat.slug ? COLORS.textPrimary : "#e5e7eb" }}
                   onPress={() => {
                     setPickerRoot(cat.slug);
                     setPickerSub("");
@@ -3650,6 +3653,7 @@ currentUserId={businessDetail?.business?.business_id}
                     setPickerSubs(subs.length === 1 ? [subs[0].slug] : []);
                   }}
                 >
+                  <IllustratedIcon kind="business-root" iconKey={cat.slug} size={16} fallback="grid-outline" />
                   <Text style={{ fontSize: 14, fontWeight: "600", color: pickerRoot === cat.slug ? "#fff" : "#374151" }}>{translateCategory(cat.slug, t)}</Text>
                 </Pressable>
               ))}
@@ -3663,9 +3667,10 @@ currentUserId={businessDetail?.business?.business_id}
                     return (
                     <Pressable
                       key={sub.slug}
-                      style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, backgroundColor: active ? COLORS.textPrimary : "#f3f4f6", borderWidth: 1, borderColor: active ? COLORS.textPrimary : "#e5e7eb" }}
+                      style={{ flexDirection:"row",alignItems:"center",gap:5,paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, backgroundColor: active ? COLORS.textPrimary : "#f3f4f6", borderWidth: 1, borderColor: active ? COLORS.textPrimary : "#e5e7eb" }}
                       onPress={() => setPickerSubs(prev => active ? prev.filter(s => s !== sub.slug) : [...prev, sub.slug])}
                     >
+                      <IllustratedIcon kind="business-subcategory" iconKey={sub.slug} size={14} fallback="ellipse-outline" />
                       <Text style={{ fontSize: 13, fontWeight: "500", color: active ? "#fff" : "#374151" }}>{translateCategory(sub.slug, t)}</Text>
                     </Pressable>
                     );
@@ -4062,12 +4067,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
     padding: 14,
     backgroundColor: "#fff",
     borderRadius: 12,
     marginBottom: 8,
   },
   modalItemText: {
+    flex: 1,
     color: COLORS.textPrimary,
     fontSize: 16,
   },

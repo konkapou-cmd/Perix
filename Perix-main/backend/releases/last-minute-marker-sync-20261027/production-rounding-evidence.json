@@ -1,0 +1,6 @@
+{
+  "entry_sha256": "3914b3bb0c5451f449729e208e88479863ffbe23369af12f299172497ae7cd18",
+  "snippets": [
+    "ction:t.direction??\"\",status:t.source??\"SCHEDULE\",delay_minutes:Math.round((t.delay_seconds??0)/60),eta_minutes:\"number\"==typeof t.eta_seconds&&Number.isFinite(t.eta_seconds)?Math.max(0,Math.ceil(t.eta_seconds/60)):null,platform_id:t.platform_id,source_predicted_arrival:t.source_predicted_arrival,source_eta_source:t.source_eta_source,timing_evidence:t.timing_evidence,provider_p"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "origin": "https://app.perix.eu",
+  "deployment": "d91ff576-492d-45e8-a388-c2b00d0746c6",
+  "status": "SUCCESS",
+  "verified_at_utc": "2026-10-25T22:18:36.646104+00:00",
+  "baseline_deployment": "92095c5c-033d-45b8-b358-3bd2fd4abcac",
+  "validated_staging": "41bc15ee-d2e2-4c1c-9a99-e390b5add33e",
+  "package_files": 277,
+  "runtime_files_verified": 274,
+  "entry": "entry-466601e831e24aa5b2fa73325a3ff821.js",
+  "entry_sha256": "3914b3bb0c5451f449729e208e88479863ffbe23369af12f299172497ae7cd18",
+  "backend_tests": 114,
+  "frontend_tests": 92,
+  "runtime_offline_cases": 24,
+  "synthetic_mode_time_samples": 1200,
+  "paid_routes": false,
+  "shared_WIP_excluded": true,
+  "database_migration_performed": false,
+  "synthetic_live_updates_inserted": false,
+  "production_changed": true,
+  "limitations": [
+    "Position is a model estimate, not independent GPS proof",
+    "Source diagnostics are bounded worker memory, not durable history",
+    "Baseline CityAdViewer TypeScript diagnostics remain unchanged"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "seed": 20261025,
+  "synthetic_scenarios": 120,
+  "mode_time_samples": 1200,
+  "provider_clocks_unchanged": true,
+  "position_eta_constraints_passed": true,
+  "speed_caps_passed": true,
+  "database_writes": false,
+  "live_accuracy_test": false
+}

@@ -40,10 +40,48 @@ def _hhmm_to_sec(value) -> Optional[int]:
 
 
 def _pattern_key(trip: dict) -> str:
-    return str(
-        trip.get("shape_id")
-        or f"{trip.get('headsign') or ''}:{'>'.join(str(x) for x in (trip.get('stop_ids') or []))}"
-    )
+    # A reusable shape is not a direction identity. Retain the existing
+    # shapeless IDs, but bind shaped trips to their ordered platform sequence.
+    ordered = f"{trip.get('headsign') or ''}:{'>'.join(str(x) for x in (trip.get('stop_ids') or []))}"
+    return f"shape:{trip['shape_id']}:{ordered}" if trip.get('shape_id') else ordered
+
+
+def pattern_source_for_trip(route: dict, trip: dict) -> dict:
+    """The line's directed source definition; not a marker-selected geometry."""
+    shape_id = trip.get('shape_id')
+    shapes = route.get('shapes') or {}
+    hint = shapes.get(shape_id) if shape_id else None
+    if not isinstance(hint, list) or len(hint) < 3:
+        hint = route.get('shape')
+    return dict(route_number=str(route.get('route_number')),
+        mode=route.get('mode') if route.get('mode') in ('bus','tram','trolleybus') else 'bus',
+        direction=str(trip.get('headsign') or ''), stop_ids=[str(x) for x in trip.get('stop_ids') or []],
+        shape_id=shape_id, points=[[float(p[0]),float(p[1])] for p in hint] if isinstance(hint,list) and len(hint)>2 else [])
+
+
+def _direction_inputs_fingerprint(network):
+    import json
+    inputs=[]
+    for route in network.get('routes') or []:
+        definitions={};bindings=[]
+        for trip in route.get('trips') or []:
+            key=_pattern_key(trip)
+            bindings.append([str(trip.get('trip_id') or ''),key])
+            if key not in definitions:definitions[key]=pattern_source_for_trip(route,trip)
+        inputs.append([route.get('route_number'),route.get('mode'),bindings,definitions,
+            [[s.get('stop_id'),s.get('lat'),s.get('lng')] for s in route.get('stops') or []]])
+    return hashlib.sha256(json.dumps(inputs,sort_keys=True,separators=(',',':'),default=str).encode()).hexdigest()
+
+
+def _stop_catalogue_fingerprint(network):
+    """Label/grouping cache input, deliberately separate from route geometry."""
+    import json
+    fields = ('stop_id', 'name', 'parent_station', 'platform_code', 'location_type', 'lat', 'lng')
+    inputs = [[r.get('route_number'), r.get('mode'),
+               [[s.get(field) for field in fields] for s in r.get('stops') or []]]
+              for r in network.get('routes') or []]
+    inputs.append(['stop_catalogue', network.get('stop_catalogue') or []])
+    return hashlib.sha256(json.dumps(inputs, sort_keys=True, separators=(',', ':'), default=str).encode()).hexdigest()
 
 
 def _pattern_id(route_number: str, key: str) -> str:
@@ -68,22 +106,56 @@ def _service_date(network: dict) -> str:
     return datetime.now(ZoneInfo(NETWORK_TIMEZONE)).date().isoformat()
 
 
+def _stop_name_key(value) -> str:
+    """Comparison only: preserve the provider's display name and punctuation."""
+    import unicodedata
+    return unicodedata.normalize('NFC', ' '.join(str(value or '').split())).casefold()
+
+
+def _physical_stop_group_key(groups: dict, platform_groups: dict, stop: dict) -> str:
+    """Same provider platform first, then parent, then same-name/80 m fallback.
+
+    Preserve existing ordinary IDs. Only a genuinely distant name collision
+    receives a platform-qualified key; a failed proximity lookup is not a match.
+    """
+    sid = str(stop.get('stop_id') or '')
+    if sid in platform_groups:
+        return platform_groups[sid]
+    parent = stop.get('parent_station')
+    if parent:
+        return f'p:{parent}'
+    name = _stop_name_key(stop.get('name'))
+    key = f"n:{str(stop.get('name') or '').strip().lower()}" if name else f'n:unnamed:{sid}'
+    if name:
+        for gkey, group in groups.items():
+            if (gkey.startswith('n:') and _stop_name_key(group.get('name')) == name
+                    and _haversine_km(group['latitude'], group['longitude'], stop['lat'], stop['lng']) < 0.08):
+                return gkey
+    if key in groups:
+        key += f':platform:{sid}'
+    return key
+
+
+def _physical_catalogue_routes(network):
+    routes = list(network.get('routes') or [])
+    for mode in ('bus', 'tram', 'trolleybus'):
+        routes.append(dict(mode=mode, route_number='', trips=[], stops=[
+            s for s in network.get('stop_catalogue') or [] if mode in (s.get('modes') or [])]))
+    return routes
+
+
 def _physical_stops(network: dict) -> List[dict]:
     """Group raw GTFS platforms into physical stops (parent_station, or
     same name within 80m - same-name stops far apart never merge)."""
     groups: dict = {}
-    for route in network.get("routes", []):
+    platform_groups: dict = {}
+    for route in _physical_catalogue_routes(network):
         mode = (
             route.get("mode")
             if route.get("mode") in ("bus", "tram", "trolleybus")
             else "bus"
         )
         rn = str(route.get("route_number"))
-        route_directions = {
-            str(t.get("headsign") or "")
-            for t in (route.get("trips") or [])
-            if t.get("headsign")
-        }
         # stop_id -> set of headsigns of trips that REALLY stop there:
         # a platform must never inherit directions of trips that do not
         # serve it (opposite direction stops on the other road got
@@ -97,17 +169,8 @@ def _physical_stops(network: dict) -> List[dict]:
             sid = str(s.get("stop_id") or "")
             if not sid or s.get("lat") is None or s.get("lng") is None:
                 continue
-            parent = s.get("parent_station")
-            key = f"p:{parent}" if parent else f"n:{str(s.get('name')).strip().lower()}"
-            if not parent:
-                for gkey, g in groups.items():
-                    if not gkey.startswith("n:"):
-                        continue
-                    if str(g.get("name") or "").strip().lower() != str(s.get("name")).strip().lower():
-                        continue
-                    if _haversine_km(g.get("latitude"), g.get("longitude"), s.get("lat"), s.get("lng")) < 0.08:
-                        key = gkey
-                        break
+            key = _physical_stop_group_key(groups, platform_groups, s)
+            platform_groups[sid] = key
             g = groups.get(key)
             if not g:
                 g = {
@@ -134,14 +197,18 @@ def _physical_stops(network: dict) -> List[dict]:
                     "platform_code": s.get("platform_code"),
                     "directions": set(),
                     "routes": set(),
+                    "modes": set(),
                 },
             )
             # Directions/Routes SPECIFIC to this platform (trips that
             # actually include this stop), not the whole line.
             plat["directions"] |= stop_trips.get(sid, set())
-            plat["routes"].add(rn)
-            entry = g["routes"].setdefault(rn, {"route_number": rn, "mode": mode, "directions": set()})
-            entry["directions"] |= route_directions
+            plat['modes'].add(mode)
+            # The physical catalogue is not proof of dated trip service.
+            if sid in stop_trips:
+                plat["routes"].add(rn)
+                entry = g["routes"].setdefault((mode, rn), {"route_number": rn, "mode": mode, "directions": set()})
+                entry["directions"] |= stop_trips[sid]
     out = []
     for g in groups.values():
         out.append(
@@ -157,6 +224,7 @@ def _physical_stops(network: dict) -> List[dict]:
                         "platform_code": p.get("platform_code"),
                         "directions": sorted(d for d in p["directions"] if d),
                         "routes": sorted(r for r in p["routes"]),
+                        "modes": sorted(p['modes']),
                     }
                     for p in g["platforms"].values()
                 ],
@@ -193,9 +261,9 @@ def _cluster_stop_places(stops: List[dict]) -> List[dict]:
     places: List[dict] = []
     for s in stops:
         merged = None
-        s_name = str(s.get("name") or "").strip().lower()
+        s_name = _stop_name_key(s.get("name"))
         for pl in places:
-            if str(pl.get("name") or "").strip().lower() != s_name:
+            if not s_name or _stop_name_key(pl.get("name")) != s_name:
                 continue
             if (
                 pl.get("latitude") is not None
@@ -224,7 +292,7 @@ def _cluster_stop_places(stops: List[dict]) -> List[dict]:
                     "latitude": s.get("latitude"),
                     "longitude": s.get("longitude"),
                     "modes": set(s.get("modes") or []),
-                    "routes": {r.get("route_number"): r for r in (s.get("routes") or [])},
+                    "routes": {(r.get("mode"), r.get("route_number")): dict(r) for r in (s.get("routes") or [])},
                 }
             )
             continue
@@ -245,9 +313,12 @@ def _cluster_stop_places(stops: List[dict]) -> List[dict]:
                 merged["aliases"].append(nm)
         merged["modes"].update(s.get("modes") or [])
         for r in s.get("routes") or []:
-            rn = r.get("route_number")
+            rn = (r.get("mode"), r.get("route_number"))
             if rn not in merged["routes"]:
-                merged["routes"][rn] = r
+                merged["routes"][rn] = dict(r)
+            else:
+                existing = merged['routes'][rn]
+                existing['directions'] = sorted(set(existing.get('directions') or []) | set(r.get('directions') or []))
         # Anchor the place at the FIRST (main) stop - keeps a stable point.
     for pl in places:
         pl["modes"] = sorted(pl["modes"])
@@ -332,19 +403,59 @@ def _apply_stop_overrides(stops: List[dict], overrides: Optional[List[dict]]) ->
     return [s for s in by_id.values() if s.get("active", True)]
 
 
+def _source_manifest(network_doc: dict) -> Optional[dict]:
+    """Public read-only provenance record bound to this network version.
+
+    Allowlist-copies only known version-bound fields (archive hash,
+    ingestion kind, notice presence/hashes, publisher name/URL). Anything
+    else on the stored document is never exposed here, so no secret or
+    internal field can leak through this manifest. Never infers licences.
+    """
+    static_input = network_doc.get("static_input")
+    if not isinstance(static_input, dict):
+        return None
+    manifest: dict = {}
+    for key in ("kind", "sha256", "ingestion"):
+        value = static_input.get(key)
+        if isinstance(value, str):
+            manifest[key] = value
+    notices = static_input.get("notices")
+    if isinstance(notices, dict):
+        copied = {}
+        for name in ("feed_info.txt", "attributions.txt"):
+            row = notices.get(name)
+            if isinstance(row, dict):
+                item = {k: v for k, v in row.items() if k in ("status", "sha256") and isinstance(v, str)}
+                if item:
+                    copied[name] = item
+        if copied:
+            manifest["notices"] = copied
+    publisher = static_input.get("publisher")
+    if isinstance(publisher, dict):
+        item = {k: v for k, v in publisher.items()
+                if k in ("publisher_name", "publisher_url") and isinstance(v, str)}
+        if item:
+            manifest["publisher"] = item
+    return manifest or None
+
+
 def build_domain(network_doc: dict, network_id: str = NETWORK_ID, overrides: Optional[List[dict]] = None) -> dict:
     """Derive the full canonical domain from an active network document."""
     version_id = str(network_doc.get("version_id") or "")
     import json as _json
 
     service_date = _service_date(network_doc)
+    manifest = _source_manifest(network_doc)
     cache_key = (
         str(network_doc.get("region_id") or get_active_region().region_id),
         str(network_doc.get("network_id") or network_id), network_id,
         version_id, service_date,
         str(network_doc.get("name") or ""), str(network_doc.get("timezone") or NETWORK_TIMEZONE),
         str(network_doc.get("country") or NETWORK_COUNTRY),
+        _json.dumps(manifest or {}, sort_keys=True),
         _json.dumps(overrides or [], sort_keys=True),
+        _direction_inputs_fingerprint(network_doc),
+        _stop_catalogue_fingerprint(network_doc),
     )
     if cache_key in _DOMAIN_CACHE:
         return _DOMAIN_CACHE[cache_key]
@@ -367,27 +478,10 @@ def build_domain(network_doc: dict, network_id: str = NETWORK_ID, overrides: Opt
             key = _pattern_key(trip)
             pat = pattern_map.get(key)
             if not pat:
-                stop_ids = [str(x) for x in (trip.get("stop_ids") or [])]
-                shape_id = trip.get("shape_id")
-                points = []
-                shapes = route.get("shapes") or {}
-                if shape_id and isinstance(shapes.get(shape_id), list) and len(shapes[shape_id]) > 2:
-                    points = [[float(p[0]), float(p[1])] for p in shapes[shape_id]]
-                elif isinstance(route.get("shape"), list) and len(route["shape"]) > 2:
-                    # Import-validated legacy geometry (OSM relation, pattern
-                    # checked by _merge_shapes) - real street/rail, never
-                    # invented. The resolver still prefers the rebuilt
-                    # road/rail geometry once it is computed.
-                    points = [[float(p[0]), float(p[1])] for p in route["shape"]]
                 pat = {
+                    **pattern_source_for_trip(route,trip),
                     "pattern_id": _pattern_id(rn, key),
                     "route_id": route_id,
-                    "route_number": rn,
-                    "mode": mode,
-                    "direction": str(trip.get("headsign") or ""),
-                    "stop_ids": stop_ids,
-                    "shape_id": shape_id,
-                    "points": points,
                 }
                 pattern_map[key] = pat
                 pattern_ids.append(pat["pattern_id"])
@@ -426,6 +520,7 @@ def build_domain(network_doc: dict, network_id: str = NETWORK_ID, overrides: Opt
             "service_date": service_date,
             "timezone": str(network_doc.get("timezone") or NETWORK_TIMEZONE),
             "country": str(network_doc.get("country") or NETWORK_COUNTRY),
+            "source_manifest": manifest,
         },
         "routes": routes,
         "patterns": patterns,

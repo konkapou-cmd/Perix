@@ -1,0 +1,7 @@
+{
+  "exit_code": 0,
+  "backend_origin": "https://backend-staging-staging-7ada.up.railway.app",
+  "dotenv_disabled": true,
+  "public_maps_key_present": true,
+  "lockfile_sha256": "fdd6a11a103c6ce0b2a07f3e24c177eb051bdfe57edab8c8565ca300ef1bae88"
+}

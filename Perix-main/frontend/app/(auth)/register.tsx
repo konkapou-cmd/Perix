@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import IllustratedIcon from "../../components/icons/IllustratedIcon";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { LANGUAGES, setStoredLanguage } from "../../i18n";
@@ -188,7 +189,7 @@ export default function RegisterScreen() {
                   style={styles.inputRow}
                   onPress={() => { setPickerStep("root"); setSelectedRoot(null); setCategoryPickerVisible(true); }}
                 >
-                  <Ionicons name="grid-outline" size={20} color="#264348" />
+                  <IllustratedIcon kind="business-root" iconKey={rootCategory} size={20} fallback="grid-outline" color="#264348" />
                   <Text style={[styles.input, !rootCategory && { color: "#9ca3af" }]} numberOfLines={1}>
                     {rootCategory
                       ? translateCategory(rootCategory, t)
@@ -205,7 +206,7 @@ export default function RegisterScreen() {
                     }
                   }}
                 >
-                  <Ionicons name="options-outline" size={20} color="#264348" />
+                  <IllustratedIcon kind="business-subcategory" iconKey={subcategory} size={20} fallback="options-outline" color="#264348" />
                   <Text style={[styles.input, !subcategory && { color: "#9ca3af" }]} numberOfLines={1}>
                     {subcategory
                       ? (() => {
@@ -441,6 +442,7 @@ export default function RegisterScreen() {
                         setPickerStep("sub");
                       }}
                     >
+                      <IllustratedIcon kind="business-root" iconKey={cat.slug} size={20} fallback="grid-outline" />
                       <Text
                         style={[
                           styles.languageOptionText,
@@ -470,6 +472,7 @@ export default function RegisterScreen() {
                         setCategoryPickerVisible(false);
                       }}
                     >
+                      <IllustratedIcon kind="business-subcategory" iconKey={sub.slug} size={20} fallback="ellipse-outline" />
                       <Text
                         style={[
                           styles.languageOptionText,

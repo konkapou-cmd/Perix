@@ -1,0 +1,20 @@
+{
+  "upstream_version": "4.3.1",
+  "upstream_compiled_source_sha256": "2e5160f84a1141bd927264afe4d15766f1e6cf07daef182b37ff53fea121de7d",
+  "rows": [
+    {
+      "name": "source-on-null-prototype",
+      "upstream_returned_prototype_poisoned": true,
+      "patched_returned_prototype_unchanged": true,
+      "patched_has_no_inherited_poison": true,
+      "global_prototype_unchanged": true
+    },
+    {
+      "name": "target-copy",
+      "upstream_returned_prototype_poisoned": true,
+      "patched_returned_prototype_unchanged": true,
+      "patched_has_no_inherited_poison": true,
+      "global_prototype_unchanged": true
+    }
+  ]
+}

@@ -1,0 +1,2619 @@
+{
+  "source": {
+    "path": "greece-latest.osm.pbf",
+    "sha256": "511ff70e9b11b980688567cdfd3072c5c07171990089ac72b04cd354e1445adf",
+    "size_bytes": 341970262,
+    "snapshot": {
+      "osmosis_replication_timestamp": "2026-10-15T20:21:00Z",
+      "osmosis_replication_sequence_number": "4939",
+      "generator": "osmium/1.16.0"
+    },
+    "attribution": "OpenStreetMap contributors",
+    "license": "ODbL-1.0",
+    "license_url": "https://www.openstreetmap.org/copyright",
+    "bboxes": {
+      "syros": [
+        37.32,
+        24.8,
+        37.55,
+        25.07
+      ],
+      "mykonos": [
+        37.34,
+        25.23,
+        37.52,
+        25.51
+      ]
+    }
+  },
+  "elements": [
+    {
+      "type": "node",
+      "id": 892788630,
+      "lat": 37.4144577,
+      "lon": 25.3419567,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "int_name": "Platys Gialos",
+        "name": "\u03a0\u03bb\u03b1\u03c4\u03cd\u03c2 \u0393\u03b9\u03b1\u03bb\u03cc\u03c2",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 892788633,
+      "lat": 37.4160543,
+      "lon": 25.3404319,
+      "tags": {
+        "highway": "bus_stop"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 892867350,
+      "lat": 37.4368363,
+      "lon": 25.4194004,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 1844864942,
+      "lat": 37.45054,
+      "lon": 24.9473959,
+      "tags": {
+        "bus": "yes",
+        "name": "\u0394\u03cc\u03be\u03b1",
+        "public_transport": "stop_position"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 1845394342,
+      "lat": 37.4466891,
+      "lon": 24.945089,
+      "tags": {
+        "bus": "yes",
+        "name": "\u0392\u03b1\u03c0\u03cc\u03c1\u03b9\u03b1",
+        "public_transport": "stop_position"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 2684073144,
+      "lat": 37.420135,
+      "lon": 24.8793297,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "\u03a0\u0391\u03a1\u0391\u039b\u0399\u0391 \u0393\u0391\u039b\u0397\u03a3\u03a3\u0391",
+        "public_transport": "platform",
+        "shelter": "no"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 2684074189,
+      "lat": 37.4187434,
+      "lon": 24.8834773,
+      "tags": {
+        "highway": "bus_stop",
+        "name": "\u03a3\u03a4\u03a1\u039f\u03a6\u0397 \u0393\u0391\u039b\u0397\u03a3\u03a3\u0391"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 2684086989,
+      "lat": 37.3793945,
+      "lon": 24.9122675,
+      "tags": {
+        "highway": "bus_stop",
+        "local_ref": "\u03a3\u03c4\u03ac\u03c3\u03b7 \u0391\u03bb\u03b9\u03c6\u03c1\u03b1\u03b3\u03ba\u03ae"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 2688618081,
+      "lat": 37.3910503,
+      "lon": 24.9442368,
+      "tags": {
+        "highway": "bus_stop",
+        "local_ref": "\u0392\u0391\u03a1\u0397"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 2688623738,
+      "lat": 37.3842008,
+      "lon": 24.8997701,
+      "tags": {
+        "highway": "bus_stop",
+        "local_ref": "\u03a3\u03c4\u03ac\u03c3\u03b7 \u0392\u03b1\u03b3\u03b3\u03ad\u03bb\u03b7"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 2706030001,
+      "lat": 37.4224083,
+      "lon": 24.8843749,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "\u0393\u0395\u0399\u0391 \u03a3\u039f\u03a5 \u0393\u0399\u0391\u039d\u039d\u0397",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 2942365157,
+      "lat": 37.4304268,
+      "lon": 24.9366594,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "covered": "yes",
+        "highway": "bus_stop",
+        "name": "\u0391\u03a6\u0395\u03a4\u0397\u03a1\u0399\u0391 \u0394\u0397\u039c\u039f\u03a4\u0399\u039a\u0397\u03a3 \u0391\u03a3\u03a4\u0399\u039a\u0397\u03a3 \u03a3\u03a5\u0393\u039a\u039f\u0399\u039d\u03a9\u039d\u0399\u0391\u03a3",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 2966388796,
+      "lat": 37.4338874,
+      "lon": 24.9353275,
+      "tags": {
+        "bus": "yes",
+        "name": "5\u03bf \u0394\u03b7\u03bc\u03bf\u03c4\u03b9\u03ba\u03cc",
+        "name:el": "5\u03bf \u0394\u03b7\u03bc\u03bf\u03c4\u03b9\u03ba\u03cc",
+        "public_transport": "stop_position"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 2973106489,
+      "lat": 37.4393029,
+      "lon": 24.939449,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "covered": "yes",
+        "highway": "bus_stop",
+        "name": "\u0399\u039a\u0391",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 2973106492,
+      "lat": 37.4424084,
+      "lon": 24.9424571,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "covered": "yes",
+        "highway": "bus_stop",
+        "name": "\u0391\u0393\u039f\u03a1\u0391",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 2973106494,
+      "lat": 37.4383294,
+      "lon": 24.9367155,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "covered": "no",
+        "highway": "bus_stop",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 2973106495,
+      "lat": 37.4449542,
+      "lon": 24.9435001,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "covered": "yes",
+        "highway": "bus_stop",
+        "name": "\u039c\u0399\u0391\u039f\u03a5\u039b\u0397",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 2973106496,
+      "lat": 37.435696,
+      "lon": 24.9358998,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "covered": "yes",
+        "highway": "bus_stop",
+        "name": "S/M \u039d\u0395\u03a9\u03a1\u0399\u039f",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 2973106497,
+      "lat": 37.4448891,
+      "lon": 24.9436654,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "covered": "yes",
+        "highway": "bus_stop",
+        "name": "\u039c\u0399\u0391\u039f\u03a5\u039b\u0397",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 2973106499,
+      "lat": 37.4337695,
+      "lon": 24.9353128,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "covered": "yes",
+        "highway": "bus_stop",
+        "name": "5\u03bf \u0394\u0397\u039c\u039f\u03a4\u0399\u039a\u039f",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 2973106501,
+      "lat": 37.4466317,
+      "lon": 24.9453528,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "covered": "no",
+        "highway": "bus_stop",
+        "name": "\u0392\u0391\u03a0\u039f\u03a1\u0399\u0391",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 2973106502,
+      "lat": 37.4505443,
+      "lon": 24.9474316,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "covered": "yes",
+        "highway": "bus_stop",
+        "name": "\u0394\u039f\u039e\u0391 - \u03a4\u0395\u03a1\u039c\u0391\u03a4\u0399\u039a\u039f\u03a3 \u03a3\u03a4\u0391\u0398\u039c\u039f\u03a3",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 2973106503,
+      "lat": 37.4322687,
+      "lon": 24.9350722,
+      "tags": {
+        "bench": "no",
+        "bus": "yes",
+        "covered": "no",
+        "highway": "bus_stop",
+        "name": "\u039a\u039b\u0395\u0399\u03a3\u03a4\u039f \u0393\u03a5\u039c\u039d\u0391\u03a3\u03a4\u0397\u03a1\u0399\u039f",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 2990660613,
+      "lat": 37.4467178,
+      "lon": 24.9450414,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "covered": "no",
+        "highway": "bus_stop",
+        "name": "\u0392\u0391\u03a0\u039f\u03a1\u0399\u0391",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3027653344,
+      "lat": 37.3889729,
+      "lon": 24.9410673,
+      "tags": {
+        "highway": "bus_stop"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3032444433,
+      "lat": 37.448603,
+      "lon": 24.940795,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform",
+        "shelter": "no"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3037152646,
+      "lat": 37.4339063,
+      "lon": 24.9352664,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "covered": "yes",
+        "highway": "bus_stop",
+        "name": "5\u03bf \u0394\u0397\u039c\u039f\u03a4\u0399\u039a\u039f",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3039387536,
+      "lat": 37.4355342,
+      "lon": 24.9357624,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "covered": "no",
+        "highway": "bus_stop",
+        "name": "S/M \u039d\u0395\u03a9\u03a1\u0399\u039f",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3039422044,
+      "lat": 37.4381121,
+      "lon": 24.9354929,
+      "tags": {
+        "bench": "no",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform",
+        "shelter": "no"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3039422046,
+      "lat": 37.4384811,
+      "lon": 24.93672,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "covered": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3042063565,
+      "lat": 37.4483746,
+      "lon": 24.945406,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3052515246,
+      "lat": 37.4500378,
+      "lon": 25.3300601,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "network": "KTEL",
+        "operator": "KTEL",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 3101553107,
+      "lat": 37.4322196,
+      "lon": 24.9349493,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "covered": "yes",
+        "highway": "bus_stop",
+        "name": "\u039a\u039b\u0395\u0399\u03a3\u03a4\u039f \u0393\u03a5\u039c\u039d\u0391\u03a3\u03a4\u0397\u03a1\u0399\u039f",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3163361135,
+      "lat": 37.3869116,
+      "lon": 24.9308415,
+      "tags": {
+        "highway": "bus_stop"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3163361136,
+      "lat": 37.3888552,
+      "lon": 24.9383839,
+      "tags": {
+        "highway": "bus_stop"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3163361137,
+      "lat": 37.3817604,
+      "lon": 24.9159526,
+      "tags": {
+        "highway": "bus_stop",
+        "local_ref": "\u0391\u03b3\u03af\u03b1\u03c2 \u039c\u03b1\u03c1\u03af\u03bd\u03b1\u03c2"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3163361140,
+      "lat": 37.3841555,
+      "lon": 24.9232626,
+      "tags": {
+        "highway": "bus_stop",
+        "local_ref": "\u0391\u03bb\u03ba\u03c5\u03ce\u03bd"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3217294289,
+      "lat": 37.4394263,
+      "lon": 24.939414,
+      "tags": {
+        "bench": "no",
+        "bus": "yes",
+        "covered": "no",
+        "highway": "bus_stop",
+        "name": "\u0399\u039a\u0391",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3234907708,
+      "lat": 37.44835,
+      "lon": 24.9430148,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform",
+        "shelter": "yes"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3294927094,
+      "lat": 37.4482286,
+      "lon": 24.9395272,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform",
+        "shelter": "yes"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3304679410,
+      "lat": 37.4475335,
+      "lon": 24.9389034,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3350579943,
+      "lat": 37.4392771,
+      "lon": 24.9383871,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "\u0399\u039a\u0391",
+        "operator": "\u039a\u03a4\u0395\u039b \u03a3\u03cd\u03c1\u03bf\u03c5",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3350579944,
+      "lat": 37.4392047,
+      "lon": 24.9379901,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "\u0399\u039a\u0391",
+        "operator": "\u039a\u03a4\u0395\u039b \u03a3\u03cd\u03c1\u03bf\u03c5",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3350588738,
+      "lat": 37.4378352,
+      "lon": 24.9360507,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "\u0397\u03c1\u03ce\u03c9\u03bd",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3350588739,
+      "lat": 37.437699,
+      "lon": 24.9358202,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "\u0397\u03c1\u03ce\u03c9\u03bd",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3350592545,
+      "lat": 37.4283873,
+      "lon": 24.9392454,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "\u0394\u0395\u0397",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3350595540,
+      "lat": 37.4225943,
+      "lon": 24.9430418,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "\u039a\u039f\u03a5\u03a1\u039f\u03a5\u03a0\u0399",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3350595541,
+      "lat": 37.4204642,
+      "lon": 24.9449623,
+      "tags": {
+        "highway": "bus_stop",
+        "name": "\u0394\u0397\u039c\u039f\u03a4\u0399\u039a\u039f \u03a3\u03a7\u039f\u039b\u0395\u0399\u039f \u039c\u0391\u039d\u039d\u0391"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3350595542,
+      "lat": 37.4226881,
+      "lon": 24.9431652,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "\u039a\u039f\u03a5\u03a1\u039f\u03a5\u03a0\u0399",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3350595543,
+      "lat": 37.4205301,
+      "lon": 24.9450241,
+      "tags": {
+        "highway": "bus_stop",
+        "name": "\u0394\u0397\u039c\u039f\u03a4\u0399\u039a\u039f \u03a3\u03a7\u039f\u039b\u0395\u0399\u039f \u039c\u0391\u039d\u039d\u0391"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3350617816,
+      "lat": 37.441411,
+      "lon": 24.9413887,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "\u039b\u03b9\u03bc\u03ac\u03bd\u03b9",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3352814941,
+      "lat": 37.4355229,
+      "lon": 24.9358177,
+      "tags": {
+        "bus": "yes",
+        "name": "S/M \u039d\u03b5\u03ce\u03c1\u03b9\u03bf",
+        "name:el": "S/M \u039d\u03b5\u03ce\u03c1\u03b9\u03bf",
+        "public_transport": "stop_position"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3352814942,
+      "lat": 37.4356978,
+      "lon": 24.9358373,
+      "tags": {
+        "bus": "yes",
+        "name": "S/M \u039d\u03b5\u03ce\u03c1\u03b9\u03bf",
+        "name:el": "S/M \u039d\u03b5\u03ce\u03c1\u03b9\u03bf",
+        "public_transport": "stop_position"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3352814943,
+      "lat": 37.4383522,
+      "lon": 24.9366334,
+      "tags": {
+        "bus": "yes",
+        "public_transport": "stop_position"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3352814944,
+      "lat": 37.4384432,
+      "lon": 24.9367898,
+      "tags": {
+        "bus": "yes",
+        "public_transport": "stop_position"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3352814947,
+      "lat": 37.4424404,
+      "lon": 24.9425541,
+      "tags": {
+        "bus": "yes",
+        "name": "\u0391\u03b3\u03bf\u03c1\u03ac",
+        "public_transport": "stop_position"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3352814948,
+      "lat": 37.4304432,
+      "lon": 24.9367062,
+      "tags": {
+        "bus": "yes",
+        "name": "\u0391\u03b8\u03bb\u03b7\u03c4\u03b9\u03ba\u03cc \u039a\u03ad\u03bd\u03c4\u03c1\u03bf",
+        "public_transport": "stop_position"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3352814950,
+      "lat": 37.4393458,
+      "lon": 24.9394735,
+      "tags": {
+        "bus": "yes",
+        "name": "\u0399\u039a\u0391",
+        "public_transport": "stop_position"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3352814951,
+      "lat": 37.4394002,
+      "lon": 24.9393597,
+      "tags": {
+        "bus": "yes",
+        "name": "\u0399\u039a\u0391",
+        "public_transport": "stop_position"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3352814952,
+      "lat": 37.4322407,
+      "lon": 24.9350233,
+      "tags": {
+        "bus": "yes",
+        "name": "\u039a\u03bb\u03b5\u03b9\u03c3\u03c4\u03cc \u0393\u03c5\u03bc\u03bd\u03b1\u03c3\u03c4\u03ae\u03c1\u03b9\u03bf",
+        "name:el": "\u039a\u03bb\u03b5\u03b9\u03c3\u03c4\u03cc \u0393\u03c5\u03bc\u03bd\u03b1\u03c3\u03c4\u03ae\u03c1\u03b9\u03bf",
+        "public_transport": "stop_position"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3352814953,
+      "lat": 37.4414054,
+      "lon": 24.9414959,
+      "tags": {
+        "bus": "yes",
+        "name": "\u039b\u03b9\u03bc\u03ac\u03bd\u03b9",
+        "public_transport": "stop_position"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3352814954,
+      "lat": 37.4444753,
+      "lon": 24.943208,
+      "tags": {
+        "bus": "yes",
+        "name": "\u039c\u03b9\u03b1\u03bf\u03cd\u03bb\u03b7",
+        "public_transport": "stop_position"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3352814955,
+      "lat": 37.4448782,
+      "lon": 24.9436104,
+      "tags": {
+        "bus": "yes",
+        "name": "\u039c\u03b9\u03b1\u03bf\u03cd\u03bb\u03b7",
+        "public_transport": "stop_position"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3352814957,
+      "lat": 37.433785,
+      "lon": 24.9352639,
+      "tags": {
+        "bus": "yes",
+        "name": "5\u03bf \u0394\u03b7\u03bc\u03bf\u03c4\u03b9\u03ba\u03cc",
+        "name:el": "5\u03bf \u0394\u03b7\u03bc\u03bf\u03c4\u03b9\u03ba\u03cc",
+        "public_transport": "stop_position"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3356236137,
+      "lat": 37.4417272,
+      "lon": 24.9372029,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform",
+        "shelter": "yes"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3373401739,
+      "lat": 37.442273,
+      "lon": 24.9351168,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform",
+        "shelter": "yes"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3373401762,
+      "lat": 37.4435019,
+      "lon": 24.9368547,
+      "tags": {
+        "bench": "no",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform",
+        "shelter": "no"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3375068090,
+      "lat": 37.4446441,
+      "lon": 24.9348331,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3375223773,
+      "lat": 37.4474212,
+      "lon": 24.9379901,
+      "tags": {
+        "bench": "no",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform",
+        "shelter": "no"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3390881223,
+      "lat": 37.3812496,
+      "lon": 24.903082,
+      "tags": {
+        "highway": "bus_stop",
+        "local_ref": "\u03a3\u03c4\u03ac\u03c3\u03b7 \u0391\u03bc\u03c0\u03ad\u03bb\u03b1"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3390881224,
+      "lat": 37.379984,
+      "lon": 24.9132511,
+      "tags": {
+        "highway": "bus_stop",
+        "local_ref": "\u03a3\u03c4\u03ac\u03c3\u03b7 \u0391\u03ba\u03c1\u03c9\u03c4\u03ae\u03c1\u03b9"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3390881225,
+      "lat": 37.3830772,
+      "lon": 24.9192554,
+      "tags": {
+        "highway": "bus_stop",
+        "local_ref": "\u039c\u03c0\u03c5\u03c1\u03b1\u03c1\u03af\u03b1"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3390881226,
+      "lat": 37.3877076,
+      "lon": 24.9352028,
+      "tags": {
+        "highway": "bus_stop",
+        "local_ref": "\u03a3\u03c4\u03ac\u03c3\u03b7 \u039a\u03b1\u03bd\u03b1\u03ba\u03ac\u03c1\u03b7"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3390881227,
+      "lat": 37.378671,
+      "lon": 24.9084124,
+      "tags": {
+        "highway": "bus_stop",
+        "local_ref": "\u039c\u03ad\u03b3\u03b1\u03c2 \u0393\u03b9\u03b1\u03bb\u03cc\u03c2"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3421476326,
+      "lat": 37.453615,
+      "lon": 24.943594,
+      "tags": {
+        "highway": "bus_stop"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3424794434,
+      "lat": 37.4388567,
+      "lon": 24.9342472,
+      "tags": {
+        "bench": "no",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform",
+        "shelter": "no"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3424794436,
+      "lat": 37.4391061,
+      "lon": 24.9351288,
+      "tags": {
+        "bench": "no",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform",
+        "shelter": "no"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3424875541,
+      "lat": 37.4416386,
+      "lon": 24.9330271,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3424967373,
+      "lat": 37.4406122,
+      "lon": 24.933806,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3424969397,
+      "lat": 37.4415029,
+      "lon": 24.9338355,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3429413793,
+      "lat": 37.3817123,
+      "lon": 24.9160557,
+      "tags": {
+        "highway": "bus_stop",
+        "local_ref": "\u0391\u03b3\u03af\u03b1\u03c2 \u039c\u03b1\u03c1\u03af\u03bd\u03b1\u03c2"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3429415342,
+      "lat": 37.3787945,
+      "lon": 24.9084193,
+      "tags": {
+        "highway": "bus_stop",
+        "local_ref": "\u039c\u03ad\u03b3\u03b1\u03c2 \u0393\u03b9\u03b1\u03bb\u03cc\u03c2"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3429415343,
+      "lat": 37.3793333,
+      "lon": 24.912057,
+      "tags": {
+        "highway": "bus_stop",
+        "local_ref": "\u03a3\u03c4\u03ac\u03c3\u03b7 \u0391\u03bb\u03b9\u03c6\u03c1\u03b1\u03b3\u03ba\u03ae"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3429415344,
+      "lat": 37.3800158,
+      "lon": 24.9131373,
+      "tags": {
+        "highway": "bus_stop",
+        "local_ref": "\u03a3\u03c4\u03ac\u03c3\u03b7 \u0391\u03ba\u03c1\u03c9\u03c4\u03ae\u03c1\u03b9"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3429462827,
+      "lat": 37.4250779,
+      "lon": 24.9091067,
+      "tags": {
+        "highway": "bus_stop",
+        "name": "\u03a0\u0395\u03a4\u03a1\u039f\u03a5"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3429462828,
+      "lat": 37.4202303,
+      "lon": 24.8820612,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "Francoise",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3429462829,
+      "lat": 37.4235653,
+      "lon": 24.9013176,
+      "tags": {
+        "highway": "bus_stop",
+        "name": "Revoil"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3429462830,
+      "lat": 37.4257042,
+      "lon": 24.905872,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "\u0394\u0399\u0391\u03a3\u03a4\u0391\u03a5\u03a1\u03a9\u03a3\u0397",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3429462831,
+      "lat": 37.4239541,
+      "lon": 24.9216935,
+      "tags": {
+        "highway": "bus_stop"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3429464177,
+      "lat": 37.3889647,
+      "lon": 24.8904172,
+      "tags": {
+        "highway": "bus_stop",
+        "local_ref": "\u03a0\u03bf\u03c3\u03b5\u03b9\u03b4\u03c9\u03bd\u0399\u03b1 3",
+        "name": "\u03a0\u03a5\u03a1\u0393\u039f\u03a3 \u039a\u039f\u03a5\u039b\u039f\u03a5\u03a1\u0397",
+        "operator": "\u039a\u03a4\u0395\u039b \u03a3\u03a5\u03c1\u03bf\u03c5",
+        "shelter": "yes"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3429464178,
+      "lat": 37.3974929,
+      "lon": 24.881369,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "\u03a6\u039f\u0399\u039d\u0399\u039a\u0391\u03a3 1",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3429464179,
+      "lat": 37.385401,
+      "lon": 24.8934749,
+      "tags": {
+        "highway": "bus_stop",
+        "name": "\u03a0\u039f\u03a3\u0395\u0399\u0394\u03a9\u039d\u0399\u0391 1"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3429464180,
+      "lat": 37.3982685,
+      "lon": 24.877807,
+      "tags": {
+        "highway": "bus_stop",
+        "name": "\u03a6\u039f\u0399\u039d\u0399\u039a\u0391\u03a3 2"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3429464181,
+      "lat": 37.3874938,
+      "lon": 24.892152,
+      "tags": {
+        "highway": "bus_stop",
+        "name": "\u03a0\u039f\u03a3\u0395\u0399\u0394\u03a9\u039d\u0399\u0391 2"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3429464182,
+      "lat": 37.3900793,
+      "lon": 24.8852689,
+      "tags": {
+        "bench": "no",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "\u03a6\u0395\u03a4\u039f\u03a5\u03a1\u0397",
+        "shelter": "no"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3429464183,
+      "lat": 37.3930175,
+      "lon": 24.8845233,
+      "tags": {
+        "highway": "bus_stop",
+        "name": "\u0392\u039f\u03a5\u039b\u0393\u0391\u03a1\u0397"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3429464184,
+      "lat": 37.4024704,
+      "lon": 24.8820556,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "\u03a6\u039f\u0399\u039d\u0399\u039a\u0391\u03a3 3",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3429464185,
+      "lat": 37.389408,
+      "lon": 24.8879275,
+      "tags": {
+        "highway": "bus_stop",
+        "name": "\u03a0\u039f\u03a3\u0395\u0399\u0394\u03a9\u039d\u0399\u0391 4",
+        "operator": "\u039a\u03a4\u0395\u039b \u03a3\u03a5\u03c1\u03bf\u03c5"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3435261369,
+      "lat": 37.4462153,
+      "lon": 24.9386593,
+      "tags": {
+        "bench": "no",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform",
+        "shelter": "no"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3452032739,
+      "lat": 37.4400927,
+      "lon": 24.9374398,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3452032749,
+      "lat": 37.4421469,
+      "lon": 24.9372948,
+      "tags": {
+        "bench": "no",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform",
+        "shelter": "no"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3452032750,
+      "lat": 37.4425444,
+      "lon": 24.9372349,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform",
+        "shelter": "no"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3535148459,
+      "lat": 37.4201799,
+      "lon": 24.9482276,
+      "tags": {
+        "highway": "bus_stop",
+        "local_ref": "\u039a\u0391\u03c4\u03c9 \u039c\u0391\u03bd\u03bd\u03b1",
+        "name": "\u039a\u0391\u03a4\u03a9 \u039c\u0391\u039d\u039d\u0391"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3535148460,
+      "lat": 37.4201905,
+      "lon": 24.9477984,
+      "tags": {
+        "highway": "bus_stop",
+        "local_ref": "\u039a\u0391\u03c4\u03c9 \u039c\u0391\u03bd\u03bd\u03b1",
+        "name": "\u039a\u0391\u03a4\u03a9 \u039c\u0391\u039d\u039d\u0391"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3578181775,
+      "lat": 37.4397002,
+      "lon": 24.9400984,
+      "tags": {
+        "amenity": "bus_station",
+        "bus": "yes",
+        "int_name": "KTEL",
+        "name": "\u0391\u03c6\u03b5\u03c4\u03b7\u03c1\u03af\u03b1 \u03a5\u03c0\u03b5\u03c1\u03b1\u03c3\u03c4\u03b9\u03ba\u03ce\u03bd \u03a3\u03c5\u03b3\u03ba\u03bf\u03b9\u03bd\u03c9\u03bd\u03b9\u03ce\u03bd \u039a\u03a4\u0395\u039b \u03a3\u03cd\u03c1\u03bf\u03c5",
+        "name:el": "\u0391\u03c6\u03b5\u03c4\u03b7\u03c1\u03af\u03b1 \u03a5\u03c0\u03b5\u03c1\u03b1\u03c3\u03c4\u03b9\u03ba\u03ce\u03bd \u03a3\u03c5\u03b3\u03ba\u03bf\u03b9\u03bd\u03c9\u03bd\u03b9\u03ce\u03bd \u039a\u03a4\u0395\u039b \u03a3\u03cd\u03c1\u03bf\u03c5",
+        "name:en": "Central Bus Station KTEL",
+        "operator": "\u039a.\u03a4.\u0395.\u039b. \u03a3\u03c5\u03c1\u03bf\u03c5",
+        "public_transport": "station",
+        "wheelchair": "limited"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 3744460960,
+      "lat": 37.4416876,
+      "lon": 25.4213399,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 4214840391,
+      "lat": 37.411947,
+      "lon": 25.3567197,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "int_name": "Paradise Beach",
+        "public_transport": "platform",
+        "shelter": "yes"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 4215236789,
+      "lat": 37.4162239,
+      "lon": 25.3685732,
+      "tags": {
+        "highway": "bus_stop",
+        "name": "Super Paradise",
+        "shelter": "no"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 4396518501,
+      "lat": 37.4416664,
+      "lon": 25.328325,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "otopark",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 4940713922,
+      "lat": 37.4350364,
+      "lon": 25.3395144,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name:en": "to mykonos center",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 4940713924,
+      "lat": 37.4265099,
+      "lon": 25.3338522,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "public bus",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 5700251346,
+      "lat": 37.4491011,
+      "lon": 24.9465196,
+      "tags": {
+        "bench": "no",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "\u0391\u03be\u03b1\u03c1\u03bb\u03ae",
+        "public_transport": "platform",
+        "shelter": "no"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 5743745512,
+      "lat": 37.4490433,
+      "lon": 25.3893685,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform",
+        "shelter": "yes"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 5848129300,
+      "lat": 37.4212829,
+      "lon": 24.8788613,
+      "tags": {
+        "highway": "bus_stop",
+        "name": "Galissas"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 5891710721,
+      "lat": 37.4344913,
+      "lon": 25.3456335,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "network": "KTEL Mykonou",
+        "public_transport": "platform",
+        "wheelchair": "yes"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 5891710736,
+      "lat": 37.4447016,
+      "lon": 25.3345247,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "operator": "KTEL Mykonou",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 5891717522,
+      "lat": 37.4600897,
+      "lon": 25.3287674,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "operator": "KTEL Mykonou",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 5891717523,
+      "lat": 37.4648107,
+      "lon": 25.3232076,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name:en": "New Port",
+        "operator": "KTEL Mykonou",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 5891795925,
+      "lat": 37.4345492,
+      "lon": 25.333312,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "operator": "KTEL Mykonou",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 5891795972,
+      "lat": 37.422814,
+      "lon": 25.323802,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name:en": "Ornos",
+        "operator": "KTEL Mykonos",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 5951871788,
+      "lat": 37.4301182,
+      "lon": 25.3329198,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 6295632863,
+      "lat": 37.4467758,
+      "lon": 24.9456312,
+      "tags": {
+        "bus": "yes",
+        "public_transport": "stop_position"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 6534142968,
+      "lat": 37.4508723,
+      "lon": 25.328724,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name:en": "Old Port",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 6534142969,
+      "lat": 37.4691348,
+      "lon": 25.318823,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name:en": "Agios Stefanos",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 6643854227,
+      "lat": 37.4511632,
+      "lon": 25.3287003,
+      "tags": {
+        "amenity": "bus_station",
+        "bus": "yes",
+        "name:en": "Old Port",
+        "public_transport": "station"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 6656188947,
+      "lat": 37.4508743,
+      "lon": 25.3287926,
+      "tags": {
+        "amenity": "bus_station",
+        "bus": "yes",
+        "public_transport": "station"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 6851382567,
+      "lat": 37.4252802,
+      "lon": 25.3230759,
+      "tags": {
+        "bench": "no",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "Korfos Anoixi",
+        "operator": "KTEL Mykonos",
+        "public_transport": "platform",
+        "shelter": "no"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 9815203672,
+      "lat": 37.4457201,
+      "lon": 25.3958688,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform",
+        "shelter": "yes"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 9815203673,
+      "lat": 37.4482679,
+      "lon": 25.3914258,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform",
+        "shelter": "yes"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 9886090518,
+      "lat": 37.4350918,
+      "lon": 25.339583,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 9886619918,
+      "lat": 37.4464381,
+      "lon": 25.3390175,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform",
+        "shelter": "yes"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 9886619919,
+      "lat": 37.4516796,
+      "lon": 25.3488043,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform",
+        "shelter": "yes"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 9886622718,
+      "lat": 37.4515765,
+      "lon": 25.3567273,
+      "tags": {
+        "amenity": "bus_station",
+        "bus": "yes",
+        "name:en": "Stamos",
+        "public_transport": "station"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 9886622720,
+      "lat": 37.4143506,
+      "lon": 25.3536042,
+      "tags": {
+        "highway": "bus_stop",
+        "name": "Paradise View"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 9886623218,
+      "lat": 37.4516514,
+      "lon": 25.3603955,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform",
+        "shelter": "yes"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 9886623220,
+      "lat": 37.4353814,
+      "lon": 25.3311646,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 9886623223,
+      "lat": 37.4376504,
+      "lon": 25.3345235,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 9886623317,
+      "lat": 37.4514863,
+      "lon": 25.3568308,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform",
+        "shelter": "yes"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 9886623318,
+      "lat": 37.4375352,
+      "lon": 25.3308124,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 9887401119,
+      "lat": 37.4254022,
+      "lon": 25.3231285,
+      "tags": {
+        "bench": "no",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "Korfos Anoixi",
+        "public_transport": "platform",
+        "shelter": "no"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 9887401131,
+      "lat": 37.4231362,
+      "lon": 25.3122139,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name:en": "Agios Ioannis",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 9887401132,
+      "lat": 37.4235346,
+      "lon": 25.3111599,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 9887401135,
+      "lat": 37.4236633,
+      "lon": 25.3090453,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 9887401418,
+      "lat": 37.4233237,
+      "lon": 25.3203097,
+      "tags": {
+        "bench": "no",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform",
+        "shelter": "no"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 9887401420,
+      "lat": 37.4231989,
+      "lon": 25.3075075,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 9887401817,
+      "lat": 37.4232372,
+      "lon": 25.3122663,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name:en": "Agios Ioannis",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 9932638261,
+      "lat": 37.4121525,
+      "lon": 24.9582329,
+      "tags": {
+        "highway": "bus_stop",
+        "int_name": "Azolimnos",
+        "name": "\u0391\u03b6\u03cc\u03bb\u03b9\u03bc\u03bd\u03bf\u03c2"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 9950560317,
+      "lat": 37.4652482,
+      "lon": 25.3226715,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name:en": "Bus to City",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 9952065617,
+      "lat": 37.4515817,
+      "lon": 25.3275255,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name:en": "Bus to Cruise Berth",
+        "public_transport": "platform"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 11203158220,
+      "lat": 37.4513299,
+      "lon": 25.3669386,
+      "tags": {
+        "bench": "no",
+        "highway": "bus_stop",
+        "shelter": "no"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 11207736190,
+      "lat": 37.4435056,
+      "lon": 25.3983815,
+      "tags": {
+        "bench": "yes",
+        "highway": "bus_stop",
+        "shelter": "yes"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 11210226018,
+      "lat": 37.4149032,
+      "lon": 25.3517446,
+      "tags": {
+        "highway": "bus_stop"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 11221270777,
+      "lat": 37.4241359,
+      "lon": 25.3905331,
+      "tags": {
+        "bench": "no",
+        "highway": "bus_stop",
+        "name": "Elia",
+        "shelter": "no"
+      },
+      "island": "mykonos"
+    },
+    {
+      "type": "node",
+      "id": 13144333401,
+      "lat": 37.4432123,
+      "lon": 24.9029406,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "Bus Stop Lotos Beach",
+        "name:el": "\u03a3\u03c4\u03ac\u03c3\u03b7 \u039a\u03a4\u0395\u039b \u03a0\u03b1\u03c1\u03b1\u03bb\u03af\u03b1 \u039b\u03c9\u03c4\u03bf\u03cd",
+        "operator": "KTEL Syrou",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 13597767508,
+      "lat": 37.4461613,
+      "lon": 24.9003572,
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "Kini",
+        "operator": "KTEL Syrou",
+        "public_transport": "platform",
+        "shelter": "no"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "node",
+      "id": 13668773192,
+      "lat": 37.4470667,
+      "lon": 24.9347233,
+      "tags": {
+        "bus": "yes",
+        "public_transport": "platform"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "way",
+      "id": 299227982,
+      "nodes": [
+        3032030163,
+        3032030162,
+        9683141445,
+        3032030160,
+        3051456520,
+        3051456518,
+        3051456519,
+        3032030161,
+        3032030163
+      ],
+      "tags": {
+        "amenity": "bus_station",
+        "bus": "yes",
+        "name": "\u0391\u03c6\u03b5\u03c4\u03b7\u03c1\u03af\u03b1 \u03a5\u03c0\u03b5\u03c1\u03b1\u03c3\u03c4\u03b9\u03ba\u03ce\u03bd \u03a3\u03c5\u03b3\u03ba\u03bf\u03b9\u03bd\u03c9\u03bd\u03b9\u03ce\u03bd \u039a\u03a4\u0395\u039b \u03a3\u03cd\u03c1\u03bf\u03c5",
+        "name:el": "\u0391\u03c6\u03b5\u03c4\u03b7\u03c1\u03af\u03b1 \u03a5\u03c0\u03b5\u03c1\u03b1\u03c3\u03c4\u03b9\u03ba\u03ce\u03bd \u03a3\u03c5\u03b3\u03ba\u03bf\u03b9\u03bd\u03c9\u03bd\u03b9\u03ce\u03bd \u039a\u03a4\u0395\u039b \u03a3\u03cd\u03c1\u03bf\u03c5",
+        "name:en": "Bus Station KTEL",
+        "public_transport": "station",
+        "wheelchair": "limited"
+      },
+      "island": "syros",
+      "geometry": [
+        {
+          "lat": 37.4397949,
+          "lon": 24.9400044
+        },
+        {
+          "lat": 37.4397414,
+          "lon": 24.9401771
+        },
+        {
+          "lat": 37.4396512,
+          "lon": 24.9401467
+        },
+        {
+          "lat": 37.4395698,
+          "lon": 24.9401193
+        },
+        {
+          "lat": 37.4395853,
+          "lon": 24.9400618
+        },
+        {
+          "lat": 37.4395438,
+          "lon": 24.9400441
+        },
+        {
+          "lat": 37.439558,
+          "lon": 24.939995
+        },
+        {
+          "lat": 37.4395813,
+          "lon": 24.9399106
+        },
+        {
+          "lat": 37.4397949,
+          "lon": 24.9400044
+        }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 736284303,
+      "nodes": [
+        6896957421,
+        6896957422,
+        6896957459,
+        6893199298,
+        6893199299,
+        9729963121,
+        6893199300,
+        6893199301,
+        1162554488,
+        6896957421
+      ],
+      "tags": {
+        "amenity": "bus_station",
+        "bus": "yes",
+        "int_name": "Fabrika",
+        "name": "\u03a6\u03ac\u03bc\u03c0\u03c1\u03b9\u03ba\u03b1",
+        "name:el": "\u03a6\u03ac\u03bc\u03c0\u03c1\u03b9\u03ba\u03b1",
+        "name:en": "Fabrika",
+        "operator": "\u039a\u03a4\u0395\u039b \u039c\u03c5\u03ba\u03cc\u03bd\u03bf\u03c5",
+        "public_transport": "station"
+      },
+      "island": "mykonos",
+      "geometry": [
+        {
+          "lat": 37.4429111,
+          "lon": 25.3282804
+        },
+        {
+          "lat": 37.4429435,
+          "lon": 25.3283601
+        },
+        {
+          "lat": 37.4429687,
+          "lon": 25.3284305
+        },
+        {
+          "lat": 37.4430183,
+          "lon": 25.3285795
+        },
+        {
+          "lat": 37.4428374,
+          "lon": 25.3286541
+        },
+        {
+          "lat": 37.4427632,
+          "lon": 25.3286757
+        },
+        {
+          "lat": 37.4427322,
+          "lon": 25.3286887
+        },
+        {
+          "lat": 37.4426211,
+          "lon": 25.3284938
+        },
+        {
+          "lat": 37.4427608,
+          "lon": 25.3283868
+        },
+        {
+          "lat": 37.4429111,
+          "lon": 25.3282804
+        }
+      ]
+    },
+    {
+      "type": "relation",
+      "id": 4594447,
+      "members": [
+        {
+          "type": "node",
+          "ref": 3352814948,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 2942365157,
+          "role": "platform"
+        },
+        {
+          "type": "node",
+          "ref": 3352814952,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 2973106503,
+          "role": "platform"
+        },
+        {
+          "type": "node",
+          "ref": 3352814957,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 2973106499,
+          "role": "platform"
+        },
+        {
+          "type": "node",
+          "ref": 3352814942,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 2973106496,
+          "role": "platform"
+        },
+        {
+          "type": "node",
+          "ref": 3352814943,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 2973106494,
+          "role": "platform"
+        },
+        {
+          "type": "node",
+          "ref": 3352814950,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 2973106489,
+          "role": "platform"
+        },
+        {
+          "type": "node",
+          "ref": 3352814953,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 3352814947,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 3352814955,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 2973106497,
+          "role": "platform"
+        },
+        {
+          "type": "node",
+          "ref": 6295632863,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 2973106501,
+          "role": "platform"
+        },
+        {
+          "type": "node",
+          "ref": 1844864942,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 2973106502,
+          "role": "platform"
+        },
+        {
+          "type": "way",
+          "ref": 209001397,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 209001400,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 294502001,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 174213217,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 294237764,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 293439726,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 205789838,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 293089266,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 173712547,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 173552931,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 173716151,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 320303468,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 173716268,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 338122140,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 173780824,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 173780825,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 318881591,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 319923474,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 317680768,
+          "role": ""
+        }
+      ],
+      "tags": {
+        "from": "\u0391\u03b8\u03bb\u03b7\u03c4\u03b9\u03ba\u03cc \u039a\u03ad\u03bd\u03c4\u03c1\u03bf",
+        "name": "Bus: \u0391\u03b8\u03bb\u03b7\u03c4\u03b9\u03ba\u03cc \u039a\u03ad\u03bd\u03c4\u03c1\u03bf - \u039b\u03b9\u03bc\u03ac\u03bd\u03b9 - \u0394\u03cc\u03be\u03b1",
+        "route": "bus",
+        "to": "\u0394\u03cc\u03be\u03b1",
+        "type": "route"
+      },
+      "island": "syros"
+    },
+    {
+      "type": "relation",
+      "id": 4594448,
+      "members": [
+        {
+          "type": "node",
+          "ref": 1844864942,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 2973106502,
+          "role": "platform"
+        },
+        {
+          "type": "node",
+          "ref": 1845394342,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 2990660613,
+          "role": "platform"
+        },
+        {
+          "type": "node",
+          "ref": 3352814954,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 2973106495,
+          "role": "platform"
+        },
+        {
+          "type": "node",
+          "ref": 3352814947,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 2973106492,
+          "role": "platform"
+        },
+        {
+          "type": "node",
+          "ref": 3352814953,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 3350617816,
+          "role": "platform"
+        },
+        {
+          "type": "node",
+          "ref": 3352814951,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 3217294289,
+          "role": "platform"
+        },
+        {
+          "type": "node",
+          "ref": 3352814944,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 3039422046,
+          "role": "platform"
+        },
+        {
+          "type": "node",
+          "ref": 3352814941,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 3039387536,
+          "role": "platform"
+        },
+        {
+          "type": "node",
+          "ref": 2966388796,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 3037152646,
+          "role": "platform"
+        },
+        {
+          "type": "node",
+          "ref": 3352814952,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 3101553107,
+          "role": "platform"
+        },
+        {
+          "type": "node",
+          "ref": 3352814948,
+          "role": "stop"
+        },
+        {
+          "type": "node",
+          "ref": 2942365157,
+          "role": "platform"
+        },
+        {
+          "type": "way",
+          "ref": 317680768,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 1165096247,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 208116836,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 319923474,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 318881591,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 173780825,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 173718753,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 338122140,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 173716268,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 320303468,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 173716151,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 173552931,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 173712547,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 293089266,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 205789838,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 293439726,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 294237764,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 174213217,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 294502001,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 209001400,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 314262424,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 209001404,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 209001397,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 209001400,
+          "role": ""
+        },
+        {
+          "type": "way",
+          "ref": 1165096248,
+          "role": ""
+        }
+      ],
+      "tags": {
+        "from": "\u0394\u03cc\u03be\u03b1",
+        "name": "Bus: \u0394\u03cc\u03be\u03b1 - \u039b\u03b9\u03bc\u03ac\u03bd\u03b9 - \u0391\u03b8\u03bb\u03b7\u03c4\u03b9\u03ba\u03cc \u039a\u03ad\u03bd\u03c4\u03c1\u03bf",
+        "route": "bus",
+        "to": "\u0391\u03b8\u03bb\u03b7\u03c4\u03b9\u03ba\u03cc \u039a\u03ad\u03bd\u03c4\u03c1\u03bf",
+        "type": "route"
+      },
+      "island": "syros"
+    }
+  ]
+}

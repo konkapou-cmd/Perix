@@ -43,6 +43,7 @@ import {
 } from "../lib/designTokens";
 import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../lib/navigation/entityRoutes";
 import { CATEGORY_ICONS } from "../lib/categoryIcons";
+import IllustratedIcon from "../components/icons/IllustratedIcon";
 import AdaptiveVideo from "../components/AdaptiveVideo";
 import ProgressivePicker from "../components/navigation/ProgressivePicker";
 
@@ -398,7 +399,9 @@ export default function ServicesScreen() {
                   setCategoryModalVisible(false);
                 }}
               >
-                <Ionicons name={(CATEGORY_ICONS[category.slug] || "grid") as any} size={20} color={rootCategory === category.slug ? "#59ABE3" : "#264348"} style={styles.categoryModalIcon} />
+                <IllustratedIcon kind="business-root" iconKey={category.slug} size={20}
+                  fallback={(CATEGORY_ICONS[category.slug] || "grid") as any}
+                  color={rootCategory === category.slug ? "#59ABE3" : "#264348"} style={styles.categoryModalIcon} />
                 <Text style={styles.categoryModalItemText}>{translateCategory(category.slug, t)}</Text>
                 {rootCategory === category.slug && <Ionicons name="checkmark" size={18} color="#59ABE3" />}
               </Pressable>
@@ -438,7 +441,7 @@ export default function ServicesScreen() {
                   setSubcategoryModalVisible(false);
                 }}
               >
-                <View style={[styles.subDot, subcategory === sub.slug && { backgroundColor: "#59ABE3" }]} />
+                <IllustratedIcon kind="business-subcategory" iconKey={sub.slug} size={20} fallback="ellipse-outline" style={styles.categoryModalIcon} />
                 <Text style={styles.categoryModalItemText}>{translateCategory(sub.slug, t)}</Text>
                 {subcategory === sub.slug && <Ionicons name="checkmark" size={18} color="#59ABE3" />}
               </Pressable>

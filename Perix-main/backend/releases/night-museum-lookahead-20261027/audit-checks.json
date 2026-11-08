@@ -1,0 +1,27 @@
+{
+  "all_checks": true,
+  "checks": {
+    "ten_candidate_passages": true,
+    "frozen_production_source_hashes_verified": true,
+    "n4_current_leg_source_48s": true,
+    "n5_current_leg_source_42s": true,
+    "n4_two_leg_horizon_93s": true,
+    "n5_two_leg_horizon_99s": true,
+    "model_62_211s_despite_zero_soft_recovery_margin": true,
+    "three_unposted_service_ways": true,
+    "hypothetical_only": true,
+    "no_stops_removed": true,
+    "zero_static_traffic_profiles": true,
+    "no_false_historical_backtest_claim": true,
+    "experimental_flags_still_false": true,
+    "daily_refresh_activated_27th": true
+  },
+  "raw_capture_hashes": {
+    "discovery.json": "b580c867a1ab8b4f1775aaad1b95f348318544d4e331a582c188f53f0fb50b6f",
+    "transit-capture.json": "de6208f886a2eb3573f1a7db5aeb41573040cd1943cc54af45b325d79ea0ab5d",
+    "context.json": "7141db52e0b185143f1796b58c9bab93e9e68e8b2f1ccd5475adf4733993517c"
+  },
+  "production_writes": 0,
+  "deployments": 0,
+  "runtime_settings_changes": 0
+}

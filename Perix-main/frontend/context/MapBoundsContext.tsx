@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
+import { DEFAULT_MAP_BASE, MapBase, mapBaseBounds, validMapBase } from "../lib/city/mapBase";
 
 export interface MapBounds {
   minLat: number;
@@ -18,11 +19,15 @@ interface MapBoundsContextType {
   setMapBounds: (bounds: MapBounds) => void;
   clearMapBounds: () => void;
   refreshKey: number;
+  mapBase: MapBase;
+  mapBaseRevision: number;
+  selectMapBase: (base:MapBase) => void;
 }
 
 const MapBoundsContext = createContext<MapBoundsContextType | null>(null);
 
 const MAP_BOUNDS_KEY = "@perix_map_bounds";
+const MAP_BASE_KEY = "@perix_map_base";
 
 function storageGet(key: string): Promise<string | null> {
   if (Platform.OS === "web" && typeof window !== "undefined") {
@@ -54,12 +59,22 @@ export function MapBoundsProvider({ children }: { children: React.ReactNode }) {
   const [isMapBoundsHydrated, setIsMapBoundsHydrated] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const prevBoundsRef = useRef<MapBounds | null>(null);
+  const [mapBase,setMapBase]=useState<MapBase>(DEFAULT_MAP_BASE);
+  const [mapBaseRevision,setMapBaseRevision]=useState(0);
+  const baseAction=useRef(0),boundsAction=useRef(0);
 
   useEffect(() => {
+    let active=true;
     (async () => {
       try {
-        const raw = await storageGet(MAP_BOUNDS_KEY);
-        if (raw) {
+        const [raw,rawBase] = await Promise.all([storageGet(MAP_BOUNDS_KEY),storageGet(MAP_BASE_KEY)]);
+        if(!active)return;
+        let restoredBase:unknown=null;
+        try{restoredBase=rawBase ? JSON.parse(rawBase) : null;}catch{}
+        if(baseAction.current===0 && validMapBase(restoredBase)){
+          setMapBase(restoredBase);setMapBaseRevision(value=>value+1);
+          setMapBoundsState(mapBaseBounds(restoredBase));setIsMapInitialized(true);
+        }else if(boundsAction.current===0 && baseAction.current===0 && raw){
           const b = JSON.parse(raw);
           if (
             b &&
@@ -74,11 +89,13 @@ export function MapBoundsProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch {}
-      setIsMapBoundsHydrated(true);
+      if(active)setIsMapBoundsHydrated(true);
     })();
+    return()=>{active=false;};
   }, []);
 
   const setMapBounds = useCallback((bounds: MapBounds) => {
+    boundsAction.current+=1;
     setMapBoundsState(bounds);
     setIsMapInitialized(true);
 
@@ -102,6 +119,14 @@ export function MapBoundsProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, []);
 
+  const selectMapBase=useCallback((base:MapBase)=>{
+    if(!validMapBase(base))return;
+    baseAction.current+=1;
+    setMapBase(base);setMapBaseRevision(value=>value+1);
+    setMapBounds(mapBaseBounds(base));
+    storageSet(MAP_BASE_KEY,JSON.stringify(base));
+  },[setMapBounds]);
+
   const clearMapBounds = useCallback(() => {
     setMapBoundsState(null);
     setIsMapInitialized(false);
@@ -117,6 +142,7 @@ export function MapBoundsProvider({ children }: { children: React.ReactNode }) {
         setMapBounds,
         clearMapBounds,
         refreshKey,
+        mapBase,mapBaseRevision,selectMapBase,
       }}
     >
       {children}

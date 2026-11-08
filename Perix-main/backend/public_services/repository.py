@@ -16,10 +16,14 @@ def index_nodes(node, result=None):
 
 
 NODES = index_nodes(TAXONOMY)
-PUBLIC_FIELDS = {field: 1 for field in PublicService.model_fields}
+STAGING_ONLY_FIELDS = {"candidate_latitude", "candidate_longitude", "source_geo_manual_review_note", "geo_status"}
+PUBLIC_FIELDS = {field: 1 for field in PublicService.model_fields if field not in STAGING_ONLY_FIELDS}
 PUBLIC_FIELDS["_id"] = 0
 PUBLIC_PREDICATE = {"entity_type": "public_service", "publication_status": "published",
                     "verification_status": "source_verified", "bio_status": "approved",
+                    # Allow legacy records with no rights status, but never expose
+                    # newly imported entries still awaiting publication-rights review.
+                    "publication_rights_status": {"$in": ["approved", None]},
                     "is_hidden": {"$ne": True}, "is_deleted": {"$ne": True}}
 
 

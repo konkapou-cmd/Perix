@@ -1,0 +1,43 @@
+{
+  "case_trip": "491847",
+  "pattern_id": "66:2e0b359099",
+  "generation_id": "gen_f3d018208bbde715cb",
+  "case_graph_version": 1792887708,
+  "candidate_current_graph_version": 1792950897,
+  "reused_from_version_id": "net_7f0605d2409e",
+  "geometry_validation": {
+    "valid": true,
+    "max_platform_distance_m": 27.7,
+    "missing_platforms": 0,
+    "projection_ordered": true,
+    "projection_positions_m": [
+      0.0,
+      583.5,
+      989.1,
+      1746.7,
+      2212.9,
+      3841.1,
+      4353.6,
+      5020.4,
+      5551.0,
+      7037.5,
+      8266.0,
+      10807.0,
+      11287.9
+    ]
+  },
+  "latest_active_refresh_failure_for_same_pattern": {
+    "ok": false,
+    "reason": "GEOMETRY_INCOMPLETE",
+    "pattern_id": "66:2e0b359099",
+    "missing_pairs": [
+      [
+        2,
+        3
+      ]
+    ],
+    "resolved_pairs": 11
+  },
+  "pattern_is_one_of_eight_activation_blockers": false,
+  "no_independently_reviewed_alternative_geometry_acquired": true
+}

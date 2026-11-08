@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../../lib/designTokens";
 import ProgressivePicker from "../navigation/ProgressivePicker";
+import { illustratedIconSource } from "../icons/IllustratedIcon";
 
 type TabType = "businesses" | "hotels" | "events" | "activities" | "rentals" | "jobs" | "mobility";
 
@@ -16,7 +17,7 @@ type Props = {
 const SECTION_OPTIONS: { key: TabType; label: string; icon: keyof typeof Ionicons.glyphMap; color: string }[] = [
   { key: "hotels", label: "Hotels", icon: "bed", color: "#59ABE3" },
   { key: "businesses", label: "Businesses", icon: "business-outline", color: "#264348" },
-  { key: "events", label: "Events", icon: "calendar-outline", color: "#FF9F1C" },
+  { key: "events", label: "Events", icon: "calendar-outline", color: "#F15A35" },
   { key: "activities", label: "Activities", icon: "people-outline", color: "#FF9F1C" },
   { key: "rentals", label: "Rentals", icon: "home-outline", color: "#59ABE3" },
   { key: "jobs", label: "Jobs", icon: "briefcase-outline", color: "#264348" },
@@ -33,6 +34,9 @@ export default function LocatorHeader({ activeTab, onTabChange, t }: Props) {
           key: s.key,
           label: t(`tabs.${s.key}`, s.label),
           icon: s.icon,
+          iconSource: ["hotels","businesses","events","activities"].includes(s.key)
+            ? illustratedIconSource("home", s.key)
+            : undefined,
           color: s.color,
         }))}
         onChange={(tab) => onTabChange(tab as TabType)}

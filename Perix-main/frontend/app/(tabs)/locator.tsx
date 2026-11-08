@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BusinessMap from "../../components/BusinessMap";
+import MapLocationPopup from "../../components/city/MapLocationPopup";
 import { SkeletonBox, EmptyState } from "../../components/shared";
 import DatePickerModal from "../../components/shared/DatePickerModal";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
@@ -27,9 +28,18 @@ import LocatorHeader from "../../components/locator/LocatorHeader";
 import ProgressivePicker from "../../components/navigation/ProgressivePicker";
 import LocatorSidebar, { SIDEBAR_WIDTH } from "../../components/locator/LocatorSidebar";
 import * as Location from "expo-location";
-import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
+import MapScreenHeader from "../../components/city/MapScreenHeader";
+import TransitVehicleDetails from "../../components/mobility/TransitVehicleDetails";
+import { MAP_PAGE_GUTTER } from "../../lib/city/mapLayout";
 import { getLiveVehicles, LiveVehicle, searchBusStops, getBusesServing, ServingBus, createTaxiRequest, myTaxiRequests, cancelTaxiRequest, getTaxiPricing, getVehicleTrip, VehicleTripProgress, TaxiRequest, TaxiPricing, planJourney, JourneyPlan, searchPlaces, PlaceSuggestion, StopSuggestion, StreetSuggestion, TransitStopMarker, getV2Map, V2MapLine } from "../../lib/api/mobility";
 import * as WebBrowser from "expo-web-browser";
+import { visualGeometryReady, transitStopPins, distinctGeometryLines } from "../../lib/city/visualGeometry";
+import { missingVisualGeometryKeys } from "../../lib/api/mobility";
+import { startFleetPolling } from "../../lib/city/fleetPoller";
+import { subscribeVisualRefresh, requestVisualRefresh } from "../../lib/city/transitPublication";
+import { remainingCountdownSeconds, countdownPresentation, formatCountdown, departureRefreshKey } from "../../lib/city/serverClock";
+import TransitSourceNotice from "../../components/city/TransitSourceNotice";
+import { hasOsmTransitRouting } from "../../lib/city/transitAttribution";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -55,8 +65,10 @@ import {
 } from "../../lib/api";
 import { apiRequest } from "../../lib/api/core";
 import { useLocation } from "../../context/LocationContext";
+import MobilityModeControls from "../../components/mobility/MobilityModeControls";
 import { translateCategory, translateJobType } from "../../lib/categoryTranslation";
 import { CATEGORY_ICONS, subcategoryIcon, CATEGORY_COLORS, subcategoryColor } from "../../lib/categoryIcons";
+import { illustratedIconSource } from "../../components/icons/IllustratedIcon";
 import { sortCategoriesByLabel } from "../../lib/categoryTranslation";
 import { isUpcomingEvent, isUpcomingActivity, EVENT_THEMES } from "../../lib/api/events";
 import { formatDate } from "../../lib/formatDate";
@@ -78,17 +90,25 @@ export default function LocatorScreen() {
   const { isDesktop } = useResponsiveLayout();
   const { sessionToken, user, activeIdentity } = useAuth();
   const params = useLocalSearchParams<{ tab?: string; root_category?: string }>();
-  const { setMapBounds: setGlobalMapBounds, mapBounds, refreshKey } = useMapBounds();
-  const { location: contextLocation, livePosition, setManualLocation, radiusKm } = useLocation();
+  const { setMapBounds: setGlobalMapBounds, mapBounds, refreshKey, mapBase, mapBaseRevision } = useMapBounds();
+  const { location: contextLocation, livePosition, userOrigin, useLiveLocation, radiusKm } = useLocation();
   const [locateFocus, setLocateFocus] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locateToken, setLocateToken] = useState(0);
+  useEffect(()=>{
+    if(!mapBaseRevision)return;
+    setLocateFocus({latitude:mapBase.latitude,longitude:mapBase.longitude});setLocateToken(value=>value+1);
+  },[mapBaseRevision,mapBase]);
   const [locating, setLocating] = useState(false);
   const [mobilityMode, setMobilityMode] = useState<"all" | "bus" | "tram" | "taxi">("all");
   const [liveVehicles, setLiveVehicles] = useState<LiveVehicle[]>([]);
   const [busQuery, setBusQuery] = useState("");
   const [busSuggestions, setBusSuggestions] = useState<any[]>([]);
-  const [selectedStop, setSelectedStop] = useState<{ stop_id: string; name: string } | null>(null);
+  const [selectedStop, setSelectedStop] = useState<{ stop_id: string; name: string; platform_id?: string } | null>(null);
+  const [mapLocationOpen, setMapLocationOpen] = useState(false);
   const [servingBuses, setServingBuses] = useState<ServingBus[]>([]);
+  const [arrivalClock, setArrivalClock] = useState(0);
+  const [servingError, setServingError] = useState(false);
+  const refreshedDepartures = useRef(new Set<string>());
   const [transitDestAddress, setTransitDestAddress] = useState("");
   const [transitDestLat, setTransitDestLat] = useState<number | null>(null);
   const [transitDestLng, setTransitDestLng] = useState<number | null>(null);
@@ -146,8 +166,18 @@ export default function LocatorScreen() {
   const [suggesting, setSuggesting] = useState(false);
 
   const [activeTab, setActiveTab] = useState<TabType>("businesses");
+  useEffect(() => {
+    if (activeTab !== 'mobility') return;
+    for (const row of servingBuses) {
+      const key = departureRefreshKey(row,arrivalClock);
+      if (key && !refreshedDepartures.current.has(key)) {
+        if (refreshedDepartures.current.size > 256) refreshedDepartures.current.clear();
+        refreshedDepartures.current.add(key);requestVisualRefresh(arrivalClock);
+      }
+    }
+  },[activeTab,servingBuses,servingError,arrivalClock]);
   const [businessAvailabilityFilter, setBusinessAvailabilityFilter] = useState<"all" | "open_now">("all");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(isDesktop);
   
   // Date filter state
   const [dateFilter, setDateFilter] = useState<DateFilter>({ startDate: null, endDate: null });
@@ -462,13 +492,12 @@ export default function LocatorScreen() {
       // Safety timeout: never leave the button spinning forever (some
       // browsers hang the prompt / GPS indefinitely).
       const loc = await Promise.race([
-        getCurrentPositionWithPermission(),
+        useLiveLocation(15000),
         new Promise<null>((resolve) => setTimeout(() => resolve(null), 20000)),
       ]);
       if (loc) {
         setLocateFocus({ latitude: loc.latitude, longitude: loc.longitude });
         setLocateToken((t) => t + 1);
-        setManualLocation(loc.latitude, loc.longitude);
         const d = 0.02;
         setGlobalMapBounds({
           minLat: loc.latitude - d / 2,
@@ -489,54 +518,57 @@ export default function LocatorScreen() {
     } finally {
       setLocating(false);
     }
-  }, [locating, setManualLocation, setGlobalMapBounds, t]);
+  }, [locating, useLiveLocation, setGlobalMapBounds, t]);
 
+  const initialFleetSync = useRef(true);
   // Live mobility vehicles (buses/taxis) - polled while the Mobility tab
   // is open. The WebSocket channel integration can replace polling later.
   useEffect(() => {
     if (activeTab !== "mobility") return;
-    let cancelled = false;
-    let latestSeq = 0;
-    const load = () => {
-      const seq = ++latestSeq;
-      getLiveVehicles(sessionToken)
-        .then((vehicles) => {
-          // Only the newest response may win - a slow stale poll must
-          // never overwrite newer positions.
-          if (!cancelled && seq === latestSeq) setLiveVehicles(vehicles || []);
-        })
-        .catch(() => {});
-    };
-    load();
-    const interval = setInterval(load, 4000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
+    // Serialize reads: starting another request every 4 s starved updates
+    // whenever the previous response took longer than that interval.
+    // Cleanup suppresses old tab/session responses; failures keep the last
+    // snapshot, never extend the backend-authorized animation window.
+    return startFleetPolling({
+      load: async () => {
+        const vehicles = await getLiveVehicles(sessionToken, initialFleetSync.current, true);
+        if (vehicles.some(v => v.latitude != null && (!v.estimated || v.motion?.publication_status === 'READY'))) initialFleetSync.current = false;
+        return vehicles;
+      },
+      publish: vehicles => setLiveVehicles(vehicles || []),
+      intervalMs: 4000,
+      subscribeRefresh: subscribeVisualRefresh,
+    });
   }, [activeTab, sessionToken]);
 
   // Active transit network -> thin route lines on the map
+  const geometryAttempts = useRef(new Set<string>());
+  const [geometryRefresh, setGeometryRefresh] = useState(0);
   useEffect(() => {
     if (activeTab !== "mobility") return;
-    let cancelled = false;
-    // Stable V2 map payload: resolved lines + physical stops
-    getV2Map(sessionToken)
-      .then((map) => {
-        if (cancelled) return;
+    const missing = missingVisualGeometryKeys(liveVehicles, transitMapLines)
+      .map(key => JSON.stringify([sessionToken || null, key]))
+      .filter(key => !geometryAttempts.current.has(key));
+    if (!missing.length) return;
+    missing.forEach(key => geometryAttempts.current.add(key));
+    setGeometryRefresh(value => value+1);
+  }, [activeTab, sessionToken, liveVehicles, transitMapLines]);
+  useEffect(() => {
+    if (activeTab !== "mobility") return;
+    return startFleetPolling({ intervalMs: 300000, load: () => getV2Map(sessionToken).catch(error => {
+      geometryAttempts.current.clear(); throw error;
+    }),
+      publish: map => {
         setTransitMapLines(map.lines || []);
         setPhysicalStops(map.stops || []);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [activeTab, sessionToken]);
+      } });
+  }, [activeTab, sessionToken, geometryRefresh]);
 
   // Transit lines come from the STABLE v2 map payload (trip patterns with
   // validated geometry from the Geometry Resolver). The All/Bus/Tram
   // toggle filters them together with stops + vehicles.
   const transitLines = useMemo(() => {
-    return transitMapLines
+    return distinctGeometryLines(transitMapLines)
       .filter((l) => mobilityMode === "all" || l.mode === mobilityMode)
       .map((l) => {
         const isSelected = selectedLine != null && l.route_number === selectedLine;
@@ -577,32 +609,15 @@ export default function LocatorScreen() {
     };
   }, [transitMapLines, selectedLine, selectedPattern]);
 
-  // Zoom-aware stop visibility (vehicles and lines always visible):
-  //  < 13.2: no stops (except selected pattern/stop)
-  //  13.2-15.3: major stops only (interchanges: 2+ routes or 2+ modes)
-  //  >= 15.3: all stops
-  // A selected line always shows ITS stops; a selected stop is forced.
+  // Network presence is not dependent on today's route count or zoom.
+  // The renderer changes detail density, never drops minor boarding locations.
   const transitStops = useMemo(() => {
-    let list = physicalStops;
+    let list = transitStopPins(physicalStops);
     if (mobilityMode !== "all") {
       list = list.filter((s) => s.modes.includes(mobilityMode as "bus" | "tram"));
     }
-    const z = mapZoom ?? 14;
-    if (selectedLine) {
-      const line = transitMapLines.find((l) => l.route_number === selectedLine);
-      const ids = new Set((line?.stops || []).map((s) => s.stop_id));
-      list = list.filter((s) => ids.has(s.stop_id) || s.routes.some((r) => r.route_number === selectedLine));
-    } else if (selectedStop) {
-      list = list.filter((s) => s.stop_id === selectedStop.stop_id);
-    } else if (z >= 15.3) {
-      // all stops
-    } else if (z >= 13.2) {
-      list = list.filter((s) => s.routes.length >= 2 || s.modes.length >= 2);
-    } else {
-      list = [];
-    }
     return list;
-  }, [physicalStops, selectedLine, selectedStop, mobilityMode, mapZoom, transitMapLines]);
+  }, [physicalStops, mobilityMode]);
 
   // Journey-plan route on the map: walking light blue, tram green, bus blue.
   const planLines = useMemo(() => {
@@ -673,28 +688,10 @@ export default function LocatorScreen() {
     return withDist.map((x) => x.v).slice(0, 20);
   }, [liveVehicles, mobilityMode, viewportRef, referencePoint]);
 
-  // Nearest stops (bus + tram) in the current map area, with their lines.
-  // Follows the All/Bus/Tram toggle like the vehicles list.
-  const nearbyStops = useMemo(() => {
-    if (!physicalStops.length) return [];
-    const ref = referencePoint;
-    let visible = physicalStops;
-    if (mobilityMode !== "all") {
-      visible = visible.filter((s) => s.modes.includes(mobilityMode as "bus" | "tram"));
-    }
-    visible = visible.filter((s) => inViewport(s.latitude, s.longitude));
-    if (ref) {
-      visible.forEach((s: any) => {
-        s.d = haversineDistance(ref.latitude, ref.longitude, s.latitude, s.longitude);
-      });
-      visible.sort((a: any, b: any) => (a.d ?? Infinity) - (b.d ?? Infinity));
-    }
-    return visible.slice(0, 8);
-  }, [physicalStops, viewportRef, referencePoint, mobilityMode]);
-
   // Selected vehicle trip progress (passed stops + arrival times)
+  const selectedVehicleMode=liveVehicles.find(v=>v.vehicle_id===selectedVehicle)?.mode;
   useEffect(() => {
-    if (activeTab !== "mobility" || !selectedVehicle) return;
+    if (activeTab !== "mobility" || !selectedVehicle || !selectedVehicleMode || selectedVehicleMode==='taxi' || mobilityMode==='taxi') return;
     let cancelled = false;
     const load = () => {
       getVehicleTrip(sessionToken, selectedVehicle)
@@ -709,7 +706,7 @@ export default function LocatorScreen() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [activeTab, selectedVehicle, sessionToken]);
+  }, [activeTab, selectedVehicle, selectedVehicleMode, sessionToken, mobilityMode]);
 
   // Bus destination search (debounced)
   useEffect(() => {
@@ -734,27 +731,25 @@ export default function LocatorScreen() {
   // Refresh the serving-bus list while a destination is selected
   useEffect(() => {
     if (activeTab !== "mobility" || mobilityMode === "taxi" || !selectedStop) return;
-    let cancelled = false;
-    const load = () => {
-      getBusesServing(
+    let active = true;
+    setServingError(false);
+    const timer = setInterval(() => setArrivalClock(typeof performance !== 'undefined' ? performance.now() : 0),1000);
+    const stop = startFleetPolling({intervalMs:5000, subscribeRefresh:subscribeVisualRefresh,
+      load: () => getBusesServing(
         sessionToken,
         selectedStop.stop_id,
         contextLocation?.latitude ?? null,
-        contextLocation?.longitude ?? null
-      )
-        .then((res) => {
-          if (cancelled) return;
+        contextLocation?.longitude ?? null,
+        selectedStop.platform_id
+      ).catch(error => {if (active) setServingError(true);throw error;}),
+      publish: res => {
+          setServingError(false);
           // The All/Bus/Tram toggle filters arrivals too - a stop serves
           // both modes but the user asked for one.
           setServingBuses((res || []).filter((b) => mobilityMode === "all" || b.mode === mobilityMode));
-        })
-        .catch(() => {});
-    };
-    load();
-    const interval = setInterval(load, 5000);
+      }});
     return () => {
-      cancelled = true;
-      clearInterval(interval);
+      active = false; clearInterval(timer); stop();
     };
   }, [activeTab, mobilityMode, selectedStop, sessionToken, contextLocation?.latitude, contextLocation?.longitude]);
 
@@ -804,8 +799,8 @@ export default function LocatorScreen() {
     // Mobility origin = the user's ACTUAL position first (live GPS pin),
     // browsing center second. A stale manual/context point must never make
     // the journey plan start hundreds of meters behind the user.
-    const originLat = livePosition?.latitude ?? contextLocation?.latitude ?? locateFocus?.latitude;
-    const originLng = livePosition?.longitude ?? contextLocation?.longitude ?? locateFocus?.longitude;
+    const originLat = userOrigin?.latitude;
+    const originLng = userOrigin?.longitude;
     if (originLat == null || originLng == null) {
       setJourneyPlans([]);
       setPlanNote(t("mobility.planNoLocation", "Enable location to plan a journey from where you are."));
@@ -1175,13 +1170,14 @@ export default function LocatorScreen() {
   if (loading) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.backgroundPage }} edges={['top']}>
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-          <SkeletonBox width="100%" height={40} style={{ marginHorizontal: 16, marginTop: 8 }} />
-          <SkeletonBox width="100%" height={44} borderRadius={12} style={{ marginHorizontal: 16, marginTop: 8 }} />
-          <SkeletonBox width="100%" height={200} borderRadius={12} style={{ marginHorizontal: 16, marginTop: 12 }} />
-          <SkeletonBox width={100} height={18} style={{ marginHorizontal: 16, marginTop: 16 }} />
+        {!(isDesktop && Platform.OS==='web') && <MapScreenHeader logoVariant="english" />}
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40,paddingHorizontal:MAP_PAGE_GUTTER }} showsVerticalScrollIndicator={false}>
+          <SkeletonBox width="100%" height={40} style={{ marginTop: 8 }} />
+          <SkeletonBox width="100%" height={44} borderRadius={12} style={{ marginTop: 8 }} />
+          <SkeletonBox width="100%" height={200} borderRadius={12} style={{ marginTop: 12 }} />
+          <SkeletonBox width={100} height={18} style={{ marginTop: 16 }} />
           {[0, 1, 2, 3].map((i) => (
-            <View key={i} style={{ backgroundColor: COLORS.background, borderRadius: 8, padding: 14, marginHorizontal: 16, marginBottom: 12 }}>
+            <View key={i} style={{ backgroundColor: COLORS.background, borderRadius: 8, padding: 14, marginBottom: 12 }}>
               <View style={{ flexDirection: "row" }}>
                 <SkeletonBox width={56} height={56} borderRadius={12} />
                 <View style={{ marginLeft: 12, justifyContent: "center", gap: 6 }}>
@@ -1198,20 +1194,25 @@ export default function LocatorScreen() {
   }
 
   const pickerAccent =
-    activeTab === "events" || activeTab === "activities" ? "#FF9F1C"
+    activeTab === "events" ? "#F15A35" : activeTab === "activities" ? "#FF9F1C"
       : activeTab === "businesses" || activeTab === "jobs" ? "#264348"
         : "#59ABE3";
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {!(isDesktop && Platform.OS==='web') && <MapScreenHeader logoVariant="english" />}
       {/* Search Bar */}
       <View style={styles.searchBarSection}>
         <View style={styles.searchInputContainer}>
-          {!isDesktop && (
-            <Pressable onPress={() => setSidebarOpen(true)} style={{ paddingRight: 4 }}>
-              <Ionicons name="menu" size={20} color="#264348" />
-            </Pressable>
-          )}
+          <Pressable
+            testID="locator-category-toggle"
+            accessibilityRole="button"
+            accessibilityLabel={sidebarOpen ? t("locator.hideCategories", "Hide categories") : t("locator.showCategories", "Show categories")}
+            onPress={() => setSidebarOpen(open => !open)}
+            style={styles.sidebarToggle}
+          >
+            <Ionicons name={sidebarOpen ? "close" : "menu"} size={20} color="#264348" />
+          </Pressable>
           <Ionicons name="search" size={18} color="#264348" />
           <TextInput
             style={styles.searchInput}
@@ -1250,8 +1251,8 @@ export default function LocatorScreen() {
       </View>
 
       {/* Sidebar + Content */}
-      <View style={styles.sidebarLayout}>
-        {isDesktop || sidebarOpen ? (
+      <View testID="locator-sidebar-layout" style={styles.sidebarLayout}>
+        {sidebarOpen ? (
           <LocatorSidebar
             categories={categoryTree}
             selectedRoot={selectedRoot}
@@ -1271,6 +1272,8 @@ export default function LocatorScreen() {
             }}
             onSelectSubcategory={setSelectedSubcategory}
             onClose={!isDesktop ? () => setSidebarOpen(false) : undefined}
+            onDismiss={() => setSidebarOpen(false)}
+            overlay={Platform.OS === "web"}
           />
         ) : null}
         {!isDesktop && sidebarOpen && (
@@ -1278,21 +1281,17 @@ export default function LocatorScreen() {
         )}
 
         <ScrollView
+          testID="locator-content-scroll"
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           maintainVisibleContentPosition={{ minIndexForVisible: 0, autoscrollToTopThreshold: 20 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#264348" />}
         >
           {/* Map Section */}
-          <View style={styles.mapSection}>
+          <View style={styles.mapSection} testID="locator-map-frame">
         <BusinessMap
-          location={
-            contextLocation
-              ? { latitude: contextLocation.latitude, longitude: contextLocation.longitude }
-              : activeTab === "mobility"
-              ? { latitude: 52.131, longitude: 11.64 }
-              : undefined
-          }
+          horizontalInset={0}
+          location={undefined}
           initialRegion={{
             latitude:
               mapBounds?.centerLat ??
@@ -1313,8 +1312,8 @@ export default function LocatorScreen() {
               ? 0.09
               : 0.05,
           }}
-          pinLocation={locateFocus ?? (livePosition ? { latitude: livePosition.latitude, longitude: livePosition.longitude } : null)}
-          userPinImage={activeIdentity?.type === "business" ? (activeIdentity as any).avatar || undefined : (user?.profile_photo || user?.picture || undefined)}
+          pinLocation={livePosition}
+          userPinImage={user?.profile_photo || user?.picture || undefined} userPinName={user?.name}
           focusRegion={locateFocus ? { latitude: locateFocus.latitude, longitude: locateFocus.longitude, latitudeDelta: 0.04, longitudeDelta: 0.04 } : undefined}
           focusToken={locateToken || undefined}
           businesses={activeTab === "businesses" ? visibleBusinesses : activeTab === "hotels" ? visibleHotels : []}
@@ -1331,6 +1330,7 @@ export default function LocatorScreen() {
             activeTab === "mobility"
               ? liveVehicles
                   .filter((v) => (mobilityMode === "all" || v.mode === mobilityMode) && v.latitude != null && v.longitude != null)
+                  .filter((v) => visualGeometryReady(v, transitMapLines))
                   .map((v) => {
                     // The canonical line geometry the vehicle rides: the
                     // marker follows every curve of the road/rail instead
@@ -1341,7 +1341,10 @@ export default function LocatorScreen() {
                     // is authoritative for WHERE on the line the vehicle
                     // is (no browser-side re-projection).
                     let path: { latitude: number; longitude: number }[] | undefined;
-                    const vLine = transitMapLines.find((l) => l.pattern_id != null && l.pattern_id === v.pattern_id);
+                    const vLine = transitMapLines.find((l) => l.pattern_id != null && l.pattern_id === v.pattern_id
+                      && (!v.motion || v.motion.model !== "TIME_NORMALIZED_VISUAL_ESTIMATE"
+                        || (l.valid === true && l.network_version_id === v.network_version_id
+                          && l.service_date === v.service_date && l.mode === v.mode)));
                     if (vLine && vLine.points && vLine.points.length >= 2 && v.pattern_id) {
                       path = vLine.points;
                     }
@@ -1365,7 +1368,14 @@ export default function LocatorScreen() {
                       label: v.route_number || undefined,
                       pinColor: v.mode === "bus" ? "#1E3A8A" : v.mode === "tram" ? "#8B0000" : "#FFC400",
                       heading: v.heading ?? null,
-                      estimated: v.estimated ?? false,
+                       estimated: v.estimated ?? false,
+                       visualEstimate: v.motion?.model === "TIME_NORMALIZED_VISUAL_ESTIMATE",
+                       journeyId: v.trip_instance_id, publicationStatus: v.motion?.publication_status,
+                       patternId: v.pattern_id, planRevision: v.motion_plan_revision,
+                       estimateRevision: v.estimate_revision, motionPreview: v.motion?.preview,
+                       nextTimelineIndex: v.next_timeline_index,
+                       distanceToNextStopM: v.distance_to_next_stop_m, nextStopEtaSeconds: v.next_stop_eta_seconds,
+                       geometryFingerprint: vLine?.approach_geometry_fingerprint,
                       path,
                       progressM: v.progress_m ?? null,
                       positionState: v.position_state ?? null,
@@ -1380,7 +1390,7 @@ export default function LocatorScreen() {
               : undefined
           }
           onTransitStopPress={(stop) => {
-            setSelectedStop({ stop_id: stop.stop_id, name: stop.name });
+            setSelectedStop({ stop_id: stop.stop_id, name: stop.name, platform_id: stop.platform_id });
             setBusQuery(stop.name);
             setBusSuggestions([]);
             setServingBuses([]);
@@ -1412,11 +1422,10 @@ export default function LocatorScreen() {
               setSelectedPattern(null);
             }
           }}
-          showUserLocation
+          showUserLocation={!!livePosition}
           onRegionChangeComplete={handleMapRegionChange}
           onMarkerPress={(id) => {
             if (activeTab === "mobility") {
-              if (mobilityMode === "taxi") return;
               setSelectedVehicle((prev) => (prev === id ? null : id));
               setTripProgress(null);
               return;
@@ -1442,12 +1451,14 @@ export default function LocatorScreen() {
             if (activeTab === "activities") { router.push(`/activity/${id}` as any); return; }
           }}
         />
-        <Pressable style={styles.locateMeButton} onPress={handleLocateMe} disabled={locating}>
+        <Pressable style={styles.locateMeButton} onPress={()=>setMapLocationOpen(true)}>
           <Ionicons name={locating ? "hourglass-outline" : "locate"} size={20} color="#096BFF" />
         </Pressable>
       </View>
 
       {/* Segment Tabs */}
+      <MapLocationPopup visible={mapLocationOpen} onClose={()=>setMapLocationOpen(false)} />
+      {activeTab === "mobility" && <TransitSourceNotice osm={hasOsmTransitRouting(transitMapLines)} />}
       <LocatorHeader
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -1458,46 +1469,14 @@ export default function LocatorScreen() {
       {/* Mobility: Bus/Taxi live view */}
       {activeTab === "mobility" && (
         <View style={styles.mobilityPanel}>
-          <View style={styles.mobilityToggle}>
-            <Pressable
-              style={[styles.mobilityToggleOption, mobilityMode === "all" && styles.mobilityToggleOptionActive]}
-              onPress={() => setMobilityMode("all")}
-            >
-              <Ionicons name="apps" size={16} color={mobilityMode === "all" ? "#fff" : "#264348"} />
-              <Text style={[styles.mobilityToggleText, mobilityMode === "all" && styles.mobilityToggleTextActive]}>
-                {t("mobility.all", "All")}
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[styles.mobilityToggleOption, mobilityMode === "bus" && styles.mobilityToggleOptionActive]}
-              onPress={() => setMobilityMode("bus")}
-            >
-              <Ionicons name="bus" size={16} color={mobilityMode === "bus" ? "#fff" : "#264348"} />
-              <Text style={[styles.mobilityToggleText, mobilityMode === "bus" && styles.mobilityToggleTextActive]}>
-                {t("mobility.bus", "Bus")}
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[styles.mobilityToggleOption, mobilityMode === "tram" && styles.mobilityToggleOptionActive]}
-              onPress={() => setMobilityMode("tram")}
-            >
-              <Ionicons name="train" size={16} color={mobilityMode === "tram" ? "#fff" : "#264348"} />
-              <Text style={[styles.mobilityToggleText, mobilityMode === "tram" && styles.mobilityToggleTextActive]}>
-                {t("mobility.tram", "Tram")}
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[styles.mobilityToggleOption, mobilityMode === "taxi" && styles.mobilityToggleOptionActive]}
-              onPress={() => setMobilityMode("taxi")}
-            >
-              <Ionicons name="car" size={16} color={mobilityMode === "taxi" ? "#fff" : "#264348"} />
-              <Text style={[styles.mobilityToggleText, mobilityMode === "taxi" && styles.mobilityToggleTextActive]}>
-                {t("mobility.taxi", "Taxi")}
-              </Text>
-            </Pressable>
-          </View>
+          <MobilityModeControls value={mobilityMode} onChange={setMobilityMode} />
+          {selectedVehicle && <View style={styles.linePanel}>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('common.close','Close')} style={{minHeight:44,alignItems:'flex-end',justifyContent:'center'}}
+              onPress={()=>{setSelectedVehicle(null);setTripProgress(null);}}><Ionicons name="close" size={20} color="#264348" /></Pressable>
+            <TransitVehicleDetails vehicle={liveVehicles.find(v=>v.vehicle_id===selectedVehicle) || null} lines={transitMapLines} stops={physicalStops} />
+          </View>}
 
-          {selectedVehicle && tripProgress && (mobilityMode !== "taxi") && (
+          {selectedVehicle && tripProgress && (selectedVehicleMode==='bus' || selectedVehicleMode==='tram') && (mobilityMode !== "taxi") && (
             <View style={styles.linePanel}>
               <View style={styles.linePanelHeader}>
                 <View style={{ flex: 1 }}>
@@ -1889,7 +1868,12 @@ export default function LocatorScreen() {
           )}
 
           {selectedStop && (mobilityMode !== "taxi") ? (
-            <View>
+            <View testID="locator-selected-stop-programme">
+              <Pressable testID="locator-close-stop-programme" accessibilityRole="button" accessibilityLabel={t("common.close", "Close")}
+                onPress={()=>{setSelectedStop(null);setServingBuses([]);setBusQuery("");setBusSuggestions([]);}}
+                style={{minHeight:44,alignItems:"flex-end",justifyContent:"center"}}>
+                <Ionicons name="close" size={22} color="#59ABE3" />
+              </Pressable>
               <Text style={styles.mobilityHeading}>
                 {mobilityMode === "tram"
                   ? t("mobility.towardTram", "Trams going toward")
@@ -1908,14 +1892,15 @@ export default function LocatorScreen() {
                   </Text>
                 );
               })()}
-              {servingBuses.length === 0 ? (
+              {servingError && <Text style={styles.mobilityEmptyText}>{t('common.unavailable','Temporarily unavailable')}</Text>}
+              {servingBuses.filter(b => countdownPresentation(b,arrivalClock).visible).length === 0 ? (
                 <Text style={styles.mobilityEmptyText}>
-                  {t("mobility.noBusesServing", "No live buses on this route right now")}
+                  {t("mobility.noArrivals", "No upcoming arrivals")}
                 </Text>
               ) : (
-                servingBuses.map((b) => (
+                servingBuses.filter(b => countdownPresentation(b,arrivalClock).visible).map((b,index) => (
                   <Pressable
-                    key={b.vehicle_id}
+                    key={`${b.vehicle_id}:${index}`}
                     style={styles.mobilityRow}
                     onPress={() => {
                       // Open the vehicle's full journey: every stop it
@@ -1940,15 +1925,19 @@ export default function LocatorScreen() {
                         {b.distance_to_stop_m != null
                           ? `${b.distance_to_stop_m < 1000 ? b.distance_to_stop_m + " m" : (b.distance_to_stop_m / 1000).toFixed(1) + " km"} · `
                           : ""}
-                        {t("mobility.eta", "Arrives ~{{n}} min", { n: b.eta_minutes })}
+                        {b.predicted_arrival ? `${t('mobility.arrival','Arrival')} ${b.predicted_arrival} · ` : ''}
+                        {b.countdown_event === 'WAITING_FOR_SOURCE_UPDATE' ? t('mobility.waitingForUpdate','Waiting for update')
+                          : b.countdown_event === 'DEPARTURE' ? t('mobility.departure','Departure') : t('mobility.arrival','Arrival')}
                         {b.delay_minutes > 0 ? ` · ${t("mobility.delay", "+{{n}} min", { n: b.delay_minutes })}` : ""}
                         {" · "}
                         {t("mobility.estimated", "Estimated")}
+                        {(countdownPresentation(b,arrivalClock).stale || servingError)
+                          ? ` · ${t('mobility.lastKnownTiming','Last known timing · no new update')}` : ''}
                         {" · "}
                         {t("mobility.tapForJourney", "tap for journey")}
                       </Text>
                     </View>
-                    <Text style={styles.mobilityEta}>{b.eta_minutes}′</Text>
+                    <Text style={styles.mobilityEta}>{formatCountdown(remainingCountdownSeconds(b,arrivalClock))}</Text>
                     <Ionicons name="chevron-forward" size={14} color="#9CA3AF" />
                   </Pressable>
                 ))
@@ -2045,43 +2034,7 @@ export default function LocatorScreen() {
             </View>
           )}
 
-          {mobilityMode !== "taxi" && nearbyStops.length > 0 && (
-            <>
-              <Text style={styles.mobilityHeading}>
-                {t("mobility.nearbyStops", "Nearby stops")}
-              </Text>
-              {nearbyStops.map((s) => (
-                <Pressable
-                  key={"ns_" + s.stop_id}
-                  style={styles.mobilityRow}
-                  onPress={() => {
-                    setSelectedStop({ stop_id: s.stop_id, name: s.name });
-                    setBusQuery(s.name);
-                    setBusSuggestions([]);
-                  }}
-                >
-                  <View style={[styles.mobilityRowIcon, { backgroundColor: "#264348" }]}>
-                    <Ionicons name="location-outline" size={16} color="#fff" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.mobilityRowTitle} numberOfLines={1}>
-                      {s.name}
-                    </Text>
-                    <Text style={styles.mobilityRowSub}>
-                      {(s as any).d != null
-                        ? `${(s as any).d < 1 ? Math.round((s as any).d * 1000) + " m" : (s as any).d.toFixed(1) + " km"} · `
-                        : ""}
-                      {s.routes.slice(0, 6).map((r) => r.route_number).join(", ")}
-                      {s.routes.length > 6 ? "…" : ""}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={14} color="#9CA3AF" />
-                </Pressable>
-              ))}
-            </>
-          )}
-
-          {nearbyVehicles.length === 0 && (mobilityMode === "taxi" || nearbyStops.length === 0) ? (
+          {nearbyVehicles.length === 0 ? (
             <View style={styles.mobilityEmpty}>
               <Ionicons
                 name={mobilityMode === "all" ? "bus-outline" : mobilityMode === "bus" ? "bus-outline" : mobilityMode === "tram" ? "train-outline" : "car-outline"}
@@ -2139,7 +2092,8 @@ export default function LocatorScreen() {
             value={selectedRoot === "All" ? "All" : selectedRoot}
             options={[
               { key: "All", label: t("common.all", "Alle Kategorien") },
-              ...sortCategoriesByLabel(categoryTree, t).map((cat) => ({ key: cat.slug, label: translateCategory(cat.slug, t), icon: (CATEGORY_ICONS[cat.slug] || "grid") as any, iconColor: CATEGORY_COLORS[cat.slug] })),
+              ...sortCategoriesByLabel(categoryTree, t).map((cat) => ({ key: cat.slug, label: translateCategory(cat.slug, t), icon: (CATEGORY_ICONS[cat.slug] || "grid") as any,
+                iconSource: illustratedIconSource("business-root",cat.slug), iconColor: CATEGORY_COLORS[cat.slug] })),
             ]}
             onChange={(key) => { setSelectedRoot(key); setSelectedSubcategory("All"); }}
             primaryColor={pickerAccent}
@@ -2153,7 +2107,8 @@ export default function LocatorScreen() {
               value={selectedSubcategory === "All" ? "All" : selectedSubcategory}
               options={[
                 { key: "All", label: t("common.allSubcategories", "Alle Unterkategorien") },
-                ...sortCategoriesByLabel(businessSubcategories, t).map((sub: any) => ({ key: sub.slug, label: translateCategory(sub.slug, t), icon: (subcategoryIcon(sub.slug) || "grid") as any, iconColor: subcategoryColor(sub.slug, selectedRoot) })),
+                ...sortCategoriesByLabel(businessSubcategories, t).map((sub: any) => ({ key: sub.slug, label: translateCategory(sub.slug, t), icon: (subcategoryIcon(sub.slug) || "grid") as any,
+                  iconSource: illustratedIconSource("business-subcategory",sub.slug), iconColor: subcategoryColor(sub.slug, selectedRoot) })),
               ]}
               onChange={(key) => setSelectedSubcategory(key === "All" ? "All" : key)}
               primaryColor={pickerAccent}
@@ -2285,7 +2240,7 @@ export default function LocatorScreen() {
           <View style={styles.list}>
             <Text style={styles.listTitle}>{visibleBusinesses.length} {t('tabs.businesses')}</Text>
             {visibleBusinesses.length === 0 && (
-              <EmptyState icon="storefront" message={t('business.noBusinesses')} size="default" muted />
+              <EmptyState icon="storefront" message={t('business.noBusinesses')} size="default" muted messageColor="#59ABE3" />
             )}
             {visibleBusinesses.map((business) => {
               const isOpen = isBusinessOpen(business);
@@ -2309,7 +2264,7 @@ export default function LocatorScreen() {
           <View style={styles.list}>
             <Text style={styles.listTitle}>{visibleHotels.length} {t("tabs.hotels", "Hotels")}</Text>
             {visibleHotels.length === 0 ? (
-              <EmptyState icon="bed" message={t("home.noHotels", "No hotels nearby")} size="default" muted />
+              <EmptyState icon="bed" message={t("home.noHotels", "No hotels nearby")} size="default" muted messageColor="#59ABE3" />
             ) : visibleHotels.map((business) => {
               const isOpen = isBusinessOpen(business);
               const dist = getDistance(business.latitude, business.longitude);
@@ -2332,7 +2287,7 @@ export default function LocatorScreen() {
           <View style={styles.list}>
             <Text style={styles.listTitle}>{visibleEvents.length} {t('tabs.events')}</Text>
             {visibleEvents.length === 0 && (
-              <EmptyState icon="calendar" message={t('events.noEvents')} size="default" muted />
+              <EmptyState icon="calendar" message={t('events.noEvents')} size="default" muted messageColor="#59ABE3" />
             )}
             {visibleEvents.map((event) => {
               const dist = getDistance(event.business?.latitude, event.business?.longitude);
@@ -2354,7 +2309,7 @@ export default function LocatorScreen() {
           <View style={styles.list}>
             <Text style={styles.listTitle}>{visibleActivities.length} {t('tabs.activities')}</Text>
             {visibleActivities.length === 0 && (
-              <EmptyState icon="people" message={t('activities.noActivities')} size="default" muted />
+              <EmptyState icon="people" message={t('activities.noActivities')} size="default" muted messageColor="#59ABE3" />
             )}
             {visibleActivities.map((activity) => {
               const dist = getDistance(activity.latitude, activity.longitude);
@@ -2376,7 +2331,7 @@ export default function LocatorScreen() {
           <View style={styles.list}>
             <Text style={styles.listTitle}>{filteredRentals.length} {t('tabs.rentals')}</Text>
             {filteredRentals.length === 0 && (
-              <EmptyState icon="home-outline" message={t('rentals.noRentals', "Keine Mietangebote gefunden")} size="default" muted />
+              <EmptyState icon="home-outline" message={t('rentals.noRentals', "Keine Mietangebote gefunden")} size="default" muted messageColor="#59ABE3" />
             )}
             {filteredRentals.map((rental) => {
               const dist = getDistance(rental.latitude, rental.longitude);
@@ -2416,7 +2371,7 @@ export default function LocatorScreen() {
           <View style={styles.list}>
             <Text style={styles.listTitle}>{filteredJobs.length} {t('tabs.jobs')}</Text>
             {filteredJobs.length === 0 && (
-              <EmptyState icon="briefcase-outline" message={t('jobs.noJobs', "Keine Stellenanzeigen gefunden")} size="default" muted />
+              <EmptyState icon="briefcase-outline" message={t('jobs.noJobs', "Keine Stellenanzeigen gefunden")} size="default" muted messageColor="#59ABE3" />
             )}
             {filteredJobs.map((job) => {
               const dist = getDistance(job.latitude, job.longitude);
@@ -2749,6 +2704,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: Platform.OS === "web" ? 16 : 15,
     color: "#264348",
+  },
+  sidebarToggle: {
+    width: 30,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    ...Platform.select({ web: { cursor: "pointer" } as any, default: {} }),
   },
   
   // Filter Row Styles
@@ -3100,7 +3062,7 @@ const styles = StyleSheet.create({
   listTitle: {
     fontSize: Platform.OS === "web" ? 18 : 16,
     fontWeight: "600",
-    color: "#264348",
+    color: "#59ABE3",
     marginBottom: 12,
   },
   emptyState: {
@@ -3830,7 +3792,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   mapSection: {
-    width: "100%",
+    marginHorizontal:MAP_PAGE_GUTTER,
     position: "relative",
   },
   mobilityPanel: { paddingHorizontal: 16, paddingBottom: 12 },
@@ -4226,7 +4188,7 @@ const styles = StyleSheet.create({
     color: COLORS.statusClosedText,
   },
   searchBarSection: {
-    paddingHorizontal: SPACING.small,
+    paddingHorizontal: MAP_PAGE_GUTTER,
     paddingTop: SPACING.small,
     paddingBottom: SPACING.tiny,
     backgroundColor: COLORS.background,
@@ -4280,16 +4242,16 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: BORDER_RADIUS.full,
     borderWidth: 1,
-    borderColor: "rgba(38,67,72,0.25)",
+    borderColor: "rgba(89,171,227,0.45)",
     backgroundColor: "transparent",
   },
   openNowBtnActive: {
-    backgroundColor: "#264348",
-    borderColor: "#264348",
+    backgroundColor: "#59ABE3",
+    borderColor: "#59ABE3",
   },
   openNowText: {
     fontSize: FONT_SIZES.small,
-    color: "#264348",
+    color: "#59ABE3",
     fontWeight: "600",
   },
   openNowTextActive: {

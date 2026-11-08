@@ -1,0 +1,29 @@
+{
+  "supplier": "Geofabrik / OpenStreetMap",
+  "license": "ODbL-1.0",
+  "source_url": "https://download.geofabrik.de/europe/germany/sachsen-anhalt-latest.osm.pbf",
+  "downloaded_at": "2026-10-26T11:08:42.446459+00:00",
+  "bytes": 176565448,
+  "md5_verified": "636bd6e7a5aa77e72969982758ef0705",
+  "sha256": "ba1d36bfa5bcc08933000c1304f56ce090729fe6b158f8241f4d9909f851253c",
+  "polygon_sha256": "8cfaba37360087feff109a4e7c5e4462b8f6a3687429f06af3b5b5d6d257a360",
+  "http_requests": [
+    {
+      "kind": "checksum_before",
+      "status": 200
+    },
+    {
+      "kind": "pbf",
+      "status": 200
+    },
+    {
+      "kind": "checksum_after",
+      "status": 200
+    },
+    {
+      "kind": "coverage_polygon",
+      "status": 200
+    }
+  ],
+  "production_mutations": 0
+}

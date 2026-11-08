@@ -62,6 +62,18 @@ def test_slow_fleet_response_resamples_position_eta_and_window_without_refreshin
     no_fit.assert_not_called()
 
 
+def test_expired_continuation_does_not_publish_zero_eta_between_stops(publication):
+    publication.plan['estimated_continuation']={'valid_until_s':20}
+    refreshed=v2._refresh_estimated_publications([publication.row],EPOCH+timedelta(seconds=100))[0]
+    assert 0 < refreshed['progress_m'] < 400
+    assert refreshed['motion']['continuation_state']=='EXPIRED'
+    assert refreshed['motion']['state']=='HOLD' and refreshed['motion']['preview'] is None
+    assert refreshed['next_stop_eta_seconds'] is None
+    assert refreshed['next_stop_predicted_arrival'] is None
+    assert refreshed['next_stop_eta_source']=='UNKNOWN'
+    assert refreshed['realtime_feed_timestamp']==123
+
+
 @pytest.mark.parametrize('now',[59,60,61,62,70,120,121])
 def test_send_time_sampling_respects_station_and_trip_boundaries(publication,now):
     case=publication

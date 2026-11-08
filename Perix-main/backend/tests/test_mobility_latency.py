@@ -47,6 +47,37 @@ def test_domain_retains_both_dates_and_all_override_content(monkeypatch):
     assert domain.build_domain(today, overrides=[{"kind": "rename", "stop_id": "A", "name": "changed"}]) is not a
 
 
+def test_source_manifest_exposes_only_allowlisted_version_bound_fields():
+    assert domain._source_manifest({}) is None
+    assert domain._source_manifest({"static_input": None}) is None
+    assert domain._source_manifest({"static_input": {"kind": "GTFS_ARCHIVE"}}) == {"kind": "GTFS_ARCHIVE"}
+    full = domain._source_manifest({"static_input": {
+        "kind": "GTFS_ARCHIVE", "sha256": "a" * 64, "ingestion": "DOWNLOAD",
+        "secret": "must-not-leak",
+        "notices": {"feed_info.txt": {"status": "PRESENT", "sha256": "b" * 64, "bytes_hex": "dead"},
+                    "attributions.txt": {"status": "ABSENT"},
+                    "extra.txt": {"status": "PRESENT"}},
+        "publisher": {"publisher_name": "gtfs.de", "publisher_url": "https://gtfs.de",
+                      "contact": "must-not-leak"}}})
+    assert full == {"kind": "GTFS_ARCHIVE", "sha256": "a" * 64, "ingestion": "DOWNLOAD",
+                    "notices": {"feed_info.txt": {"status": "PRESENT", "sha256": "b" * 64},
+                                "attributions.txt": {"status": "ABSENT"}},
+                    "publisher": {"publisher_name": "gtfs.de", "publisher_url": "https://gtfs.de"}}
+    assert "license" not in str(full)
+
+
+def test_domain_network_carries_manifest_and_cache_separates_inputs(monkeypatch):
+    base = network("2026-10-23")
+    assert domain.build_domain(base)["network"]["source_manifest"] is None
+    assert "source_manifest" in domain.build_domain(base)["network"]
+    manifest_doc = {**base, "static_input": {"kind": "GTFS_ARCHIVE", "sha256": "c" * 64,
+                                             "ingestion": "UPLOAD"}}
+    with_manifest = domain.build_domain(manifest_doc)
+    assert with_manifest["network"]["source_manifest"]["sha256"] == "c" * 64
+    assert with_manifest is not domain.build_domain(base)
+    assert domain.build_domain(manifest_doc) is with_manifest
+
+
 @pytest.mark.asyncio
 async def test_active_network_singleflight_cancellation_and_next_read_fresh(monkeypatch):
     entered, release = asyncio.Event(), asyncio.Event()

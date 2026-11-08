@@ -1,0 +1,56 @@
+{
+  "deployment": "2c4a3dc0-6a5f-4c96-9856-19810774491b",
+  "path": "container loopback, real server.py",
+  "records": [
+    {
+      "path": "/api/mobility/v2/map",
+      "status": 200,
+      "duration_s": 0.0580215435475111
+    },
+    {
+      "path": "/api/mobility/v2/map",
+      "status": 200,
+      "duration_s": 0.06853938475251198
+    },
+    {
+      "path": "/api/mobility/v2/map",
+      "status": 200,
+      "duration_s": 0.06903399713337421
+    },
+    {
+      "path": "/api/mobility/v2/map",
+      "status": 200,
+      "duration_s": 0.07383177243173122
+    },
+    {
+      "path": "/api/mobility/v2/map",
+      "status": 200,
+      "duration_s": 0.07161307707428932
+    },
+    {
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 0.0368634108453989
+    },
+    {
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 0.03806754946708679
+    },
+    {
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 0.037634601816534996
+    },
+    {
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 0.03865272179245949
+    },
+    {
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 0.03858417086303234
+    }
+  ]
+}

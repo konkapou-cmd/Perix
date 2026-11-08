@@ -5,7 +5,7 @@ import type { DirectoryEntity, GatewayNode } from "./gateway";
 // the shared renderer or global design tokens to match the public homepage.
 export const GATEWAY_ENTITY_COLORS: Record<string, string> = {
   business: COLORS.pinBusiness,
-  event: COLORS.pinEvent,
+  event: "#F15A35",
   activity: COLORS.pinActivity,
   hotel: COLORS.pinHotel,
   job: COLORS.pinJob,

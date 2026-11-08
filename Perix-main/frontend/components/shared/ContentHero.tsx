@@ -16,9 +16,11 @@ import FocalImage from "../FocalImage";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
 import type { MediaItem } from "../LazyMediaViewer";
 import type { FocalPoint } from "../../lib/api/core";
+import type { ImageSourcePropType } from "react-native";
 
 type ContentHeroBadge = {
   icon: string;
+  iconSource?: ImageSourcePropType;
   text?: string;
   color?: string;
 };
@@ -172,7 +174,8 @@ export default function ContentHero({
         <View style={[styles.heroBadgeRow, hideBack && styles.heroBadgeRowTop]}>
           {badges.map((badge, idx) => (
             <View key={idx} style={[styles.heroBadge, badge.color ? { backgroundColor: badge.color } : undefined]}>
-              <Ionicons name={badge.icon as any} size={11} color="#fff" />
+              {badge.iconSource ? <Image source={badge.iconSource} resizeMode="contain" style={{width:11,height:11}} />
+                : <Ionicons name={badge.icon as any} size={11} color="#fff" />}
               {badge.text ? <Text style={styles.heroBadgeText}>{badge.text}</Text> : null}
             </View>
           ))}

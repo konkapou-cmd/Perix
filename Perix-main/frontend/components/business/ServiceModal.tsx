@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import IllustratedIcon from "../icons/IllustratedIcon";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { formatDate } from "../../lib/formatDate";
@@ -708,7 +709,8 @@ export default function ServiceModal({
                   style={[styles.chip, form.type === mod.key && styles.chipSelected]}
                   onPress={() => updateField("type", mod.key)}
                 >
-                  <Ionicons name={mod.icon} size={16} color={form.type === mod.key ? "#fff" : COLORS.textSecondary} />
+                  <IllustratedIcon kind="service-module" iconKey={mod.key} size={16} fallback={mod.icon}
+                    color={form.type === mod.key ? "#fff" : COLORS.textSecondary} />
                   <Text style={[styles.chipText, form.type === mod.key && styles.chipTextSelected]}>
                     {moduleLabel(mod.key)}
                   </Text>

@@ -123,6 +123,30 @@ async def test_twenty_one_cross_midnight_windows_are_not_truncated(monkeypatch, 
 
 
 @pytest.mark.asyncio
+async def test_map_exposes_version_bound_manifests_only_for_displayed_lines(monkeypatch, dated):
+    dated[0]["static_input"] = {"kind": "GTFS_ARCHIVE", "sha256": "c" * 64, "ingestion": "DOWNLOAD",
+        "notices": {"feed_info.txt": {"status": "PRESENT", "sha256": "d" * 64},
+                    "attributions.txt": {"status": "ABSENT"}},
+        "publisher": {"publisher_name": "gtfs.de / DELFI e.V.", "publisher_url": "https://gtfs.de"},
+        "internal_secret": "must-not-leak"}
+    rendered = AsyncMock(side_effect=lambda dom: {"lines": [{"pattern_id": p["pattern_id"]} for p in dom["patterns"]],
+                                                 "stops": [], "diversion_warnings": []})
+    monkeypatch.setattr(v2, "_map_dated", rendered)
+    result = await v2.v2_map(None)
+    assert set(result.keys()) == {"lines", "stops", "diversion_warnings", "source_manifests"}
+    by_version = {m["network_version_id"]: m for m in result["source_manifests"]}
+    assert by_version[dated[0]["version_id"]]["service_date"] == dated[0]["service_date"]
+    manifest = by_version[dated[0]["version_id"]]["manifest"]
+    assert manifest["sha256"] == "c" * 64 and manifest["ingestion"] == "DOWNLOAD"
+    assert manifest["publisher"] == {"publisher_name": "gtfs.de / DELFI e.V.",
+                                     "publisher_url": "https://gtfs.de"}
+    assert manifest["notices"]["feed_info.txt"] == {"status": "PRESENT", "sha256": "d" * 64}
+    assert "internal_secret" not in str(result["source_manifests"])
+    assert "license" not in str(result["source_manifests"])
+    assert by_version[dated[1]["version_id"]]["manifest"] is None
+
+
+@pytest.mark.asyncio
 async def test_map_and_planner_evaluate_dated_networks_independently(monkeypatch, dated):
     monkeypatch.setattr(v2, "_domain", AsyncMock(side_effect=lambda network: domain.build_domain(network)))
     rendered = AsyncMock(side_effect=lambda dom: {"lines": [{"pattern_id": p["pattern_id"]} for p in dom["patterns"]],
@@ -137,7 +161,10 @@ async def test_map_and_planner_evaluate_dated_networks_independently(monkeypatch
     assert len(result["itineraries"]) == 2
     monkeypatch.setattr(routes, "_berlin_now", lambda: local("2026-10-23T04:00"))
     result = await v2.v2_map(None)
-    assert {line["service_date"] for line in result["lines"]} == {"2026-10-23"}
+    # Expired journeys stop being service, not physical background geometry.
+    assert {line['service_date'] for line in result['lines']} == {'2026-10-22', '2026-10-23'}
+    assert {line['service_date'] for line in result['lines'] if line['service_active']} == {'2026-10-23'}
+    assert all(line['service_active'] is False for line in result['lines'] if line['service_date'] == '2026-10-22')
 
 
 @pytest.mark.asyncio

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { AppState, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getCurrentPositionWithPermission, watchPrecisePosition, FreshPosition, isReliablePosition, isGeolocationGranted } from "../lib/locationPermission";
@@ -11,12 +11,17 @@ interface LocationData {
   isLiveLocation: boolean;
 }
 
+export type UserOrigin = { latitude: number; longitude: number; name?: string; kind: "live" | "manual" };
+
 interface LocationContextType {
-  /** The map area: the live device position, or a manually picked explore
-   *  point. NEVER restored from storage - always fresh for this session. */
+  /** Map/explore area; it may be restored from storage. This area alone is
+   *  NEVER evidence of the user's current position or an entered user origin. */
   location: LocationData | null;
   /** Latest GPS fix for the "you are here" pin (independent of the area). */
   livePosition: FreshPosition | null;
+  /** Explicitly entered user origin, or the live fix; NEVER the explore area. */
+  userOrigin: UserOrigin | null;
+  setUserOrigin: (lat: number, lng: number, name?: string) => void;
   loading: boolean;
   error: string | null;
   setManualLocation: (lat: number, lng: number, name?: string) => void;
@@ -73,6 +78,9 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   // Updated by the continuous watch and by re-fixes on focus. Only live
   // positions are ever shown - nothing stored or remembered from before.
   const [livePosition, setLivePosition] = useState<FreshPosition | null>(null);
+  const [manualUserOrigin,setManualUserOrigin] = useState<UserOrigin | null>(null);
+  const originActionRef = useRef(0);
+  const userOrigin = useMemo<UserOrigin | null>(()=>manualUserOrigin ?? (livePosition ? {...livePosition,kind:"live"} : null),[manualUserOrigin,livePosition]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [radiusKm, setRadiusKmState] = useState(DEFAULT_RADIUS);
@@ -82,13 +90,15 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   // gesture (that's what makes the permission prompt pop up on every
   // refresh and the locate button spin forever).
   const [geoGranted, setGeoGranted] = useState<boolean | null>(null);
+  // Public /app may opt in through an explicit locate gesture as well.
+  const [liveRequested, setLiveRequested] = useState(false);
   const locationRef = useRef(location);
   locationRef.current = location;
   const liveRef = useRef<FreshPosition | null>(null);
   liveRef.current = livePosition;
 
-  // Location is only requested for signed-in users - the login screen must
-  // never trigger a browser location prompt.
+  // Startup location is only requested for signed-in users. Public screens
+  // must explicitly opt in; the login screen never prompts on its own.
   const { sessionToken } = useAuth();
 
   // On startup: restore the last-known AREA immediately (so a refresh
@@ -142,11 +152,15 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   }, [sessionToken]);
 
   const requestLiveLocation = async (timeoutMs?: number): Promise<FreshPosition | null> => {
+    const action = ++originActionRef.current;
     try {
       setLoading(true);
       setError(null);
       const current = await getCurrentPositionWithPermission(timeoutMs ? { timeoutMs } : undefined);
+      if (action !== originActionRef.current) return null;
       if (current && isReliablePosition(current.accuracy)) {
+        setManualUserOrigin(null);
+        setLiveRequested(true);
         setGeoGranted(true);
         liveRef.current = { latitude: current.latitude, longitude: current.longitude, accuracy: current.accuracy };
         setLocation({
@@ -165,11 +179,12 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       setError("Could not get location");
       return null;
     } catch (e) {
+      if (action !== originActionRef.current) return null;
       console.error("Error getting live location:", e);
       setError("Could not get location");
       return null;
     } finally {
-      setLoading(false);
+      if (action === originActionRef.current) setLoading(false);
     }
   };
 
@@ -185,6 +200,14 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     saveLastLocation(lat, lng);
     setRefreshKey((prev) => prev + 1);
   }, []);
+
+  const setUserOrigin = useCallback((lat: number, lng: number, name?: string) => {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat)>90 || Math.abs(lng)>180) return;
+    originActionRef.current += 1;
+    setLoading(false);setError(null);
+    setManualUserOrigin({latitude:lat,longitude:lng,name,kind:"manual"});
+    setManualLocation(lat,lng,name);
+  },[setManualLocation]);
 
   const useLiveLocation = useCallback(async (timeoutMs?: number): Promise<FreshPosition | null> => {
     const pos = await requestLiveLocation(timeoutMs);
@@ -234,7 +257,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   // continuously so the pin follows the user live (Google Maps style).
   // Only runs once the permission is granted - never prompts on its own.
   useEffect(() => {
-    if (!sessionToken || geoGranted !== true) return;
+    if ((!sessionToken && !liveRequested) || geoGranted !== true) return;
     let stopWatch: (() => void) | null = null;
     const oneShot = () => {
       getCurrentPositionWithPermission({ timeoutMs: 15000 })
@@ -271,13 +294,15 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       if (stopWatch) stopWatch();
       sub.remove();
     };
-  }, [applyFix, sessionToken, geoGranted]);
+  }, [applyFix, sessionToken, geoGranted, liveRequested]);
 
   return (
     <LocationContext.Provider
       value={{
         location,
         livePosition,
+        userOrigin,
+        setUserOrigin,
         loading,
         error,
         setManualLocation,

@@ -72,12 +72,12 @@ export const COLORS = {
   statusClosedText: "#991b1b",
 
   // Entity accents — generic
-  eventAccent: "#FF7A1A",
+  eventAccent: "#F15A35",
   activityAccent: "#FF7A1A",
   gold: "#FFC400",
 
   // Per-category accent colors
-  eventsAccent: "#FF7A1A",
+  eventsAccent: "#F15A35",
   activitiesAccent: "#FF7A1A",
   businessesAccent: "#096BFF",
   servicesAccent: "#7B3FF2",
@@ -96,7 +96,7 @@ export const COLORS = {
 
   // Map pins
   pinBusiness: "#142B6F",
-  pinEvent: "#EF4444",
+  pinEvent: "#F15A35",
   pinActivity: "#FF7A1A",
   pinJob: "#39FF14",
   pinRental: "#02A28E",

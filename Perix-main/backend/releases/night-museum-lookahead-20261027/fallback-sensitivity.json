@@ -1,0 +1,71 @@
+{
+  "hypothetical_only": true,
+  "speed_limit_recommendation": false,
+  "production_changes": false,
+  "distance_m": 394.59899999999925,
+  "ways": [
+    {
+      "way_id": 197614351,
+      "highway": "service",
+      "posted_speed_in_captured_source": null,
+      "length_m": 56.008
+    },
+    {
+      "way_id": 197614346,
+      "highway": "service",
+      "posted_speed_in_captured_source": null,
+      "length_m": 119.126
+    },
+    {
+      "way_id": 681222605,
+      "highway": "service",
+      "posted_speed_in_captured_source": null,
+      "length_m": 219.466
+    }
+  ],
+  "cases": [
+    {
+      "hypothetical_fallback_kmh": 25,
+      "model_seconds": 62.21089046242202,
+      "peak_model_kmh": 25.0,
+      "changes_acceleration_or_braking": false,
+      "stops_at_both_ends": true
+    },
+    {
+      "hypothetical_fallback_kmh": 30,
+      "model_seconds": 53.80614076973631,
+      "peak_model_kmh": 30.000000000000004,
+      "changes_acceleration_or_braking": false,
+      "stops_at_both_ends": true
+    },
+    {
+      "hypothetical_fallback_kmh": 35,
+      "model_seconds": 48.114167816099844,
+      "peak_model_kmh": 35.0,
+      "changes_acceleration_or_braking": false,
+      "stops_at_both_ends": true
+    },
+    {
+      "hypothetical_fallback_kmh": 40,
+      "model_seconds": 44.11529449200883,
+      "peak_model_kmh": 40.0,
+      "changes_acceleration_or_braking": false,
+      "stops_at_both_ends": true
+    },
+    {
+      "hypothetical_fallback_kmh": 45,
+      "model_seconds": 41.24220734321517,
+      "peak_model_kmh": 45.0,
+      "changes_acceleration_or_braking": false,
+      "stops_at_both_ends": true
+    },
+    {
+      "hypothetical_fallback_kmh": 50,
+      "model_seconds": 39.1593166146966,
+      "peak_model_kmh": 50.0,
+      "changes_acceleration_or_braking": false,
+      "stops_at_both_ends": true
+    }
+  ],
+  "caution": "These values are sensitivity experiments, NOT verified legal speeds. Do not raise all service-road defaults from this evidence. Audit directed road access/classification and actual limits first."
+}

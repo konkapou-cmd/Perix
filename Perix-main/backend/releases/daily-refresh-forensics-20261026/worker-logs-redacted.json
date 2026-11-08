@@ -1,0 +1,91 @@
+{
+  "available": true,
+  "selected_rows": [
+    {
+      "timestamp": "2026-10-25T22:09:44.599229808Z",
+      "message": "[mobility] static started ([URL_REDACTED] every 6.0h)"
+    },
+    {
+      "timestamp": "2026-10-25T22:09:44.599234598Z",
+      "message": "[mobility] static: downloading feed..."
+    },
+    {
+      "timestamp": "2026-10-25T22:10:11.099111210Z",
+      "message": "[mobility] static: downloaded, sha=56696f84d5ea..."
+    },
+    {
+      "timestamp": "2026-10-25T22:10:11.291888132Z",
+      "message": "[mobility] static: feed unchanged"
+    },
+    {
+      "timestamp": "2026-10-25T23:00:00.010037063Z",
+      "message": "[mobility] static: downloading feed..."
+    },
+    {
+      "timestamp": "2026-10-25T23:00:08.235117127Z",
+      "message": "[mobility] static: downloaded, sha=56696f84d5ea..."
+    },
+    {
+      "timestamp": "2026-10-25T23:00:08.575332710Z",
+      "message": "[mobility] static: parsing feed..."
+    },
+    {
+      "timestamp": "2026-10-25T23:01:08.493389200Z",
+      "message": "[mobility] static: converted: 34 lines, 3776 trips"
+    },
+    {
+      "timestamp": "2026-10-25T23:01:08.495492221Z",
+      "message": "[mobility] static revision: service_date=2026-10-26 contract=False blocking=0 warnings=0"
+    },
+    {
+      "timestamp": "2026-10-25T23:01:08.568122751Z",
+      "message": "[mobility] static: imported version net_51aa9c9d9334 diff={'added_routes': ['3', '53', '59', '61'], 'removed_routes': [], 'changed_routes': ['72', '66', '71', '4', '57', '9', 'N7', 'N9', '2', '1', '13', '73', '56', '69', '52', '54', 'N5', '6', '10', '58', '51'], 'active_version': 'net_7f0605d2409e'}"
+    },
+    {
+      "timestamp": "2026-10-25T23:02:42.967217863Z",
+      "message": "[mobility] static: candidate NOT activated net_51aa9c9d9334 state=BLOCKED_CHANGED_PATTERNS blocking=['56:31ae567775', '56:31e03e1a20', '56:5368b7d9e2', '56:cf42f1d537', '57:85ade62306', '57:eaa2f964fd', '59:2b12646995', '59:aa7727a8ad']"
+    },
+    {
+      "timestamp": "2026-10-25T23:02:42.967222032Z",
+      "message": "[mobility] static: cycle error: RuntimeError: schedule candidate built but not activated; feed hash intentionally left unsynced for retry"
+    },
+    {
+      "timestamp": "2026-10-26T05:02:42.755379409Z",
+      "message": "[mobility] static: downloading feed..."
+    },
+    {
+      "timestamp": "2026-10-26T05:02:46.764772238Z",
+      "message": "[mobility] static: downloaded, sha=56696f84d5ea..."
+    },
+    {
+      "timestamp": "2026-10-26T05:02:46.886124243Z",
+      "message": "[mobility] static: parsing feed..."
+    },
+    {
+      "timestamp": "2026-10-26T05:03:46.963618915Z",
+      "message": "[mobility] static: converted: 34 lines, 3776 trips"
+    },
+    {
+      "timestamp": "2026-10-26T05:03:46.966046110Z",
+      "message": "[mobility] static: imported version net_7c4078011f7f diff={'added_routes': ['3', '53', '59', '61'], 'removed_routes': [], 'changed_routes': ['72', '66', '71', '4', '57', '9', 'N7', 'N9', '2', '1', '13', '73', '56', '69', '52', '54', 'N5', '6', '10', '58', '51'], 'active_version': 'net_7f0605d2409e'}"
+    },
+    {
+      "timestamp": "2026-10-26T05:03:46.966094819Z",
+      "message": "[mobility] static revision: service_date=2026-10-26 contract=False blocking=0 warnings=0"
+    },
+    {
+      "timestamp": "2026-10-26T05:04:39.683076467Z",
+      "message": "[mobility] static: candidate NOT activated net_7c4078011f7f state=BLOCKED_CHANGED_PATTERNS blocking=['56:31ae567775', '56:31e03e1a20', '56:5368b7d9e2', '56:cf42f1d537', '57:85ade62306', '57:eaa2f964fd', '59:2b12646995', '59:aa7727a8ad']"
+    },
+    {
+      "timestamp": "2026-10-26T05:04:39.683083047Z",
+      "message": "[mobility] static: cycle error: RuntimeError: schedule candidate built but not activated; feed hash intentionally left unsynced for retry"
+    },
+    {
+      "timestamp": "2026-10-26T10:20:45.089842644Z",
+      "message": "[osm_store] bus quadrant fetch failed (52.0, 11.45, 52.0625, 11.5375): RuntimeError: Overpass failed: Expecting value: line 1 column 1 (char 0)"
+    }
+  ],
+  "bounded_lines": 4000,
+  "source": "Railway deployment log read-only"
+}

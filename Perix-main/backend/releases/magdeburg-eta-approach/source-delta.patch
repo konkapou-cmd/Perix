@@ -1,0 +1,1503 @@
+--- /dev/null
++++ b/Perix-main/backend/mobility/approach.py
+@@ -0,0 +1,8 @@
++"""Identity of travel-ordered canonical geometry, not a position estimator."""
++import hashlib
++import json
++
++
++def path_fingerprint(points):
++    normalized = [[float(p[0]), float(p[1])] for p in points]
++    return hashlib.sha256(json.dumps(normalized, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+--- a/Perix-main/backend/mobility/arrivals.py
++++ b/Perix-main/backend/mobility/arrivals.py
+@@ -16,7 +16,8 @@
+     return f"{h:02d}:{m:02d}"
+ 
+ 
+-async def unified_arrivals(stop_id: str, limit: int = 20, *, dated_context: Optional[dict] = None) -> List[dict]:
++async def unified_arrivals(stop_id: str, limit: int = 20, *, dated_context: Optional[dict] = None,
++                           platform_id: Optional[str] = None) -> List[dict]:
+     from mobility.domain import NETWORK_ID, build_domain
+     from mobility.overrides import canceled_trip_ids, skipped_stop_ids
+     from mobility.eta_quality import eta_source_for_stop
+@@ -26,7 +27,8 @@
+         _get_active_network,
+         _now_service_seconds,
+         _network_service_date,
+-        _predicted_stop_timeline,
++        _predicted_stop_timeline,
++        _timeline_for_vehicle,
+         _realtime_delays_for,
+     )
+ 
+@@ -34,13 +36,16 @@
+         from routes.mobility import networks_for_journey_window
+         out = []
+         for network in await networks_for_journey_window():
+-            out.extend(await unified_arrivals(stop_id, limit, dated_context=network))
++            out.extend(await unified_arrivals(stop_id, limit, dated_context=network, platform_id=platform_id))
+         out.sort(key=lambda x: x["eta_seconds"])
+         return out[:limit]
+     network = dated_context
+     if not network:
+         return []
+-    domain = build_domain(network, NETWORK_ID)
++    from mobility.v2 import _domain
++    domain = await _domain(network=network)
++    if not domain:
++        return []
+     net = domain.get('network') or {}
+     pat_by_id = {str(p.get('pattern_id')): p for p in domain.get('patterns') or []}
+ 
+@@ -50,8 +55,12 @@
+         if str(stop.get("stop_id")) == str(stop_id) or str(stop_id) in ids:
+             platform_ids = ids
+             break
+-    if not platform_ids:
+-        return []
++    if not platform_ids:
++        return []
++    if platform_id is not None:
++        if str(platform_id) not in platform_ids:
++            return []
++        platform_ids = {str(platform_id)}
+ 
+     # Route number alone is not a trip identity (branches/short turns share it).
+     trips_by_id = {
+@@ -97,18 +106,13 @@
+     # Current positions of every active vehicle (for real distances)
+     from routes.mobility import _all_active_vehicles
+ 
+-    pos_by_id = {}
++    pos_by_id = {}
+     for v in await _all_active_vehicles(network=network):
+         if v.get("latitude") is not None and v.get("longitude") is not None:
+-            pos_by_id[str(v.get("vehicle_id"))] = v
+-
+-    stop_lat = stop_lng = None
+-    for stop in domain.get("stops", []):
+-        ids = {str(x) for x in stop.get("stop_ids", [])}
+-        if str(stop.get("stop_id")) == str(stop_id) or str(stop_id) in ids:
+-            stop_lat = stop.get("latitude")
+-            stop_lng = stop.get("longitude")
+-            break
++            pos_by_id[str(v.get("vehicle_id"))] = v
++    pos_by_trip = {str(v.get("trip_id")): v for v in pos_by_id.values() if v.get("trip_id")}
++    platform_by_id = {str(p.get("platform_id")): p for s in domain.get("stops", [])
++                      for p in s.get("platforms", [])}
+ 
+     def _hav_m(a_lat, a_lng, b_lat, b_lng):
+         import math
+@@ -127,20 +131,26 @@
+         trip_match = trips_by_id.get(tid)
+         if not trip_match:
+             continue
+-        route, trip = trip_match
+-        rt = delays.get(tid)
++        route, trip = trip_match
++        rt = delays.get(tid)
+         if rt and str(rt.get("trip_schedule_relationship") or "").upper() in ("CANCELED", "DELETED"):
+             continue
+-        timeline = _predicted_stop_timeline(route, trip, rt)
+-        skipped = skipped_ov.get(tid, set())
+-        entry = next(
+-            (
+-                e
+-                for e in timeline
+-                if str(e.get("stop_id")) in platform_ids
+-                and e.get("relationship") != "SKIPPED"
+-                and str(e.get("stop_id")) not in skipped
+-                and int(e.get("predicted_arrival", 0)) >= now
++        active_vehicle = pos_by_trip.get(tid)
++        timeline = _timeline_for_vehicle(route, trip, rt, active_vehicle)
++        revision = (active_vehicle or {}).get("_motion_plan_revision") if (active_vehicle or {}).get("estimated") else None
++        if revision:
++            rt = active_vehicle.get("_prediction_realtime") or rt
++        physical_next_index = (active_vehicle or {}).get("_motion_next_timeline_index") if revision else None
++        skipped = skipped_ov.get(tid, set())
++        entry = next(
++            (
++                e
++                for index, e in enumerate(timeline)
++                if str(e.get("stop_id")) in platform_ids
++                and e.get("relationship") != "SKIPPED"
++                and str(e.get("stop_id")) not in skipped
++                and (type(physical_next_index) is not int or index >= physical_next_index)
++                and int(e.get("predicted_departure", 0)) >= now
+             ),
+             None,
+         )
+@@ -162,20 +172,21 @@
+             )
+             from routes.mobility import _estimated_vehicle_id
+             vehicle_id = matched or _estimated_vehicle_id(network, tt.get('route_number'), tid)
+-        distance_m = None
+-        if stop_lat is not None:
+-            veh = pos_by_id.get(vehicle_id)
+-            if veh:
+-                distance_m = round(_hav_m(veh["latitude"], veh["longitude"], stop_lat, stop_lng))
+-        eta_source = eta_source_for_stop(rt, entry.get("stop_id"))
++        distance_m = None
++        actual_platform = platform_by_id.get(str(entry["stop_id"])) or {}
++        target_lat = actual_platform.get("latitude", (entry.get("stop") or {}).get("lat"))
++        target_lng = actual_platform.get("longitude", (entry.get("stop") or {}).get("lng"))
++        if target_lat is not None and target_lng is not None:
++            veh = pos_by_id.get(vehicle_id)
++            if veh:
++                distance_m = round(_hav_m(veh["latitude"], veh["longitude"], target_lat, target_lng))
++        raw_eta_source = eta_source_for_stop(rt, entry.get("stop_id"))
++        modelled = revision and entry.get("prediction_basis") == "PERIX_MOTION_PLAN"
++        eta_source = "PERIX_ESTIMATE" if modelled else raw_eta_source
+         eta_seconds = max(0, int(entry['predicted_arrival']) - now)
+         consistency = position_eta_consistency(tt.get('mode'), eta_seconds, distance_m)
+-        if consistency['status'] == 'INCONSISTENT':
+-            # Time and position disagree. Preserve GTFS-RT ETA and REAL GPS.
+-            # Suppress only unverified distance from a VIRTUAL vehicle.
+-            matched_vehicle = pos_by_id.get(vehicle_id)
+-            if matched_vehicle and bool(matched_vehicle.get('estimated')):
+-                distance_m = None
++        # Preserve the estimate and flag discrepancies; hiding distance must not
++        # make an inconsistent virtual position appear verified.
+         pat = pat_by_id.get(str(tt.get('pattern_id'))) or {}
+         alias = display_alias(
+             tt.get('pattern_id'), tt.get('route_number'), tt.get('mode'),
+@@ -202,10 +213,18 @@
+                 "delay_seconds": int(entry.get("delay_seconds") or 0),
+                 "departure_delay_seconds": int(entry["predicted_departure"] - entry["scheduled_departure"]),
+                 "source": eta_source,  # source of the TIME, not the position
+-                "eta_source": eta_source,
+-                "position_source": "LIVE" if gps else "ESTIMATED",
+-                "realtime_updated_at": rt.get("updated_at") if eta_source == "REALTIME" else None,
+-                "realtime_feed_timestamp": rt.get("feed_timestamp") if eta_source == "REALTIME" else None,
++                "eta_source": eta_source,
++                "source_eta_source": raw_eta_source,
++                "source_predicted_arrival": _fmt_service_time(int(entry.get("source_predicted_arrival", entry["predicted_arrival"]))),
++                "source_predicted_departure": _fmt_service_time(int(entry.get("source_predicted_departure", entry["predicted_departure"]))),
++                "prediction_basis": entry.get("prediction_basis", "SOURCE_TIMELINE"),
++                "motion_plan_revision": revision if modelled else None,
++                "platform_id": str(entry["stop_id"]),
++                "platform_latitude": target_lat,
++                "platform_longitude": target_lng,
++                "position_source": "LIVE" if gps or (active_vehicle and not active_vehicle.get("estimated")) else "ESTIMATED",
++                "realtime_updated_at": rt.get("updated_at") if raw_eta_source == "REALTIME" else None,
++                "realtime_feed_timestamp": rt.get("feed_timestamp") if raw_eta_source == "REALTIME" else None,
+                 "vehicle_id": vehicle_id,
+                 "distance_to_stop_m": distance_m,
+                 "distance_kind": "STRAIGHT_LINE" if distance_m is not None else None,
+--- a/Perix-main/backend/mobility/motion/engine.py
++++ b/Perix-main/backend/mobility/motion/engine.py
+@@ -11,7 +11,9 @@
+ """
+ from __future__ import annotations
+ 
+-import hashlib
++import hashlib
++import math
++import asyncio
+ import time
+ from datetime import datetime
+ from typing import Optional
+@@ -37,15 +39,37 @@
+ 
+ MOTION_SCHEMA_VERSION = 1
+ _PLAN_CACHE: dict = {}
+-_HANDOVER_STATE: dict = {}
+-
+-
+-def clear_motion_cache() -> None:
++_HANDOVER_STATE: dict = {}
++_PLAN_GATES: dict = {}
++
++
++def clear_motion_cache() -> None:
+     _PLAN_CACHE.clear()
+-    _HANDOVER_STATE.clear()
+-
+-
+-def _timeline_signature(timeline: list[dict]) -> str:
++    _HANDOVER_STATE.clear()
++    _PLAN_GATES.clear()
++
++
++def cached_trip_windows(*, region_id: str, network_id: str,
++                        version_id: str, service_date: str) -> dict:
++    """Candidate retention only; clocks are resolved again from fresh evidence."""
++    now = time.monotonic()
++    windows = {}
++    for key, value in _PLAN_CACHE.items():
++        if (len(key) < 7 or key[:3] != (region_id, network_id, str(version_id))
++                or key[6] != str(service_date) or not 0 <= now-value.get("cached_at", 0) <= 90):
++            continue
++        timeline = value["plan"].get("effective_timeline") or []
++        if len(timeline) < 2:
++            continue
++        tid = str(key[4])
++        if tid not in windows or value["cached_at"] > windows[tid]["cached_at"]:
++            windows[tid] = {"start": timeline[0]["predicted_arrival"],
++                            "end": timeline[-1]["predicted_departure"],
++                            "cached_at": value["cached_at"]}
++    return windows
++
++
++def _timeline_signature(timeline: list[dict]) -> str:
+     parts = []
+     for entry in timeline:
+         parts.append(
+@@ -53,12 +77,64 @@
+                 [
+                     str(entry.get("stop_id") or ""),
+                     str(int(entry.get("predicted_arrival") or 0)),
+-                    str(int(entry.get("predicted_departure") or 0)),
++                    str(int(entry.get("predicted_departure") or 0)),
++                    str(entry.get("scheduled_arrival", entry.get("scheduled", ""))),
++                    str(entry.get("scheduled_departure", "")),
+                     str(entry.get("relationship") or ""),
+                 ]
+             )
+         )
+-    return hashlib.sha1("|".join(parts).encode("utf-8")).hexdigest()[:16]
++    return hashlib.sha1("|".join(parts).encode("utf-8")).hexdigest()[:16]
++
++
++def _source_timeline(timeline: list[dict]) -> list[dict]:
++    """Never feed a prior effective projection back as new provider evidence."""
++    return [{**entry,
++             "predicted_arrival": entry.get("source_predicted_arrival", entry["predicted_arrival"]),
++             "predicted_departure": entry.get("source_predicted_departure", entry["predicted_departure"])}
++            for entry in timeline]
++
++
++def effective_timeline_from_plan(timeline: list[dict], plan: dict,
++                                 previous_plan: Optional[dict] = None) -> list[dict]:
++    """Project clocks from this exact plan; raw/scheduled anchors stay intact."""
++    source = _source_timeline(timeline)
++    result = [{**entry, "source_predicted_arrival": entry["predicted_arrival"],
++               "source_predicted_departure": entry["predicted_departure"],
++               "prediction_basis": "SOURCE_TIMELINE"} for entry in source]
++    segments = plan.get("segments") or []
++    first = next((s for s in segments if s.get("kind") == "MOVE"), None)
++    origin = int(first["from_timeline_index"]) if first else plan.get("history_index")
++    history = (previous_plan or {}).get("effective_timeline") or []
++    if (origin is not None and len(history) == len(result)
++            and [e.get("stop_id") for e in history] == [e.get("stop_id") for e in result]):
++        for index in range(origin + 1):
++            if str(result[index].get("relationship")).upper() != "SKIPPED":
++                for key in ("predicted_arrival", "predicted_departure", "prediction_basis"):
++                    result[index][key] = history[index].get(key, result[index].get(key))
++
++    def update(index, field, value):
++        if type(index) is not int or not 0 <= index < len(result):
++            raise ValueError("Invalid motion timeline occurrence")
++        if str(result[index].get("relationship")).upper() == "SKIPPED":
++            return
++        result[index][field] = int(math.ceil(float(value)))
++        result[index]["prediction_basis"] = "PERIX_MOTION_PLAN"
++
++    for segment in segments:
++        if segment.get("kind") == "MOVE":
++            if not segment.get("handover_applied"):
++                update(segment["from_timeline_index"], "predicted_departure", segment["t0"])
++            update(segment["next_timeline_index"], "predicted_arrival", segment["t1"])
++        elif segment.get("kind") == "DWELL":
++            update(segment["timeline_index"], "predicted_arrival", segment["t0"])
++            update(segment["timeline_index"], "predicted_departure", segment["t1"])
++    for entry in result:
++        entry["predicted_departure"] = max(entry["predicted_arrival"], entry["predicted_departure"])
++        scheduled = entry.get("scheduled_arrival", entry.get("scheduled"))
++        if scheduled is not None:
++            entry["delay_seconds"] = entry["predicted_arrival"] - scheduled
++    return result
+ 
+ 
+ def _anchors(timeline: list[dict], stop_progress: list[float]) -> list[dict]:
+@@ -172,7 +248,7 @@
+     }
+ 
+ 
+-async def _build_trip_plan(
++async def _build_trip_plan(
+     *,
+     trip_id: str,
+     mode: str,
+@@ -182,7 +258,9 @@
+     now_local: datetime,
+     failure: Optional[dict] = None,
+     handover: Optional[dict] = None,
+-    now_service_s: Optional[float] = None,
++    now_service_s: Optional[float] = None,
++    previous_plan: Optional[dict] = None,
++    history_index: Optional[int] = None,
+ ) -> Optional[dict]:
+     region = get_active_region()
+     config = motion_config_for(mode, region)
+@@ -272,7 +350,9 @@
+         if handover_leg_index is None:
+             handover = None
+ 
+-    loop_start = handover_leg_index if handover_leg_index is not None else 0
++    history_leg = next((i for i, anchor in enumerate(anchors)
++                        if anchor["timeline_index"] == history_index), None)
++    loop_start = handover_leg_index if handover_leg_index is not None else history_leg or 0
+ 
+     traffic_snapshot = {"provider": None, "profile_versions": [], "by_edge": {}}
+     if str(mode) == "bus":
+@@ -285,11 +365,13 @@
+     traffic_by_edge = traffic_snapshot.get("by_edge") or {}
+ 
+     trip_segments = []
+-    effective_arrival = (
++    effective_arrival = (
+         float(handover.get("service_s"))
+         if handover is not None
+-        else float(anchors[0]["entry"]["predicted_arrival"])
+-    )
++        else float(anchors[loop_start]["entry"]["predicted_arrival"])
++    )
++    if history_leg is not None and previous_plan:
++        effective_arrival = float(previous_plan["effective_timeline"][history_index]["predicted_arrival"])
+     final_arrival_target_error = 0.0
+     max_arrival_target_error = 0.0
+     total_incremental_physics_limited = 0.0
+@@ -326,9 +408,12 @@
+             else 0.0
+         )
+ 
+-        predicted_departure = float(
+-            current_entry.get("predicted_departure") or effective_arrival
+-        )
++        predicted_departure = float(
++            current_entry.get("predicted_departure") or effective_arrival
++        )
++        source_dwell = max(0.0, predicted_departure - float(current_entry["predicted_arrival"]))
++        if history_leg is not None and index == history_leg and now_service_s is not None:
++            predicted_departure = max(predicted_departure, float(now_service_s))
+         if is_handover_leg:
+             effective_departure = float(
+                 now_service_s
+@@ -339,8 +424,13 @@
+                 0.0,
+                 float(handover.get("carried_lateness_s") or 0.0),
+             )
+-        else:
+-            effective_departure = max(effective_arrival, predicted_departure)
++        else:
++            # A physically late arrival must not erase the source's explicit
++            # boarding dwell. Shift its duration with arrival, not only its
++            # expired wall clock. Zero-duration source stops remain unchanged.
++            source_departure = float(current_entry["predicted_departure"])
++            dwell_floor = effective_arrival + source_dwell if source_departure <= effective_arrival else effective_arrival
++            effective_departure = max(dwell_floor, predicted_departure)
+             current_arrival_target_error = max(
+                 0.0,
+                 effective_arrival
+@@ -533,10 +623,10 @@
+         max_arrival_target_error,
+         final_arrival_target_error,
+     )
+-    final_departure = max(
+-        effective_arrival,
+-        float(final_entry.get("predicted_departure") or effective_arrival),
+-    )
++    source_final_departure = float(final_entry["predicted_departure"])
++    final_dwell = max(0.0, source_final_departure - float(final_entry["predicted_arrival"]))
++    final_departure = (effective_arrival + final_dwell if source_final_departure <= effective_arrival
++                       else source_final_departure)
+     if final_departure > effective_arrival:
+         trip_segments.append(
+             {
+@@ -551,12 +641,13 @@
+             }
+         )
+ 
+-    return {
+-        "schema_v": MOTION_SCHEMA_VERSION,
++    plan = {
++        "schema_v": MOTION_SCHEMA_VERSION,
+         "trip_id": str(trip_id),
+         "pattern_id": pattern_id,
+         "mode": str(mode),
+-        "segments": trip_segments,
++        "segments": trip_segments,
++        "history_index": history_index,
+         "start_s": float(trip_segments[0]["t0"]) if trip_segments else effective_arrival,
+         "end_s": float(trip_segments[-1]["t1"]) if trip_segments else final_departure,
+         "traffic_edge_count": traffic_edges,
+@@ -584,8 +675,10 @@
+             round(float(handover["progress_m"]), 3)
+             if handover is not None
+             else None
+-        ),
+-    }
++        ),
++    }
++    plan["effective_timeline"] = effective_timeline_from_plan(timeline, plan, previous_plan)
++    return plan
+ 
+ 
+ def _sample_trip_plan(
+@@ -599,7 +692,9 @@
+         return {}
+ 
+     now_value = float(now_sec)
+-    if now_value <= float(segments[0]["t0"]):
++    # At a handover's exact t0, sample the partial trajectory's actual start;
++    # returning the original stop here causes a backward clamp and extra lag.
++    if now_value < float(segments[0]["t0"]):
+         first_index = int(
+             segments[0].get("from_timeline_index")
+             or segments[0].get("timeline_index")
+@@ -703,7 +798,26 @@
+     }
+ 
+ 
+-async def position_for_trip(
++async def position_for_trip(**kwargs) -> Optional[dict]:
++    """Serialize one dated trip's plan replacement, not the whole fleet."""
++    region = get_active_region()
++    path = kwargs.get("path") or {}
++    key = (region.region_id, region.network_id, str(kwargs.get("version_id")),
++           str(kwargs.get("trip_id")), str(kwargs.get("mode")),
++           str(path.get("service_date") or ""), str(path.get("pattern_id") or ""),
++           str(path.get("derived_generation") or ""))
++    gate = _PLAN_GATES.setdefault(key, {"lock": asyncio.Lock(), "users": 0})
++    gate["users"] += 1
++    try:
++        async with gate["lock"]:
++            return await _position_for_trip_locked(**kwargs)
++    finally:
++        gate["users"] -= 1
++        if gate["users"] == 0 and _PLAN_GATES.get(key) is gate:
++            _PLAN_GATES.pop(key, None)
++
++
++async def _position_for_trip_locked(
+     *,
+     trip_id: str,
+     mode: str,
+@@ -713,7 +827,8 @@
+     now_sec: int,
+     include_failure_reason: bool = False,
+ ) -> Optional[dict]:
+-    """Return physics progress, or an optional explainable legacy-fallback reason."""
++    """Return physics progress, or an optional explainable legacy-fallback reason."""
++    timeline = _source_timeline(timeline)
+     region = get_active_region()
+     config = motion_config_for(mode, region)
+     timeline_signature = _timeline_signature(timeline)
+@@ -726,7 +841,7 @@
+         derived_generation=path.get("derived_generation"),
+     )
+     identity = (*identity, str(path.get("service_date") or ""))
+-    previous_state = _HANDOVER_STATE.get(identity)
++    previous_state = _HANDOVER_STATE.get(identity)
+     now_local = datetime.now(ZoneInfo(region.timezone))
+     traffic_bucket = f"{now_local.date().isoformat()}:{now_local.hour:02d}:{now_local.minute // 15}"
+     key = (
+@@ -735,6 +850,7 @@
+         str(version_id),
+         str(path.get("pattern_id") or ""),
+         str(trip_id),
++        str(mode),
+         str(path.get("service_date") or ""),
+         path.get("derived_generation"),
+         path.get("geometry_fingerprint"),
+@@ -744,19 +860,40 @@
+         traffic_bucket,
+     )
+ 
+-    now_mono = time.monotonic()
++    now_mono = time.monotonic()
++    if previous_state and not (
++        0 <= float(now_sec) - float(previous_state.get("service_s", 0)) <= 90
++        and 0 <= now_mono - float(previous_state.get("updated_mono", 0)) <= 90
++    ):
++        previous_state = None
+     cached = _PLAN_CACHE.get(key)
+     failure: dict = {}
+     if cached and now_mono - float(cached.get("cached_at") or 0.0) <= float(config["plan_cache_seconds"]):
+         plan = cached["plan"]
+-    else:
+-        handover_anchor = None
+-        if handover_enabled():
+-            handover_anchor = handover_anchor_from_state(
+-                previous_state,
+-                now_service_s=float(now_sec),
+-                total_m=float(path.get("total_m") or 0.0),
+-            )
++    else:
++        handover_anchor = None
++        previous_plan = None
++        history_index = None
++        if handover_enabled():
++            prior = next((value for value in reversed(list(_PLAN_CACHE.values()))
++                          if value.get("identity") == identity
++                          and 0 <= now_mono - value.get("cached_at", 0) <= 90), None)
++            if prior:
++                candidate = prior["plan"]
++                if (candidate.get("effective_timeline")
++                        and [e.get("stop_id") for e in candidate["effective_timeline"]] == [e.get("stop_id") for e in timeline]
++                        and float(now_sec) >= candidate["start_s"]):
++                    sample = _sample_trip_plan(candidate, now_sec, timeline, path.get("stop_progress") or [])
++                    if sample:
++                        previous_plan = candidate
++                        if sample.get("motion_state") in ("DWELL", "AT_STOP"):
++                            history_index = int(sample["next_timeline_index"])
++                        else:
++                            # Sample at NOW, not the last poll's position falsely
++                            # relabelled with today's timestamp (which adds lag).
++                            handover_anchor = handover_anchor_from_state(
++                                state_from_sample(sample=sample, service_s=float(now_sec), timeline_signature=timeline_signature),
++                                now_service_s=float(now_sec), total_m=float(path.get("total_m") or 0.0))
+         plan = await _build_trip_plan(
+             trip_id=str(trip_id),
+             mode=str(mode),
+@@ -766,7 +903,9 @@
+             now_local=now_local,
+             failure=failure,
+             handover=handover_anchor,
+-            now_service_s=float(now_sec),
++            now_service_s=float(now_sec),
++            previous_plan=previous_plan,
++            history_index=history_index,
+         )
+         if not plan:
+             if include_failure_reason:
+@@ -779,7 +918,12 @@
+         for stale_key, stale_value in list(_PLAN_CACHE.items()):
+             if now_mono - float(stale_value.get("cached_at") or 0.0) > 60.0:
+                 _PLAN_CACHE.pop(stale_key, None)
+-        _PLAN_CACHE[key] = {"cached_at": now_mono, "plan": plan}
++        _PLAN_CACHE[key] = {"cached_at": now_mono, "plan": plan, "identity": identity}
++
++    # A refresh produces a new revision; every consumer receives clocks from it.
++    cached_at = _PLAN_CACHE[key]["cached_at"]
++    revision = hashlib.sha256(repr((key, cached_at)).encode()).hexdigest()[:20]
++    effective_timeline = plan.get("effective_timeline") or effective_timeline_from_plan(timeline, plan)
+ 
+     stop_progress = path.get("stop_progress") or []
+     sampled = _sample_trip_plan(plan, now_sec, timeline, stop_progress)
+@@ -832,8 +976,10 @@
+         ):
+             _HANDOVER_STATE.pop(stale_identity, None)
+ 
+-    return {
+-        **sampled,
++    return {
++        **sampled,
++        "effective_timeline": [dict(entry) for entry in effective_timeline],
++        "motion_plan_revision": revision,
+         "motion_available": True,
+         "progress_m": progress,
+         "next_timeline_index": next_index,
+--- a/Perix-main/backend/mobility/v2.py
++++ b/Perix-main/backend/mobility/v2.py
+@@ -426,6 +426,7 @@
+ 
+ 
+ async def _build_map_dated(domain, *, overlays=None, detour_states=None):
++    from mobility.approach import path_fingerprint
+     if not domain:
+         return {"lines": [], "stops": []}
+     patterns = await _patterns_resolved(domain, overlays=overlays, detour_states=detour_states)
+@@ -464,7 +465,8 @@
+                 ) or {}),
+                 "mode": p.get("mode"),
+                 "direction": p.get("direction"),
+-                "points": [{"latitude": pt[0], "longitude": pt[1]} for pt in points],
++                "points": [{"latitude": pt[0], "longitude": pt[1]} for pt in points],
++                "approach_geometry_fingerprint": path_fingerprint(points),
+                 "source": g.get("source"),
+                 "valid": g.get("valid"),
+                 "max_platform_distance_m": g.get("max_platform_distance_m"),
+@@ -583,12 +585,13 @@
+ 
+ 
+ @router.get("/stops/{stop_id}/arrivals")
+-async def v2_stop_arrivals(stop_id: str, current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
++async def v2_stop_arrivals(stop_id: str, current_user: Optional[UserPublic] = Depends(get_current_user_optional),
++                          platform_id: Optional[str] = None):
+     """Unified arrivals for a physical stop: LIVE GPS, realtime and
+     schedule arrivals from one engine, honoring canceled/skipped."""
+     from mobility.arrivals import unified_arrivals
+ 
+-    return await unified_arrivals(stop_id)
++    return await unified_arrivals(stop_id, platform_id=platform_id)
+ 
+ 
+ @router.get("/plan")
+@@ -1429,7 +1432,16 @@
+                 "estimated": estimated,
+                 "next_stop_id": v.get("next_stop_id"),
+                 "next_stop_name": v.get("next_stop_name"),
+-                "distance_to_next_stop_m": v.get("distance_to_next_stop_m"),
++                "distance_to_next_stop_m": v.get("distance_to_next_stop_m"),
++                "next_stop_eta_seconds": v.get("next_stop_eta_seconds"),
++                "next_stop_predicted_arrival": v.get("next_stop_predicted_arrival"),
++                "source_next_stop_predicted_arrival": v.get("source_next_stop_predicted_arrival"),
++                "prediction_basis": v.get("prediction_basis", "SOURCE_TIMELINE"),
++                "next_stop_eta_source": v.get("next_stop_eta_source"),
++                "motion_plan_revision": v.get("_motion_plan_revision") if estimated else None,
++                "next_timeline_index": v.get("_motion_next_timeline_index") if estimated else None,
++                "realtime_feed_timestamp": v.get("realtime_feed_timestamp"),
++                "realtime_updated_at": v.get("realtime_updated_at"),
+                 "pattern_id": v.get("pattern_id"),
+                 **(alias_by_pattern.get(str(v.get('pattern_id'))) or {}),
+                 "progress_m": v.get("progress_m"),
+--- a/Perix-main/backend/routes/mobility.py
++++ b/Perix-main/backend/routes/mobility.py
+@@ -648,10 +648,20 @@
+         )
+         previous_departure = departure
+ 
+-    return timeline
+-
+-
+-def _assembled_matches_timeline(points: List[list], timeline: List[dict]) -> bool:
++    return timeline
++
++
++def _timeline_for_vehicle(route: dict, trip: dict, realtime: Optional[dict], vehicle: Optional[dict]) -> List[dict]:
++    """Read the position's exact cached projection; GPS retains provider times."""
++    projected = (vehicle or {}).get("_effective_timeline")
++    if (vehicle and vehicle.get("estimated") and projected
++            and vehicle.get("_motion_plan_revision")
++            and str(vehicle.get("trip_id")) == str(trip.get("trip_id"))):
++        return [dict(entry) for entry in projected]
++    return _predicted_stop_timeline(route, trip, realtime)
++
++
++def _assembled_matches_timeline(points: List[list], timeline: List[dict]) -> bool:
+     """The assembled segment geometry must actually pass its stops (like the
+     resolver's validate_geometry) - otherwise the vehicle would ride a line
+     the map does not draw."""
+@@ -1030,8 +1040,8 @@
+ 
+     start = timeline[0]["predicted_arrival"]
+     end = timeline[-1]["predicted_arrival"]
+-    if now_sec < start - 60 or now_sec > end + 180:
+-        return None
++    if now_sec < start - 60:
++        return None
+ 
+     path = await _trip_path_geometry(route, trip, timeline, network=network)
+     if path and network:
+@@ -1081,7 +1091,12 @@
+         and motion_result.get("motion_available", True)
+         and motion_result.get("progress_m") is not None
+     )
+-    if motion_available:
++    if motion_available:
++        timeline = motion_result.get("effective_timeline") or timeline
++        start = timeline[0]["predicted_arrival"]
++        end = timeline[-1]["predicted_departure"]
++        if now_sec < start - 60 or now_sec > end + 180:
++            return None
+         shown_progress = float(motion_result["progress_m"])
+         next_idx = int(motion_result["next_timeline_index"])
+         next_entry = timeline[max(0, min(len(timeline) - 1, next_idx))]
+@@ -1146,9 +1161,13 @@
+             "backward_resample_prevented_m": motion_result.get(
+                 "backward_resample_prevented_m"
+             ),
+-            "fallback_reason": None,
+-        }
+-    else:
++            "fallback_reason": None,
++            "motion_plan_revision": motion_result.get("motion_plan_revision"),
++            "next_timeline_index": next_idx,
++        }
++    else:
++        if now_sec > end + 180:
++            return None
+         # Compatibility fallback: keep today's forward-only behavior until
+         # Phase-1 infrastructure exists for the specific pattern.
+         dwell = _dwell_progress(timeline, stop_progress, now_sec)
+@@ -1219,7 +1238,15 @@
+         "pattern_id": path.get("pattern_id"),
+         "position_state": "ON_PATTERN",
+         "geometry_pending": False,
+-        "motion": motion,
++        "motion": motion,
++        "_effective_timeline": motion_result.get("effective_timeline") if motion_available else None,
++        "_motion_plan_revision": motion_result.get("motion_plan_revision") if motion_available else None,
++        "_motion_next_timeline_index": next_idx if motion_available else None,
++        "next_stop_eta_seconds": max(0, int(next_entry["predicted_arrival"])-now_sec),
++        "next_stop_predicted_arrival": _fmt_service_time(int(next_entry["predicted_arrival"])),
++        "source_next_stop_predicted_arrival": _fmt_service_time(int(next_entry.get("source_predicted_arrival", next_entry["predicted_arrival"]))),
++        "prediction_basis": next_entry.get("prediction_basis", "SOURCE_TIMELINE"),
++        "next_stop_eta_source": "PERIX_ESTIMATE" if next_entry.get("prediction_basis") == "PERIX_MOTION_PLAN" else ("REALTIME" if has_rt else "SCHEDULE"),
+     }
+ 
+ def _park_position(route: dict, trip: dict, now_sec: int, delays: dict) -> Optional[dict]:
+@@ -1290,7 +1317,8 @@
+         return False
+ 
+ 
+-def _chain_trips(route: dict, delays: Optional[dict] = None, skip_trip_ids: Optional[set] = None) -> List[dict]:
++def _chain_trips(route: dict, delays: Optional[dict] = None, skip_trip_ids: Optional[set] = None,
++                 effective_windows: Optional[dict] = None) -> List[dict]:
+     """Group consecutive predicted trips into one physical vehicle run.
+     Trips in skip_trip_ids (operator-canceled) are excluded entirely."""
+     windows = []
+@@ -1327,7 +1355,17 @@
+                     "last_stop": w["last_stop"],
+                 }
+             )
+-    return runs
++    # Preserve existing run grouping/IDs. Extend only known physical windows so
++    # a delayed trip cannot disappear at its expired raw clock.
++    for run in runs:
++        for window in run["trips"]:
++            known = (effective_windows or {}).get(str(window["trip"].get("trip_id")))
++            if known:
++                window["start"] = max(window["start"], known["start"])
++                window["end"] = max(window["end"], known["end"])
++        run["start"] = min(w["start"] for w in run["trips"])
++        run["end"] = max(w["end"] for w in run["trips"])
++    return runs
+ 
+ 
+ async def _realtime_delays_for(trip_ids: List[str], network: Optional[dict] = None, *, collection=None) -> dict:
+@@ -1466,12 +1504,17 @@
+         from mobility.overrides import canceled_trip_ids
+ 
+         canceled_ids = await canceled_trip_ids()
+-    except Exception:
+-        pass
+-    for route in network.get("routes", []):
++    except Exception:
++        pass
++    from mobility.motion.engine import cached_trip_windows
++    region = get_active_region()
++    known_windows = cached_trip_windows(region_id=region.region_id, network_id=region.network_id,
++                                       version_id=str(network.get("version_id") or ""),
++                                       service_date=_network_service_date(network)) if MOTION_ENGINE_ENABLED else {}
++    for route in network.get("routes", []):
+         route_number = str(route.get("route_number"))
+         mode = route.get("mode") if route.get("mode") in ("bus", "tram") else "bus"
+-        for run in _chain_trips(route, delays, canceled_ids):
++        for run in _chain_trips(route, delays, canceled_ids, known_windows):
+             first = run["trips"][0]
+             headsign = str(first["trip"].get("headsign") or route.get("name") or "")
+             if now_sec < run["start"] - 60 or now_sec > run["end"] + 60:
+@@ -1512,7 +1555,8 @@
+             progress_m = None
+             position_state = "ON_PATTERN"
+             geometry_pending = False
+-            motion = None
++            motion = None
++            projection = {}
+             if active:
+                 p = await _estimate_trip_position(
+                     route,
+@@ -1522,7 +1566,8 @@
+                     version_id=str(network.get("version_id") or ""),
+                     network=network,
+                 )
+-                if p:
++                if p:
++                    projection = p
+                     pos = {"lat": p["latitude"], "lng": p["longitude"]}
+                     heading = p.get("heading")
+                     delay_minutes = p["delay_minutes"]
+@@ -1622,7 +1667,18 @@
+                     "progress_m": progress_m,
+                     "position_state": position_state,
+                     "geometry_pending": geometry_pending,
+-                    "motion": motion,
++                    "motion": motion,
++                    "_effective_timeline": projection.get("_effective_timeline"),
++                    "_motion_plan_revision": projection.get("_motion_plan_revision"),
++                    "_motion_next_timeline_index": projection.get("_motion_next_timeline_index"),
++                    "_prediction_realtime": delays.get(str(current_trip.get("trip_id"))) if projection.get("_effective_timeline") else None,
++                    "next_stop_eta_seconds": projection.get("next_stop_eta_seconds"),
++                    "next_stop_predicted_arrival": projection.get("next_stop_predicted_arrival"),
++                    "source_next_stop_predicted_arrival": projection.get("source_next_stop_predicted_arrival"),
++                    "prediction_basis": projection.get("prediction_basis", "SOURCE_TIMELINE"),
++                    "next_stop_eta_source": projection.get("next_stop_eta_source"),
++                    "realtime_feed_timestamp": (delays.get(str(current_trip.get("trip_id"))) or {}).get("feed_timestamp"),
++                    "realtime_updated_at": (delays.get(str(current_trip.get("trip_id"))) or {}).get("updated_at"),
+                     "updated_at": datetime.now().isoformat(),
+                 }
+             )
+@@ -2747,12 +2803,14 @@
+ 
+     trip_id = str(trip.get("trip_id") or "")
+     realtime = realtime_by_trip.get(trip_id)
+-    timeline = _predicted_stop_timeline(route, trip, realtime)
+-    if not timeline:
+-        raise HTTPException(status_code=404, detail="Trip cancelled or unavailable")
+-
+-    stops_out = []
+-    for entry in timeline:
++    timeline = _timeline_for_vehicle(route, trip, realtime, vehicle)
++    if not timeline:
++        raise HTTPException(status_code=404, detail="Trip cancelled or unavailable")
++
++    revision = vehicle.get("_motion_plan_revision") if vehicle.get("estimated") else None
++    physical_next_index = vehicle.get("_motion_next_timeline_index") if revision else None
++    stops_out = []
++    for index, entry in enumerate(timeline):
+         predicted = int(entry["predicted_arrival"])
+         relationship = entry.get("relationship") or "SCHEDULED"
+         stops_out.append(
+@@ -2762,7 +2820,11 @@
+                 "scheduled": _fmt_service_time(int(entry["scheduled"])),
+                 "delay_seconds": int(entry.get("delay_seconds") or 0),
+                 "predicted": _fmt_service_time(predicted),
+-                "passed": predicted <= now_sec,
++                "passed": index < physical_next_index if type(physical_next_index) is int
++                          else int(entry["predicted_departure"]) < now_sec,
++                "predicted_departure": _fmt_service_time(int(entry["predicted_departure"])),
++                "source_predicted": _fmt_service_time(int(entry.get("source_predicted_arrival", entry["predicted_arrival"]))),
++                "prediction_basis": entry.get("prediction_basis", "SOURCE_TIMELINE"),
+                 "skipped": relationship == "SKIPPED",
+                 "schedule_relationship": relationship,
+             }
+@@ -2787,8 +2849,10 @@
+         "mode": vehicle.get("mode"),
+         "delay_minutes": round(int(next_entry.get("delay_seconds") or 0) / 60),
+         "position_source": vehicle.get("position_source", "VEHICLE_GPS"),
+-        "estimated": bool(vehicle.get("estimated")),
+-        "stops": stops_out,
++        "estimated": bool(vehicle.get("estimated")),
++        "motion_plan_revision": revision,
++        "next_timeline_index": physical_next_index,
++        "stops": stops_out,
+     }
+ 
+ # ---------------------------------------------------------------------------
+@@ -2831,15 +2895,45 @@
+         if t.get("trip_id")
+     ]
+     delays = await _realtime_delays_for(trip_ids, network=network)
+-    try:
+-        from mobility.overrides import canceled_trip_ids
+-
+-        canceled = await canceled_trip_ids()
+-    except Exception:
+-        canceled = set()
+-    return await asyncio.to_thread(
+-        _plan_core, network, from_lat, from_lng, to_lat, to_lng, delays, canceled
+-    )
++    try:
++        from mobility.overrides import canceled_trip_ids, skipped_stop_ids
++
++        canceled = await canceled_trip_ids()
++        skipped = await skipped_stop_ids()
++    except Exception:
++        canceled = set()
++        skipped = {}
++    active = await _all_active_vehicles(network=network)
++    by_trip = {str(v.get("trip_id")): v for v in active if v.get("trip_id")}
++    result = await asyncio.to_thread(
++        _plan_core, network, from_lat, from_lng, to_lat, to_lng, delays, canceled, by_trip, skipped
++    )
++    # Exact dated identity and ordered platform occurrence, never display names.
++    from mobility.domain import NETWORK_ID
++    for itinerary in result.get("itineraries", []):
++        for leg in itinerary.get("legs", []):
++            if leg.get("type") != "ride":
++                continue
++            match = next(((r, t) for r in network.get("routes", [])
++                          for t in r.get("trips", [])
++                          if str(t.get("trip_id")) == str(leg.get("trip_id"))), None)
++            if not match:
++                continue
++            route, trip = match
++            timeline = _predicted_stop_timeline(route, trip, delays.get(str(trip.get("trip_id"))))
++            path = await _trip_path_geometry(route, trip, timeline, network=network)
++            leg["trip_instance_id"] = f"{NETWORK_ID}:{network.get('version_id')}:{_network_service_date(network)}:{trip.get('trip_id')}"
++            if path and path.get("geometry_source") != "GTFS_POSITION_FALLBACK" and path.get("points"):
++                from mobility.approach import path_fingerprint
++                leg["board_geometry_fingerprint"] = path_fingerprint(path["points"])
++                leg["pattern_id"] = path.get("pattern_id")
++                index = leg.get("board_timeline_index")
++                progress = path.get("stop_progress") or []
++                if (type(index) is int and 0 <= index < len(progress) and index < len(timeline)
++                        and str(timeline[index].get("stop_id")) == leg.get("board_stop_id")
++                        and timeline[index].get("relationship") != "SKIPPED"):
++                    leg["board_progress_m"] = progress[index]
++    return result
+ 
+ 
+ def _plan_core(
+@@ -2849,7 +2943,9 @@
+     to_lat: float,
+     to_lng: float,
+     delays: Optional[dict] = None,
+-    canceled: Optional[set] = None,
++    canceled: Optional[set] = None,
++    active_by_trip: Optional[dict] = None,
++    skipped: Optional[dict] = None,
+ ) -> dict:
+     now_sec = _now_service_seconds(_network_service_date(network))
+     delays = delays or {}
+@@ -2909,30 +3005,26 @@
+             if tid in canceled:
+                 continue
+             rt = delays.get(tid) or {}
+-            trip_delay = int(rt.get("delay_seconds") or 0)
+-            stop_delays = rt.get("stop_delays") or {}
+-            seq = []
+-            trip_stop_times = trip.get("stop_times") or {}
+-            for stop in _trip_stops(route, trip):
+-                sid = stop.get("stop_id")
+-                tsec = _time_to_seconds(trip_stop_times.get(sid, ""))
+-                if sid is not None and tsec is not None and sid in stops:
+-                    delay = stop_delays.get(str(sid))
+-                    if delay is None:
+-                        delay = trip_delay
+-                    seq.append((sid, tsec + int(delay)))
++            seq = []
++            timeline = _timeline_for_vehicle(route, trip, rt, (active_by_trip or {}).get(tid))
++            for index, entry in enumerate(timeline):
++                sid = entry.get("stop_id")
++                if (sid in stops and entry.get("relationship") != "SKIPPED"
++                        and str(sid) not in (skipped or {}).get(tid, set())):
++                    seq.append((sid, entry["predicted_arrival"], entry["predicted_departure"], index))
+             if len(seq) < 2:
+                 continue
+             segments = []
+             for i in range(len(seq) - 1):
+-                segments.append((seq[i][0], seq[i][1], seq[i + 1][0], seq[i + 1][1]))
++                segments.append((seq[i][0], seq[i][2], seq[i + 1][0], seq[i + 1][1]))
+             trips.append(
+                 {
+                     "route_number": route.get("route_number"),
+                     "mode": mode,
+                     "direction": trip.get("headsign") or route.get("name") or "",
+                     "trip_id": trip.get("trip_id"),
+-                    "segments": segments,
++                    "segments": segments,
++                    "timeline_indices": [e[3] for e in seq],
+                 }
+             )
+ 
+@@ -2989,7 +3081,8 @@
+                         "mode": trip["mode"],
+                         "direction": trip["direction"],
+                         "trip_id": trip.get("trip_id"),
+-                        "board": sid,
++                        "board": sid,
++                        "board_timeline_index": trip["timeline_indices"][pos],
+                         "alight": nxt2,
+                         "depart": trip["segments"][pos][1],
+                         "arrive": segk[3],
+@@ -3085,7 +3178,11 @@
+                 "route_number": payload["route_number"],
+                 "mode": payload["mode"],
+                 "direction": payload["direction"],
+-                "board": stops.get(payload["board"], {}).get("name", ""),
++                "board": stops.get(payload["board"], {}).get("name", ""),
++                "board_stop_id": str(payload["board"]),
++                "alight_stop_id": str(payload["alight"]),
++                "board_timeline_index": payload["board_timeline_index"],
++                "trip_id": str(payload["trip_id"]),
+                 "alight": stops.get(payload["alight"], {}).get("name", ""),
+                 "depart": _fmt_service_time(payload["depart"]),
+                 "arrive": _fmt_service_time(payload["arrive"]),
+--- /dev/null
++++ b/Perix-main/backend/tests/test_boarding_approach_identity.py
+@@ -0,0 +1,78 @@
++"""No network/DB: identical stop names must not erase directional identities."""
++from types import SimpleNamespace
++from unittest.mock import AsyncMock
++
++import pytest
++
++from routes import mobility as routes
++from mobility import overrides
++
++
++@pytest.fixture
++def journey(monkeypatch):
++    a = {"stop_id": "A", "name": "Same name", "lat": 52, "lng": 11}
++    p = {"stop_id": "P", "name": "Same name", "lat": 52.00001, "lng": 11}
++    b = {"stop_id": "B", "name": "Destination", "lat": 52.04, "lng": 11}
++    trip = {"trip_id": "T", "headsign": "East", "stop_ids": ["A", "B"],
++            "stop_times": {"A": "00:03:20", "B": "00:08:20"}}
++    reverse = {"trip_id": "opposite", "headsign": "West", "stop_ids": ["B", "P"],
++               "stop_times": {"B": "00:03:20", "P": "00:08:20"}}
++    route = {"route_number": "3", "mode": "tram", "stops": [a, b, p], "trips": [trip, reverse]}
++    network = {"version_id": "v", "service_date": "2026-10-24", "routes": [route]}
++    monkeypatch.setattr(routes, "_now_service_seconds", lambda *args: 100)
++    monkeypatch.setattr(routes, "_realtime_delays_for", AsyncMock(return_value={}))
++    monkeypatch.setattr(routes, "_all_active_vehicles", AsyncMock(return_value=[]))
++    monkeypatch.setattr(overrides, "canceled_trip_ids", AsyncMock(return_value=set()))
++    monkeypatch.setattr(overrides, "skipped_stop_ids", AsyncMock(return_value={}))
++    path = AsyncMock(return_value={"pattern_id": "east", "stop_progress": [100, 4000],
++                                  "points": [[52, 11], [52.04, 11]], "geometry_source": "OSM"})
++    monkeypatch.setattr(routes, "_trip_path_geometry", path)
++    return SimpleNamespace(network=network, route=route, trip=trip, path=path)
++
++
++@pytest.mark.asyncio
++async def test_plan_carries_exact_platform_dated_trip_and_canonical_board_progress(journey):
++    result = await routes._plan_dated_network(journey.network, 52, 11, 52.04, 11)
++    legs = result["itineraries"][0]["legs"]
++    ride = next(l for l in legs if l["type"] == "ride")
++    assert ride["board"] == "Same name"
++    assert ride["board_stop_id"] == "A" and ride["alight_stop_id"] == "B"
++    assert ride["trip_id"] == "T" and ride["direction"] == "East"
++    assert ride["trip_instance_id"].endswith(":v:2026-10-24:T")
++    assert ride["board_timeline_index"] == 0
++    assert ride["board_progress_m"] == 100 and ride["pattern_id"] == "east"
++    assert len(ride["board_geometry_fingerprint"]) == 64
++    assert legs[0]["points"][0] == [52, 11]  # location-to-stop walk remains
++    assert journey.path.await_args.kwargs["network"] is journey.network
++
++
++def test_plan_uses_active_effective_clocks_but_does_not_offer_skipped_platform(journey):
++    raw = routes._predicted_stop_timeline(journey.route, journey.trip, None)
++    effective = [{**e, "predicted_arrival": e["predicted_arrival"] + 300,
++                  "predicted_departure": e["predicted_departure"] + 300} for e in raw]
++    vehicle = {"trip_id": "T", "estimated": True, "_motion_plan_revision": "rev",
++               "_effective_timeline": effective}
++    args = (journey.network, 52, 11, 52.04, 11)
++    result = routes._plan_core(*args, active_by_trip={"T": vehicle})
++    ride = next(l for l in result["itineraries"][0]["legs"] if l["type"] == "ride")
++    assert ride["depart"] == "00:08" and ride["arrive"] == "00:13"
++    assert routes._plan_core(*args, skipped={"T": {"A"}})["itineraries"] == []
++    assert routes._plan_core(*args, canceled={"T"})["itineraries"] == []
++
++
++@pytest.mark.asyncio
++async def test_no_canonical_path_means_no_invented_board_progress(journey):
++    journey.path.return_value = None
++    result = await routes._plan_dated_network(journey.network, 52, 11, 52.04, 11)
++    ride = next(l for l in result["itineraries"][0]["legs"] if l["type"] == "ride")
++    assert "board_progress_m" not in ride
++    assert "pattern_id" not in ride
++
++
++@pytest.mark.asyncio
++async def test_position_only_gtfs_fallback_cannot_become_an_approach_path(journey):
++    journey.path.return_value["geometry_source"] = "GTFS_POSITION_FALLBACK"
++    result = await routes._plan_dated_network(journey.network, 52, 11, 52.04, 11)
++    ride = next(l for l in result["itineraries"][0]["legs"] if l["type"] == "ride")
++    assert "board_progress_m" not in ride
++    assert "board_geometry_fingerprint" not in ride
+--- /dev/null
++++ b/Perix-main/backend/tests/test_effective_eta_consistency.py
+@@ -0,0 +1,237 @@
++"""Offline regressions for the observed N8 ETA and Domplatz platform defects."""
++import asyncio
++from copy import deepcopy
++from datetime import datetime, timezone
++from types import SimpleNamespace
++from unittest.mock import AsyncMock
++
++import pytest
++
++from routes import mobility as routes
++from mobility import arrivals, detour_guard, display_labels, generations, overrides, v2
++from mobility.motion import engine
++
++
++def timeline():
++    return [dict(stop_id=sid, scheduled=arrival, scheduled_arrival=arrival,
++                 scheduled_departure=departure, predicted_arrival=arrival,
++                 predicted_departure=departure, relationship="SCHEDULED", delay_seconds=0)
++            for sid, arrival, departure in (("A", 0, 0), ("Q", 60, 90))]
++
++
++def delayed_plan():
++    return {"segments": [
++        {"kind": "MOVE", "t0": 0, "t1": 360, "from_timeline_index": 0,
++         "next_timeline_index": 1},
++        {"kind": "DWELL", "t0": 360, "t1": 380, "timeline_index": 1},
++    ], "start_s": 0, "end_s": 380, "motion_model": "TEST"}
++
++
++def test_projection_preserves_raw_clocks_and_never_compounds_model_delay():
++    raw = timeline()
++    original = deepcopy(raw)
++    plan = delayed_plan()
++    effective = engine.effective_timeline_from_plan(raw, plan)
++    assert effective[1]["predicted_arrival"] == 360
++    assert effective[1]["predicted_departure"] == 380
++    assert effective[1]["source_predicted_arrival"] == 60
++    assert effective[1]["scheduled_arrival"] == 60
++    assert effective[1]["prediction_basis"] == "PERIX_MOTION_PLAN"
++    assert engine.effective_timeline_from_plan(effective, plan) == effective
++    assert raw == original
++
++
++def test_partial_handover_keeps_history_and_skipped_occurrences_untouched():
++    raw = timeline()
++    previous = delayed_plan()
++    previous["effective_timeline"] = engine.effective_timeline_from_plan(raw, previous)
++    suffix = {"segments": [{"kind": "MOVE", "handover_applied": True,
++                            "from_timeline_index": 0, "next_timeline_index": 1,
++                            "t0": 100, "t1": 340}]}
++    effective = engine.effective_timeline_from_plan(raw, suffix, previous)
++    assert effective[0]["predicted_departure"] == 0  # not falsely rewritten to NOW
++    assert effective[1]["predicted_arrival"] == 340
++    raw[1]["relationship"] = "SKIPPED"
++    effective = engine.effective_timeline_from_plan(raw, suffix, previous)
++    assert effective[1]["predicted_arrival"] == 60
++    assert effective[1]["relationship"] == "SKIPPED"
++
++
++@pytest.mark.asyncio
++async def test_concurrent_polls_share_a_plan_revision_and_date_boundaries(monkeypatch):
++    engine.clear_motion_cache()
++    monkeypatch.setattr(engine, "handover_enabled", lambda: False)
++    calls = []
++
++    async def build(**kwargs):
++        calls.append(kwargs)
++        await asyncio.sleep(0)
++        return delayed_plan()
++
++    monkeypatch.setattr(engine, "_build_trip_plan", build)
++    monkeypatch.setattr(engine, "_sample_trip_plan", lambda plan, now, raw, progress: {
++        "progress_m": float(now), "speed_kmh": 20, "motion_state": "MOVING", "next_timeline_index": 1})
++    path = {"pattern_id": "p", "derived_generation": "g", "service_date": "2026-10-24",
++            "stop_progress": [0, 1000], "total_m": 1000}
++    args = dict(trip_id="T", mode="bus", version_id="v", timeline=timeline(), path=path, now_sec=100)
++    first, second = await asyncio.gather(engine.position_for_trip(**args), engine.position_for_trip(**args))
++    assert len(calls) == 1
++    assert first["motion_plan_revision"] == second["motion_plan_revision"]
++    assert first["effective_timeline"][1]["predicted_arrival"] == 360
++    projected_input = {**args, "timeline": first["effective_timeline"]}
++    assert (await engine.position_for_trip(**projected_input))["effective_timeline"] == first["effective_timeline"]
++    assert len(calls) == 1
++    await engine.position_for_trip(**{**args, "path": {**path, "service_date": "2026-10-23"}})
++    assert len(calls) == 2
++    assert not engine._PLAN_GATES
++    engine.clear_motion_cache()
++
++
++@pytest.mark.asyncio
++async def test_rebuild_samples_prior_plan_at_now_not_last_poll_position(monkeypatch):
++    engine.clear_motion_cache()
++    mono = [100.0]
++    monkeypatch.setattr(engine, "time", SimpleNamespace(monotonic=lambda: mono[0]))
++    monkeypatch.setattr(engine, "handover_enabled", lambda: True)
++    calls = []
++
++    async def build(**kwargs):
++        calls.append(kwargs)
++        plan = delayed_plan()
++        plan["effective_timeline"] = engine.effective_timeline_from_plan(kwargs["timeline"], plan)
++        return plan
++
++    monkeypatch.setattr(engine, "_build_trip_plan", build)
++    monkeypatch.setattr(engine, "_sample_trip_plan", lambda plan, now, raw, progress: {
++        "progress_m": float(now), "speed_kmh": 20, "motion_state": "MOVING", "next_timeline_index": 1})
++    args = dict(trip_id="T", mode="bus", version_id="v", timeline=timeline(), now_sec=100,
++                path={"pattern_id": "p", "derived_generation": "g", "service_date": "2026-10-24",
++                      "stop_progress": [0, 1000], "total_m": 1000})
++    await engine.position_for_trip(**args)
++    mono[0] += 13
++    await engine.position_for_trip(**{**args, "now_sec": 113})
++    assert calls[-1]["handover"]["progress_m"] == 113
++    assert calls[-1]["handover"]["progress_m"] != 100
++    assert calls[-1]["previous_plan"] is not None
++    engine.clear_motion_cache()
++
++
++@pytest.fixture
++def endpoints(monkeypatch):
++    a = {"stop_id": "A", "name": "Origin", "lat": 52.12, "lng": 11.63}
++    q = {"stop_id": "Q", "name": "Domplatz", "lat": 52.124092, "lng": 11.631216}
++    p = {"stop_id": "P", "name": "Domplatz", "lat": 52.125275, "lng": 11.63184}
++    trip = {"trip_id": "T", "stop_ids": ["A", "Q"], "start": "00:00", "end": "00:01",
++            "stop_times": {"A": "00:00", "Q": "00:01"},
++            "stop_times_arrival": {"A": "00:00", "Q": "00:01"}, "headsign": "Center"}
++    route = {"route_number": "N2", "mode": "bus", "stops": [a, q, p], "trips": [trip]}
++    network = {"version_id": "v", "service_date": "2026-10-24", "region_id": "magdeburg",
++               "network_id": "de-magdeburg-mvb", "routes": [route]}
++    rt = {"trip_delay_observed": True, "delay_seconds": 0,
++          "feed_timestamp": 1792795280, "updated_at": "2026-10-24T00:41:32+02:00"}
++    raw = routes._predicted_stop_timeline(route, trip, rt)
++    effective = engine.effective_timeline_from_plan(raw, delayed_plan())
++    vehicle = {"vehicle_id": "est_test", "network_version_id": "v", "service_date": "2026-10-24",
++               "mode": "bus", "route_number": "N2", "route_direction": "Center", "trip_id": "T",
++               "estimated": True, "position_source": "REALTIME_ESTIMATE", "pattern_id": "p",
++               "latitude": 52.124, "longitude": 11.6312,
++               "_effective_timeline": effective, "_motion_plan_revision": "revision-one",
++               "_motion_next_timeline_index": 1, "_prediction_realtime": rt,
++               "next_stop_eta_seconds": 260, "next_stop_predicted_arrival": "00:06",
++               "source_next_stop_predicted_arrival": "00:01", "prediction_basis": "PERIX_MOTION_PLAN"}
++    domain = {"network": network,
++              "stops": [{"stop_id": "physical:station", "stop_ids": ["P", "Q"], "name": "Domplatz",
++                         "latitude": p["lat"], "longitude": p["lng"], "platforms": [
++                             {"platform_id": s["stop_id"], "name": s["name"], "latitude": s["lat"], "longitude": s["lng"]}
++                             for s in (p, q)]}],
++              "patterns": [{"pattern_id": "p", "route_number": "N2", "mode": "bus", "stop_ids": ["A", "Q"]}],
++              "trip_templates": [{"trip_id": "T", "trip_instance_id": "v:2026-10-24:T", "pattern_id": "p",
++                                  "route_number": "N2", "mode": "bus", "stop_ids": ["A", "Q"]}]}
++    monkeypatch.setattr(v2, "_domain", AsyncMock(return_value=domain))
++    monkeypatch.setattr(routes, "_all_active_vehicles", AsyncMock(return_value=[vehicle]))
++    monkeypatch.setattr(routes, "networks_for_journey_window", AsyncMock(return_value=[network]))
++    monkeypatch.setattr(routes, "_realtime_delays_for", AsyncMock(return_value={"T": rt}))
++    monkeypatch.setattr(routes, "_now_service_seconds", lambda *args: 100)
++    monkeypatch.setattr(overrides, "canceled_trip_ids", AsyncMock(return_value=set()))
++    monkeypatch.setattr(overrides, "skipped_stop_ids", AsyncMock(return_value={}))
++    monkeypatch.setattr(display_labels, "display_alias", lambda *args, **kwargs: {})
++    monkeypatch.setattr(detour_guard, "detour_states_for_domain", AsyncMock(return_value={}))
++    monkeypatch.setattr(arrivals, "db", SimpleNamespace(mobility_vehicle_state=SimpleNamespace(
++        find=lambda *args: SimpleNamespace(to_list=AsyncMock(return_value=[])))))
++    monkeypatch.setattr(routes, "db", SimpleNamespace(mobility_live=SimpleNamespace(find_one=AsyncMock(return_value=None))))
++    return SimpleNamespace(vehicle=vehicle, raw=raw, effective=effective, rt=rt, network=network, domain=domain)
++
++
++@pytest.mark.asyncio
++async def test_marker_board_and_trip_use_the_same_effective_time_and_revision(endpoints):
++    s = endpoints
++    before = deepcopy(s.rt)
++    marker = (await v2.v2_vehicles(None))[0]
++    board = (await arrivals.unified_arrivals("physical:station"))[0]
++    details = await routes.vehicle_trip_progress("est_test", None)
++    assert marker["next_stop_predicted_arrival"] == board["predicted_arrival"] == details["stops"][1]["predicted"] == "00:06"
++    assert marker["motion_plan_revision"] == board["motion_plan_revision"] == details["motion_plan_revision"] == "revision-one"
++    assert board["eta_seconds"] == marker["next_stop_eta_seconds"] == 260
++    assert board["source_predicted_arrival"] == details["stops"][1]["source_predicted"] == "00:01"
++    assert board["eta_source"] == "PERIX_ESTIMATE" and board["source_eta_source"] == "REALTIME"
++    assert details["stops"][0]["passed"] and not details["stops"][1]["passed"]
++    assert s.rt == before
++
++
++@pytest.mark.asyncio
++async def test_domplatz_distance_uses_the_served_platform_not_the_group_point(endpoints):
++    result = (await arrivals.unified_arrivals("physical:station", platform_id="Q"))[0]
++    assert result["platform_id"] == "Q"
++    assert result["platform_latitude"] == 52.124092
++    assert result["distance_to_stop_m"] < 15  # group point would be roughly 150m
++    assert await arrivals.unified_arrivals("physical:station", platform_id="P") == []
++    assert await arrivals.unified_arrivals("physical:station", platform_id="wrong-station") == []
++
++
++@pytest.mark.asyncio
++async def test_dwell_is_still_boardable_and_becomes_zero_only_at_the_model_stop(endpoints, monkeypatch):
++    s = endpoints
++    monkeypatch.setattr(routes, "_now_service_seconds", lambda *args: 370)
++    s.vehicle.update(latitude=52.124092, longitude=11.631216)
++    result = (await arrivals.unified_arrivals("physical:station"))[0]
++    assert result["eta_seconds"] == 0
++    assert result["distance_to_stop_m"] == 0
++    monkeypatch.setattr(routes, "_now_service_seconds", lambda *args: 381)
++    assert await arrivals.unified_arrivals("physical:station") == []
++
++
++@pytest.mark.asyncio
++async def test_gps_coordinates_and_provider_eta_are_not_replaced_by_a_model(endpoints, monkeypatch):
++    s = endpoints
++    s.vehicle.update(estimated=False, position_source="VEHICLE_GPS")
++    monkeypatch.setattr(routes, "_now_service_seconds", lambda *args: 50)
++    marker = (await v2.v2_vehicles(None))[0]
++    result = (await arrivals.unified_arrivals("physical:station"))[0]
++    assert marker["position"]["latitude"] == s.vehicle["latitude"]
++    assert marker["position"]["longitude"] == s.vehicle["longitude"]
++    assert marker["motion_plan_revision"] is None
++    assert result["eta_seconds"] == 10 and result["predicted_arrival"] == "00:01"
++    assert result["eta_source"] == "REALTIME" and result["position_source"] == "LIVE"
++    assert result["motion_plan_revision"] is None
++
++
++@pytest.mark.asyncio
++async def test_cancellation_and_skip_overrides_remain_authoritative(endpoints, monkeypatch):
++    monkeypatch.setattr(overrides, "canceled_trip_ids", AsyncMock(return_value={"T"}))
++    assert await arrivals.unified_arrivals("physical:station") == []
++    monkeypatch.setattr(overrides, "canceled_trip_ids", AsyncMock(return_value=set()))
++    monkeypatch.setattr(overrides, "skipped_stop_ids", AsyncMock(return_value={"T": {"Q"}}))
++    assert await arrivals.unified_arrivals("physical:station") == []
++
++
++def test_known_motion_window_keeps_a_delayed_trip_but_not_a_new_identity():
++    route = {"route_number": "N8", "stops": [
++        {"stop_id": "A", "name": "A", "lat": 52, "lng": 11},
++        {"stop_id": "Q", "name": "Q", "lat": 52.01, "lng": 11}],
++        "trips": [{"trip_id": "T", "stop_ids": ["A", "Q"],
++                   "stop_times": {"A": "00:00", "Q": "00:01"}}]}
++    baseline = routes._chain_trips(route)
++    delayed = routes._chain_trips(route, effective_windows={"T": {"start": 0, "end": 360}})
++    assert baseline[0]["trips"][0]["trip"]["trip_id"] == delayed[0]["trips"][0]["trip"]["trip_id"]
++    assert baseline[0]["end"] == 60 and delayed[0]["end"] == 360
++    assert len(delayed) == len(baseline) == 1
+--- /dev/null
++++ b/Perix-main/backend/tests/test_effective_eta_physics.py
+@@ -0,0 +1,157 @@
++"""Exercise the real existing bus/tram physics with an offline infrastructure."""
++from copy import deepcopy
++from datetime import datetime, timezone
++from types import SimpleNamespace
++from unittest.mock import AsyncMock
++
++import pytest
++
++from mobility import generations
++from mobility.motion import engine
++
++
++@pytest.fixture
++def physical(monkeypatch):
++    clock = SimpleNamespace(mono=100.0)
++    region = SimpleNamespace(region_id='r', network_id='n', timezone='UTC', motion={}, service_day_start_hour=4)
++    infra = {'total_m': 3000.0, 'edges': [{
++        'edge_id': 'edge', 'from_m': 0.0, 'to_m': 3000.0,
++        'way': {'highway': 'primary', 'railway': 'tram', 'maxspeed_kmh': 50.0},
++    }], 'signals': []}
++    find = AsyncMock(return_value=infra)
++    monkeypatch.setattr(engine, 'db', SimpleNamespace(mobility_pattern_infrastructure=SimpleNamespace(find_one=find)))
++    monkeypatch.setattr(engine, 'get_active_region', lambda: region)
++    monkeypatch.setattr(engine, 'time', SimpleNamespace(monotonic=lambda: clock.mono))
++    monkeypatch.setattr(engine, 'traffic_snapshot_for_edges', AsyncMock(return_value={'by_edge': {}}))
++    monkeypatch.setattr(generations, 'atomic_generations_enabled', lambda: False)
++    monkeypatch.setenv('MOBILITY_PLAN_HANDOVER_ENABLED', 'true')
++    monkeypatch.setenv('MOBILITY_SIGNAL_SEMANTICS_ENABLED', 'false')
++    engine.clear_motion_cache()
++    kwargs = dict(trip_id='T', mode='bus', version_id='v', now_sec=1010,
++        path={'pattern_id':'p', 'derived_generation':'g', 'service_date':'2026-10-24',
++              'total_m':3000.0, 'stop_progress':[0.0,1000.0,3000.0]},
++        timeline=[{'stop_id':sid,'scheduled':arr,'scheduled_arrival':arr,'scheduled_departure':dep,
++                   'predicted_arrival':arr,'predicted_departure':dep,'relationship':'SCHEDULED'}
++                  for sid,arr,dep in [('A',990,1000),('B',1020,1040),('C',1070,1080)]])
++    yield SimpleNamespace(clock=clock, kwargs=kwargs, find=find)
++    engine.clear_motion_cache()
++
++
++@pytest.mark.asyncio
++@pytest.mark.parametrize('mode',['bus','tram'])
++async def test_real_plan_has_one_projected_timeline_and_respects_speed_caps(physical,mode):
++    s=physical
++    s.kwargs['mode']=mode
++    original=deepcopy(s.kwargs['timeline'])
++    first=await engine.position_for_trip(**s.kwargs)
++    assert first is not None
++    assert first['effective_timeline'][1]['predicted_arrival']>1020
++    assert first['effective_timeline'][1]['source_predicted_arrival']==1020
++    assert 0<=first['speed_kmh']<=50.01
++    for i in range(1,3):
++        assert first['effective_timeline'][i]['predicted_departure']>=first['effective_timeline'][i]['predicted_arrival']
++    s.clock.mono+=4
++    s.kwargs['now_sec']+=4
++    second=await engine.position_for_trip(**s.kwargs)
++    assert second['motion_plan_revision']==first['motion_plan_revision']
++    assert second['effective_timeline']==first['effective_timeline']
++    assert second['progress_m']>=first['progress_m']
++    assert s.kwargs['timeline']==original
++    assert s.find.await_count==1
++
++
++@pytest.mark.asyncio
++async def test_repeated_cache_refresh_does_not_keep_adding_a_poll_delay(physical):
++    s=physical
++    first=await engine.position_for_trip(**s.kwargs)
++    clocks=[first['effective_timeline'][-1]['predicted_arrival']]
++    previous=first
++    for _ in range(5):
++        old_plan=next(reversed(engine._PLAN_CACHE.values()))['plan']
++        s.clock.mono+=13
++        s.kwargs['now_sec']+=13
++        expected=engine._sample_trip_plan(old_plan,s.kwargs['now_sec'],s.kwargs['timeline'],s.kwargs['path']['stop_progress'])
++        result=await engine.position_for_trip(**s.kwargs)
++        assert result['progress_m']==pytest.approx(expected['progress_m'],abs=0.1)
++        assert result['progress_m']>=previous['progress_m']
++        assert 0<=result['speed_kmh']<=50.01
++        clocks.append(result['effective_timeline'][-1]['predicted_arrival'])
++        previous=result
++    assert max(clocks)-min(clocks)<=5  # not 13 seconds per replan
++
++
++@pytest.mark.asyncio
++async def test_plus_300_then_minus_120_updates_clocks_without_teleporting(physical):
++    s=physical
++    await engine.position_for_trip(**s.kwargs)
++    for entry in s.kwargs['timeline'][1:]:
++        entry['predicted_arrival']+=300
++        entry['predicted_departure']+=300
++    s.clock.mono+=4
++    s.kwargs['now_sec']+=4
++    delayed=await engine.position_for_trip(**s.kwargs)
++    assert delayed['effective_timeline'][1]['predicted_arrival']>=1320
++    old_plan=next(reversed(engine._PLAN_CACHE.values()))['plan']
++    s.clock.mono+=4
++    s.kwargs['now_sec']+=4
++    expected=engine._sample_trip_plan(old_plan,s.kwargs['now_sec'],s.kwargs['timeline'],s.kwargs['path']['stop_progress'])
++    for entry in s.kwargs['timeline'][1:]:
++        entry['predicted_arrival']-=120
++        entry['predicted_departure']-=120
++    recovered=await engine.position_for_trip(**s.kwargs)
++    assert recovered['progress_m']==pytest.approx(expected['progress_m'],abs=0.1)
++    assert 1200<=recovered['effective_timeline'][1]['predicted_arrival']<=delayed['effective_timeline'][1]['predicted_arrival']
++    assert recovered['motion_plan_revision']!=delayed['motion_plan_revision']
++    assert 0<=recovered['speed_kmh']<=50.01
++
++
++@pytest.mark.asyncio
++async def test_dwell_rebuild_preserves_arrival_and_remaining_departure(physical):
++    s=physical
++    s.kwargs['timeline'][1]['predicted_departure']=1200
++    s.kwargs['timeline'][2].update(predicted_arrival=1400,predicted_departure=1420)
++    first=await engine.position_for_trip(**s.kwargs)
++    arrival=first['effective_timeline'][1]['predicted_arrival']
++    s.clock.mono+=13
++    s.kwargs['now_sec']=arrival+2
++    at_stop=await engine.position_for_trip(**s.kwargs)
++    assert at_stop['motion_state']=='DWELL'
++    s.clock.mono+=13
++    s.kwargs['now_sec']+=2
++    still_at_stop=await engine.position_for_trip(**s.kwargs)
++    assert still_at_stop['motion_state']=='DWELL'
++    assert still_at_stop['effective_timeline'][1]['predicted_arrival']==arrival
++    assert still_at_stop['effective_timeline'][1]['predicted_departure']==1200
++
++
++@pytest.mark.asyncio
++@pytest.mark.parametrize('mode', ['bus', 'tram'])
++async def test_every_second_zero_eta_is_at_exact_stop_with_repeated_refreshes(physical, mode):
++    s = physical
++    s.kwargs['mode'] = mode
++    previous = None
++    zero_stops = set()
++    # Run the whole journey, not only a few conveniently selected snapshots.
++    for now in range(990, 1501):
++        s.kwargs['now_sec'] = now
++        s.clock.mono = 100 + now - 990
++        result = await engine.position_for_trip(**s.kwargs)
++        assert result is not None
++        progress = result['progress_m']
++        assert 0 <= result['speed_kmh'] <= 50.01
++        if previous is not None:
++            assert progress >= previous - 0.1
++            assert progress - previous <= 50 / 3.6 + 0.5
++        previous = progress
++        timeline = result['effective_timeline']
++        next_index = result['next_timeline_index']
++        for index, entry in enumerate(timeline):
++            if index < next_index or entry['predicted_departure'] < now:
++                continue
++            eta = max(0, entry['predicted_arrival'] - now)
++            if eta == 0:
++                zero_stops.add(index)
++                assert progress == pytest.approx(s.kwargs['path']['stop_progress'][index], abs=0.5), (mode, now, index, result)
++        if progress == 3000 and now > timeline[-1]['predicted_departure']:
++            break
++    assert zero_stops == {0, 1, 2}, (mode, zero_stops)
+--- a/Perix-main/backend/tests/test_mobility_dated_carryover.py
++++ b/Perix-main/backend/tests/test_mobility_dated_carryover.py
+@@ -26,6 +26,7 @@
+     monkeypatch.setattr(routes, "_realtime_delays_for", AsyncMock(return_value={}))
+     monkeypatch.setattr(overrides, "canceled_trip_ids", AsyncMock(return_value=set()))
+     monkeypatch.setattr(overrides, "skipped_stop_ids", AsyncMock(return_value={}))
++    monkeypatch.setattr(v2, "_domain", AsyncMock(side_effect=lambda network: domain.build_domain(network)))
+     monkeypatch.setattr(routes, "db", SimpleNamespace(mobility_live=SimpleNamespace(find=lambda *a: cursor([]))))
+     monkeypatch.setattr(routes, "_estimate_trip_position", AsyncMock(return_value={
+         "latitude": 52.1, "longitude": 11.6, "delay_minutes": 0,
+--- a/Perix-main/backend/tests/test_vehicle_performance.py
++++ b/Perix-main/backend/tests/test_vehicle_performance.py
+@@ -126,7 +126,8 @@
+     path = {"pattern_id": "p", "derived_generation": "g1", "service_date": "2026-10-22",
+             "stop_progress": [0, 1000], "total_m": 1000}
+     kwargs = dict(trip_id="t", mode="bus", version_id="v",
+-                  timeline=[{"stop_id": "A"}, {"stop_id": "B"}], path=path)
++                  timeline=[{"stop_id": "A", "predicted_arrival": 0, "predicted_departure": 0, "scheduled_arrival": 0},
++                            {"stop_id": "B", "predicted_arrival": 200, "predicted_departure": 200, "scheduled_arrival": 200}], path=path)
+     await engine.position_for_trip(**kwargs, now_sec=100)
+     await engine.position_for_trip(**kwargs, now_sec=104)
+     assert build.await_count == 1

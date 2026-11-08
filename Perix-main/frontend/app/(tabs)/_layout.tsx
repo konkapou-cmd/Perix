@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS } from "../../lib/designTokens";
 import { useAuth } from "../../context/AuthContext";
 import { useCreateFlow } from "../../context/CreateFlowContext";
+import { MAP_PAGE_BACKGROUND, MAP_PAGE_MAX_WIDTH } from "../../lib/city/mapLayout";
 
 function TabBarBackground() {
   return (
@@ -199,18 +200,18 @@ export default function TabsLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: MAP_PAGE_BACKGROUND,
   },
   mainContent: {
     flex: 1,
   },
   desktopContent: {
-    maxWidth: 1280,
+    maxWidth: MAP_PAGE_MAX_WIDTH,
     width: "100%",
     marginHorizontal: "auto",
     ...Platform.select({
       web: {
-        paddingHorizontal: 24,
+        paddingHorizontal: 0,
       },
     }),
   },

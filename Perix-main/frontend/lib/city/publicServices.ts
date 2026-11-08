@@ -22,27 +22,84 @@ export type PublicService = PublicServiceSource & {
   entity_type: "public_service";
   country_code: string;
   city_id: string;
+  source_record_id?: string | null;
+  catalog_number?: number | null;
   name: string;
   category_ids: string[];
   subcategory_ids: string[];
   leaf_category_ids: string[];
+  category_label_el?: string | null;
+  category_label_de?: string | null;
+  category_label_en?: string | null;
+  subcategory_label_el?: string | null;
+  subcategory_label_de?: string | null;
+  subcategory_label_en?: string | null;
   description_el: string | null;
   description_de: string | null;
   description_en: string | null;
   address: string | null;
   latitude: number | null;
   longitude: number | null;
+  coordinate_review_status?: "pending" | "review_required" | "approved" | "rejected" | null;
+  coordinate_review_note?: string | null;
+  geo_status?: string | null;
+  coordinate_match_type?: string | null;
+  coordinate_osm_id?: string | null;
+  coordinate_source_url?: string | null;
+  coordinate_source_license?: string | null;
+  coordinate_manual_review_required?: string | null;
+  source_geo_manual_review_note?: string | null;
+  coordinate_crs?: string | null;
+  official_address_source?: string | null;
   phone: string | null;
+  phone_display?: string | null;
+  phone_scope?: string | null;
+  additional_phones?: string[];
+  email?: string | null;
+  email_scope?: string | null;
+  additional_emails?: string[];
   website: string | null;
   opening_hours: string | null;
+  opening_hours_scope?: string | null;
+  telephone_hours?: string | null;
+  visitor_notice_el?: string | null;
+  visitor_notice_de?: string | null;
+  visitor_notice_en?: string | null;
+  special_notice?: string | null;
+  services_supported_el?: string[];
+  services_supported_de?: string[];
+  services_supported_en?: string[];
+  source_url?: string | null;
+  official_source_urls?: string[];
+  source_rights_url?: string | null;
+  source_verification_date?: string | null;
+  reuse_assessment?: string | null;
+  licensing_note?: string | null;
+  independent_directory_disclaimer_el?: string | null;
+  independent_directory_disclaimer_de?: string | null;
+  independent_directory_disclaimer_en?: string | null;
+  profile_image_url?: string | null;
+  cover_image_url?: string | null;
+  profile_image_asset?: string | null;
+  cover_image_asset?: string | null;
+  visual_asset_type?: string | null;
+  visual_is_illustration?: boolean;
+  visual_location_verified?: boolean;
+  cover_context?: string | null;
+  additional_fields?: Record<string, unknown>;
   cover_icon: string;
   sources: PublicServiceSource[];
+  publication_status?: "draft" | "published" | "hidden";
+  verification_status?: "needs_review" | "source_verified" | "rejected";
+  bio_status?: "draft" | "approved";
+  publication_rights_status?: "review_required" | "approved" | "restricted" | null;
 };
 
 export type PublicServiceCategory = {
   id: string;
   label_el: string;
   label_de: string;
+  label_en?: string;
   icon?: string;
   children?: PublicServiceCategory[];
 };
@@ -66,7 +123,8 @@ export function getPublicServices(input: { countryCode: string; cityId: string; 
 // Render on the existing BusinessMap; entity identity stays public_service.
 // The renderer's existing generic service artwork avoids changing shared map types.
 export function publicServiceMarkers(records: PublicService[]) {
-  return records.filter(r => Number.isFinite(r.latitude) && Number.isFinite(r.longitude))
+  return records.filter(r => (r.coordinate_review_status == null || r.coordinate_review_status === "approved")
+    && Number.isFinite(r.latitude) && Number.isFinite(r.longitude))
     .map(r => ({ id: r.service_id, latitude: r.latitude!, longitude: r.longitude!, title: r.name,
       type: "service" as const, pinColor: PUBLIC_SERVICE_THEME.navy }));
 }

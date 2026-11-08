@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { HomeLayoutConfig } from "../../hooks/useLayoutPreferences";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { translateCategory } from "../../lib/categoryTranslation";
+import IllustratedIcon, { illustratedIconSource } from "../icons/IllustratedIcon";
 
 interface LayoutSettingsModalProps {
   visible: boolean;
@@ -149,11 +150,9 @@ export function LayoutSettingsModal({ visible, onClose, homeLayout, onToggleSect
                         }
                       }}
                     >
-                      <Ionicons
-                        name={(CATEGORY_ICONS[cat] || "ellipse-outline") as any}
-                        size={14}
-                        color={active ? "#fff" : "#264348"}
-                      />
+                      <IllustratedIcon kind="business-root" iconKey={cat} size={14}
+                        fallback={(CATEGORY_ICONS[cat] || "ellipse-outline") as any}
+                        color={active ? "#fff" : "#264348"} />
                       <Text style={[styles.catChipText, active && styles.catChipTextActive]} numberOfLines={1}>
                         {translateCategory(cat, t)}
                       </Text>
@@ -185,11 +184,12 @@ export function LayoutSettingsModal({ visible, onClose, homeLayout, onToggleSect
                     onPress={() => onToggleSection(section.id)}
                   >
                     <View style={[styles.sectionIcon, { backgroundColor: enabled ? "rgba(89,171,227,0.15)" : "rgba(38,67,72,0.08)" }]}>
-                      <Ionicons
-                        name={(SECTION_ICONS[section.id] || "albums-outline") as any}
-                        size={18}
-                        color={enabled ? "#59ABE3" : "#264348"}
-                      />
+                      {illustratedIconSource("home",section.id==="marketplace"?"products":section.id)
+                        && section.id!=="events" && section.id!=="activities"
+                        ? <IllustratedIcon kind="home" iconKey={section.id==="marketplace"?"products":section.id} size={18}
+                            fallback={(SECTION_ICONS[section.id] || "albums-outline") as any} color={enabled ? "#59ABE3" : "#264348"} />
+                        : <Ionicons name={(SECTION_ICONS[section.id] || "albums-outline") as any} size={18}
+                            color={enabled ? "#59ABE3" : "#264348"} />}
                     </View>
                     <Text style={[styles.sectionLabel, !enabled && { color: "rgba(38,67,72,0.45)" }]}>
                       {t(`home.${section.id}`, section.title)}

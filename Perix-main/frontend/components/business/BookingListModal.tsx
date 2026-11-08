@@ -11,6 +11,7 @@ import { formatPrice } from "../../lib/serviceFormat";
 import { formatDate } from "../../lib/formatDate";
 import { translateServiceType } from "../../lib/categoryTranslation";
 import { getServiceModuleIcon } from "../../lib/config/serviceModules";
+import IllustratedIcon from "../icons/IllustratedIcon";
 
 type Props = {
   visible: boolean;
@@ -141,7 +142,8 @@ export default function BookingListModal({ visible, businessId, sessionToken, on
         </View>
         {booking.service_name && (
           <View style={s.serviceRow}>
-            <Ionicons name={getServiceModuleIcon(booking.service_type || "")} size={14} color="#59ABE3" />
+            <IllustratedIcon kind="service-module" iconKey={booking.service_type || ""} size={14}
+              fallback={getServiceModuleIcon(booking.service_type || "")} color="#59ABE3" />
             <Text style={s.serviceName} numberOfLines={1} ellipsizeMode="tail">{booking.service_name}</Text>
             {booking.service_type && (
               <View style={s.typeBadge}>

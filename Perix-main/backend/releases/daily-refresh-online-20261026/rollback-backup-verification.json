@@ -1,0 +1,23 @@
+{
+  "sha256": "c5b7f7f6794a2aca971fcc589bb73981a62885b6a7bc7ba00a1007989ccd24fa",
+  "counts": {
+    "mobility_osm_ways": 29984,
+    "mobility_osm_signals": 2814,
+    "mobility_osm_graph_meta": 1,
+    "bus_network_versions": 1,
+    "mobility_pattern_generations": 113,
+    "mobility_road_geometries": 113,
+    "mobility_geometry_segments": 1924,
+    "mobility_pattern_infrastructure": 113,
+    "mobility_traffic_profiles": 0,
+    "mobility_sync_state": 1,
+    "mobility_daily_recovery": 0,
+    "mobility_restrictions": 0,
+    "mobility_overlays": 0
+  },
+  "active_version": "net_7f0605d2409e",
+  "graph_v": 1793013850,
+  "guard_stable": true,
+  "bytes": 13496546,
+  "fresh_capture_verified": true
+}

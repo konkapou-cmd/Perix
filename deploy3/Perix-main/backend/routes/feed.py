@@ -1,0 +1,763 @@
+"""Feed routes."""
+from fastapi import APIRouter, Depends
+from typing import Optional
+import time
+import logging
+from datetime import datetime
+from math import radians, cos, sin, asin, sqrt
+
+from database import db
+from models.user import UserPublic
+from models.feed import HomeFeedResponse
+from models.artist import ArtistResponse
+from models.post import BusinessPostInfo
+from utils.helpers import now_utc
+from routes.dependencies import get_current_user_optional, build_user_public, get_blocked_user_ids
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/feed", tags=["Feed"])
+
+_hidden_user_ids_cache = {"ids": [], "last_updated": 0}
+
+
+def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Calculate distance between two points in km."""
+    R = 6371
+    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+    c = 2 * asin(sqrt(a))
+    return R * c
+
+
+@router.get("/home", response_model=HomeFeedResponse)
+async def get_home_feed(
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    radius_km: Optional[float] = 50,
+    min_lat: Optional[float] = None,
+    max_lat: Optional[float] = None,
+    min_lng: Optional[float] = None,
+    max_lng: Optional[float] = None,
+    event_start_after: Optional[str] = None,
+    event_start_before: Optional[str] = None,
+    activity_date: Optional[str] = None,
+    offset: Optional[int] = 0,
+    friends_only: bool = False,
+    categories: Optional[str] = None,
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+):
+    """Get the home feed with posts, stories, events, and businesses."""
+    use_geo = latitude is not None and longitude is not None
+    use_bounds = all(v is not None for v in [min_lat, max_lat, min_lng, max_lng])
+    current_time = now_utc()
+    
+    # Get blocked users for current user
+    blocked_user_ids = await get_blocked_user_ids(current_user.user_id) if current_user else []
+    
+    # Get hidden users (globally hidden via reports or admin action)
+    now_ts = time.time()
+    if now_ts - _hidden_user_ids_cache["last_updated"] > 60:
+        hidden_users = await db.users.find(
+            {"is_hidden": True},
+            {"_id": 0, "user_id": 1}
+        ).to_list(1000)
+        _hidden_user_ids_cache["ids"] = [u["user_id"] for u in hidden_users]
+        _hidden_user_ids_cache["last_updated"] = now_ts
+    hidden_user_ids = _hidden_user_ids_cache["ids"]
+    
+    # Combine blocked and hidden user IDs
+    excluded_user_ids = list(set(blocked_user_ids + hidden_user_ids))
+
+    # Category filter: when categories are selected, show ONLY posts from
+    # businesses that belong to those categories (own posts are excluded too).
+    allowed_category_biz_ids = None
+    if categories:
+        cat_list = [c.strip() for c in categories.split(",") if c.strip()]
+        if cat_list:
+            cat_biz_cursor = await db.businesses.find(
+                {"root_category": {"$in": cat_list}, "is_hidden": {"$ne": True}},
+                {"_id": 0, "business_id": 1},
+            ).to_list(500)
+            allowed_category_biz_ids = [b["business_id"] for b in cat_biz_cursor]
+    
+    # Get posts (latest 100)
+    post_query = {
+        "$and": [
+            {
+                "$or": [
+                    {"expires_at": {"$gt": current_time}},
+                    {"expires_at": None},
+                    {"expires_at": {"$exists": False}}
+                ]
+            },
+            {"is_hidden": {"$ne": True}},
+            # Only public posts (friend-business tag) appear in the home
+            # feed. Posts tagged only with the author's own activity/item
+            # are visible on their profile only.
+            {"is_public": {"$ne": False}},
+        ]
+    }
+    if excluded_user_ids:
+        post_query["$and"].append({"user_id": {"$nin": excluded_user_ids}})
+
+    if allowed_category_biz_ids is not None:
+        if allowed_category_biz_ids:
+            post_query["$and"].append({
+                "$or": [
+                    {"actor_type": "business", "actor_id": {"$in": allowed_category_biz_ids}},
+                    {"tagged_business_ids": {"$in": allowed_category_biz_ids}},
+                ]
+            })
+        else:
+            # No businesses match the selected categories — no posts at all
+            posts = []
+            post_query = None
+
+    # Friends-only filter: show posts from friends and followed businesses/artists
+    if friends_only:
+        friend_ids = set()
+        for friend_entry in (current_user.friends if current_user else []) or []:
+            if isinstance(friend_entry, dict):
+                friend_ids.add(friend_entry.get("entity_id", ""))
+            elif isinstance(friend_entry, str):
+                friend_ids.add(friend_entry)
+        if friend_ids:
+            post_query["$and"].append({
+                "$or": [
+                    {"user_id": {"$in": list(friend_ids)}},
+                    {"actor_id": {"$in": list(friend_ids)}},
+                ]
+            })
+        else:
+            # User has no friends — return empty posts list
+            posts = []
+            post_query = None
+    
+    if post_query is not None:
+        posts = await db.posts.find(
+        post_query,
+        {"_id": 0, "post_id": 1, "user_id": 1, "text": 1, "image_url": 1, 
+         "video_url": 1, "created_at": 1, "likes": 1, "comments": 1, 
+         "actor_type": 1, "actor_id": 1, "actor_name": 1, "actor_avatar": 1,
+         "business_id": 1, "media_ratio": 1, "tagged_user_ids": 1, "expires_at": 1,
+         "tagged_business_ids": 1, "tagged_artist_ids": 1, "video_status": 1,
+         "tagged_activity_ids": 1, "tagged_listing_ids": 1,
+         "mux_playback_id": 1, "mux_thumbnail_url": 1, "mux_asset_id": 1}
+    ).sort("created_at", -1).skip(offset).to_list(100)
+    
+    # Initialize posts as empty list if None
+    if posts is None:
+        posts = []
+    
+    # Get ALL businesses and artists (excluding hidden ones)
+    business_query = {
+        "is_hidden": {"$ne": True},
+        # Businesses must register opening hours before they appear publicly
+        "opening_hours.schedule": {"$exists": True, "$ne": {}},
+    }
+    if use_bounds:
+        business_query["latitude"] = {"$gte": min_lat, "$lte": max_lat}
+        business_query["longitude"] = {"$gte": min_lng, "$lte": max_lng}
+    all_businesses = await db.businesses.find(
+        business_query, {"_id": 0}
+    ).to_list(200)
+    artist_query = {"is_hidden": {"$ne": True}}
+    if use_bounds:
+        artist_query["latitude"] = {"$gte": min_lat, "$lte": max_lat}
+        artist_query["longitude"] = {"$gte": min_lng, "$lte": max_lng}
+    all_artists = await db.artists.find(
+        artist_query, {"_id": 0}
+    ).to_list(200)
+    
+    all_business_map = {b["business_id"]: b for b in all_businesses}
+    all_artist_map = {a["artist_id"]: a for a in all_artists}
+    owner_to_business = {b["owner_id"]: b for b in all_businesses}
+    owner_to_artist = {a["owner_id"]: a for a in all_artists}
+    
+    # Fetch all users first to get their locations
+    post_user_ids = list({p.get("user_id") for p in posts if p and p.get("user_id")})
+    location_users = await db.users.find(
+        {"user_id": {"$in": post_user_ids}}, {"_id": 0, "user_id": 1, "latitude": 1, "longitude": 1}
+    ).to_list(len(post_user_ids) + 1)
+    user_location_map = {u["user_id"]: u for u in location_users}
+    
+    def in_bounds(lat, lng):
+        return lat and lng and min_lat <= lat <= max_lat and min_lng <= lng <= max_lng
+
+    # Fetch the businesses referenced by posts (actor business or tagged
+    # business) so a post is anchored at the business ADDRESS. Unlike
+    # all_businesses above, opening hours are NOT required here — a
+    # business's posts are public even before the business itself shows
+    # on the map.
+    post_biz_ids: set = set()
+    post_activity_ids: set = set()
+    post_listing_ids: set = set()
+    for post in posts:
+        if post.get("actor_type") == "business" and post.get("actor_id"):
+            post_biz_ids.add(post["actor_id"])
+        if post.get("business_id"):
+            post_biz_ids.add(post["business_id"])
+        for bid in post.get("tagged_business_ids") or []:
+            post_biz_ids.add(bid)
+        for aid in post.get("tagged_activity_ids") or []:
+            post_activity_ids.add(aid)
+        for lid in post.get("tagged_listing_ids") or []:
+            post_listing_ids.add(lid)
+    post_biz_locs: dict = {}
+    if post_biz_ids:
+        post_biz_docs = await db.businesses.find(
+            {"business_id": {"$in": list(post_biz_ids)}},
+            {"_id": 0, "business_id": 1, "latitude": 1, "longitude": 1},
+        ).to_list(len(post_biz_ids) + 1)
+        post_biz_locs = {b["business_id"]: b for b in post_biz_docs}
+    post_activity_locs: dict = {}
+    if post_activity_ids:
+        post_activity_docs = await db.activities.find(
+            {"activity_id": {"$in": list(post_activity_ids)}},
+            {"_id": 0, "activity_id": 1, "latitude": 1, "longitude": 1},
+        ).to_list(len(post_activity_ids) + 1)
+        post_activity_locs = {a["activity_id"]: a for a in post_activity_docs}
+    post_listing_locs: dict = {}
+    if post_listing_ids:
+        post_listing_docs = await db.listings.find(
+            {"listing_id": {"$in": list(post_listing_ids)}},
+            {"_id": 0, "listing_id": 1, "latitude": 1, "longitude": 1},
+        ).to_list(len(post_listing_ids) + 1)
+        post_listing_locs = {l["listing_id"]: l for l in post_listing_docs}
+
+    def post_location_in_bounds(post: dict) -> bool:
+        """True when the post's tagged anchor (business address, activity
+        or listing location) lies inside the visible map area."""
+        biz_ids: list = []
+        if post.get("actor_type") == "business" and post.get("actor_id"):
+            biz_ids.append(post["actor_id"])
+        if post.get("business_id"):
+            biz_ids.append(post["business_id"])
+        for bid in post.get("tagged_business_ids") or []:
+            biz_ids.append(bid)
+        for bid in biz_ids:
+            biz = post_biz_locs.get(bid)
+            if biz and in_bounds(biz.get("latitude"), biz.get("longitude")):
+                return True
+        for aid in post.get("tagged_activity_ids") or []:
+            act = post_activity_locs.get(aid)
+            if act and in_bounds(act.get("latitude"), act.get("longitude")):
+                return True
+        for lid in post.get("tagged_listing_ids") or []:
+            lst = post_listing_locs.get(lid)
+            if lst and in_bounds(lst.get("latitude"), lst.get("longitude")):
+                return True
+        return False
+
+    # Filter posts based on map bounds — exactly like events, activities
+    # and jobs: a post appears when its anchor (business address, activity
+    # or listing location, or the author's location) is inside the visible
+    # map area.
+    if use_bounds and posts:
+        filtered_posts = []
+        for post in posts:
+            include_post = False
+
+            # Anchor posts at the business address (actor or tagged)
+            if post_location_in_bounds(post):
+                include_post = True
+
+            # Fallback: the post author's own location
+            if not include_post and post.get("actor_type") != "business" and post.get("actor_type") != "artist":
+                user = user_location_map.get(post.get("user_id"))
+                if user and in_bounds(user.get("latitude"), user.get("longitude")):
+                    include_post = True
+
+            # Check if post is from an artist in the area
+            if not include_post and post.get("actor_type") == "artist" and post.get("actor_id"):
+                if post["actor_id"] in all_artist_map:
+                    artist = all_artist_map[post["actor_id"]]
+                    if in_bounds(artist.get("latitude"), artist.get("longitude")):
+                        include_post = True
+
+            # Check if post user owns a business/artist in the area
+            if not include_post:
+                user_id = post.get("user_id")
+                if user_id in owner_to_business:
+                    biz = owner_to_business[user_id]
+                    if in_bounds(biz.get("latitude"), biz.get("longitude")):
+                        include_post = True
+                if not include_post and user_id in owner_to_artist:
+                    artist = owner_to_artist[user_id]
+                    if in_bounds(artist.get("latitude"), artist.get("longitude")):
+                        include_post = True
+
+            if include_post:
+                filtered_posts.append(post)
+
+        posts = filtered_posts[:100]
+    
+    # Fetch business info for posts (tagged business or the business actor)
+    all_tagged_business_ids = []
+    for post in posts:
+        if post.get("tagged_business_ids"):
+            all_tagged_business_ids.extend(post["tagged_business_ids"])
+        if post.get("actor_type") == "business" and post.get("actor_id"):
+            all_tagged_business_ids.append(post["actor_id"])
+        if post.get("business_id"):
+            all_tagged_business_ids.append(post["business_id"])
+
+    tagged_businesses_map = {}
+    if all_tagged_business_ids:
+        businesses_cursor = await db.businesses.find(
+            {"business_id": {"$in": list(set(all_tagged_business_ids))}},
+            {"_id": 0, "business_id": 1, "name": 1, "logo_image": 1, "latitude": 1, "longitude": 1, "address": 1}
+        ).to_list(100)
+        tagged_businesses_map = {b["business_id"]: b for b in businesses_cursor}
+
+    # Fetch tagged activity / listing summaries for display
+    activity_summaries: dict = {}
+    listing_summaries: dict = {}
+    all_act_ids = list(post_activity_ids)
+    all_lst_ids = list(post_listing_ids)
+    if all_act_ids:
+        act_docs = await db.activities.find(
+            {"activity_id": {"$in": all_act_ids}},
+            {"_id": 0, "activity_id": 1, "title": 1, "location": 1, "latitude": 1, "longitude": 1},
+        ).to_list(len(all_act_ids) + 1)
+        activity_summaries = {a["activity_id"]: a for a in act_docs}
+    if all_lst_ids:
+        lst_docs = await db.listings.find(
+            {"listing_id": {"$in": all_lst_ids}},
+            {"_id": 0, "listing_id": 1, "title": 1, "address": 1, "latitude": 1, "longitude": 1},
+        ).to_list(len(all_lst_ids) + 1)
+        listing_summaries = {l["listing_id"]: l for l in lst_docs}
+    for post in posts:
+        post["_tagged_activity"] = None
+        post["_tagged_listing"] = None
+        if post.get("tagged_activity_ids"):
+            aid = post["tagged_activity_ids"][0]
+            a = activity_summaries.get(aid)
+            if a:
+                post["_tagged_activity"] = {
+                    "activity_id": a["activity_id"],
+                    "title": a.get("title") or "",
+                    "location": a.get("location"),
+                    "latitude": a.get("latitude"),
+                    "longitude": a.get("longitude"),
+                }
+        if post.get("tagged_listing_ids"):
+            lid = post["tagged_listing_ids"][0]
+            l = listing_summaries.get(lid)
+            if l:
+                post["_tagged_listing"] = {
+                    "listing_id": l["listing_id"],
+                    "title": l.get("title") or "",
+                    "address": l.get("address"),
+                    "latitude": l.get("latitude"),
+                    "longitude": l.get("longitude"),
+                }
+    
+    # Get upcoming events
+    event_query = {
+        "start_time": {"$gte": now_utc()},
+        "is_hidden": {"$ne": True}
+    }
+    if excluded_user_ids:
+        event_query["creator_id"] = {"$nin": excluded_user_ids}
+    
+    if event_start_after:
+        try:
+            start_date = datetime.fromisoformat(event_start_after.replace("Z", "+00:00"))
+            event_query["start_time"]["$gte"] = start_date
+        except ValueError:
+            pass
+    
+    if event_start_before:
+        try:
+            end_date = datetime.fromisoformat(event_start_before.replace("Z", "+00:00"))
+            event_query["start_time"]["$lte"] = end_date
+        except ValueError:
+            pass
+    
+    all_events = await db.events.find(
+        event_query, {"_id": 0}
+    ).sort("start_time", 1).to_list(100)
+    
+    # Filter events based on location
+    if use_bounds:
+        events = []
+        for event in all_events:
+            event_lat = None
+            event_lng = None
+            
+            if event.get("latitude") and event.get("longitude"):
+                event_lat = event["latitude"]
+                event_lng = event["longitude"]
+            elif event.get("business_id") and event["business_id"] in all_business_map:
+                biz = all_business_map[event["business_id"]]
+                event_lat = biz.get("latitude")
+                event_lng = biz.get("longitude")
+            elif event.get("artist_id") and event["artist_id"] in all_artist_map:
+                artist = all_artist_map[event["artist_id"]]
+                event_lat = artist.get("latitude")
+                event_lng = artist.get("longitude")
+            
+            if event_lat and event_lng and in_bounds(event_lat, event_lng):
+                events.append(event)
+    else:
+        events = all_events
+    
+    # Get upcoming activities
+    activity_query = {
+        "date": {"$gte": now_utc()},
+        "is_hidden": {"$ne": True}
+    }
+    if excluded_user_ids:
+        activity_query["creator_id"] = {"$nin": excluded_user_ids}
+    
+    if activity_date:
+        try:
+            activity_date_obj = datetime.fromisoformat(activity_date.replace("Z", "+00:00"))
+            activity_query["date"]["$gte"] = activity_date_obj
+        except ValueError:
+            pass
+    
+    all_activities = await db.activities.find(
+        activity_query, {"_id": 0}
+    ).sort("date", 1).to_list(100)
+    
+    # Filter activities based on location
+    if use_bounds:
+        activities = []
+        for activity in all_activities:
+            act_lat = None
+            act_lng = None
+            
+            if activity.get("latitude") and activity.get("longitude"):
+                act_lat = activity["latitude"]
+                act_lng = activity["longitude"]
+            elif activity.get("business_id") and activity["business_id"] in all_business_map:
+                biz = all_business_map[activity["business_id"]]
+                act_lat = biz.get("latitude")
+                act_lng = biz.get("longitude")
+            
+            if act_lat and act_lng and in_bounds(act_lat, act_lng):
+                activities.append(activity)
+    else:
+        activities = all_activities
+    
+    # Get nearby businesses
+    business_radius = radius_km if radius_km else 50
+    if latitude and longitude:
+        nearby_query = {
+            "is_hidden": {"$ne": True},
+            "latitude": {"$gte": latitude - 0.5, "$lte": latitude + 0.5},
+            "longitude": {"$gte": longitude - 0.5, "$lte": longitude + 0.5}
+        }
+    else:
+        nearby_query = {
+            "is_hidden": {"$ne": True}
+        }
+    
+    all_businesses_for_map = await db.businesses.find(
+        nearby_query, {"_id": 0}
+    ).to_list(100)
+    
+    # Filter by radius if location provided
+    if latitude and longitude and business_radius:
+        businesses = []
+        for b in all_businesses_for_map:
+            b_lat = b.get("latitude")
+            b_lng = b.get("longitude")
+            if b_lat and b_lng:
+                dist = haversine_distance(latitude, longitude, b_lat, b_lng)
+                if dist <= business_radius:
+                    businesses.append(b)
+    else:
+        businesses = all_businesses_for_map
+    
+    # Get artists
+    all_artists = await db.artists.find(
+        {"is_hidden": {"$ne": True}},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Build response
+    from models.post import PostResponse
+    post_responses = []
+    for post in posts:
+        business_info = None
+        biz_ref_id = None
+        if post.get("tagged_business_ids"):
+            biz_ref_id = post["tagged_business_ids"][0]
+        elif post.get("actor_type") == "business" and post.get("actor_id"):
+            biz_ref_id = post["actor_id"]
+        elif post.get("business_id"):
+            biz_ref_id = post["business_id"]
+        if biz_ref_id and biz_ref_id in tagged_businesses_map:
+            b = tagged_businesses_map[biz_ref_id]
+            business_info = {
+                "business_id": b["business_id"],
+                "name": b["name"],
+                "logo_image": b.get("logo_image"),
+                "address": b.get("address"),
+                "latitude": b.get("latitude"),
+                "longitude": b.get("longitude"),
+            }
+        
+        author_doc = await db.users.find_one({"user_id": post["user_id"]}, {"_id": 0})
+        if not author_doc:
+            author_doc = await db.businesses.find_one({"business_id": post.get("actor_id")}, {"_id": 0}) if post.get("actor_type") == "business" else None
+        
+        if author_doc:
+            author = build_user_public(author_doc)
+        elif current_user:
+            author = current_user
+        else:
+            author = UserPublic(
+                user_id=post["user_id"],
+                email=f"{post['user_id']}@anonymous.perix",
+                name=post.get("actor_name") or "Perix User",
+                picture=post.get("actor_avatar"),
+                profile_photo=post.get("actor_avatar"),
+                created_at=now_utc(),
+            )
+        
+        post_resp = PostResponse(
+            post_id=post["post_id"],
+            user_id=post["user_id"],
+            business_id=post.get("business_id"),
+            actor_type=post.get("actor_type"),
+            actor_id=post.get("actor_id"),
+            actor_name=post.get("actor_name"),
+            actor_avatar=post.get("actor_avatar"),
+            media_ratio=post.get("media_ratio"),
+            tagged_user_ids=post.get("tagged_user_ids", []),
+            tagged_business_ids=post.get("tagged_business_ids", []),
+            tagged_artist_ids=post.get("tagged_artist_ids", []),
+            tagged_activity_ids=post.get("tagged_activity_ids", []),
+            tagged_listing_ids=post.get("tagged_listing_ids", []),
+            tagged_activity=post.get("_tagged_activity"),
+            tagged_listing=post.get("_tagged_listing"),
+            text=post.get("text", ""),
+            image_base64=post.get("image_base64"),
+            image_url=post.get("image_url"),
+            video_url=post.get("video_url"),
+            video_status=post.get("video_status"),
+            mux_asset_id=post.get("mux_asset_id"),
+            mux_playback_id=post.get("mux_playback_id"),
+            mux_thumbnail_url=post.get("mux_thumbnail_url"),
+            youtube_link=post.get("youtube_link"),
+            soundcloud_url=post.get("soundcloud_url"),
+            created_at=post["created_at"],
+            author=author,
+            business=business_info,
+            likes_count=len(post.get("likes", [])),
+            comments_count=len(post.get("comments", [])),
+            liked_by_me=False
+        )
+        post_responses.append(post_resp)
+    
+    # Build event responses
+    from models.event import EventResponse
+    from models.business import BusinessSummary
+    event_responses = []
+    for event in events[:20]:
+        business_summary = None
+        if event.get("business_id"):
+            biz_doc = await db.businesses.find_one(
+                {"business_id": event["business_id"]},
+                {"_id": 0, "business_id": 1, "name": 1, "category": 1,
+                 "root_category": 1, "subcategory": 1, "address": 1,
+                 "latitude": 1, "longitude": 1, "logo_image": 1}
+            )
+            if biz_doc:
+                business_summary = BusinessSummary(
+                    business_id=biz_doc["business_id"],
+                    name=biz_doc["name"],
+                    category=biz_doc.get("category", ""),
+                    root_category=biz_doc.get("root_category", ""),
+                    subcategory=biz_doc.get("subcategory", ""),
+                    address=biz_doc.get("address", ""),
+                    latitude=biz_doc.get("latitude") or 0,
+                    longitude=biz_doc.get("longitude") or 0,
+                    logo_image=biz_doc.get("logo_image")
+                )
+
+        artist_info = None
+        if event.get("artist_id") and event["artist_id"] in all_artist_map:
+            a = all_artist_map[event["artist_id"]]
+            artist_info = {
+                "artist_id": a["artist_id"],
+                "name": a.get("name"),
+                "town": a.get("town"),
+                "latitude": a.get("latitude"),
+                "longitude": a.get("longitude")
+            }
+
+        attendees = event.get("attendees", [])
+        is_attending = (current_user is not None and current_user.user_id in attendees) if attendees else False
+
+        event_resp = EventResponse(
+            event_id=event["event_id"],
+            business=business_summary,
+            artist=artist_info,
+            title=event["title"],
+            description=event.get("description"),
+            cover_image_url=event.get("cover_image_url"),
+            image_urls=event.get("image_urls", []),
+            video_url=event.get("video_url"),
+            start_time=event["start_time"],
+            end_time=event.get("end_time"),
+            location=event.get("location"),
+            latitude=event.get("latitude"),
+            longitude=event.get("longitude"),
+            created_at=event.get("created_at", now_utc()),
+            attendees_count=len(attendees),
+            is_attending=is_attending,
+            is_private=event.get("is_private", False),
+            theme=event.get("theme"),
+            profile_theme=event.get("profile_theme"),
+            gallery_images=event.get("gallery_images", []),
+            gallery_videos=event.get("gallery_videos", [])
+        )
+        event_responses.append(event_resp)
+    
+    # Build business responses
+    from models.business import BusinessResponse, BusinessModules
+    business_responses = []
+    for business in businesses[:20]:
+        raw_modules = business.get("enabled_modules", {})
+        if isinstance(raw_modules, dict) and not isinstance(raw_modules, BusinessModules):
+            enabled_modules = BusinessModules(**raw_modules)
+        elif isinstance(raw_modules, BusinessModules):
+            enabled_modules = raw_modules
+        else:
+            enabled_modules = BusinessModules()
+
+        business_resp = BusinessResponse(
+            business_id=business["business_id"],
+            owner_id=business.get("owner_id", ""),
+            name=business["name"],
+            category=business.get("category", business.get("root_category", "")),
+            root_category=business.get("root_category", ""),
+            subcategory=business.get("subcategory", ""),
+            description=business.get("description"),
+            logo_image=business.get("logo_image"),
+            cover_image=business.get("cover_image"),
+            phone=business.get("phone"),
+            website=business.get("website"),
+            email=business.get("email"),
+            social_links=business.get("social_links"),
+            opening_hours=business.get("opening_hours"),
+            gallery_images=business.get("gallery_images", []),
+            gallery_videos=business.get("gallery_videos", []),
+            tags=business.get("tags", []),
+            address=business.get("address") or "",
+            latitude=business.get("latitude") or 0,
+            longitude=business.get("longitude") or 0,
+            created_at=business.get("created_at", now_utc()),
+            enabled_modules=enabled_modules,
+            subscription_status=business.get("subscription_status", "trial"),
+            trial_expires_at=business.get("trial_expires_at"),
+            plan_type=business.get("plan_type"),
+            subscription_expires_at=business.get("subscription_expires_at"),
+            favorites_count=business.get("favorites_count", 0),
+            followers_count=business.get("followers_count", 0),
+            theme=business.get("theme")
+        )
+        business_responses.append(business_resp)
+    
+    # Build artist responses
+    artist_responses = []
+    for artist in all_artists[:20]:
+        artist_resp = ArtistResponse(
+            artist_id=artist["artist_id"],
+            owner_id=artist.get("owner_id", ""),
+            name=artist["name"],
+            bio=artist.get("bio"),
+            genres=artist.get("genres", []),
+            socials=artist.get("socials", {}),
+            town=artist.get("town"),
+            address=artist.get("address"),
+            latitude=artist.get("latitude"),
+            longitude=artist.get("longitude"),
+            gallery_images=artist.get("gallery_images", []),
+            fan_gallery=artist.get("fan_gallery", []),
+            video_urls=artist.get("video_urls", []),
+            profile_photo=artist.get("profile_photo"),
+            cover_photo=artist.get("cover_photo"),
+            created_at=artist.get("created_at", datetime.utcnow()),
+            followers_count=artist.get("followers_count", 0),
+            theme=artist.get("theme")
+        )
+        artist_responses.append(artist_resp)
+    
+    # Build activity responses
+    from models.activity import ActivityResponse, ActivityInvite
+    activity_responses = []
+    for activity in activities[:20]:
+        raw_invites = activity.get("invites", [])
+        invites = []
+        for inv in raw_invites:
+            if isinstance(inv, dict):
+                invites.append(ActivityInvite(**inv))
+            elif isinstance(inv, ActivityInvite):
+                invites.append(inv)
+
+        my_status = "none"
+        if current_user and activity.get("creator_id") == current_user.user_id:
+            my_status = "creator"
+        elif current_user:
+            for inv in raw_invites:
+                if isinstance(inv, dict) and inv.get("user_id") == current_user.user_id:
+                    my_status = inv.get("status", "none")
+                    break
+
+        creator_doc = await db.users.find_one(
+            {"user_id": activity.get("creator_id")}, {"_id": 0, "user_id": 1, "name": 1, "profile_photo": 1}
+        )
+        creator_info = None
+        if creator_doc:
+            creator_info = {
+                "user_id": creator_doc["user_id"],
+                "name": creator_doc.get("name", "Unknown"),
+                "profile_photo": creator_doc.get("profile_photo")
+            }
+
+        activity_resp = ActivityResponse(
+            activity_id=activity["activity_id"],
+            creator_id=activity.get("creator_id", ""),
+            title=activity["title"],
+            description=activity.get("description"),
+            date=activity.get("date", ""),
+            time=activity.get("time", ""),
+            location=activity.get("location", ""),
+            cover_image_url=activity.get("cover_image_url"),
+            image_urls=activity.get("image_urls", []),
+            latitude=activity.get("latitude"),
+            longitude=activity.get("longitude"),
+            max_attendees=activity.get("max_attendees"),
+            invites=invites,
+            created_at=activity.get("created_at", now_utc()),
+            my_status=my_status,
+            is_creator=bool(current_user and activity.get("creator_id") == current_user.user_id),
+            is_private=activity.get("is_private", False),
+            invitation_code=activity.get("invitation_code"),
+            password=activity.get("password"),
+            theme=activity.get("theme"),
+            custom_theme=activity.get("custom_theme"),
+            tagged_business=None,
+            gallery_images=activity.get("gallery_images", []),
+            gallery_videos=activity.get("gallery_videos", []),
+            profile_theme=activity.get("profile_theme"),
+            creator=creator_info
+        )
+        activity_responses.append(activity_resp)
+    
+    return HomeFeedResponse(
+        posts=post_responses,
+        events=event_responses,
+        businesses=business_responses,
+        artists=artist_responses,
+        activities=activity_responses
+    )

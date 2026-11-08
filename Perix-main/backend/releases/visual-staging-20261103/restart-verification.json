@@ -1,0 +1,22 @@
+{
+  "complete_application_redeployment": true,
+  "distinct_deployments": [
+    "bb66bde1-a932-4150-95a1-3d09331315cb",
+    "2c4a3dc0-6a5f-4c96-9856-19810774491b"
+  ],
+  "collections_unchanged": {
+    "bus_network_versions": {
+      "count": 1,
+      "sha256": "fdcea0c0c07fc8e8ede55521abb48d60b3ef7f6c4b718398f66d2bf6379807f8"
+    },
+    "mobility_pattern_generations": {
+      "count": 2,
+      "sha256": "4d7860e345159135947d323d901885029a9e7a1000f0405fdc36eb391d1f1898"
+    },
+    "mobility_visual_progress_state": {
+      "count": 6,
+      "sha256": "e72a41c15c119bb67d935af55961412dbfc41143a84c7b8c61627ea73db6e9f5"
+    }
+  },
+  "hosted_database_restart_or_restore": false
+}

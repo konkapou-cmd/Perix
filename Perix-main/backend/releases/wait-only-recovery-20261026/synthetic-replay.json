@@ -1,0 +1,64 @@
+{
+  "synthetic_only": true,
+  "independent_gps_accuracy_claim": false,
+  "production_unchanged": true,
+  "cases": [
+    {
+      "name": "bus_modeled_wait",
+      "old_end_s": 1090.0,
+      "new_end_s": 1070.0,
+      "at_update": {
+        "progress_before_m": 12.5,
+        "progress_after_m": 12.5,
+        "speed_before_kmh": 18.0,
+        "speed_after_kmh": 18.0
+      },
+      "moving_phases_unchanged": true,
+      "policy": "WAIT_ONLY_V1",
+      "released_wait_s": 20.0,
+      "arrival_advance_at_end_s": 20.0,
+      "source_accepted": true,
+      "requested_gain_s": 20.0,
+      "speed_profile_changed": false,
+      "passage_inferred": false
+    },
+    {
+      "name": "tram_no_within_leg_wait",
+      "old_end_s": 1060.0,
+      "new_end_s": 1060.0,
+      "at_update": {
+        "progress_before_m": 12.5,
+        "progress_after_m": 12.5,
+        "speed_before_kmh": 18.0,
+        "speed_after_kmh": 18.0
+      },
+      "moving_phases_unchanged": true,
+      "policy": "WAIT_ONLY_V1",
+      "released_wait_s": 0.0,
+      "arrival_advance_at_end_s": 0.0,
+      "source_accepted": true,
+      "requested_gain_s": 20.0,
+      "speed_profile_changed": false,
+      "passage_inferred": false
+    },
+    {
+      "name": "tram_station_wait",
+      "old_end_s": 1060.0,
+      "new_end_s": 1030.0,
+      "at_update": {
+        "progress_before_m": 0.0,
+        "progress_after_m": 0.0,
+        "speed_before_kmh": 0.0,
+        "speed_after_kmh": 0.0
+      },
+      "moving_phases_unchanged": true,
+      "policy": "WAIT_ONLY_V1",
+      "released_wait_s": 30,
+      "arrival_advance_at_end_s": 30.0,
+      "source_accepted": true,
+      "requested_gain_s": 40.0,
+      "speed_profile_changed": false,
+      "passage_inferred": false
+    }
+  ]
+}

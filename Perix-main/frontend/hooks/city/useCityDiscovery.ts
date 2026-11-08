@@ -5,21 +5,21 @@ import { CityBounds } from "../../lib/city/publicServices";
 type Page = Awaited<ReturnType<typeof fetchGatewayPage>>;
 const cache = new Map<string, { at: number; value: Page }>();
 const pending = new Map<string, Promise<Page>>();
-function read(key: string, input: { filter: GatewayQuery; bounds: CityBounds; search: string }, cursors: Record<string, string | null>, refresh = false) {
+function read(key: string, input: { filter: GatewayQuery; bounds: CityBounds; search: string; includeMobility: boolean }, cursors: Record<string, string | null>, refresh = false) {
   const pageKey = key + JSON.stringify(cursors);
   const previous = cache.get(pageKey);
   if (!refresh && previous && Date.now() - previous.at < 15_000) return Promise.resolve(previous.value);
   const running = pending.get(pageKey);
   if (running) return running;
-  const task = fetchGatewayPage(input.filter, input.bounds, input.search, cursors).then(value => {
+  const task = fetchGatewayPage(input.filter, input.bounds, input.search, cursors, input.includeMobility).then(value => {
     if (cache.size >= 24) cache.delete(cache.keys().next().value!);
     cache.set(pageKey, { at: Date.now(), value }); return value;
   }).finally(() => pending.delete(pageKey));
   pending.set(pageKey, task); return task;
 }
 
-export function useCityDiscovery(filter: GatewayQuery, bounds: CityBounds, search: string) {
-  const key = JSON.stringify({ filter, bounds, search });
+export function useCityDiscovery(filter: GatewayQuery, bounds: CityBounds, search: string, includeMobility = true, enabled = true) {
+  const key = JSON.stringify({ filter, bounds, search, includeMobility });
   const active = useRef(key); active.current = key;
   const revision = useRef(0);
   const mounted = useRef(false);
@@ -30,6 +30,7 @@ export function useCityDiscovery(filter: GatewayQuery, bounds: CityBounds, searc
   const [error, setError] = useState<string | null>(null);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(() => {
+    if (!enabled) { busy.current = false; setLoading(false); setError(null); return; }
     let cancelled = false;
     const request = ++revision.current;
     busy.current = true;
@@ -42,7 +43,7 @@ export function useCityDiscovery(filter: GatewayQuery, bounds: CityBounds, searc
         .finally(() => { if (accepts()) { busy.current = false; setLoading(false); } });
     }, 400);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [key, version]);
+  }, [key, version, enabled]);
   const more = useCallback(async () => {
     if (busy.current || state.key !== key || !Object.values(state.cursors).some(Boolean)) return;
     const request = ++revision.current;
@@ -54,7 +55,7 @@ export function useCityDiscovery(filter: GatewayQuery, bounds: CityBounds, searc
     } catch { if (accepts()) setError("moreError"); }
     finally { if (accepts()) { busy.current = false; setLoading(false); } }
   }, [key, state]);
-  return { items: state.key === key ? state.items : [], loading: loading || state.key !== key && !error,
+  return { items: enabled && state.key === key ? state.items : [], loading: enabled && (loading || state.key !== key && !error),
     partial: state.key === key && state.partial, error, more,
     hasMore: state.key === key && Object.values(state.cursors).some(Boolean), retry: () => setVersion(v => v + 1) };
 }

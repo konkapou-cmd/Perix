@@ -1,0 +1,8 @@
+{
+  "name": "@perix/deepmerge-safe",
+  "version": "4.3.1-perix.1",
+  "private": true,
+  "license": "MIT",
+  "main": "index.js",
+  "types": "index.d.ts"
+}

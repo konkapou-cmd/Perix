@@ -1,0 +1,17 @@
+{
+  "source_tree_sha256": "31cf3cff34a85d10ea40a47829526e4afb453670606fda42987ca176c649bc61",
+  "source_files": 716,
+  "incremental_files": [
+    "frontend/components/stories/CityAdViewer.tsx",
+    "frontend/tests/city-ad-viewer-styles.test.cjs"
+  ],
+  "typescript_exit_code": 0,
+  "frontend_tests_passed": 57,
+  "backend_passed": 275,
+  "backend_skipped": 1,
+  "isolated_passed": 19,
+  "runtime_tree_sha256": "4f660504354455154b3e18ed48923bbed008faafc0b22a64a27dc228d912b54a",
+  "runtime_identical_to_previous_staging": true,
+  "new_deployment_required": false,
+  "production_approval": false
+}

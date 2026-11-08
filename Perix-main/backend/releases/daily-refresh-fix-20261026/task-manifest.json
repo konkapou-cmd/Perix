@@ -1,0 +1,296 @@
+{
+  "base": "task-start dirty WIP; separate reviewed d91ff576 production-specific delta",
+  "local_changes": {
+    "Perix-main/backend/mobility/generations.py": {
+      "before": "bfccae65936ed85c5d6669be95088bf8655930a4ed4fa5bf05cf05594343ba0d",
+      "after": "79139df9b045db33763ebaaf3e3d8eb2dd9dd91ee8c5acc0bd5d9b58915d62c2"
+    },
+    "Perix-main/backend/mobility/osm_client.py": {
+      "before": "b23ee6faa0f27a56153c0ce8887fc205682d6b571c7c2c412600484239a6b34f",
+      "after": "7cbb1eaa02ce924b7df8a287ebc9d23aa58620830a3b53fead870bffe247c729"
+    },
+    "Perix-main/backend/mobility/roads.py": {
+      "before": "93cca6701cfb0643922e5ec5c43990f70d7b9cd23004a5572a426e64d8d2e88d",
+      "after": "8fb8e24259564af83f820bb1269be4d02c3ddccb7035f77524d6abe0b6a33c7d"
+    },
+    "Perix-main/backend/utils/mobility_workers.py": {
+      "before": "5ddf37f3464ab98b2c2324c8d2f642025ccb4f2ea7d6edcbbfdaaabc7aac7ef7",
+      "after": "4d40a104b7c6b321c7f1a9b64f64a30baf6bc39ad2443ea4e64289c919ab6eea"
+    },
+    ".github/workflows/mobility-physics-research.yml": {
+      "before": "35aa0cd43c5c77543aaa2fad26bfe4e0b5cda2ab6527bfa04701d7d414aeb2ec",
+      "after": "97e6c88843becf6c406c1eb12f5ce4433c639dbe1153587b3fda383125697ebe"
+    },
+    "Perix-main/backend/routes/mobility.py": {
+      "before": "d8cb7ac5f6d3ae8decdc5015cce56f3c009bf809aa964d3dffbfa92cbfc4fd3e",
+      "after": "33c0e17d73e6341d9c4c785d0ce108669e2f31217f1da063f1f3e019ce14a592",
+      "preimage_method": "exact reverse of three recorded task edits; not an original byte snapshot and not HEAD"
+    },
+    "Perix-main/backend/mobility/daily_recovery.py": {
+      "before": null,
+      "after": "afba949857a176d077698223f5751d2fe1844e37b6907ee097414dfb7ab853cf"
+    },
+    "Perix-main/backend/tools/build_osm_source.py": {
+      "before": null,
+      "after": "95edbc5f725f76160be293c7d393da5cc4ebb4b7dcf3c583d41153489615d245"
+    },
+    "Perix-main/backend/tests/test_daily_network_recovery.py": {
+      "before": null,
+      "after": "367d82134bdb87f994d28dda2de04cd9d92097160aff8d52cdd757a77700d962"
+    }
+  },
+  "production_changes": {
+    "mobility/roads.py": {
+      "before": "40a8e2fe6d35b476b4041169deaa69e16fdb395b9735105ed5aaecb94d218c66",
+      "after": "568a4705c4fae8a09e82b04499768d2ef6e68d5d49920e7bc06fb8c8d2c867df",
+      "tested_normalized_text_sha256": "bea5d2ac708c13e8530782aa2e237fb75494436ced12bb43b86fc2898e33a17f"
+    },
+    "mobility/generations.py": {
+      "before": "af3e046175e38acbeb109ad979c3e524961e8d40ae2250c32645ca22d985117a",
+      "after": "efa4f983793fea208ff6226eade4afcc555f138491a6dd5afdb6deb20ba8fd07",
+      "tested_normalized_text_sha256": "7bd7c60d7160f73200978f3c2a3841173956c596942bfcdf02dcd83fce21e3e9"
+    },
+    "mobility/osm_client.py": {
+      "before": "91122eeaf75250fc12f959e479482461f20899aec1dfb6008f2c4b280d8c7ff7",
+      "after": "0e882521b489c2402f173888a01dab22ed7a7e693c17970d409538290d58ad25",
+      "tested_normalized_text_sha256": "7cbb1eaa02ce924b7df8a287ebc9d23aa58620830a3b53fead870bffe247c729"
+    },
+    "utils/mobility_workers.py": {
+      "before": "7653bc249d667ce966795b1783f606a23458e9b1eb9fd95f8bef83326e9538b1",
+      "after": "1c75753f64ae79d99260a5e8f97e54891ad2c92f3c333628f908fd45b14b2bd4",
+      "tested_normalized_text_sha256": "4edd862fa6ec082940367488c2a38f44b4b35d2590f0347c092d7153b1f251d6"
+    },
+    "mobility/daily_recovery.py": {
+      "before": null,
+      "after": "afba949857a176d077698223f5751d2fe1844e37b6907ee097414dfb7ab853cf",
+      "tested_normalized_text_sha256": "afba949857a176d077698223f5751d2fe1844e37b6907ee097414dfb7ab853cf"
+    },
+    "tools/build_osm_source.py": {
+      "before": null,
+      "after": "95edbc5f725f76160be293c7d393da5cc4ebb4b7dcf3c583d41153489615d245",
+      "tested_normalized_text_sha256": "95edbc5f725f76160be293c7d393da5cc4ebb4b7dcf3c583d41153489615d245"
+    },
+    "tests/test_daily_network_recovery.py": {
+      "before": null,
+      "after": "367d82134bdb87f994d28dda2de04cd9d92097160aff8d52cdd757a77700d962",
+      "tested_normalized_text_sha256": "367d82134bdb87f994d28dda2de04cd9d92097160aff8d52cdd757a77700d962"
+    },
+    "tests/test_mobility_civil_day.py": {
+      "before": "03140f5cbac8b4dd831bce40781431286386c8c7e5d4709592d31e497c32e6b2",
+      "after": "44295e075731d7a6040caf707b58f82e2b502c5101749dde3eabad54950a9965",
+      "tested_normalized_text_sha256": "44295e075731d7a6040caf707b58f82e2b502c5101749dde3eabad54950a9965"
+    }
+  },
+  "local_patch_sha256": "ce77deac8afd3650a62f68ca5c192183ec0699820bdaf5091795597173ae9f83",
+  "production_patch_sha256": "f836537800e933f854cee40e03810136675ffa109566b9cd712d9a07ec923bb0",
+  "forward_reverse_byte_reconstruction_verified": true,
+  "production_review_text_equals_tested_text": true,
+  "protected_files_unchanged": {
+    "Perix-main/backend/mobility/arrivals.py": "04f8f9243a3cc77a8999025da8c7aa38c67b4e74caaa2af7eaf5b41dba158af1",
+    "Perix-main/backend/mobility/domain.py": "a640c17d92de40bf85873aaa34e7507cd37ca48c59c05bea9439b7e574979e1d",
+    "Perix-main/backend/mobility/editor.py": "6dbce3f6fe14538d85e55cec7b17894bdda22c7e79866387c0d8bfd3f3909b22",
+    "Perix-main/backend/mobility/geometry_audit.py": "79a093b8e3919a8df028104df47f36da507a38b1021d75e13c27ed55ce0bef11",
+    "Perix-main/backend/mobility/geometry_cache.py": "3d33348dcca0aa4c2c082c0f8d9855703a167bc5ceb506fb4dc4427df917c7df",
+    "Perix-main/backend/mobility/google_roads.py": "73f3e8e8d0fd30f970506ba33d8311d97053e61c4d12654e92e5557c5b33e76f",
+    "Perix-main/backend/mobility/graph.py": "aeb74ab8ef503c838365a95e57493648a5054755853ad0964d8a3a7793858e3a",
+    "Perix-main/backend/mobility/infrastructure.py": "66dba81afbacb25ab59aed792f6a4bcbd9dbd45a03a7b46e09b2118663f7dd1b",
+    "Perix-main/backend/mobility/island_schedule.py": "e19258fd06236246b87d116945aae7903a3142a14a0b1c6fceffa01cc9fc7b5e",
+    "Perix-main/backend/mobility/map_match.py": "39f57aa5f7d2b17ce08425b9cae38708596f3d333507093645c7a6bf1543c9f5",
+    "Perix-main/backend/mobility/osm_store.py": "6c6695ed6123fd4ef9d6adf2513a52da7764f447ca3b4e47fb94383ea43151ae",
+    "Perix-main/backend/mobility/overrides.py": "eb2121b00c332a583767b59d74167721d4882e85f08919c98299222688d5a35b",
+    "Perix-main/backend/mobility/physical_alignment.py": "1f554b3b38dda0edd4d70722639399ca0d119084fe16afa3898be78eb527918e",
+    "Perix-main/backend/mobility/rebuild_queue.py": "c291a8805d49e1ad4d24e9dddfa45ee4eff829b07698b2d9bb1f4b1c18bcabed",
+    "Perix-main/backend/mobility/regions.py": "58e5dabc2a0be216ca100e4613656dc04b2f9804011777182f962b985982cb7c",
+    "Perix-main/backend/mobility/restrictions.py": "ce8bd85f1f65255152fe130cbdab895c0367f7426a29a22ae7bd22a58bbe7f7f",
+    "Perix-main/backend/mobility/signals.py": "931c77bfd08b99aebd5d177a2469191b2def9883e38bd96a7e5a2c9960841899",
+    "Perix-main/backend/mobility/signal_semantics.py": "edcdaadcce61580842f5a5d335187fc2591bf2f2377ecadfdfd5a69bbe831a33",
+    "Perix-main/backend/mobility/telemetry.py": "6d8108529fb27f46e34a397ba95b3eace0f686017a0af576d6c0a2fc54dae7d4",
+    "Perix-main/backend/mobility/traffic_counts.py": "8c3bf82ed094383488739748e3a4aa022fe064855e76fb59ca1e11c4f0a1c607",
+    "Perix-main/backend/mobility/traffic_profiles.py": "9f211c7b72d61129aa230f019bc471e84b8924e2da77f2ff0024e263fc0a6c2c",
+    "Perix-main/backend/mobility/v2.py": "66e8bc1e220adf7ea6776e24bcd1dbeceaf3de738dd8c4fe466718a2de2421c9",
+    "Perix-main/backend/mobility/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Perix-main/backend/mobility/motion/bus.py": "263426d40a06e7bdb72c2bc6a3125e1b80aa1560186befc0a04673f0260b2de5",
+    "Perix-main/backend/mobility/motion/calibration.py": "a68e3309e469ad125cbb2c4b64b4e6f66282767e2e253e3b97034b0a231a1f91",
+    "Perix-main/backend/mobility/motion/common.py": "b44b03f383178c0600766f226646edbf12a6c9d27e23b3a1b0a24d21137f15f1",
+    "Perix-main/backend/mobility/motion/config.py": "e5d56759e84e12272a8c77dca70abec911add8d84e0f229f8e5897c6a0662e87",
+    "Perix-main/backend/mobility/motion/diagnostics.py": "5f852e3d83ccecaad958388fafe3d4f34fcbf74ce38d65c0f6a9f4d791fb108c",
+    "Perix-main/backend/mobility/motion/engine.py": "a6331a1ac614aa4daa7da90ed80fc6bdb5bf671944ed29afe245c998c04bd0dc",
+    "Perix-main/backend/mobility/motion/explain.py": "5ace5754ab476224874e133cbe4580c00e1aeeeb31eef0e150e538c2c903e581",
+    "Perix-main/backend/mobility/motion/google_traffic.py": "2395e9024cc22ed35579dcf3238a807af015d44c2b5ccf0273b64f5e5831f1b2",
+    "Perix-main/backend/mobility/motion/handover.py": "baf8affa06362713bad79a1e9883acdfecc1888c34925e0ef08e119654fb2c58",
+    "Perix-main/backend/mobility/motion/native_realtime.py": "578a9f8dc333d08473de5e7bf6d062a658b948e0979a8e23529dc898b2b458bb",
+    "Perix-main/backend/mobility/motion/native_recalibration.py": "495c4bc42d47d6bb7f4f8fba6e4579a93c18405d25a9a078868a4000078cf036",
+    "Perix-main/backend/mobility/motion/time_allocation.py": "623e5254234907a24c572123900a8cb64c39613e5aa21c5896ba16fdbbf5b739",
+    "Perix-main/backend/mobility/motion/traffic.py": "372976d0dd617e271ae49c1829ab1c2d8ab634372e3e2bee8ccfa724a5e78c41",
+    "Perix-main/backend/mobility/motion/tram.py": "f615c74b88b8c590a7bf6ca48a5c65ce67e74f047cce15a20fa51989286e43df",
+    "Perix-main/backend/mobility/motion/__init__.py": "b95717db2e19381f657c0a99f6fe0e38319cc59f905247dcd44259af4d864ad9",
+    "Perix-main/backend/tests/conftest.py": "2bec078f90c34903c6665d25db8527c79cbbb25fefdd39c19bf55a5b199908c6",
+    "Perix-main/backend/tests/test_activities_business_flow.py": "97f427217617a3d219b2a6d8f3d7423d042896dc86f2f5325cccfc2f6cf4850a",
+    "Perix-main/backend/tests/test_analytics_api.py": "808f5b97362118b592e3654643ee010bfa286714ab2b1877909508ad2336edd0",
+    "Perix-main/backend/tests/test_attendance.py": "75f75ae27d4eca77e06a166b5b9f0c566901de2526202b512300d8758596651f",
+    "Perix-main/backend/tests/test_auth_email_security.py": "d13d6b48aab4b4037180ab93962e91fbaa4208ab65656039fe6499ed113b27ba",
+    "Perix-main/backend/tests/test_backend_api.py": "0044b6e58bcae86817a0dd70ddf28485097fca34508bdf59f2f3228b0f4cc201",
+    "Perix-main/backend/tests/test_bug_fixes.py": "468e55035ab68c399e5a8d0af4aeb4882b998ba26493845d7b7b1ea3b4533784",
+    "Perix-main/backend/tests/test_bulk_delete_calls.py": "869e0e5b00968a4818501c91c1597190e8beebdb9e9fdc69aefb3f8655a9d9ca",
+    "Perix-main/backend/tests/test_business_categories.py": "83dec2d1d9ed6e30fddf58c9655c12c1e325ca85cca71e143ea7fd84562daa59",
+    "Perix-main/backend/tests/test_business_gallery_api.py": "114f683a2c5a6b3e336c01023c7919fc1ac3e43ad40ca44f2c3404dd7f5301ab",
+    "Perix-main/backend/tests/test_business_locator_fixes.py": "a1601f2726042ca45a9511bbb23188d21ac7eb95deaefa5751e740a3f7e76c65",
+    "Perix-main/backend/tests/test_calls_subscriptions_messages.py": "3b0b48b299790e15c95a8f6048a95638a41bb1e0ede86c9db9374413c1b4a21f",
+    "Perix-main/backend/tests/test_chunked_upload_and_calls.py": "9cf776e3041c112545b97f5e99bac66bb97774cb1fdbf4d4155c5bde8f976f87",
+    "Perix-main/backend/tests/test_date_range_booking.py": "723f47e39b09175068617e2688805a243219bf81c554d69bc74053ac85f03764",
+    "Perix-main/backend/tests/test_date_range_booking_concurrency.py": "88e1455a186736a8f551306aaf0550982b7ca692ee622d4aa276862d5ab90984",
+    "Perix-main/backend/tests/test_date_range_utils.py": "c4bb15ee0216db821029a91af949774041dedb44ed950147a7d174f981147a95",
+    "Perix-main/backend/tests/test_delete_profiles.py": "4ef1c4d8fde163d5dc62dff39ae225cf5785854df8da1733d70d0ee54572058a",
+    "Perix-main/backend/tests/test_deletion_resolution.py": "27329835066d0efe31d9ac65c7694772796d5d6c1593ba505a1913d03acb54ca",
+    "Perix-main/backend/tests/test_e2e_predeployment.py": "eb593420bc2a10e44e4a4634ea30cca5f65ca955f646d5ec640d0d41cfe40a8e",
+    "Perix-main/backend/tests/test_email_delivery.py": "cc2caf28af37072e716adf8d2d77c904c1b021dc2b6ca16ea2af309c6d076a0c",
+    "Perix-main/backend/tests/test_entity_ownership.py": "c85b43788658bd7d8ca5c405de91d56bcf2ed3062dcb50112495f35afbc64515",
+    "Perix-main/backend/tests/test_event_features.py": "841a60d0bf44781b9b2abe5fe1f87d77b77fa74b6583b0d58816565d86b0999c",
+    "Perix-main/backend/tests/test_fan_gallery.py": "a6b87368db23ecdf6c8c294aae8dfc488d45a642ba26ce4d6bbca13deacd465c",
+    "Perix-main/backend/tests/test_friend_messages_stories_api.py": "1fb9319aadf1949db0e75a917f05d527a6f1d6d4b822686644fcf990a274cb1b",
+    "Perix-main/backend/tests/test_gallery_auto_post.py": "6914c7a6c95120c3e69a530e05a415ec982d2dfa943d096b36f7a678750681e9",
+    "Perix-main/backend/tests/test_gtfs_island_integrity.py": "abbf2ad18ed9720a183187732c94645fba099d5087cc62d3c644d1c1ddd565cb",
+    "Perix-main/backend/tests/test_home_feed_artists_fix.py": "cffce85b42258705e67150535a409d6cfd0cd2ba036ed6f460df2093e10c1b59",
+    "Perix-main/backend/tests/test_hotel_service_routes.py": "5f3c7d6228c30632509e07148738c1426c85450005498895c80eb6b435527447",
+    "Perix-main/backend/tests/test_hotel_service_validation.py": "c112873d02434d5c114e1a9ddccb7c8b162fbb99c3e5730a7e9dee899d06f9db",
+    "Perix-main/backend/tests/test_island_osm_catalog.py": "fd934215276989d802e3e89d4d74377d5125995cd17876bf6b3aef9d3835f7ee",
+    "Perix-main/backend/tests/test_island_review.py": "0a2a5e694d9c212bf2be1d9350c35216341a20c7efb48526b8baaba6ca73e696",
+    "Perix-main/backend/tests/test_island_schedule.py": "08cf12039c37ec6dca91c2d2057995f688476f9678c53855dc3449e45ca7d1f6",
+    "Perix-main/backend/tests/test_island_spatial_matching.py": "964b1b0550d01c971d8d96570510976b89035d97fcca98e61b370f5e92a55a03",
+    "Perix-main/backend/tests/test_jobs_api.py": "ee8c4ab0e4cb38682aa079d294e0736a03d38678fa6440077eb30b9efea89651",
+    "Perix-main/backend/tests/test_media_and_location.py": "aa42af1d2270084a6056fe37f709e8133e56a55a455e6b7ca7cf17bb60dec09c",
+    "Perix-main/backend/tests/test_message_badges.py": "80e6ad7d4f1e24ef78c4f023005e831f4ec1fb99d361609163fa98ef1496b0ec",
+    "Perix-main/backend/tests/test_message_edit_and_profiles.py": "30c890619fdaf0076c1f769943de27fa50b243ff74add5ea6aaa96b3f84ab41c",
+    "Perix-main/backend/tests/test_migration.py": "33e50fc32169336912895624176f0e81de182a8ce9f3f7fc2700a0fdb8a557c7",
+    "Perix-main/backend/tests/test_mobility_effective_consumers.py": "2137e0a2eee3b39801b255378daad445936a196cf65a4ff68ca51ff8042c7168",
+    "Perix-main/backend/tests/test_mobility_effective_timeline.py": "145fb7c891a5c7ff3273046815658f0aff4b4a3b73e288a61351e173a21c911e",
+    "Perix-main/backend/tests/test_mobility_generation_fingerprints.py": "c9903aafe812b96465ce447bab0c754c8a100832130de5d61493ffc4b56273ac",
+    "Perix-main/backend/tests/test_mobility_generation_readiness.py": "81a9da1f1221094c7276dde5e27b073a08e4cb73d8d752f3bebe60a573482758",
+    "Perix-main/backend/tests/test_mobility_geometry_conformance.py": "05606cb96b92c0dacaae6768d59d674ca6e530939fc0532c7ce5d4b4b98e0467",
+    "Perix-main/backend/tests/test_mobility_geometry_validation_ordered.py": "7a16302dc96f5b21159149e5037a0f0578b3300be97babe9e527aa9608d083c1",
+    "Perix-main/backend/tests/test_mobility_infrastructure.py": "36c49aaccdb48f219de2a5071e7b86665da0044abe321b98d313738db8d65236",
+    "Perix-main/backend/tests/test_mobility_motion_bus_tram.py": "47de1793ba82920e264f451c8de0d08a34e9ee79ff0d84906ca8f199d339679f",
+    "Perix-main/backend/tests/test_mobility_motion_calibration.py": "fb1559dd123c1f48238fb0fadbb658daa4ccdf94701f67972d42081d8ed821ae",
+    "Perix-main/backend/tests/test_mobility_motion_common.py": "90b810c2aa55bb67184418fadd457e1e33127fb4d9255239e0ce83157eca2949",
+    "Perix-main/backend/tests/test_mobility_motion_diagnostics.py": "2e22452585db3e7dbd7093d8b5e564f962fa08bb253b28552186d8aef4f25cc8",
+    "Perix-main/backend/tests/test_mobility_motion_diagnostic_refresh.py": "e431730e5760284bf1b9ebdced374525af0ae3eff74fe0a2f7a6daddf8b35642",
+    "Perix-main/backend/tests/test_mobility_motion_engine.py": "c1b19df088b822b43e7f77138a94c5f59a09d0d9b4a144c8c4237046fdf8a7fe",
+    "Perix-main/backend/tests/test_mobility_motion_engine_observability.py": "8cbdfd63e829bbcf0a01d6036cef479afb6350f3934702f686756f7efbdef7c1",
+    "Perix-main/backend/tests/test_mobility_motion_explain.py": "5b5687c3e9f400cbb8fae6ef610d895be1f3ff2ba0e956cca0164b7aa5035bce",
+    "Perix-main/backend/tests/test_mobility_motion_fusion.py": "ee5e0a95dc914701bdf1d39287ade907574dae14b61c6c471f066180d8bc10ee",
+    "Perix-main/backend/tests/test_mobility_motion_google_traffic.py": "73cb40339018373415560fd10c1932182a61451435c5a7a748b85ddd4bb18220",
+    "Perix-main/backend/tests/test_mobility_motion_handover.py": "bc876dd06db293f617b46bfda10ebacf855fca5ffdc67ce060e629d6c16bc224",
+    "Perix-main/backend/tests/test_mobility_motion_initial_speed.py": "8b41b9b6675b75e7dc1e1a4350d429f7fa188e7bcb9042d81309068a741c3778",
+    "Perix-main/backend/tests/test_mobility_motion_lateness.py": "92521d1dcf862b1e57d1f046c3720dcefb243e8da63aaad2c20130dc77f7ca4b",
+    "Perix-main/backend/tests/test_mobility_physical_alignment.py": "8e5af2749583e127ca7001dab2fcc4121dfe6199aacb6286ea98c58fb82ea379",
+    "Perix-main/backend/tests/test_mobility_rebuild_queue.py": "26bb022ebf90ba200e3b4152db88ec4aa4e919229ed5c7c00bf4513e864d7920",
+    "Perix-main/backend/tests/test_mobility_regions.py": "225bd6ee343f22d97fcef62a9e0bc60e066db65753b5b973f67ea565bd34f497",
+    "Perix-main/backend/tests/test_mobility_road_edge_orientation.py": "27bd32b4e547db515fbd067642da0fb61bda89f530679ec51f4c07a7b49108d3",
+    "Perix-main/backend/tests/test_mobility_signal_clustering.py": "f948510037ab3901d96af7c5efb776ccf5ad62de6865aa1fa1cb534e8a9e6405",
+    "Perix-main/backend/tests/test_mobility_signal_semantics.py": "a5438ea8ee7cf89d9373bb7cfef448ee16ef1525534191ccfc8d74ee8004b124",
+    "Perix-main/backend/tests/test_mobility_timeline_contract.py": "8ff2dae1aa79285ca430e95a18fcfe14de5c1e938110c7a3c1e75d9f5738db8e",
+    "Perix-main/backend/tests/test_mobility_time_allocation.py": "0b0fb1a523934eda0ecbd4188f29ac0d47451ea1dff1c93369da9eb3bc2e9acb",
+    "Perix-main/backend/tests/test_mobility_traffic_profiles.py": "69bb91571e96b2f12f7bef53b7fd17399b973850aefd7a75ee097181dfe92d00",
+    "Perix-main/backend/tests/test_music_and_profiles_api.py": "a6e1c1252474223f32c24c167210ab93cb4c3bbc13fa2e1e35cc10cbcf9b0359",
+    "Perix-main/backend/tests/test_native_recalibration.py": "1685b66b8d8f54b019f2a9a86237e040754ccd171aff08d8d2085addf6b48cb4",
+    "Perix-main/backend/tests/test_post_gallery_sync.py": "cc1c9eaae84e8927956765c247b5f8877212f4fbcd1b7180e2dd61ffc2475760",
+    "Perix-main/backend/tests/test_profile_common_friends_fix.py": "70f6e5fe74ee479f58e5784fbc7423c6d2c4ce815cec1e890e753b394ff932b4",
+    "Perix-main/backend/tests/test_push_notifications.py": "d178e033b8e84eece50bcce01722b2c7fe8592d9e53e4208b9a64e5ec377d246",
+    "Perix-main/backend/tests/test_refactored_routes.py": "b040ab01a9f50793e10e5553e83649f14d0e3b57750181e36908229ff5ac9c0c",
+    "Perix-main/backend/tests/test_server_route_declarations.py": "282179f82eb68b509c14ef721757e3e99ba5ce35c86e8e10650c544fb2b4a2d9",
+    "Perix-main/backend/tests/test_story_analytics_api.py": "5a5ecb332e9d2bc1344974f3222c52097f50c3fe507cbd3ed8d43601c1ba5e72",
+    "Perix-main/backend/tests/test_video_upload_and_locator.py": "530cee451e7392ac188d6192cacdfeb2412dd72353b797085f86e67e0e9f8651",
+    "Perix-main/backend/tests/test_ws_and_auth.py": "ac0d8a1a6c9d2992b8f3455c4cb703b2a13bae4b6b9cb4b7b86d5bc6dfa98f53",
+    "Perix-main/backend/releases/adaptive-traffic-20261026/README.md": "684bda07446195c8b98bfc336d5a9279e6bdcb9326d1d768897d039b9509b7f6",
+    "Perix-main/backend/releases/area-selection/README.md": "ade3c1947da69abf484190d60338cb6cc0bff39b3536b30659faf7e6a6829a8b",
+    "Perix-main/backend/releases/daily-refresh-forensics-20261026/README.md": "0a5acc69aaccc44aa23069eb3db8fe66204b40eb35b174ccd1dad8145327f7f2",
+    "Perix-main/backend/releases/magdeburg-eta-approach/README.md": "80e5b31c0628427c661615b64f934a36bbc246fbf073ece95a06fe9f4a811784",
+    "Perix-main/backend/releases/magdeburg-occurrence-fix/README.md": "e6a93f3dc27893ddc75f3bf9f4b6ff83655e156ceac52d4ea0fb81c859585a02",
+    "Perix-main/backend/releases/native-recalibration-20261026/README.md": "86d469ed45106c8cbe9b448802a044411c3238087a0aab2ddd5ff919ce364112",
+    "Perix-main/backend/releases/neighbor-timing/README.md": "b5f4172441e2ceaa0426c3e8f741d2c1123e7ef2f23448fa7f0c0a05d3440657",
+    "Perix-main/backend/releases/physics-time-allocation-20261026/README.md": "403c9ddf74bd130c6b12fc0a780e2e304d462bd3e99af531cbe3b0bc08055dc7",
+    "Perix-main/backend/releases/shadow-hardening-20261026/README.md": "5216758c7c64b97cd2515fc49de372619d78d5d3b7db1c435fbc1782fc57647e",
+    "Perix-main/backend/releases/sparse-realtime/README.md": "713afa58626b25dd39eeedb2a43fdbc294e5a1f0f252a64d2e5844a2500c9466",
+    "Perix-main/backend/releases/targeted-coverage/README.md": "94aae3150503392b0816dec432f6cf58f08e5f1d35ace04dc5651f07e32db5e8",
+    "Perix-main/backend/releases/neighbor-timing/production-d91ff576/README.md": "e5e19dac85c860fb8d80d7f29be9aca3e5646b70770416f818ce26f5afe0ec95"
+  },
+  "tests": {
+    "new-unit-results.xml": {
+      "tests": 30,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "production-unit-results.xml": {
+      "tests": 30,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "regression-results.xml": {
+      "tests": 465,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "production-regression-results.xml": {
+      "tests": 296,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    }
+  },
+  "production_regression_deselected": 2,
+  "real_source_inputs": {
+    "C:\\Users\\PC\\AppData\\Local\\Temp\\opencode\\perix-daily-fix-20261026\\reference\\sachsen-anhalt.osm.pbf": "ba1d36bfa5bcc08933000c1304f56ce090729fe6b158f8241f4d9909f851253c",
+    "C:\\Users\\PC\\AppData\\Local\\Temp\\opencode\\perix-daily-fix-20261026\\reference\\sachsen-anhalt.poly": "8cfaba37360087feff109a4e7c5e4462b8f6a3687429f06af3b5b5d6d257a360",
+    "C:\\Users\\PC\\AppData\\Local\\Temp\\opencode\\perix-daily-fix-20261026\\reference\\magdeburg-source.json": "08dd44634a11e82219185c1154f28f6925398063b90b23c410559772399bf0e3",
+    "C:\\Users\\PC\\AppData\\Local\\Temp\\opencode\\perix-daily-fix-20261026\\preparation-input.json": "83d7115ee8f81bb72dd519be4c4e9d4e9999d51e5c060155c96dec32c9fdb80f"
+  },
+  "large_inputs_not_packaged": true,
+  "offline_preparation_ready": 159,
+  "offline_preparation_expected": 159,
+  "preparation_storage": "IN_MEMORY_ONLY_NOT_REAL_MONGO",
+  "production_mutations": 0,
+  "deployment": false,
+  "production_recovery_flag_activated": false,
+  "commit_push": false,
+  "traffic_requests": 0,
+  "new_gtfs_downloads": 0,
+  "geofabrik_source_http_requests": 4,
+  "real_mongo_recovery_staging_gate_outstanding": true,
+  "independent_vehicle_accuracy": null,
+  "artifacts_sha256": {
+    "full-preparation-replay.json": "35a7a23e6cd2ba1f7a855163038296dd191597601875b1abe1027e9e29c2c40f",
+    "geometry-source-proof.json": "df4442478cb51e6d6cefeb4fb73485225e2263ee56e3d2b89a284bd98c98ec53",
+    "local-WIP-task-only.patch": "ce77deac8afd3650a62f68ca5c192183ec0699820bdaf5091795597173ae9f83",
+    "new-unit-results.xml": "4d47391bac035e328b371439d162e90784a5f12554663a9229ae451fd66fb593",
+    "operational-restrictions.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "production-observation.json": "c2fde24cbbd78e90d046212dcb01ec9bd4cfafc80b908a8b154d7ccc2403f41e",
+    "production-regression-initial.xml": "175507f7df8de2f95ba6fa67a0c9d102e74bc54df3f99f886633dd3edf4b34c8",
+    "production-regression-results.xml": "8bbf05db0e051ec2a23e582b77e55c8d47c4790e0ec46e588af5443f8b6ee164",
+    "production-source-review-NOT-DEPLOYABLE.zip": "eeff90b1e7b6d4531b87b06ea0cffcd392fe7bff778f93608853a9dec59e8ae2",
+    "production-source-task-only.patch": "f836537800e933f854cee40e03810136675ffa109566b9cd712d9a07ec923bb0",
+    "production-unit-results.xml": "fe0b0131fc9725d63034237b8c809c197d0572f9f6b498899df5b25f048fea39",
+    "README.md": "0d8dbdd8fb6d970a2f6bbe12715a8521bc2896fc3e3a70939c8c0a9ac896b071",
+    "reference-download-manifest.json": "7d5d0b0bbba933d9ee010797b5eccaa89ab5cc59ccc36b333bb673dfbcd42a82",
+    "regression-results.xml": "9066ca6c887fc3cd64337149633df8aa14b64f75c5e9b63272dbd9ae5f570fbf",
+    "reproduce-task-deltas.py": "16b88d78e212ed2b27a36877d6f2f776b0a3d2f4ad94ff870245dd8c6a554cd1",
+    "validation-harnesses.zip": "aa25469d5994ae3a32b77a483edfb76950d89c392af7670309c51f6ee1ca13c0"
+  },
+  "executed_exporter": {
+    "path": "C:\\Users\\PC\\AppData\\Local\\Temp\\opencode\\perix-daily-fix-export.py",
+    "sha256": "16b88d78e212ed2b27a36877d6f2f776b0a3d2f4ad94ff870245dd8c6a554cd1",
+    "copied_script_is_audit_record": true
+  },
+  "validation_harnesses_sha256": {
+    "perix-daily-fix-reference.py": "5e7e26c7d8e98601db87da1f3a7fa8825b56a8f09a727acd30204531b1520d5a",
+    "perix-daily-fix-geometry-proof.py": "3e0a79e8a87ef08a9e04ba601453a80637f2d269df01936cc84fa1dfaf40d57f",
+    "perix-daily-fix-production-overlay.py": "41d4bb4aee471a52be0650ce49e64a73ce3c8f2db89959c927a9e2682a8589b0",
+    "perix-daily-fix-preparation-replay.py": "3d7069c11237251df8830c8563d6f09e17f7f9b21a2d6d10a1a627290f51b95e",
+    "perix-daily-fix-snapshot.py": "5818255e6f9138e9859f808e880d0c20d05d4f58e251fc855fe6374e4da2edb0",
+    "perix-daily-fix-restrictions.py": "c56b7c39030021d4d5806506cde1fa3c8a2b6c2a752670348610f699b97c15f5",
+    "perix-daily-fix-final-observation.py": "235dc9fbf3b13038202688f84b31a5261dd3c96f0b1970c9e3767df00cc4fed4",
+    "perix-daily-fix-export.py": "16b88d78e212ed2b27a36877d6f2f776b0a3d2f4ad94ff870245dd8c6a554cd1"
+  }
+}

@@ -6,6 +6,8 @@ import { useAuth } from "../context/AuthContext";
 import { CreateFlowContext } from "../context/CreateFlowContext";
 import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
 import TopNavbar from "./TopNavbar";
+import MapScreenHeader from "./city/MapScreenHeader";
+import { MAP_PAGE_BACKGROUND } from "../lib/city/mapLayout";
 import UploadProgressBar from "./UploadProgressBar";
 import BusinessActionsModal, { BusinessAction } from "./business/BusinessActionsModal";
 import CreationSheet, { CreationAction } from "./user/CreationSheet";
@@ -114,7 +116,8 @@ export default function GlobalWebChrome({ children }: { children: React.ReactNod
   // shown on ALL pages including home, so every screen shares one top bar.
   const routeSegments = segments as string[];
   const isCityGateway = routeSegments.length === 0 || routeSegments[0] === "index" || routeSegments[0] === "app" || routeSegments[0] === "public-services";
-  const showTopNavbar = isDesktop && Platform.OS === "web" && !!sessionToken && segments[0] !== "(auth)" && !isCityGateway;
+  const isLocator = routeSegments[0]==='locator' || (routeSegments[0]==='(tabs)' && routeSegments[1]==='locator');
+  const showTopNavbar = isDesktop && Platform.OS === "web" && (!!sessionToken || isLocator) && segments[0] !== "(auth)" && !isCityGateway;
 
   const createFlowValue = useMemo(
     () => ({
@@ -126,10 +129,9 @@ export default function GlobalWebChrome({ children }: { children: React.ReactNod
 
   return (
     <CreateFlowContext.Provider value={createFlowValue}>
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor:MAP_PAGE_BACKGROUND }}>
         {showTopNavbar && (
-          <TopNavbar
-            brandLogo={routeSegments[0] === "(tabs)" && routeSegments[1] === "home"}
+          sessionToken ? <TopNavbar
             onCreatePress={() => {
               if (!sessionToken) {
                 router.push("/login" as any);
@@ -138,9 +140,9 @@ export default function GlobalWebChrome({ children }: { children: React.ReactNod
               if (isBusiness) setShowBizActions(true);
               else setShowCreateSheet(true);
             }}
-          />
+          /> : <MapScreenHeader exploreOnly={isLocator} logoVariant={isLocator ? "english" : undefined} />
         )}
-        <View style={{ flex: 1 }}>{children}</View>
+        <View style={{ flex: 1, backgroundColor:MAP_PAGE_BACKGROUND }}>{children}</View>
 
         <UploadProgressBar />
 

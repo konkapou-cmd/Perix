@@ -1,0 +1,21 @@
+{
+  "at": "2026-10-27T01:18:20.462998+00:00",
+  "deployment": "86787584-b517-4c4a-acbb-da7ef325add5",
+  "active": {
+    "version_id": "net_fde2a20dcf86",
+    "generation_state": "ACTIVE_READY",
+    "service_date": "2026-10-27"
+  },
+  "flags": {
+    "MOBILITY_SYNC_AUTO_ACTIVATE": "true",
+    "MOBILITY_DAILY_RECOVERY_ENABLED": "true",
+    "MOBILITY_NATIVE_RECALIBRATION_ENABLED": "false",
+    "MOBILITY_GOOGLE_TRAFFIC_ENABLED": "false",
+    "MOBILITY_TOMTOM_ENABLED": "false",
+    "MOBILITY_WAIT_ONLY_RECOVERY_ENABLED": "false"
+  },
+  "lookahead_config_present": false,
+  "lookahead_effective": false,
+  "runtime_files_verified": 278,
+  "mismatches": []
+}

@@ -1,0 +1,266 @@
+{
+  "origin": "https://backend-staging-staging-7ada.up.railway.app",
+  "readers": 5,
+  "rounds": 4,
+  "records": [
+    {
+      "reader": 0,
+      "path": "/api/mobility/v2/map",
+      "status": 200,
+      "duration_s": 3.4530000002123415,
+      "bytes": 4472
+    },
+    {
+      "reader": 2,
+      "path": "/api/mobility/v2/map",
+      "status": 200,
+      "duration_s": 2.031999999890104,
+      "bytes": 4472
+    },
+    {
+      "reader": 4,
+      "path": "/api/mobility/v2/map",
+      "status": 200,
+      "duration_s": 0.4529999999795109,
+      "bytes": 4472
+    },
+    {
+      "reader": 1,
+      "path": "/api/mobility/v2/map",
+      "status": 200,
+      "duration_s": 2.7810000001918525,
+      "bytes": 4472
+    },
+    {
+      "reader": 3,
+      "path": "/api/mobility/v2/map",
+      "status": 200,
+      "duration_s": 1.281999999890104,
+      "bytes": 4472
+    },
+    {
+      "reader": 0,
+      "path": "/api/mobility/v2/stops/QA_bus_B/arrivals",
+      "status": 200,
+      "duration_s": 0.14099999982863665,
+      "bytes": 2
+    },
+    {
+      "reader": 2,
+      "path": "/api/mobility/v2/stops/QA_bus_B/arrivals",
+      "status": 200,
+      "duration_s": 0.125,
+      "bytes": 2
+    },
+    {
+      "reader": 1,
+      "path": "/api/mobility/v2/stops/QA_bus_B/arrivals",
+      "status": 200,
+      "duration_s": 0.07899999991059303,
+      "bytes": 2
+    },
+    {
+      "reader": 4,
+      "path": "/api/mobility/v2/stops/QA_bus_B/arrivals",
+      "status": 200,
+      "duration_s": 0.125,
+      "bytes": 2
+    },
+    {
+      "reader": 3,
+      "path": "/api/mobility/v2/stops/QA_bus_B/arrivals",
+      "status": 200,
+      "duration_s": 0.09300000010989606,
+      "bytes": 2
+    },
+    {
+      "reader": 0,
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 0.0940000000409782,
+      "bytes": 2
+    },
+    {
+      "reader": 2,
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 0.09300000010989606,
+      "bytes": 2
+    },
+    {
+      "reader": 1,
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 0.10899999993853271,
+      "bytes": 2
+    },
+    {
+      "reader": 4,
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 0.1410000000614673,
+      "bytes": 2
+    },
+    {
+      "reader": 3,
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 0.125,
+      "bytes": 2
+    },
+    {
+      "reader": 1,
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 0.2649999998975545,
+      "bytes": 2
+    },
+    {
+      "reader": 4,
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 0.2649999998975545,
+      "bytes": 2
+    },
+    {
+      "reader": 0,
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 0.29600000008940697,
+      "bytes": 2
+    },
+    {
+      "reader": 3,
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 0.25,
+      "bytes": 2
+    },
+    {
+      "reader": 2,
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 0.29600000008940697,
+      "bytes": 2
+    },
+    {
+      "reader": 1,
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 0.2809999999590218,
+      "bytes": 2
+    },
+    {
+      "reader": 0,
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 0.29600000008940697,
+      "bytes": 2
+    },
+    {
+      "reader": 2,
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 0.29600000008940697,
+      "bytes": 2
+    },
+    {
+      "reader": 4,
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 0.29600000008940697,
+      "bytes": 2
+    },
+    {
+      "reader": 3,
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 0.2970000000204891,
+      "bytes": 2
+    },
+    {
+      "reader": 4,
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 8.0,
+      "bytes": 2
+    },
+    {
+      "reader": 0,
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 8.0,
+      "bytes": 2
+    },
+    {
+      "reader": 1,
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 8.0,
+      "bytes": 2
+    },
+    {
+      "reader": 2,
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 8.0,
+      "bytes": 2
+    },
+    {
+      "reader": 3,
+      "path": "/api/mobility/v2/vehicles?motion_preview=true",
+      "status": 200,
+      "duration_s": 7.952999999979511,
+      "bytes": 2
+    }
+  ],
+  "metrics_before": {
+    "deployment": "2c4a3dc0-6a5f-4c96-9856-19810774491b",
+    "epoch": 1793696701.6416008,
+    "memory_current_bytes": 136368128,
+    "memory_peak_bytes": 192753664,
+    "memory_max_bytes": 24000000000,
+    "cpu_usage_usec": 14001208
+  },
+  "metrics_after": {
+    "deployment": "2c4a3dc0-6a5f-4c96-9856-19810774491b",
+    "epoch": 1793696741.493698,
+    "memory_current_bytes": 136556544,
+    "memory_peak_bytes": 192753664,
+    "memory_max_bytes": 24000000000,
+    "cpu_usage_usec": 14577488
+  },
+  "endpoints": {
+    "/api/mobility/v2/map": {
+      "requests": 5,
+      "p50_s": 2.031999999890104,
+      "p95_s": 3.4530000002123415,
+      "p99_s": 3.4530000002123415
+    },
+    "/api/mobility/v2/stops/QA_bus_B/arrivals": {
+      "requests": 5,
+      "p50_s": 0.125,
+      "p95_s": 0.14099999982863665,
+      "p99_s": 0.14099999982863665
+    },
+    "/api/mobility/v2/vehicles?motion_preview=true": {
+      "requests": 20,
+      "p50_s": 0.29600000008940697,
+      "p95_s": 8.0,
+      "p99_s": 8.0
+    }
+  },
+  "http_errors": 0,
+  "limits": [
+    "Small QA dataset; at most five virtual readers from one client machine.",
+    "Not the proposed 50/150-client capacity test, multi-worker hosting, or DB CPU test.",
+    "Cgroup values are container metrics, including SSH diagnostics, not precise per-request CPU."
+  ],
+  "mean_container_cpu_cores": 0.014460468654931108,
+  "gates": {
+    "no_http_errors": true,
+    "fleet_p95_under_800ms": false,
+    "map_p95_under_2s": false
+  },
+  "gates_passed": false
+}

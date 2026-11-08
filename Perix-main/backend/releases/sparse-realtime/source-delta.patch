@@ -1,0 +1,1861 @@
+--- a/Perix-main/backend/mobility/arrivals.py
++++ b/Perix-main/backend/mobility/arrivals.py
+@@ -180,7 +180,8 @@
+             veh = pos_by_id.get(vehicle_id)
+             if veh:
+                 distance_m = round(_hav_m(veh["latitude"], veh["longitude"], target_lat, target_lng))
+-        raw_eta_source = eta_source_for_stop(rt, entry.get("stop_id"))
++        raw_eta_source = eta_source_for_stop(rt, entry.get("stop_id"), entry)
++        from mobility.timing_evidence import timing_evidence
+         modelled = revision and entry.get("prediction_basis") == "PERIX_MOTION_PLAN"
+         eta_source = "PERIX_ESTIMATE" if modelled else raw_eta_source
+         eta_seconds = max(0, int(entry['predicted_arrival']) - now)
+@@ -215,6 +216,9 @@
+                 "source": eta_source,  # source of the TIME, not the position
+                 "eta_source": eta_source,
+                 "source_eta_source": raw_eta_source,
++                "timing_evidence": timing_evidence(entry),
++                "provider_predicted_arrival": _fmt_service_time(entry["provider_predicted_arrival_s"]) if entry.get("provider_predicted_arrival_s") is not None else None,
++                "provider_predicted_departure": _fmt_service_time(entry["provider_predicted_departure_s"]) if entry.get("provider_predicted_departure_s") is not None else None,
+                 "source_predicted_arrival": _fmt_service_time(int(entry.get("source_predicted_arrival", entry["predicted_arrival"]))),
+                 "source_predicted_departure": _fmt_service_time(int(entry.get("source_predicted_departure", entry["predicted_departure"]))),
+                 "prediction_basis": entry.get("prediction_basis", "SOURCE_TIMELINE"),
+@@ -223,8 +227,8 @@
+                 "platform_latitude": target_lat,
+                 "platform_longitude": target_lng,
+                 "position_source": "LIVE" if gps or (active_vehicle and not active_vehicle.get("estimated")) else "ESTIMATED",
+-                "realtime_updated_at": rt.get("updated_at") if raw_eta_source == "REALTIME" else None,
+-                "realtime_feed_timestamp": rt.get("feed_timestamp") if raw_eta_source == "REALTIME" else None,
++                "realtime_updated_at": rt.get("updated_at") if raw_eta_source.startswith("REALTIME") else None,
++                "realtime_feed_timestamp": rt.get("feed_timestamp") if raw_eta_source.startswith("REALTIME") else None,
+                 "vehicle_id": vehicle_id,
+                 "distance_to_stop_m": distance_m,
+                 "distance_kind": "STRAIGHT_LINE" if distance_m is not None else None,
+--- a/Perix-main/backend/mobility/eta_quality.py
++++ b/Perix-main/backend/mobility/eta_quality.py
+@@ -6,7 +6,12 @@
+ from typing import Optional
+ 
+ 
+-def eta_source_for_stop(realtime: Optional[dict], stop_id: str) -> str:
++def eta_source_for_stop(realtime: Optional[dict], stop_id: str, entry: Optional[dict] = None) -> str:
++    if entry and entry.get('timing_basis') is not None:
++        return {'DIRECT_STOP_UPDATE': 'REALTIME', 'STOP_DELAY': 'REALTIME',
++                'PROPAGATED_STOP_DEPARTURE': 'REALTIME_PROPAGATED',
++                'FROM_DEPARTURE_UPDATE': 'REALTIME_PROPAGATED',
++                'TRIP_DELAY': 'REALTIME'}.get(entry['timing_basis'], 'SCHEDULE')
+     if not realtime:
+         return "SCHEDULE"
+     sid = str(stop_id)
+--- a/Perix-main/backend/mobility/motion/engine.py
++++ b/Perix-main/backend/mobility/motion/engine.py
+@@ -80,7 +80,14 @@
+                     str(int(entry.get("predicted_departure") or 0)),
+                     str(entry.get("scheduled_arrival", entry.get("scheduled", ""))),
+                     str(entry.get("scheduled_departure", "")),
+-                    str(entry.get("relationship") or ""),
++                    str(entry.get("relationship") or ""),
++                    str(entry.get("stop_sequence")),
++                    str(entry.get("timing_basis") or ""),
++                    str(entry.get("departure_timing_basis") or ""),
++                    str(entry.get("timing_anchor_stop_id") or ""),
++                    str(entry.get("timing_anchor_sequence")),
++                    str(entry.get("provider_predicted_arrival_s")),
++                    str(entry.get("provider_predicted_departure_s")),
+                 ]
+             )
+         )
+@@ -261,6 +268,7 @@
+     now_service_s: Optional[float] = None,
+     previous_plan: Optional[dict] = None,
+     history_index: Optional[int] = None,
++    source_anchor_index: Optional[int] = None,
+ ) -> Optional[dict]:
+     region = get_active_region()
+     config = motion_config_for(mode, region)
+@@ -352,7 +360,10 @@
+ 
+     history_leg = next((i for i, anchor in enumerate(anchors)
+                         if anchor["timeline_index"] == history_index), None)
+-    loop_start = handover_leg_index if handover_leg_index is not None else history_leg or 0
++    source_leg = next((i for i, anchor in enumerate(anchors)
++                       if anchor["timeline_index"] == source_anchor_index), None)
++    loop_start = (handover_leg_index if handover_leg_index is not None
++                  else source_leg if source_leg is not None else history_leg or 0)
+ 
+     traffic_snapshot = {"provider": None, "profile_versions": [], "by_edge": {}}
+     if str(mode) == "bus":
+@@ -648,6 +659,7 @@
+         "mode": str(mode),
+         "segments": trip_segments,
+         "history_index": history_index,
++        "source_anchor_index": source_anchor_index,
+         "start_s": float(trip_segments[0]["t0"]) if trip_segments else effective_arrival,
+         "end_s": float(trip_segments[-1]["t1"]) if trip_segments else final_departure,
+         "traffic_edge_count": traffic_edges,
+@@ -866,31 +878,47 @@
+         and 0 <= now_mono - float(previous_state.get("updated_mono", 0)) <= 90
+     ):
+         previous_state = None
+-    cached = _PLAN_CACHE.get(key)
+-    failure: dict = {}
+-    if cached and now_mono - float(cached.get("cached_at") or 0.0) <= float(config["plan_cache_seconds"]):
+-        plan = cached["plan"]
++    cached = _PLAN_CACHE.get(key)
++    failure: dict = {}
++    source_correction = None
++    reconciled_now = False
++    from mobility.motion.source_reconciliation import estimate_revision, source_frontier_conflict, source_start_index, MODEL_EPOCH
++    revision_token = estimate_revision(identity)
++    if cached and now_mono - float(cached.get("cached_at") or 0.0) <= float(config["plan_cache_seconds"]):
++        plan = cached["plan"]
++        revision_token = cached.get("estimate_revision") or revision_token
++        source_correction = cached.get("source_correction")
+     else:
+         handover_anchor = None
+         previous_plan = None
+         history_index = None
+-        if handover_enabled():
+-            prior = next((value for value in reversed(list(_PLAN_CACHE.values()))
+-                          if value.get("identity") == identity
+-                          and 0 <= now_mono - value.get("cached_at", 0) <= 90), None)
+-            if prior:
+-                candidate = prior["plan"]
+-                if (candidate.get("effective_timeline")
+-                        and [e.get("stop_id") for e in candidate["effective_timeline"]] == [e.get("stop_id") for e in timeline]
+-                        and float(now_sec) >= candidate["start_s"]):
+-                    sample = _sample_trip_plan(candidate, now_sec, timeline, path.get("stop_progress") or [])
+-                    if sample:
++        prior = None
++        old_progress = None
++        prior = next((value for value in reversed(list(_PLAN_CACHE.values()))
++                      if value.get("identity") == identity
++                      and 0 <= now_mono - value.get("cached_at", 0) <= 90), None)
++        if prior:
++            candidate = prior["plan"]
++            revision_token = prior.get("estimate_revision") or revision_token
++            if (candidate.get("effective_timeline")
++                    and [e.get("stop_id") for e in candidate["effective_timeline"]] == [e.get("stop_id") for e in timeline]
++                    and float(now_sec) >= candidate["start_s"]):
++                sample = _sample_trip_plan(candidate, now_sec, timeline, path.get("stop_progress") or [])
++                if sample:
++                    old_progress = float(sample["progress_m"])
++                    previous_source = prior.get("source_timeline") or _source_timeline(candidate["effective_timeline"])
++                    source_correction = source_frontier_conflict(previous_source, timeline,
++                        path.get("stop_progress") or [], old_progress, float(now_sec))
++                    if source_correction:
++                        previous_state = None
++                        reconciled_now = True
++                        revision_token = estimate_revision(identity, timeline_signature)
++                    elif handover_enabled():
+                         previous_plan = candidate
+                         if sample.get("motion_state") in ("DWELL", "AT_STOP"):
+                             history_index = int(sample["next_timeline_index"])
+                         else:
+-                            # Sample at NOW, not the last poll's position falsely
+-                            # relabelled with today's timestamp (which adds lag).
++                            # Sample NOW, not an older poll relabelled with now.
+                             handover_anchor = handover_anchor_from_state(
+                                 state_from_sample(sample=sample, service_s=float(now_sec), timeline_signature=timeline_signature),
+                                 now_service_s=float(now_sec), total_m=float(path.get("total_m") or 0.0))
+@@ -906,6 +934,7 @@
+             now_service_s=float(now_sec),
+             previous_plan=previous_plan,
+             history_index=history_index,
++            source_anchor_index=source_start_index(timeline, now_sec) if previous_plan is None and handover_anchor is None else None,
+         )
+         if not plan:
+             if include_failure_reason:
+@@ -918,7 +947,29 @@
+         for stale_key, stale_value in list(_PLAN_CACHE.items()):
+             if now_mono - float(stale_value.get("cached_at") or 0.0) > 60.0:
+                 _PLAN_CACHE.pop(stale_key, None)
+-        _PLAN_CACHE[key] = {"cached_at": now_mono, "plan": plan, "identity": identity}
++        if source_correction:
++            for stale_key, value in list(_PLAN_CACHE.items()):
++                if value.get("identity") == identity:
++                    _PLAN_CACHE.pop(stale_key, None)
++        _PLAN_CACHE[key] = {"cached_at": now_mono, "plan": plan, "identity": identity,
++                            "source_timeline": [dict(e) for e in timeline],
++                            "estimate_revision": revision_token, "source_correction": source_correction,
++                            "source_signature": timeline_signature,
++                            "diagnostic_at": (prior or {}).get("diagnostic_at", 0)}
++        from mobility.source_diagnostics import record_source_event
++        if (not prior or prior.get("source_signature") != timeline_signature or source_correction
++                or now_mono - prior.get("diagnostic_at", 0) >= 60):
++            _PLAN_CACHE[key]["diagnostic_at"] = now_mono
++            record_source_event({"kind": "ESTIMATE_CORRECTED" if source_correction else "SOURCE_PLAN_REFRESH",
++            "region_id": region.region_id, "network_id": region.network_id, "version_id": str(version_id),
++            "service_date": str(path.get("service_date") or ""), "trip_id": str(trip_id),
++            "pattern_id": str(path.get("pattern_id") or ""), "source_signature": timeline_signature,
++            "model_epoch": MODEL_EPOCH, **(source_correction or {}),
++            "model_timeline": [[e.get("stop_id"), e.get("stop_sequence"), e["predicted_arrival"], e["predicted_departure"]]
++                               for e in plan.get("effective_timeline") or []],
++            "timeline": [[e.get("stop_id"), e.get("stop_sequence"), e.get("scheduled_arrival", e.get("scheduled")), e.get("scheduled_departure", e.get("scheduled")),
++                e["predicted_arrival"], e["predicted_departure"], e.get("timing_basis"),
++                e.get("timing_anchor_stop_id"), e.get("timing_anchor_delay_seconds")] for e in timeline]})
+ 
+     # A refresh produces a new revision; every consumer receives clocks from it.
+     cached_at = _PLAN_CACHE[key]["cached_at"]
+@@ -936,7 +987,7 @@
+             }
+         return None
+ 
+-    if handover_enabled():
++    if handover_enabled() and not reconciled_now:
+         sampled = continuity_guard(
+             sampled,
+             previous_state,
+@@ -959,7 +1010,14 @@
+         if next_index < len(stop_progress)
+         else progress
+     )
+-    sampled["progress_m"] = progress
++    sampled["progress_m"] = progress
++    if reconciled_now:
++        from mobility.source_diagnostics import record_source_event
++        record_source_event({"kind": "RECONCILIATION_RESULT", "region_id": region.region_id,
++            "network_id": region.network_id, "version_id": str(version_id),
++            "service_date": str(path.get("service_date") or ""), "trip_id": str(trip_id),
++            "pattern_id": str(path.get("pattern_id") or ""), "source_signature": timeline_signature,
++            "old_progress_m": old_progress, "new_progress_m": progress, **(source_correction or {})})
+     _HANDOVER_STATE[identity] = {
+         **state_from_sample(
+             sample=sampled,
+@@ -980,7 +1038,9 @@
+         **sampled,
+         "effective_timeline": [dict(entry) for entry in effective_timeline],
+         "motion_plan_revision": revision,
+-        "motion_available": True,
++        "motion_available": True,
++        "estimate_revision": revision_token,
++        "source_correction": source_correction,
+         "progress_m": progress,
+         "next_timeline_index": next_index,
+         "next_stop_id": next_entry.get("stop_id"),
+--- /dev/null
++++ b/Perix-main/backend/mobility/motion/source_reconciliation.py
+@@ -0,0 +1,68 @@
++"""Do not treat simulated history as a newer provider observation."""
++import hashlib
++import uuid
++from mobility.timing_evidence import REALTIME_BASES
++
++MODEL_EPOCH = uuid.uuid4().hex[:12]
++EPSILON_M = 0.000001
++
++
++def estimate_revision(identity, correction=None):
++    token = correction or hashlib.sha256(repr(identity).encode()).hexdigest()[:16]
++    return MODEL_EPOCH + ':' + token
++
++
++def source_frontier_conflict(previous_source, current_source, stop_progress, progress, now_sec):
++    """Return the revised source anchor that a cached virtual position outruns.
++
++    Only a changed, usable source clock can contradict simulation. Schedule/
++    NO_DATA alone is not upgraded into a physical stop observation. No source
++    coordinate is changed here and no actual GPS state enters this helper.
++    """
++    if len(previous_source) != len(current_source) or len(stop_progress) < len(current_source):
++        return None
++    if [(e.get('stop_id'), e.get('stop_sequence')) for e in previous_source] != [
++            (e.get('stop_id'), e.get('stop_sequence')) for e in current_source]:
++        return None
++    for index, (old, new) in enumerate(zip(previous_source, current_source)):
++        if new.get('relationship') in ('SKIPPED', 'NO_DATA') or new.get('timing_order_adjusted'):
++            continue
++        basis = new.get('timing_basis')
++        arrival_usable = basis in REALTIME_BASES
++        departure_usable = new.get('departure_timing_basis') in REALTIME_BASES
++        if not arrival_usable and not departure_usable:
++            continue
++        arrival = new['predicted_arrival']; departure = new['predicted_departure']
++        anchor = float(stop_progress[index])
++        if (arrival_usable and arrival != old['predicted_arrival'] and arrival > now_sec and index > 0
++                and progress >= anchor - EPSILON_M):
++            return {'reason': 'REVISED_SOURCE_ARRIVAL_AHEAD', 'anchor_index': index}
++        if (departure_usable and departure != old['predicted_departure'] and departure > now_sec
++                and progress > anchor + EPSILON_M):
++            return {'reason': 'REVISED_SOURCE_DEPARTURE_AHEAD', 'anchor_index': index}
++        explicit = new.get('provider_predicted_arrival_s') is not None or new.get('provider_predicted_departure_s') is not None
++        revised = (arrival != old['predicted_arrival'] or departure != old['predicted_departure']
++                   or (explicit and old.get('provider_predicted_arrival_s') is None and old.get('provider_predicted_departure_s') is None))
++        if explicit and revised and departure <= now_sec and progress < anchor - EPSILON_M:
++            return {'reason': 'REVISED_SOURCE_ANCHOR_PASSED', 'anchor_index': index}
++    return None
++
++
++def source_start_index(timeline, now_sec):
++    """Start a fresh simulation at the latest usable source timing anchor.
++
++    Earlier simulated delays are not evidence overriding a later source clock.
++    Retain one final leg when the destination event is already in the past.
++    """
++    result = None
++    for index, entry in enumerate(timeline):
++        if entry.get('relationship') in ('SKIPPED', 'NO_DATA') or entry.get('timing_order_adjusted'):
++            continue
++        arrival_known = entry.get('provider_predicted_arrival_s') is not None or entry.get('timing_basis') == 'STOP_DELAY'
++        departure_known = entry.get('provider_predicted_departure_s') is not None
++        if ((arrival_known and entry['predicted_arrival'] <= now_sec)
++                or (departure_known and entry['predicted_departure'] <= now_sec)):
++            result = index
++    if result is not None:
++        result = min(result, max(0, len(timeline) - 2))
++    return result
+--- a/Perix-main/backend/mobility/realtime_freshness.py
++++ b/Perix-main/backend/mobility/realtime_freshness.py
+@@ -5,7 +5,7 @@
+ from typing import Optional
+ 
+ 
+-def is_recent_feed_generation(feed_timestamp: Optional[int], now_epoch: int, max_age_seconds: int = 180) -> bool:
++def is_recent_feed_generation(feed_timestamp: Optional[int], now_epoch: int, max_age_seconds: int = 180) -> bool:
+     if feed_timestamp is None:
+         # Legacy providers do not always populate the header timestamp.
+         # The existing per-trip updated_at age check remains authoritative.
+@@ -15,4 +15,23 @@
+     except (ValueError, TypeError):
+         return False
+     age = int(now_epoch) - value
+-    return -120 <= age <= max_age_seconds
++    return -120 <= age <= max_age_seconds
++
++
++def is_recent_trip_update(timestamp, now_epoch: int, max_age_seconds: int = 180) -> bool:
++    """Missing source clock stays UNKNOWN, never replaced by arrival epochs."""
++    if timestamp is None:
++        return True
++    if type(timestamp) is not int or timestamp <= 0:
++        return False
++    return -120 <= now_epoch - timestamp <= max_age_seconds
++
++
++def operational_only(doc: dict, reason: str) -> dict:
++    """Retain dated known skips/cancellations without reusing expired clocks."""
++    result = dict(doc)
++    for name in ('stop_predictions', 'stop_delays', 'stop_predictions_by_sequence', 'stop_delays_by_sequence'):
++        result[name] = {}
++    result.update(delay_seconds=0, trip_delay_observed=False, trip_delay_kind='UNAVAILABLE',
++                  source_timing_status=reason)
++    return result
+--- a/Perix-main/backend/mobility/realtime_order.py
++++ b/Perix-main/backend/mobility/realtime_order.py
+@@ -47,8 +47,11 @@
+     if ts > int(datetime.now(timezone.utc).timestamp()) + 120:
+         raise InvalidRealtimeClock('GTFS-RT feed timestamp is implausibly in the future')
+     act = doc.get('network_activation_epoch', 0)
+-    if type(act) is not int or act < 0 or (act and ts < act):
+-        raise InvalidRealtimeClock('Realtime feed predates the active network activation')
++    if type(act) is not int or act < 0 or (act and ts < act):
++        raise InvalidRealtimeClock('Realtime feed predates the active network activation')
++    trip_ts = doc.get('trip_update_timestamp')
++    if trip_ts is not None and (type(trip_ts) is not int or not 946684800 <= trip_ts <= ts + 120):
++        raise InvalidRealtimeClock('Invalid/future per-trip source timestamp')
+ 
+ 
+ def _as_long(field: str) -> dict:
+@@ -91,14 +94,19 @@
+         {'$or': [newer_activation, legacy_safe]},
+         newer_feed,
+     ]}
+-    return {'$or': [
++    trip_ts = doc.get('trip_update_timestamp')
++    trip_order = True if trip_ts is None else {'$or': [
++        {'$not': [{'$and': [same_day, same_version]}]},
++        {'$lte': [{'$max': [_as_long('trip_timestamp_highwater'), _as_long('trip_update_timestamp')]}, trip_ts]},
++    ]}
++    return {'$and': [trip_order, {'$or': [
+         {'$eq': [{'$ifNull': ['$_id', None]}, None]},
+         newer_day,
+         {'$and': [same_day, newer_feed, {'$or': [
+             same_version,
+             {'$and': [{'$not': [same_version]}, cross_version]},
+         ]}]},
+-    ]}
++    ]}]}
+ 
+ 
+ def monotonic_update_pipeline(doc: dict) -> list[dict]:
+@@ -107,10 +115,19 @@
+     Using `$literal` prevents GTFS text containing `$` from being parsed as
+     Mongo expressions. `$$ROOT` retains `_id` and any unrelated fields.
+     """
+-    gate = acceptance_condition(doc)
++    gate = acceptance_condition(doc)
++    same_identity = {'$and': [
++        {'$eq': [{'$ifNull': ['$service_date', '']}, doc['service_date']]},
++        {'$eq': [{'$ifNull': ['$network_version_id', '']}, doc['network_version_id']]},
++    ]}
++    incoming_trip_clock = doc.get('trip_update_timestamp') or 0
++    highwater = {'trip_timestamp_highwater': {'$cond': [same_identity,
++        {'$max': [_as_long('trip_timestamp_highwater'), _as_long('trip_update_timestamp'), incoming_trip_clock]},
++        incoming_trip_clock,
++    ]}}
+     return [{'$replaceRoot': {'newRoot': {'$cond': [
+         gate,
+-        {'$mergeObjects': ['$$ROOT', {'$literal': dict(doc)}]},
++        {'$mergeObjects': ['$$ROOT', {'$literal': dict(doc)}, highwater]},
+         '$$ROOT',
+     ]}}}]
+ 
+@@ -133,8 +150,18 @@
+         old_ts = -1
+     if new['feed_timestamp'] <= old_ts:
+         return False
+-    if old.get('network_version_id') == new['network_version_id']:
+-        return True
++    if old.get('network_version_id') == new['network_version_id']:
++        trip_ts = new.get('trip_update_timestamp')
++        clocks = []
++        for value in (old.get('trip_timestamp_highwater'), old.get('trip_update_timestamp')):
++            try:
++                clocks.append(int(value) if value is not None else -1)
++            except (TypeError, ValueError):
++                clocks.append(-1)
++        highwater = max(clocks)
++        if trip_ts is not None and trip_ts < highwater:
++            return False
++        return True
+     activation = new.get('network_activation_epoch', 0)
+     if not activation:
+         return False
+--- /dev/null
++++ b/Perix-main/backend/mobility/source_diagnostics.py
+@@ -0,0 +1,71 @@
++"""Bounded worker-local virtual-timing evidence; no GPS/account data or writes."""
++from collections import deque, Counter
++import json
++import time
++
++MAX_EVENTS = 2048
++MAX_BYTES = 4 * 1024 * 1024
++TTL_SECONDS = 15 * 60
++_events = deque()
++_bytes = 0
++_dropped = 0
++
++
++def _prune(now):
++    global _bytes, _dropped
++    while _events and (now - _events[0][0] > TTL_SECONDS or len(_events) > MAX_EVENTS or _bytes > MAX_BYTES):
++        _, size, _ = _events.popleft()
++        _bytes -= size
++        _dropped += 1
++
++
++def record_source_event(event):
++    global _bytes, _dropped
++    # Serialize an immutable compact snapshot. Never retain arbitrary objects,
++    # provider credentials, physical vehicles or user/passenger coordinates.
++    allowed = {k: event[k] for k in (
++        'kind', 'region_id', 'network_id', 'version_id', 'service_date', 'trip_id',
++        'pattern_id', 'source_signature', 'reason', 'old_progress_m', 'new_progress_m',
++        'anchor_index', 'timeline', 'model_timeline', 'timing_basis', 'model_epoch',
++    ) if k in event}
++    allowed['recorded_epoch'] = int(time.time())
++    try:
++        payload = json.dumps(allowed, separators=(',', ':'), ensure_ascii=False, allow_nan=False)
++    except (TypeError, ValueError):
++        _dropped += 1
++        return  # Optional diagnostics must never break fleet computation.
++    size = len(payload.encode('utf-8'))
++    if size > MAX_BYTES:
++        _dropped += 1
++        return
++    now = time.monotonic()
++    _events.append((now, size, payload)); _bytes += size
++    _prune(now)
++
++
++def source_events(*, region_id, network_id, version_id=None, service_date=None, trip_id=None, limit=50):
++    _prune(time.monotonic())
++    matches = []
++    counts = Counter()
++    for _, _, payload in _events:
++        event = json.loads(payload)
++        if event.get('region_id') != region_id or event.get('network_id') != network_id:
++            continue
++        if version_id is not None and event.get('version_id') != version_id:
++            continue
++        if service_date is not None and event.get('service_date') != service_date:
++            continue
++        if trip_id is not None and event.get('trip_id') != trip_id:
++            continue
++        counts[event.get('kind')] += 1
++        matches.append(event)
++    return {'events': matches[-max(1, min(100, int(limit))):], 'counts': dict(counts),
++            'retained_events': len(matches), 'dropped_events': _dropped,
++            'oldest_epoch': matches[0]['recorded_epoch'] if matches else None,
++            'retention': 'WORKER_MEMORY_BOUNDED', 'ttl_seconds': TTL_SECONDS,
++            'max_events': MAX_EVENTS, 'max_bytes': MAX_BYTES}
++
++
++def clear_source_events():
++    global _bytes, _dropped
++    _events.clear(); _bytes = _dropped = 0
+--- /dev/null
++++ b/Perix-main/backend/mobility/timing_evidence.py
+@@ -0,0 +1,107 @@
++"""Occurrence-aware GTFS-RT evidence, without inventing source clocks."""
++from collections import Counter
++import hashlib
++import json
++
++REALTIME_BASES = frozenset(('DIRECT_STOP_UPDATE', 'STOP_DELAY', 'PROPAGATED_STOP_DEPARTURE',
++                            'TRIP_DELAY', 'FROM_DEPARTURE_UPDATE', 'FROM_ARRIVAL_UPDATE'))
++
++
++def has_realtime_timing(entry):
++    return entry.get('timing_basis') in REALTIME_BASES or entry.get('departure_timing_basis') in REALTIME_BASES
++
++
++def stop_evidence(realtime, sid, sequence=None, repeated=False):
++    """Prefer source sequence identity; ambiguous repeated IDs are not guessed."""
++    raw_sid, sid = sid, str(sid)
++    if sequence is not None:
++        key = str(sequence)
++        prediction = (realtime.get("stop_predictions_by_sequence") or {}).get(key)
++        relationship = (realtime.get("stop_relationships_by_sequence") or {}).get(key)
++        delay = (realtime.get("stop_delays_by_sequence") or {}).get(key)
++        records = [v for v in (prediction, relationship, delay) if v is not None]
++        if records:
++            if any(not isinstance(v, dict) or str(v.get("stop_id")) != sid for v in records):
++                return {}, None, "SCHEDULED", True
++            return (
++                {k: v for k, v in (prediction or {}).items() if k != "stop_id"},
++                (delay or {}).get("delay_seconds"),
++                str((relationship or {}).get("relationship") or "SCHEDULED").upper(),
++                False,
++            )
++    predictions = realtime.get("stop_predictions") or {}
++    delays = realtime.get("stop_delays") or {}
++    relationships = realtime.get("stop_relationships") or {}
++    if repeated:
++        ambiguous = any(sid in values or raw_sid in values for values in (predictions, delays, relationships))
++        return {}, None, "SCHEDULED", ambiguous
++    return (predictions.get(sid, predictions.get(raw_sid)) or {}, delays.get(sid, delays.get(raw_sid)),
++            str(relationships.get(sid, relationships.get(raw_sid)) or "SCHEDULED").upper(), False)
++
++
++def occurrence_counts(stops):
++    return Counter(str(s.get("stop_id")) for s in stops)
++
++
++def timing_evidence(entry):
++    """Small backwards-compatible projection shared by fleet/boards/details."""
++    return {k: entry.get(k) for k in (
++        "timing_basis", "departure_timing_basis", "timing_anchor_stop_id",
++        "timing_anchor_sequence", "timing_anchor_delay_seconds",
++        "provider_predicted_arrival_s", "provider_predicted_departure_s",
++        "ambiguous_stop_update", "timing_order_adjusted", "stop_sequence",
++    )}
++
++
++def extract_trip_timing(update, matched, relationship_names):
++    """Normalize provider fields without conflating arrival/departure or visits."""
++    from mobility.realtime_trip_identity import stop_id_for_sequence
++    stop_delays, predictions, relationships = {}, {}, {}
++    sequence_delays, sequence_predictions, sequence_relationships = {}, {}, {}
++    first_delay = None
++    for value in update.stop_time_update:
++        sequence = int(value.stop_sequence) if value.HasField("stop_sequence") else None
++        sid = str(value.stop_id or "")
++        if not sid and sequence is not None:
++            sid = stop_id_for_sequence(matched, sequence) or ""
++        if not sid:
++            continue
++        rel = relationship_names.get(int(value.schedule_relationship), "SCHEDULED")
++        relationships[sid] = rel
++        prediction = {}
++        for field in ("arrival", "departure"):
++            if not value.HasField(field):
++                continue
++            event = getattr(value, field)
++            if event.HasField("delay"):
++                prediction[field + "_delay_seconds"] = int(event.delay)
++            if event.HasField("time") and event.time:
++                prediction[field + "_epoch"] = int(event.time)
++        delay = prediction.get("arrival_delay_seconds", prediction.get("departure_delay_seconds"))
++        if delay is not None:
++            stop_delays[sid] = delay
++            if first_delay is None:
++                first_delay = delay
++        if prediction:
++            predictions[sid] = prediction
++        if (sequence is not None and matched.get("original_stop_sequences")
++                and stop_id_for_sequence(matched, sequence) == sid):
++            key = str(sequence)
++            sequence_relationships[key] = {"stop_id": sid, "relationship": rel}
++            if prediction:
++                sequence_predictions[key] = {"stop_id": sid, **prediction}
++            if delay is not None:
++                sequence_delays[key] = {"stop_id": sid, "delay_seconds": delay}
++    explicit = int(update.delay) if update.HasField("delay") else None
++    result = {
++        "delay_seconds": explicit if explicit is not None else first_delay if first_delay is not None else 0,
++        "trip_delay_observed": explicit is not None or first_delay is not None,
++        "trip_delay_kind": "EXPLICIT_TRIP_DELAY" if explicit is not None else "FIRST_STOP_DERIVED" if first_delay is not None else "NONE",
++        "stop_delays": stop_delays, "stop_predictions": predictions, "stop_relationships": relationships,
++        "stop_delays_by_sequence": sequence_delays, "stop_predictions_by_sequence": sequence_predictions,
++        "stop_relationships_by_sequence": sequence_relationships,
++    }
++    result["timing_fingerprint"] = hashlib.sha256(json.dumps(result, sort_keys=True, separators=(",", ":")).encode()).hexdigest()[:24]
++    result["trip_update_timestamp"] = int(update.timestamp) if update.HasField("timestamp") else None
++    result["source_match_validated"] = True
++    return result
+--- a/Perix-main/backend/mobility/v2.py
++++ b/Perix-main/backend/mobility/v2.py
+@@ -1196,7 +1196,38 @@
+     }
+ 
+ 
+-@router.get("/diagnostic/motion/summary")
++@router.get("/diagnostic/source-timing")
++async def v2_source_timing(
++    trip_id: Optional[str] = None, service_date: Optional[str] = None,
++    network_version_id: Optional[str] = None, limit: int = 50,
++    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
++):
++    """Bounded current-worker virtual timing history; never GPS/account data."""
++    from fastapi import HTTPException
++    from datetime import date
++    from mobility.regions import get_active_region
++    from mobility.source_diagnostics import source_events
++    from routes.mobility import _get_active_network, _network_service_date
++    if not 1 <= limit <= 100 or (trip_id and len(trip_id) > 128) or (network_version_id and len(network_version_id) > 128):
++        raise HTTPException(422, "Invalid diagnostic scope/limit")
++    if trip_id and (not service_date or not network_version_id):
++        raise HTTPException(422, "An exact service date and version are required for a trip")
++    if service_date:
++        try:
++            date.fromisoformat(service_date)
++        except ValueError:
++            raise HTTPException(422, "Invalid service date")
++    region = get_active_region()
++    network = await _get_active_network()
++    version = network_version_id or str((network or {}).get("version_id") or "")
++    day = service_date or (_network_service_date(network) if network else None)
++    return {"region_id": region.region_id, "network_id": region.network_id,
++            "version_id": version, "service_date": day,
++            **source_events(region_id=region.region_id, network_id=region.network_id,
++                version_id=version, service_date=day, trip_id=trip_id, limit=limit)}
++
++
++@router.get("/diagnostic/motion/summary")
+ async def v2_diagnostic_motion_summary(
+     current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+ ):
+@@ -1446,6 +1477,8 @@
+                 "prediction_basis": v.get("prediction_basis", "SOURCE_TIMELINE"),
+                 "next_stop_eta_source": v.get("next_stop_eta_source"),
+                 "motion_plan_revision": v.get("_motion_plan_revision") if estimated else None,
++                "estimate_revision": v.get("estimate_revision") if estimated else None,
++                "timing_evidence": v.get("timing_evidence") if estimated else None,
+                 "next_timeline_index": v.get("_motion_next_timeline_index") if estimated else None,
+                 "realtime_feed_timestamp": v.get("realtime_feed_timestamp"),
+                 "realtime_updated_at": v.get("realtime_updated_at"),
+--- a/Perix-main/backend/routes/mobility.py
++++ b/Perix-main/backend/routes/mobility.py
+@@ -548,16 +548,24 @@
+         visits = stop_occurrence_times(trip)
+     except ValueError:
+         return []
+-    stop_delays = realtime.get("stop_delays") or {}
+-    stop_predictions = realtime.get("stop_predictions") or {}
+-    stop_relationships = realtime.get("stop_relationships") or {}
+-    trip_delay = int(realtime.get("delay_seconds") or 0)
++    trip_delay = int(realtime.get("delay_seconds") or 0)
++    # A first StopTimeUpdate is not an explicit trip-wide delay. New worker
++    # rows retain that distinction; legacy rows remain compatible until refresh.
++    derived_trip_delay = realtime.get("trip_delay_kind") == "FIRST_STOP_DERIVED"
++    propagated_delay = 0 if derived_trip_delay else trip_delay
++    propagated_basis = ("TRIP_DELAY" if realtime.get("trip_delay_observed", bool(trip_delay))
++                        and not derived_trip_delay else "SCHEDULE")
++    anchor_stop = None
++    anchor_sequence = None
++    anchor_adjusted = False
++    from mobility.timing_evidence import occurrence_counts, stop_evidence
+ 
+     timeline: List[dict] = []
+     previous_departure = None
+     previous_scheduled_departure = None
+ 
+     ordered_stops = _trip_stops(route, trip)
++    counts = occurrence_counts(ordered_stops)
+     if visits is not None and (
+         len(ordered_stops) != len(visits)
+         or any(str(stop.get("stop_id")) != str(visit["stop_id"])
+@@ -590,14 +598,11 @@
+             return []
+         previous_scheduled_departure = scheduled_departure
+ 
+-        rel = str(
+-            stop_relationships.get(sid_key)
+-            or stop_relationships.get(sid)
+-            or "SCHEDULED"
+-        ).upper()
+-        prediction = stop_predictions.get(sid_key) or stop_predictions.get(sid) or {}
+-
+-        use_rt = rel != "NO_DATA"
++        sequence = visits[position]["stop_sequence"] if visits is not None else None
++        prediction, local_delay, rel, ambiguous = stop_evidence(
++            realtime, sid, sequence, counts[sid_key] > 1)
++
++        use_rt = rel not in ("NO_DATA", "SKIPPED")
+         arrival = None
+         departure = None
+ 
+@@ -607,9 +612,7 @@
+             arrival = _epoch_to_service_seconds(prediction.get("arrival_epoch"), realtime.get("service_date"))
+             departure = _epoch_to_service_seconds(prediction.get("departure_epoch"), realtime.get("service_date"))
+ 
+-        fallback_delay = int(
+-            stop_delays.get(sid_key, stop_delays.get(sid, trip_delay))
+-        ) if use_rt else 0
++        fallback_delay = int(local_delay if local_delay is not None else propagated_delay) if use_rt else 0
+         arrival_delay = (
+             int(prediction["arrival_delay_seconds"])
+             if use_rt and prediction.get("arrival_delay_seconds") is not None
+@@ -621,15 +624,38 @@
+             else fallback_delay
+         )
+ 
+-        if arrival is None:
+-            arrival = scheduled_arrival + arrival_delay
+-        if departure is None:
+-            departure = scheduled_departure + departure_delay
++        direct_arrival = arrival is not None or (use_rt and prediction.get("arrival_delay_seconds") is not None)
++        direct_departure = departure is not None or (use_rt and prediction.get("departure_delay_seconds") is not None)
++        if arrival is None:
++            arrival = scheduled_arrival + arrival_delay
++        if departure is None:
++            # An arrival-only update shifts the explicit scheduled dwell too;
++            # do not erase it by falling back to an older generic trip delay.
++            if direct_arrival and not direct_departure:
++                departure_delay = arrival - scheduled_arrival
++            departure = scheduled_departure + departure_delay
++        arrival_from_departure = not direct_arrival and direct_departure and arrival > departure
++        if arrival_from_departure:
++            # An inferred arrival cannot postpone an explicit early departure.
++            # Retain its provenance; this is not a provider arrival timestamp.
++            arrival = departure
++        provider_arrival = arrival if direct_arrival else None
++        provider_departure = departure if direct_departure else None
++        basis = (rel if not use_rt else "DIRECT_STOP_UPDATE" if direct_arrival
++                 else "FROM_DEPARTURE_UPDATE" if arrival_from_departure
++                 else "STOP_DELAY" if local_delay is not None else propagated_basis)
++        departure_basis = (rel if not use_rt else "DIRECT_STOP_UPDATE" if direct_departure
++                           else "FROM_ARRIVAL_UPDATE" if direct_arrival
++                           else "STOP_DELAY" if local_delay is not None else propagated_basis)
++        arrival_anchor = (sid_key if direct_arrival or arrival_from_departure or local_delay is not None else anchor_stop) if use_rt else None
++        arrival_anchor_sequence = (sequence if direct_arrival or arrival_from_departure or local_delay is not None else anchor_sequence) if use_rt else None
+ 
+         if previous_departure is not None and arrival < previous_departure:
+             arrival = previous_departure
+-        if departure < arrival:
+-            departure = arrival
++        if departure < arrival:
++            departure = arrival
++        order_adjusted = bool((direct_arrival and arrival != provider_arrival)
++                              or (direct_departure and departure != provider_departure))
+ 
+         timeline.append(
+             {
+@@ -643,10 +669,31 @@
+                 "predicted_arrival": arrival,
+                 "predicted_departure": departure,
+                 "delay_seconds": int(arrival - scheduled_arrival),
+-                "relationship": rel,
++                "relationship": rel,
++                "stop_sequence": sequence,
++                "timing_basis": basis,
++                "departure_timing_basis": departure_basis,
++                "timing_anchor_stop_id": arrival_anchor,
++                "timing_anchor_sequence": arrival_anchor_sequence,
++                "timing_anchor_delay_seconds": int(arrival - scheduled_arrival) if direct_arrival or arrival_from_departure else fallback_delay,
++                "provider_predicted_arrival_s": provider_arrival,
++                "provider_predicted_departure_s": provider_departure,
++                "ambiguous_stop_update": ambiguous,
++                "timing_order_adjusted": order_adjusted or (use_rt and anchor_adjusted and not direct_arrival),
+             }
+         )
+-        previous_departure = departure
++        if rel != "SKIPPED":
++            previous_departure = departure
++        if rel == "NO_DATA":
++            propagated_delay = 0
++            propagated_basis = "SCHEDULE"
++            anchor_stop = anchor_sequence = None
++            anchor_adjusted = False
++        elif use_rt and (direct_arrival or direct_departure or local_delay is not None):
++            propagated_delay = int(departure - scheduled_departure)
++            propagated_basis = "PROPAGATED_STOP_DEPARTURE"
++            anchor_stop, anchor_sequence = sid_key, sequence
++            anchor_adjusted = order_adjusted
+ 
+     return timeline
+ 
+@@ -1213,16 +1260,28 @@
+     if not pos:
+         return None
+ 
+-    delay_seconds = int(next_entry.get("delay_seconds") or 0)
+-    has_rt = bool(
+-        realtime
+-        and (
+-            realtime.get("stop_predictions")
+-            or realtime.get("stop_delays")
+-            or realtime.get("delay_seconds") is not None
+-            or realtime.get("trip_schedule_relationship")
+-        )
+-    )
++    delay_seconds = int(next_entry.get("delay_seconds") or 0)
++    has_rt_legacy = bool(
++        realtime
++        and (
++            realtime.get("stop_predictions")
++            or realtime.get("stop_delays")
++            or realtime.get("trip_delay_observed") is True
++            or (realtime.get("trip_delay_observed") is None and realtime.get("delay_seconds"))
++        )
++    )
++    from mobility.timing_evidence import timing_evidence, has_realtime_timing
++    has_rt = has_realtime_timing(next_entry) if next_entry.get("timing_basis") is not None else has_rt_legacy
++    evidence = timing_evidence(next_entry)
++    anchor = next((s for s in route.get("stops", []) if str(s.get("stop_id")) == str(evidence.get("timing_anchor_stop_id"))), {})
++    evidence.update(anchor_stop_name=anchor.get("name"),
++        source_status=(realtime or {}).get("source_timing_status") or
++            ("TRIP_CLOCK_UNKNOWN" if realtime and realtime.get("trip_update_timestamp") is None else "CURRENT" if realtime else "SCHEDULE_ONLY"),
++        trip_update_timestamp=(realtime or {}).get("trip_update_timestamp"),
++        feed_timestamp=(realtime or {}).get("feed_timestamp"),
++        received_at=(realtime or {}).get("received_at", (realtime or {}).get("updated_at")),
++        position_assurance="MODEL_ESTIMATE" if motion_available else "LEGACY_FALLBACK_UNCERTAIN",
++        source_correction=motion_result.get("source_correction") if motion_available else None)
+ 
+     return {
+         "latitude": pos["lat"],
+@@ -1246,6 +1305,8 @@
+         "next_stop_predicted_arrival": _fmt_service_time(int(next_entry["predicted_arrival"])),
+         "source_next_stop_predicted_arrival": _fmt_service_time(int(next_entry.get("source_predicted_arrival", next_entry["predicted_arrival"]))),
+         "prediction_basis": next_entry.get("prediction_basis", "SOURCE_TIMELINE"),
++        "timing_evidence": evidence,
++        "estimate_revision": motion_result.get("estimate_revision") if motion_available else None,
+         "next_stop_eta_source": "PERIX_ESTIMATE" if next_entry.get("prediction_basis") == "PERIX_MOTION_PLAN" else ("REALTIME" if has_rt else "SCHEDULE"),
+     }
+ 
+@@ -1274,7 +1335,8 @@
+         nxt = timeline[idx + 1].get("stop") or {}
+         if nxt.get("lat") is not None:
+             heading = _bearing(s["lat"], s["lng"], nxt["lat"], nxt["lng"])
+-    has_rt = bool(rt)
++    from mobility.timing_evidence import has_realtime_timing
++    has_rt = has_realtime_timing(entry)
+     return {
+         "pos": {"lat": s["lat"], "lng": s["lng"]},
+         "heading": heading,
+@@ -1437,18 +1499,30 @@
+     else:
+         docs = await collection.find(query, {"_id": 0}).to_list(len(trip_ids))
+ 
+-    from mobility.realtime_freshness import is_recent_feed_generation
++    from mobility.realtime_freshness import is_recent_feed_generation, is_recent_trip_update, operational_only
+ 
+     now_epoch = int(datetime.now(ZoneInfo("UTC")).timestamp())
+     # A per-trip DB write can be fresh even when the feed snapshot is old.
+     max_feed_age = int(os.getenv("MOBILITY_REALTIME_FEED_FRESH_SECONDS", "180"))
+-    result = {}
+-    for doc in docs:
+-        if not _iso_is_fresh(doc.get("updated_at") or "", REALTIME_FRESH_SECONDS):
+-            continue
+-        if not is_recent_feed_generation(doc.get("feed_timestamp"), now_epoch, max_feed_age):
+-            continue
+-        result[str(doc.get("trip_id"))] = doc
++    result = {}
++    for doc in docs:
++        receipt_fresh = _iso_is_fresh(doc.get("updated_at") or "", REALTIME_FRESH_SECONDS)
++        feed_fresh = is_recent_feed_generation(doc.get("feed_timestamp"), now_epoch, max_feed_age)
++        trip_fresh = is_recent_trip_update(doc.get("trip_update_timestamp"), now_epoch, max_feed_age)
++        if receipt_fresh and feed_fresh and trip_fresh:
++            result[str(doc.get("trip_id"))] = doc
++            continue
++        # Source-validated operational exceptions remain in this exact dated
++        # namespace during an outage. Expired timing never becomes live again.
++        validated = (doc.get("source_match_validated") is True
++                     and doc.get("network_version_id") == version_id
++                     and doc.get("service_date") == service_date)
++        rels = list((doc.get("stop_relationships") or {}).values())
++        rels += [r.get("relationship") for r in (doc.get("stop_relationships_by_sequence") or {}).values() if isinstance(r, dict)]
++        exceptional = str(doc.get("trip_schedule_relationship") or "").upper() in ("CANCELED", "DELETED") or "SKIPPED" in rels
++        if validated and exceptional:
++            reason = "STALE_FEED" if not feed_fresh else "STALE_TRIP_UPDATE" if not trip_fresh else "STALE_RECEIPT"
++            result[str(doc.get("trip_id"))] = operational_only(doc, reason)
+     return result
+ 
+ 
+@@ -1721,6 +1795,8 @@
+                     "next_stop_predicted_arrival": projection.get("next_stop_predicted_arrival"),
+                     "source_next_stop_predicted_arrival": projection.get("source_next_stop_predicted_arrival"),
+                     "prediction_basis": projection.get("prediction_basis", "SOURCE_TIMELINE"),
++                    "timing_evidence": projection.get("timing_evidence"),
++                    "estimate_revision": projection.get("estimate_revision"),
+                     "next_stop_eta_source": projection.get("next_stop_eta_source"),
+                     "realtime_feed_timestamp": (delays.get(str(current_trip.get("trip_id"))) or {}).get("feed_timestamp"),
+                     "realtime_updated_at": (delays.get(str(current_trip.get("trip_id"))) or {}).get("updated_at"),
+@@ -2853,6 +2929,7 @@
+         raise HTTPException(status_code=404, detail="Trip cancelled or unavailable")
+ 
+     revision = vehicle.get("_motion_plan_revision") if vehicle.get("estimated") else None
++    from mobility.timing_evidence import timing_evidence
+     physical_next_index = vehicle.get("_motion_next_timeline_index") if revision else None
+     stops_out = []
+     for index, entry in enumerate(timeline):
+@@ -2870,6 +2947,9 @@
+                 "predicted_departure": _fmt_service_time(int(entry["predicted_departure"])),
+                 "source_predicted": _fmt_service_time(int(entry.get("source_predicted_arrival", entry["predicted_arrival"]))),
+                 "prediction_basis": entry.get("prediction_basis", "SOURCE_TIMELINE"),
++                "timing_evidence": timing_evidence(entry),
++                "provider_predicted": _fmt_service_time(entry["provider_predicted_arrival_s"]) if entry.get("provider_predicted_arrival_s") is not None else None,
++                "passed_basis": "MODEL_PROGRESS" if vehicle.get("estimated") else "GPS_POSITION" if physical_next_index is not None else "TIME_PREDICTION",
+                 "skipped": relationship == "SKIPPED",
+                 "schedule_relationship": relationship,
+             }
+@@ -2897,6 +2977,8 @@
+         "estimated": bool(vehicle.get("estimated")),
+         "motion_plan_revision": revision,
+         "next_timeline_index": physical_next_index,
++        "timing_evidence": vehicle.get("timing_evidence") if vehicle.get("estimated") else None,
++        "estimate_revision": vehicle.get("estimate_revision") if vehicle.get("estimated") else None,
+         "stops": stops_out,
+     }
+ 
+--- /dev/null
++++ b/Perix-main/backend/tests/fixtures/am_fuchsberg_sparse_20261025.json
+@@ -0,0 +1,40 @@
++{
++  "capture_berlin": "2026-10-25T18:12:55+01:00",
++  "network_version_id": "net_7f0605d2409e",
++  "service_date": "2026-10-25",
++  "route": {
++    "route_number": "9",
++    "mode": "tram",
++    "stops": [
++      {"stop_id": "480331", "name": "Südfriedhof", "lat": 52.10699, "lng": 11.620149},
++      {"stop_id": "340825", "name": "Raiffeisenstraße", "lat": 52.109383, "lng": 11.620027},
++      {"stop_id": "639170", "name": "Am Fuchsberg", "lat": 52.11422, "lng": 11.619653},
++      {"stop_id": "89420", "name": "Halberst. Str./Leipz. Str.", "lat": 52.117317, "lng": 11.619689},
++      {"stop_id": "163308", "name": "Hasselbachplatz", "lat": 52.12127, "lng": 11.627505}
++    ]
++  },
++  "trip": {
++    "trip_id": "1221147",
++    "headsign": "Hbf / Willy-Brandt-Platz",
++    "stop_ids": ["480331", "340825", "639170", "89420", "163308"],
++    "stop_times": {"480331": "18:03:00", "340825": "18:04:00", "639170": "18:06:00", "89420": "18:07:00", "163308": "18:10:00"},
++    "stop_times_arrival": {"480331": "18:03:00", "340825": "18:04:00", "639170": "18:06:00", "89420": "18:07:00", "163308": "18:10:00"}
++  },
++  "realtime": {
++    "network_version_id": "net_7f0605d2409e",
++    "service_date": "2026-10-25",
++    "trip_id": "1221147",
++    "source": "GTFS_RT",
++    "delay_seconds": -8,
++    "trip_delay_observed": true,
++    "feed_timestamp": 1792948345,
++    "stop_delays": {"480331": 28, "340825": 27},
++    "stop_predictions": {
++      "480331": {"arrival_epoch": 1792947808, "departure_epoch": 1792947823, "arrival_delay_seconds": 28, "departure_delay_seconds": 43},
++      "340825": {"arrival_epoch": 1792947867, "departure_epoch": 1792947927, "arrival_delay_seconds": 27, "departure_delay_seconds": 87}
++    },
++    "stop_relationships": {"480331": "SCHEDULED", "340825": "SCHEDULED"}
++  },
++  "later_provider_arrival_am_fuchsberg": "2026-10-25T18:07:15+01:00",
++  "caveat": "Reduced five-stop regression from captured source clocks. Not measured GPS or invented original GTFS occurrence sequences."
++}
+--- /dev/null
++++ b/Perix-main/backend/tests/test_source_reconciliation.py
+@@ -0,0 +1,128 @@
++from copy import deepcopy
++from types import SimpleNamespace
++import time
++
++import pytest
++
++from mobility.motion import engine
++from mobility.motion.source_reconciliation import source_frontier_conflict, source_start_index
++from mobility import source_diagnostics
++
++
++def timeline(later=False):
++    values = [0, 150, 240] if later else [0, 60, 120]
++    return [dict(stop_id=sid, stop_sequence=i, scheduled_arrival=i * 60, scheduled_departure=i * 60,
++        predicted_arrival=value, predicted_departure=value, relationship='SCHEDULED',
++        timing_basis='DIRECT_STOP_UPDATE' if i == 0 else 'PROPAGATED_STOP_DEPARTURE',
++        departure_timing_basis='DIRECT_STOP_UPDATE' if i == 0 else 'PROPAGATED_STOP_DEPARTURE',
++        provider_predicted_arrival_s=0 if i == 0 else None,
++        provider_predicted_departure_s=0 if i == 0 else None)
++        for i, (sid, value) in enumerate(zip(['A', 'B', 'C'], values))]
++
++
++def test_only_revised_usable_source_frontiers_override_simulated_history():
++    old, new = timeline(), timeline(True)
++    assert source_frontier_conflict(old, new, [0, 100, 200], 150, 70)['anchor_index'] == 1
++    assert source_frontier_conflict(old, old, [0, 100, 200], 150, 70) is None
++    assert source_frontier_conflict(old, new, [0, 100, 200], 50, 70) is None
++    new[1].update(timing_basis='SCHEDULE', departure_timing_basis='SCHEDULE')
++    assert source_frontier_conflict(old, new, [0, 100, 200], 150, 70) is None
++    new = timeline(True); new[1]['relationship'] = 'SKIPPED'
++    assert source_frontier_conflict(old, new, [0, 100, 200], 150, 70) is None
++
++
++def test_cold_simulation_starts_from_last_source_anchor_not_accumulated_fake_history():
++    source = timeline()
++    source[1].update(provider_predicted_arrival_s=60, provider_predicted_departure_s=80,
++                     predicted_departure=80, timing_basis='DIRECT_STOP_UPDATE')
++    assert source_start_index(source, 70) == 1
++    source[1]['relationship'] = 'SKIPPED'
++    assert source_start_index(source, 70) == 0
++    assert source_start_index([{**e, 'provider_predicted_arrival_s': None, 'provider_predicted_departure_s': None,
++                                'timing_basis': 'SCHEDULE'} for e in source], 70) is None
++
++
++def test_future_departure_only_update_reconciles_a_model_that_already_left():
++    old = timeline(); new = deepcopy(old)
++    new[1].update(predicted_departure=150, timing_basis='SCHEDULE',
++                  departure_timing_basis='DIRECT_STOP_UPDATE', provider_predicted_departure_s=150)
++    assert source_frontier_conflict(old, new, [0, 100, 200], 150, 70) == {
++        'reason': 'REVISED_SOURCE_DEPARTURE_AHEAD', 'anchor_index': 1}
++    assert source_frontier_conflict(old, new, [0, 100, 200], 100, 70) is None
++
++
++def test_arrival_only_update_retains_its_inferred_future_dwell_constraint():
++    old = timeline(); new = deepcopy(old)
++    new[1].update(predicted_arrival=65, predicted_departure=100, timing_basis='DIRECT_STOP_UPDATE',
++                  departure_timing_basis='FROM_ARRIVAL_UPDATE', provider_predicted_arrival_s=65)
++    assert source_frontier_conflict(old, new, [0, 100, 200], 150, 70) == {
++        'reason': 'REVISED_SOURCE_DEPARTURE_AHEAD', 'anchor_index': 1}
++
++
++def test_new_explicit_elapsed_stop_evidence_can_replace_a_model_that_is_behind_without_treating_propagation_as_observation():
++    old = timeline(); new = deepcopy(old)
++    new[1].update(predicted_arrival=80, predicted_departure=85, timing_basis='DIRECT_STOP_UPDATE',
++                  provider_predicted_arrival_s=80, provider_predicted_departure_s=85)
++    assert source_frontier_conflict(old, new, [0, 100, 200], 50, 100)['reason'] == 'REVISED_SOURCE_ANCHOR_PASSED'
++    new[1].update(provider_predicted_arrival_s=None, provider_predicted_departure_s=None, timing_basis='PROPAGATED_STOP_DEPARTURE')
++    assert source_frontier_conflict(old, new, [0, 100, 200], 50, 100) is None
++
++
++@pytest.mark.asyncio
++async def test_later_source_clock_rebuilds_virtual_plan_without_backward_continuity_clamp(monkeypatch):
++    engine.clear_motion_cache(); source_diagnostics.clear_source_events()
++    monkeypatch.setattr(engine, 'handover_enabled', lambda: True)
++    builds = []
++    async def build(**kwargs):
++        builds.append(kwargs)
++        raw = deepcopy(kwargs['timeline'])
++        return {'kind': 'new' if raw[1]['predicted_arrival'] == 150 else 'old',
++                'start_s': 0, 'end_s': raw[-1]['predicted_departure'], 'effective_timeline': raw,
++                'segments': [], 'motion_model': 'TEST', 'motion_quality': 'TEST'}
++    def sample(plan, now, raw, progress):
++        return {'progress_m': 150 if plan['kind'] == 'old' else 40 + max(0, now - 70),
++                'speed_kmh': 10, 'motion_state': 'MOVING', 'next_timeline_index': 2 if plan['kind'] == 'old' else 1}
++    monkeypatch.setattr(engine, '_build_trip_plan', build)
++    monkeypatch.setattr(engine, '_sample_trip_plan', sample)
++    kwargs = dict(trip_id='source:T', mode='tram', version_id='v',
++                  path={'pattern_id': 'p', 'service_date': '2026-10-25', 'derived_generation': 'g',
++                        'stop_progress': [0, 100, 200], 'total_m': 200})
++    before = await engine.position_for_trip(**kwargs, timeline=timeline(), now_sec=65)
++    after = await engine.position_for_trip(**kwargs, timeline=timeline(True), now_sec=70)
++    assert before['progress_m'] == 150 and after['progress_m'] == 40
++    assert builds[-1]['handover'] is None and builds[-1]['previous_plan'] is None
++    assert builds[-1]['source_anchor_index'] == 0
++    assert before['estimate_revision'] != after['estimate_revision']
++    assert after['source_correction']['reason'] == 'REVISED_SOURCE_ARRIVAL_AHEAD'
++    again = await engine.position_for_trip(**kwargs, timeline=timeline(True), now_sec=75)
++    assert again['progress_m'] == 45
++    assert again['estimate_revision'] == after['estimate_revision']
++    assert len(builds) == 2
++    windows = engine.cached_trip_windows(region_id='magdeburg', network_id='de-magdeburg-mvb',
++                                          version_id='v', service_date='2026-10-25')
++    assert windows['source:T']['end'] == 240
++    history = source_diagnostics.source_events(region_id='magdeburg', network_id='de-magdeburg-mvb',
++        version_id='v', service_date='2026-10-25', trip_id='source:T')
++    assert any(e['kind'] == 'RECONCILIATION_RESULT' and e['old_progress_m'] == 150
++               and e['new_progress_m'] == 40 for e in history['events'])
++    engine.clear_motion_cache(); source_diagnostics.clear_source_events()
++
++
++def test_diagnostics_are_immutable_bounded_scoped_and_never_keep_gps_or_credentials(monkeypatch):
++    source_diagnostics.clear_source_events()
++    monkeypatch.setattr(source_diagnostics, 'MAX_EVENTS', 2)
++    event = dict(kind='SOURCE_PLAN_REFRESH', region_id='magdeburg', network_id='mvb', version_id='v',
++                 service_date='2026-10-25', trip_id='T', timeline=[['A', 0, 10, 10]],
++                 api_key='secret', user_id='private', latitude=52, longitude=11, vehicle_id='physical-private')
++    source_diagnostics.record_source_event(event); event['timeline'][0][2] = 999
++    assert source_diagnostics.source_events(region_id='magdeburg', network_id='mvb')['events'][0]['timeline'][0][2] == 10
++    source_diagnostics.record_source_event({**event, 'trip_id': 'U'})
++    source_diagnostics.record_source_event({**event, 'trip_id': 'V'})
++    history = source_diagnostics.source_events(region_id='magdeburg', network_id='mvb', version_id='v', service_date='2026-10-25')
++    assert history['retained_events'] == 2 and history['dropped_events'] == 1
++    assert all(not set(e) & {'api_key', 'user_id', 'latitude', 'longitude', 'vehicle_id'} for e in history['events'])
++    assert source_diagnostics.source_events(region_id='other', network_id='mvb')['retained_events'] == 0
++    assert source_diagnostics.source_events(region_id='magdeburg', network_id='mvb', service_date='2026-10-24')['retained_events'] == 0
++    source_diagnostics._prune(time.monotonic() + source_diagnostics.TTL_SECONDS + 1)
++    assert source_diagnostics.source_events(region_id='magdeburg', network_id='mvb')['retained_events'] == 0
++    source_diagnostics.clear_source_events()
+--- /dev/null
++++ b/Perix-main/backend/tests/test_sparse_realtime_ingestion.py
+@@ -0,0 +1,86 @@
++from copy import deepcopy
++from datetime import datetime, timezone
++from types import SimpleNamespace
++from unittest.mock import AsyncMock
++
++import pytest
++from google.transit import gtfs_realtime_pb2
++
++from mobility.timing_evidence import extract_trip_timing
++from mobility.realtime_order import expected_accept, monotonic_update_pipeline, InvalidRealtimeClock
++from mobility.realtime_freshness import is_recent_trip_update, operational_only
++from routes import mobility as routes
++
++
++def test_proto_extraction_retains_original_occurrences_and_does_not_invent_a_trip_timestamp():
++    update = gtfs_realtime_pb2.TripUpdate()
++    update.trip.trip_id = 'T'
++    for sid, sequence, delay in [('A', 10, -8), ('B', 20, 27), ('A', 30, 120)]:
++        stop = update.stop_time_update.add(); stop.stop_id = sid; stop.stop_sequence = sequence
++        stop.arrival.delay = delay; stop.departure.delay = delay + 10
++    matched = {'stop_ids': ['A', 'B', 'A'], 'stop_sequences': [10, 20, 30], 'original_stop_sequences': True}
++    value = extract_trip_timing(update, matched, {0: 'SCHEDULED'})
++    assert value['trip_delay_kind'] == 'FIRST_STOP_DERIVED' and value['delay_seconds'] == -8
++    assert value['trip_update_timestamp'] is None
++    assert value['stop_predictions_by_sequence']['10']['arrival_delay_seconds'] == -8
++    assert value['stop_predictions_by_sequence']['30']['arrival_delay_seconds'] == 120
++    assert value['stop_predictions']['A']['arrival_delay_seconds'] == 120  # compatible legacy field
++    update.delay = 0; update.timestamp = int(datetime.now(timezone.utc).timestamp())
++    newer = extract_trip_timing(update, matched, {0: 'SCHEDULED'})
++    assert newer['trip_delay_kind'] == 'EXPLICIT_TRIP_DELAY' and newer['delay_seconds'] == 0
++    assert newer['trip_update_timestamp'] == update.timestamp
++
++
++def candidate(feed, trip_time=None, date='2026-10-25', version='v'):
++    return {'region_id': 'magdeburg', 'network_id': 'de-magdeburg-mvb', 'network_version_id': version,
++            'service_date': date, 'trip_id': 'T', 'feed_timestamp': feed,
++            'network_activation_epoch': 0, 'trip_update_timestamp': trip_time}
++
++
++def test_new_feed_cannot_revert_a_newer_known_trip_clock_even_after_a_missing_timestamp():
++    now = int(datetime.now(timezone.utc).timestamp())
++    old = candidate(now - 2, now - 20)
++    assert not expected_accept(old, candidate(now, now - 30))
++    assert expected_accept(old, candidate(now, now - 10))
++    assert expected_accept(old, candidate(now, None))  # explicitly unknown ordering, not invented source time
++    unknown = {**candidate(now - 1, None), 'trip_timestamp_highwater': now - 20}
++    assert not expected_accept(unknown, candidate(now, now - 30))
++    assert expected_accept({**old, 'service_date': '2026-10-24'}, candidate(now, now - 30))
++    pipeline = monotonic_update_pipeline(candidate(now, None))
++    assert 'trip_timestamp_highwater' in repr(pipeline)
++    assert '$literal' in repr(pipeline)
++
++
++def test_invalid_trip_source_clocks_are_not_promoted_by_a_new_feed_header():
++    now = int(datetime.now(timezone.utc).timestamp())
++    with pytest.raises(InvalidRealtimeClock):
++        monotonic_update_pipeline(candidate(now, now + 1000))
++    assert is_recent_trip_update(None, now)  # UNKNOWN, not proof of freshness
++    assert not is_recent_trip_update(now - 181, now)
++    assert not is_recent_trip_update(now + 121, now)
++    assert is_recent_trip_update(now - 15, now)
++
++
++@pytest.mark.asyncio
++async def test_expired_timing_cannot_resurrect_source_cancellations_or_skips(monkeypatch):
++    now = datetime.now(timezone.utc)
++    net = {'version_id': 'v', 'service_date': '2026-10-25'}
++    base = {**candidate(int(now.timestamp()) - 1000, int(now.timestamp()) - 1000),
++            'source_match_validated': True, 'updated_at': now.isoformat(),
++            'stop_predictions': {'A': {'arrival_delay_seconds': 90}}, 'stop_delays': {'A': 90}}
++    cancelled = {**base, 'trip_id': 'cancelled', 'trip_schedule_relationship': 'CANCELED'}
++    skipped = {**base, 'trip_id': 'skipped', 'trip_schedule_relationship': 'SCHEDULED', 'stop_relationships': {'A': 'SKIPPED'}}
++    normal = {**base, 'trip_id': 'expired', 'trip_schedule_relationship': 'SCHEDULED'}
++    originals = deepcopy([cancelled, skipped, normal])
++    monkeypatch.setattr(routes, 'db', SimpleNamespace(
++        mobility_realtime=SimpleNamespace(find=lambda *args: SimpleNamespace(to_list=AsyncMock(return_value=[]))),
++        mobility_trip_realtime_journeys=SimpleNamespace(find=lambda *args: SimpleNamespace(to_list=AsyncMock(return_value=[cancelled, skipped, normal])))))
++    value = await routes._realtime_delays_for(['cancelled', 'skipped', 'expired'], network=net)
++    assert set(value) == {'cancelled', 'skipped'}
++    assert value['cancelled']['trip_schedule_relationship'] == 'CANCELED'
++    assert value['skipped']['stop_relationships']['A'] == 'SKIPPED'
++    assert value['skipped']['stop_predictions'] == {} and value['skipped']['delay_seconds'] == 0
++    assert value['skipped']['source_timing_status'] == 'STALE_FEED'
++    assert [cancelled, skipped, normal] == originals
++    stripped = operational_only(cancelled, 'STALE_TRIP_UPDATE')
++    assert stripped['trip_delay_observed'] is False
+--- /dev/null
++++ b/Perix-main/backend/tests/test_sparse_realtime_timing.py
+@@ -0,0 +1,115 @@
++from copy import deepcopy
++from pathlib import Path
++import json
++
++import pytest
++
++from routes import mobility as routes
++
++
++def fixture():
++    return json.loads((Path(__file__).parent / 'fixtures/am_fuchsberg_sparse_20261025.json').read_text(encoding='utf-8'))
++
++
++def test_real_9_departure_delay_propagates_instead_of_resetting_to_first_stop():
++    f = fixture(); original = deepcopy(f)
++    timeline = routes._predicted_stop_timeline(f['route'], f['trip'], f['realtime'])
++    am, nxt = timeline[2:4]
++    assert am['predicted_arrival'] == 18 * 3600 + 7 * 60 + 27
++    assert nxt['predicted_arrival'] == 18 * 3600 + 8 * 60 + 27
++    assert am['timing_basis'] == 'PROPAGATED_STOP_DEPARTURE'
++    assert am['timing_anchor_stop_id'] == '340825'
++    assert am['timing_anchor_delay_seconds'] == 87
++    assert am['provider_predicted_arrival_s'] is None
++    assert timeline[1]['provider_predicted_departure_s'] == 18 * 3600 + 5 * 60 + 27
++    assert f == original
++
++
++def test_new_explicit_stop_update_overrides_propagation_without_rewriting_provider_values():
++    f = fixture()
++    f['realtime']['stop_predictions']['639170'] = {'arrival_delay_seconds': 75, 'departure_delay_seconds': 90}
++    t = routes._predicted_stop_timeline(f['route'], f['trip'], f['realtime'])
++    assert t[2]['predicted_arrival'] == 18 * 3600 + 7 * 60 + 15
++    assert t[2]['provider_predicted_arrival_s'] == t[2]['predicted_arrival']
++    assert t[3]['timing_anchor_delay_seconds'] == 90
++    assert t[2]['timing_basis'] == 'DIRECT_STOP_UPDATE'
++
++
++def test_no_data_resets_propagation_and_does_not_claim_direct_provider_clocks():
++    f = fixture(); f['realtime']['stop_relationships']['639170'] = 'NO_DATA'
++    t = routes._predicted_stop_timeline(f['route'], f['trip'], f['realtime'])
++    assert t[2]['timing_basis'] == 'NO_DATA'
++    assert t[2]['timing_anchor_stop_id'] is None
++    assert t[3]['predicted_arrival'] == t[3]['scheduled_arrival']
++    assert t[3]['timing_basis'] == 'SCHEDULE'
++
++
++def test_skipped_stop_does_not_poison_the_carried_departure_delay():
++    f = fixture(); f['realtime']['stop_relationships']['639170'] = 'SKIPPED'
++    f['realtime']['stop_predictions']['639170'] = {'arrival_delay_seconds': 900, 'departure_delay_seconds': 900}
++    t = routes._predicted_stop_timeline(f['route'], f['trip'], f['realtime'])
++    assert t[2]['relationship'] == 'SKIPPED'
++    assert t[3]['timing_anchor_delay_seconds'] == 87
++    assert t[3]['timing_anchor_stop_id'] == '340825'
++
++
++@pytest.mark.parametrize('relationship', ['CANCELED', 'DELETED'])
++def test_canceled_trip_has_no_timeline(relationship):
++    f = fixture(); f['realtime']['trip_schedule_relationship'] = relationship
++    assert routes._predicted_stop_timeline(f['route'], f['trip'], f['realtime']) == []
++
++
++def test_arrival_only_update_keeps_the_scheduled_dwell_and_carries_its_delay():
++    route = {'stops': [{'stop_id': 'A'}, {'stop_id': 'B'}]}
++    trip = {'stop_ids': ['A', 'B'], 'stop_times_arrival': {'A': '08:00', 'B': '08:03'},
++            'stop_times': {'A': '08:01', 'B': '08:03'}}
++    t = routes._predicted_stop_timeline(route, trip, {'stop_predictions': {'A': {'arrival_delay_seconds': 90}}})
++    assert t[0]['predicted_departure'] - t[0]['predicted_arrival'] == 60
++    assert t[0]['provider_predicted_departure_s'] is None
++    assert t[1]['predicted_arrival'] == 8 * 3600 + 4 * 60 + 30
++
++
++def test_occurrence_specific_updates_do_not_leak_to_an_earlier_visit_to_the_same_platform():
++    route = {'stops': [{'stop_id': 'A'}, {'stop_id': 'B'}]}
++    trip = {'stop_ids': ['A', 'B', 'A'], 'stop_sequences': [10, 20, 30], 'stop_times_sequence': [
++        {'stop_id': s, 'stop_sequence': q, 'arrival_time': t, 'departure_time': t}
++        for s, q, t in [('A', 10, '08:00'), ('B', 20, '08:05'), ('A', 30, '08:10')]]}
++    rt = {'stop_predictions': {'A': {'arrival_delay_seconds': 120}},
++          'stop_predictions_by_sequence': {'30': {'stop_id': 'A', 'arrival_delay_seconds': 120}}}
++    t = routes._predicted_stop_timeline(route, trip, rt)
++    assert t[0]['predicted_arrival'] == 8 * 3600
++    assert t[0]['ambiguous_stop_update'] is True
++    assert t[2]['predicted_arrival'] == 8 * 3600 + 12 * 60
++    assert t[2]['provider_predicted_arrival_s'] == t[2]['predicted_arrival']
++
++
++def test_early_departure_only_update_is_preserved_without_inventing_provider_arrival():
++    route = {'stops': [{'stop_id': 'A'}, {'stop_id': 'B'}]}
++    trip = {'stop_ids': ['A', 'B'], 'stop_times': {'A': '08:00', 'B': '08:03'}}
++    rt = {'stop_predictions': {'A': {'departure_delay_seconds': -30}}}
++    original = deepcopy(rt)
++    t = routes._predicted_stop_timeline(route, trip, rt)
++    assert t[0]['predicted_arrival'] == t[0]['predicted_departure'] == 8 * 3600 - 30
++    assert t[0]['provider_predicted_arrival_s'] is None
++    assert t[0]['provider_predicted_departure_s'] == 8 * 3600 - 30
++    assert t[0]['timing_basis'] == 'FROM_DEPARTURE_UPDATE'
++    assert t[0]['departure_timing_basis'] == 'DIRECT_STOP_UPDATE'
++    assert not t[0]['timing_order_adjusted']
++    assert t[1]['predicted_arrival'] == 8 * 3600 + 150
++    assert rt == original
++
++
++def test_conflicting_provider_clocks_remain_raw_and_are_not_authoritative_anchors():
++    from mobility.motion.source_reconciliation import source_start_index, source_frontier_conflict
++    route = {'stops': [{'stop_id': s} for s in ['A', 'B', 'C']]}
++    trip = {'stop_ids': ['A', 'B', 'C'], 'stop_times': {'A': '08:00', 'B': '08:01', 'C': '08:02'}}
++    old = routes._predicted_stop_timeline(route, trip, {})
++    rt = {'stop_predictions': {'A': {'departure_delay_seconds': 120},
++                               'B': {'arrival_delay_seconds': -30, 'departure_delay_seconds': -30}}}
++    t = routes._predicted_stop_timeline(route, trip, rt)
++    assert t[1]['provider_predicted_arrival_s'] == 8 * 3600 + 30
++    assert t[1]['provider_predicted_departure_s'] == 8 * 3600 + 30
++    assert t[1]['predicted_arrival'] == t[1]['predicted_departure'] == 8 * 3600 + 120
++    assert t[1]['timing_order_adjusted'] and t[2]['timing_order_adjusted']
++    assert source_start_index(t, 8 * 3600 + 130) == 0
++    assert source_frontier_conflict(old, t, [0, 100, 200], 150, 8 * 3600 + 130) is None
+--- a/Perix-main/backend/utils/mobility_workers.py
++++ b/Perix-main/backend/utils/mobility_workers.py
+@@ -158,7 +158,7 @@
+         3: "UNSCHEDULED",
+     }
+ 
+-    from mobility.realtime_trip_identity import build_trip_index, match_trip_update, stop_id_for_sequence
++    from mobility.realtime_trip_identity import build_trip_index, match_trip_update
+     from mobility.realtime_order import activation_epoch, validate_candidate, InvalidRealtimeClock, monotonic_update_pipeline
+     from pymongo.errors import BulkWriteError
+     from routes.mobility import _get_active_network
+@@ -265,59 +265,8 @@
+                 if matched is None:
+                     rejected[match_reason] = rejected.get(match_reason, 0) + 1
+                     continue
+-                stop_delays = {}
+-                stop_predictions = {}
+-                stop_relationships = {}
+-
+-                trip_delay = None
+-                try:
+-                    if tu.HasField("delay"):
+-                        trip_delay = int(tu.delay)
+-                except Exception:
+-                    pass
+-
+-                first_stop_delay = None
+-
+-                for stu in tu.stop_time_update:
+-                    sid = str(stu.stop_id or "")
+-                    if not sid and stu.HasField("stop_sequence"):
+-                        sid = stop_id_for_sequence(matched, stu.stop_sequence) or ""
+-                    if not sid:
+-                        continue
+-
+-                    stop_relationships[sid] = stop_rel_names.get(
+-                        int(stu.schedule_relationship),
+-                        "SCHEDULED",
+-                    )
+-
+-                    arrival_delay = None
+-                    departure_delay = None
+-                    if stu.HasField("arrival") and stu.arrival.HasField("delay"):
+-                        arrival_delay = int(stu.arrival.delay)
+-                    if stu.HasField("departure") and stu.departure.HasField("delay"):
+-                        departure_delay = int(stu.departure.delay)
+-
+-                    d = arrival_delay if arrival_delay is not None else departure_delay
+-                    if d is not None:
+-                        stop_delays[sid] = d
+-                        if first_stop_delay is None:
+-                            first_stop_delay = d
+-
+-                    prediction = {}
+-                    if arrival_delay is not None:
+-                        prediction["arrival_delay_seconds"] = arrival_delay
+-                    if departure_delay is not None:
+-                        prediction["departure_delay_seconds"] = departure_delay
+-                    if stu.HasField("arrival") and stu.arrival.HasField("time") and stu.arrival.time:
+-                        prediction["arrival_epoch"] = int(stu.arrival.time)
+-                    if stu.HasField("departure") and stu.departure.HasField("time") and stu.departure.time:
+-                        prediction["departure_epoch"] = int(stu.departure.time)
+-                    if prediction:
+-                        stop_predictions[sid] = prediction
+-
+-                trip_delay_observed = trip_delay is not None or first_stop_delay is not None
+-                if trip_delay is None:
+-                    trip_delay = first_stop_delay if first_stop_delay is not None else 0
++                from mobility.timing_evidence import extract_trip_timing
++                timing = extract_trip_timing(tu, matched, stop_rel_names)
+ 
+                 docs.append(
+                     {
+@@ -327,13 +276,9 @@
+                         "network_version_id": matched["network_version_id"],
+                         "service_date": matched["service_date"],
+                         "gtfs_route_id": matched["gtfs_route_id"],
+-                        "delay_seconds": int(trip_delay),
+-                        "trip_delay_observed": trip_delay_observed,
++                        **timing,
+                         "feed_timestamp": feed_timestamp,
+                         "network_activation_epoch": activation_epoch(matched_network.get("activated_at")),
+-                        "stop_delays": stop_delays,
+-                        "stop_predictions": stop_predictions,
+-                        "stop_relationships": stop_relationships,
+                         "trip_schedule_relationship": trip_rel,
+                     }
+                 )
+@@ -349,7 +294,8 @@
+             # Duplicate TripUpdates within a feed must never race each other.
+             unique_docs = {tuple(journey_upsert_filter(doc).values()): doc for doc in reversed(docs)}
+             for doc in reversed(list(unique_docs.values())):
+-                doc["updated_at"] = now_iso
++                doc["updated_at"] = now_iso
++                doc["received_at"] = now_iso
+                 doc["source"] = "GTFS_RT"
+                 if doc.get("trip_schedule_relationship") in ("CANCELED", "DELETED"):
+                     canceled += 1
+--- a/Perix-main/frontend/app/(tabs)/locator.tsx
++++ b/Perix-main/frontend/app/(tabs)/locator.tsx
+@@ -27,6 +27,8 @@
+ import { useMobilityNetwork } from "../../hooks/useMobilityNetwork";
+ import { canonicalVehicleLine, stopVisibilityBucket } from "../../lib/mobilityNetwork";
+ import MobilityDataStatus from "../../components/shared/MobilityDataStatus";
++import MobilityTimingEvidence from "../../components/shared/MobilityTimingEvidence";
++import { timingSourceCaption } from "../../lib/predictionEvidence";
+ import MobilityServiceWarnings, { MobilityServiceWarning } from "../../components/shared/MobilityServiceWarnings";
+ import type { TrafficContext } from "../../lib/api/mobility";
+ import { SkeletonBox, EmptyState } from "../../components/shared";
+@@ -722,6 +724,7 @@
+         return {
+           id: v.vehicle_id,
+           journeyId: v.trip_instance_id ?? v.trip_id ?? null,
++          estimateRevision: v.estimated ? v.estimate_revision : null,
+           latitude: v.latitude!,
+           longitude: v.longitude!,
+           title:
+@@ -850,6 +853,7 @@
+ 
+   const selectedJourneyKey = liveVehicles.find(v => v.vehicle_id === selectedVehicle)?.trip_instance_id
+     || liveVehicles.find(v => v.vehicle_id === selectedVehicle)?.trip_id;
++  const selectedEstimateRevisionKey = liveVehicles.find(v => v.vehicle_id === selectedVehicle)?.estimate_revision;
+   // Selected vehicle: upcoming, non-skipped stops and their arrival predictions.
+   useEffect(() => {
+     if (activeTab !== "mobility" || !screenFocused || !foreground.visible || !selectedVehicle || waitingForLinkedVehicle) return;
+@@ -884,7 +888,7 @@
+       cancelled = true;
+       clearInterval(interval);
+     };
+-  }, [activeTab, selectedVehicle, selectedJourneyKey, sessionToken, trafficContext, waitingForLinkedVehicle,
++  }, [activeTab, selectedVehicle, selectedJourneyKey, selectedEstimateRevisionKey, sessionToken, trafficContext, waitingForLinkedVehicle,
+     screenFocused, foreground.visible, foreground.epoch]);
+ 
+   // Bus destination search (debounced)
+@@ -1751,6 +1755,7 @@
+                   <Ionicons name="close-circle" size={22} color="#264348" />
+                 </Pressable>
+               </View>
++              <MobilityTimingEvidence estimated={tripProgress.estimated} evidence={tripProgress.timing_evidence} />
+               <Text style={styles.linePanelHint}>{t("mobility.nextStops", "Next stops")}</Text>
+               {tripLoadFailed ? <Text style={styles.linePanelHint}>
+                 {t("mobility.tripLoadFailed", "Couldn't load the next stops. Retrying…")}
+@@ -1773,7 +1778,7 @@
+                             {s.prediction_basis === "PERIX_MOTION_PLAN" ? ` · ${t("mobility.perixEstimate", "PERIX estimate")}` : ""}
+                             {s.delay_seconds > 0 ? ` (+${Math.round(s.delay_seconds / 60)}′)` : ""}
+                             {s.prediction_basis === "PERIX_MOTION_PLAN" && s.source_predicted
+-                              ? ` · ${t("mobility.sourcePrediction", "Source")}: ${s.source_predicted}` : ""}
++                              ? ` · ${timingSourceCaption(s.timing_evidence)}: ${s.provider_predicted ?? s.source_predicted}` : ""}
+                       </Text>
+                       {s.passed ? <Text style={styles.stopTimeText}>
+                         {t("mobility.sourceTimeElapsed", "Source time has passed; estimated position has not reached this stop.")}
+@@ -2132,9 +2137,11 @@
+                         {b.delay_minutes < 0 ? ` · ${t("mobility.early", "{{n}} min früher", { n: Math.abs(b.delay_minutes) })}` : ""}
+                         {" · "}
+                         {b.eta_source === "PERIX_ESTIMATE" ? t("mobility.perixEstimate", "PERIX estimate")
+-                          : b.eta_source === "REALTIME" ? t("mobility.realtimeEta", "Echtzeit-Prognose") : t("mobility.estimated", "Geschätzt")}
++                          : b.eta_source === "REALTIME" ? t("mobility.realtimeEta", "Echtzeit-Prognose")
++                            : b.eta_source === "REALTIME_PROPAGATED" ? timingSourceCaption(b.timing_evidence, b.source_eta_source)
++                              : t("mobility.estimated", "Geschätzt")}
+                         {b.eta_source === "PERIX_ESTIMATE" && b.source_predicted_arrival
+-                          ? ` · ${b.source_eta_source === "REALTIME" ? "MVB" : t("mobility.schedule", "Schedule")}: ${b.source_predicted_arrival}` : ""}
++                          ? ` · ${timingSourceCaption(b.timing_evidence, b.source_eta_source)}: ${b.provider_predicted_arrival ?? b.source_predicted_arrival}` : ""}
+                         {b.platform_id ? ` · ${t("mobility.platform", "Platform")}: ${b.platform_id}` : ""}
+                         {b.position_source === "LIVE" ? " · GPS" : ""}
+                         {b.realtime_feed_timestamp
+--- a/Perix-main/frontend/components/BusinessMap.d.ts
++++ b/Perix-main/frontend/components/BusinessMap.d.ts
+@@ -14,7 +14,8 @@
+   estimated?: boolean;
+   label?: string | null;
+   path?: { latitude: number; longitude: number }[];
+-  journeyId?: string | null;
++  journeyId?: string | null;
++  estimateRevision?: string | null;
+   progressM?: number | null;
+   positionState?: string | null;
+   speed?: number | null;
+--- a/Perix-main/frontend/components/BusinessMap.web.tsx
++++ b/Perix-main/frontend/components/BusinessMap.web.tsx
+@@ -30,7 +30,8 @@
+   /** Backend progress along the canonical line (meters) - authoritative
+    *  position, never re-projected in the browser. */
+   progressM?: number | null;
+-  journeyId?: string | null;
++  journeyId?: string | null;
++  estimateRevision?: string | null;
+   speed?: number | null;
+   motionState?: string | null;
+   positionState?: string | null;
+@@ -718,7 +719,7 @@
+       parts.push(
+         `${m.id}|${m.latitude}|${m.longitude}|${m.pinColor || ""}|${m.pinInnerColor || ""}` +
+          `|s${m.positionState || ""}|p${m.progressM ?? ""}` +
+-        `|${m.type}|${m.journeyId || ""}|${m.label || ""}|${m.heading ?? ""}|${m.speed ?? ""}|${m.motionState || ""}` +
++        `|${m.type}|${m.journeyId || ""}|${m.estimateRevision || ""}|${m.label || ""}|${m.heading ?? ""}|${m.speed ?? ""}|${m.motionState || ""}` +
+         (m.path ? JSON.stringify(m.path) : "")
+       );
+     });
+@@ -1071,8 +1072,10 @@
+         const rec = existing;
+         // Keep the vehicle's canonical path fresh (the resolved line can
+         // change once, e.g. when the geometry worker completes it).
+-        const pathChanged = rec.journeyId !== rep.journeyId || rec.path !== rep.path;
+-        rec.journeyId = rep.journeyId;
++        const estimateCorrected = !!rep.estimated && !!rep.estimateRevision && rec.estimateRevision !== rep.estimateRevision;
++        const pathChanged = rec.journeyId !== rep.journeyId || rec.path !== rep.path || estimateCorrected;
++        rec.journeyId = rep.journeyId;
++        rec.estimateRevision = rep.estimated ? rep.estimateRevision : null;
+         if (rep.path && rep.path.length >= 2) {
+           rec.path = rep.path;
+           rec.cum = polylineCumulative(rep.path);
+@@ -1122,7 +1125,8 @@
+           rec.marker.setIcon(makeVehicleIcon(google, rec));
+         },
+         vehicleId: rep.id,
+-        journeyId: rep.journeyId,
++        journeyId: rep.journeyId,
++        estimateRevision: rep.estimated ? rep.estimateRevision : null,
+         speed: rep.speed ?? null,
+         motionState: rep.motionState ?? null,
+         heading: typeof rep.heading === "number" ? rep.heading : 0,
+--- a/Perix-main/frontend/components/GoogleMobilityMap.tsx
++++ b/Perix-main/frontend/components/GoogleMobilityMap.tsx
+@@ -21,6 +21,7 @@
+ export type GoogleVehicleMarker = {
+   id: string;
+   journeyId?: string | null;
++  estimateRevision?: string | null;
+   latitude: number;
+   longitude: number;
+   type?: "bus" | "tram" | "taxi";
+--- /dev/null
++++ b/Perix-main/frontend/components/shared/MobilityTimingEvidence.tsx
+@@ -0,0 +1,36 @@
++import { Text, View } from "react-native";
++import { useTranslation } from "react-i18next";
++import type { TimingEvidence } from "../../lib/api/mobility";
++
++export default function MobilityTimingEvidence({ estimated, evidence }: {
++  estimated: boolean; evidence?: TimingEvidence | null;
++}) {
++  const { t } = useTranslation();
++  if (!estimated) return null;
++  const basis = evidence?.timing_basis;
++  const propagated = basis === "PROPAGATED_STOP_DEPARTURE";
++  const schedule = basis === "SCHEDULE" || basis === "NO_DATA";
++  return <View style={{ paddingVertical: 6 }} accessibilityLiveRegion="polite">
++    <Text style={{ color: "#52636A", fontSize: 12 }}>
++      {t("mobility.modelPositionNotGps", "Position estimate — not GPS.")}
++      {propagated ? ` ${t("mobility.timingFromLastDeparture", "Timing carried from the last available stop departure")}${evidence?.anchor_stop_name ? ` (${evidence.anchor_stop_name})` : ""}${typeof evidence?.timing_anchor_delay_seconds === "number" ? `: ${evidence.timing_anchor_delay_seconds > 0 ? "+" : ""}${evidence.timing_anchor_delay_seconds}s` : ""}.`
++        : basis === "FROM_DEPARTURE_UPDATE" || (schedule && evidence?.departure_timing_basis === "DIRECT_STOP_UPDATE")
++          ? ` ${t("mobility.arrivalInferredFromDeparture", "Provider departure timing is available; arrival is inferred, not directly reported.")}`
++          : schedule ? ` ${t("mobility.scheduleTimingOnly", "Schedule timing; no usable realtime update for this stop.")}`
++          : basis === "DIRECT_STOP_UPDATE" || basis === "STOP_DELAY" ? ` ${t("mobility.directStopTiming", "Provider timing for this stop; the position remains modelled.")}`
++            : basis === "TRIP_DELAY" ? ` ${t("mobility.tripWideTiming", "Trip-wide delay, not a direct update for this stop.")}` : ""}
++    </Text>
++    {evidence?.source_correction ? <Text style={{ color: "#52636A", fontSize: 12, marginTop: 3 }}>
++      {t("mobility.sourceEstimateRevised", "Estimated position recomputed after a source timing change.")}
++    </Text> : null}
++    {evidence?.timing_order_adjusted ? <Text style={{ color: "#52636A", fontSize: 12, marginTop: 3 }}>
++      {t("mobility.sourceTimingOrderConflict", "Provider timings conflict in stop order; the position is uncertain.")}
++    </Text> : null}
++    {evidence?.position_assurance === "LEGACY_FALLBACK_UNCERTAIN" ? <Text style={{ color: "#52636A", fontSize: 12, marginTop: 3 }}>
++      {t("mobility.legacyPositionUncertain", "Fallback position estimate: revised timing may not match the marker. Position is uncertain.")}
++    </Text> : null}
++    {evidence?.source_status === "TRIP_CLOCK_UNKNOWN" ? <Text style={{ color: "#52636A", fontSize: 12, marginTop: 3 }}>
++      {t("mobility.tripUpdateTimeUnknown", "Provider trip-update time unavailable; feed age is not a GPS observation.")}
++    </Text> : null}
++  </View>;
++}
+--- a/Perix-main/frontend/hooks/useHomeTransit.ts
++++ b/Perix-main/frontend/hooks/useHomeTransit.ts
+@@ -52,6 +52,7 @@
+     .map(v => {
+       const line = canonicalVehicleLine(lines || [], v);
+       return { id: transitMarkerId(v.vehicle_id), journeyId: v.trip_instance_id || v.trip_id,
++        estimateRevision: v.estimated ? v.estimate_revision : null,
+         latitude: v.latitude!, longitude: v.longitude!, type: v.mode as "bus" | "tram",
+         title: `${v.display_route_number || v.route_number || ""} → ${v.route_direction || ""}`,
+         label: v.display_route_number || v.route_number, estimated: v.estimated,
+--- a/Perix-main/frontend/lib/api/mobility.ts
++++ b/Perix-main/frontend/lib/api/mobility.ts
+@@ -33,7 +33,24 @@
+   fallback_reason?: string | null;
+ };
+ 
++export type TimingEvidence = {
++  timing_order_adjusted?: boolean;
++  timing_basis?: string | null;
++  departure_timing_basis?: string | null;
++  timing_anchor_stop_id?: string | null;
++  timing_anchor_sequence?: number | null;
++  timing_anchor_delay_seconds?: number | null;
++  anchor_stop_name?: string | null;
++  source_status?: string | null;
++  trip_update_timestamp?: number | null;
++  feed_timestamp?: number | null;
++  position_assurance?: string | null;
++  source_correction?: { reason?: string; anchor_index?: number } | null;
++};
++
+ export type EffectivePrediction = {
++  timing_evidence?: TimingEvidence | null;
++  estimate_revision?: string | null;
+   motion_plan_revision?: string | null;
+   next_timeline_index?: number | null;
+   prediction_basis?: string;
+@@ -144,6 +161,8 @@
+       next_stop_predicted_arrival: v.next_stop_predicted_arrival,
+       source_next_stop_predicted_arrival: v.source_next_stop_predicted_arrival,
+       next_stop_eta_source: v.next_stop_eta_source,
++      timing_evidence: v.timing_evidence,
++      estimate_revision: v.estimated ? v.estimate_revision : null,
+     };
+   });
+ };
+@@ -180,7 +199,9 @@
+   motion?: MotionDiagnostics | null;
+ };
+ 
+-export type V2Arrival = {
++export type V2Arrival = {
++  timing_evidence?: TimingEvidence | null;
++  provider_predicted_arrival?: string | null;
+   trip_instance_id?: string;
+   trip_id?: string;
+   route_number: string;
+@@ -377,7 +398,9 @@
+ export const getV2Map = (token: string | null | undefined) =>
+   apiRequest<V2Map>(`/mobility/v2/map`, "GET", token || undefined);
+ 
+-export type ServingBus = {
++export type ServingBus = {
++  timing_evidence?: TimingEvidence | null;
++  provider_predicted_arrival?: string | null;
+   vehicle_id: string;
+   route_number: string;
+   display_route_number?: string;
+@@ -509,6 +532,8 @@
+     platform_id: a.platform_id,
+     source_predicted_arrival: a.source_predicted_arrival,
+     source_eta_source: a.source_eta_source,
++    timing_evidence: a.timing_evidence,
++    provider_predicted_arrival: a.provider_predicted_arrival,
+     motion_plan_revision: a.motion_plan_revision,
+     scheduled_arrival: a.scheduled_arrival,
+     scheduled_departure: a.scheduled_departure,
+@@ -525,6 +550,9 @@
+ };
+ 
+ export type TripStopProgress = {
++  timing_evidence?: TimingEvidence | null;
++  provider_predicted?: string | null;
++  passed_basis?: string;
+   source_predicted?: string;
+   predicted_departure?: string;
+   prediction_basis?: string;
+@@ -539,6 +567,8 @@
+ };
+ 
+ export type VehicleTripProgress = {
++  timing_evidence?: TimingEvidence | null;
++  estimate_revision?: string | null;
+   motion_plan_revision?: string | null;
+   next_timeline_index?: number | null;
+   vehicle_id: string;
+--- /dev/null
++++ b/Perix-main/frontend/lib/predictionEvidence.ts
+@@ -0,0 +1,12 @@
++import type { TimingEvidence } from "./api/mobility";
++
++/** A source-derived fallback is not a direct provider stop timestamp. */
++export function timingSourceCaption(evidence?: TimingEvidence | null, legacySource?: string) {
++  switch (evidence?.timing_basis) {
++    case "DIRECT_STOP_UPDATE": case "STOP_DELAY": return "Provider";
++    case "PROPAGATED_STOP_DEPARTURE": case "FROM_DEPARTURE_UPDATE": return "RT-derived";
++    case "TRIP_DELAY": return "Trip realtime delay";
++    case "SCHEDULE": case "NO_DATA": case "SKIPPED": return "Schedule";
++    default: return legacySource === "REALTIME" ? "Provider" : legacySource === "SCHEDULE" ? "Schedule" : "Source-derived";
++  }
++}
+--- a/Perix-main/frontend/lib/vehicleBridge.ts
++++ b/Perix-main/frontend/lib/vehicleBridge.ts
+@@ -15,6 +15,7 @@
+     paths.set(v.id, { journey, path: v.path, fingerprint });
+     return { id: v.id, journeyId: journey, latitude: v.latitude, longitude: v.longitude,
+       type: v.type || "bus", label: v.label, direction: v.direction, estimated: !!v.estimated, heading: v.heading,
++      estimateRevision: v.estimated ? v.estimateRevision ?? null : null,
+       ...(!old || old.journey !== journey || !samePath ? { path: v.path ?? null } : {}),
+       progressM: v.progressM, positionState: v.positionState, speed: v.speed, motionState: v.motionState };
+   });
+--- a/Perix-main/frontend/public/google-mobility-map.html
++++ b/Perix-main/frontend/public/google-mobility-map.html
+@@ -414,7 +414,8 @@
+       var path = hasPath ? (v.path && v.path.length >= 2 ? v.path : null) : (rec && rec.path);
+       // Structured cloning changes array identity, not canonical geometry.
+       var pathKey = hasPath ? (path ? JSON.stringify(path.map(function (p) { return [p.latitude, p.longitude]; })) : null) : (rec && rec.pathKey);
+-      var pathChanged = journeyChanged || (hasPath && (!rec || rec.pathKey !== pathKey));
++      var estimateCorrected = rec && v.estimated && v.estimateRevision && rec.estimateRevision !== v.estimateRevision;
++      var pathChanged = journeyChanged || estimateCorrected || (hasPath && (!rec || rec.pathKey !== pathKey));
+       var cum = pathChanged ? (path ? pathCumulative(path) : null) : (rec && rec.cum);
+       var target = { lat: v.latitude, lng: v.longitude };
+       if (path && cum && v.progressM != null) {
+@@ -432,6 +433,7 @@
+           marker: marker,
+           vehicleId: v.id,
+           journeyId: v.journeyId || null,
++          estimateRevision: v.estimated ? v.estimateRevision || null : null,
+           type: v.type || "bus",
+           label: v.label,
+           direction: v.direction || null,
+@@ -459,6 +461,7 @@
+         rec.positionState = v.positionState || null;
+         rec.direction = v.direction || null;
+         rec.journeyId = v.journeyId || null;
++        rec.estimateRevision = v.estimated ? v.estimateRevision || null : null;
+         rec.motionState = v.motionState || null;
+         rec.speed = typeof v.speed === "number" && Number.isFinite(v.speed) ? v.speed : null;
+       }
+--- a/Perix-main/frontend/tests/google-locator-traffic.test.cjs
++++ b/Perix-main/frontend/tests/google-locator-traffic.test.cjs
+@@ -214,7 +214,7 @@
+   assert.match(source, /setInterval\(load, 15000\)/);
+   assert.match(source, /setInterval\(load, 5000\)/);
+   assert.match(source, /\[activeTab, sessionToken, trafficContext, screenFocused, vehicleLink, foreground.visible, foreground.epoch\]/);
+-  assert.match(source, /\[activeTab, selectedVehicle, selectedJourneyKey, sessionToken, trafficContext, waitingForLinkedVehicle,\s*screenFocused, foreground.visible, foreground.epoch\]/);
++  assert.match(source, /\[activeTab, selectedVehicle, selectedJourneyKey, selectedEstimateRevisionKey, sessionToken, trafficContext, waitingForLinkedVehicle,\s*screenFocused, foreground.visible, foreground.epoch\]/);
+   assert.match(source, /contextLocation\?\.longitude,\s*trafficContext, screenFocused, foreground.visible, foreground.epoch\]/);
+ });
+ 
+@@ -261,6 +261,7 @@
+       screenFocused: true, vehicleLink: null, fleetRequestRef: { current: null },
+       foreground: { visible: true, epoch: 0 }, setFleetLastSuccess() {}, setFleetRefreshFailed() {},
+       selectedJourneyKey: "dated-current-trip",
++      selectedEstimateRevisionKey: "model-source-revision",
+       useEffect(fn, deps) {
+         assert.ok(deps.includes("google_locator"));
+         cleanup = fn();
+--- /dev/null
++++ b/Perix-main/frontend/tests/sparse-realtime-evidence.test.cjs
+@@ -0,0 +1,107 @@
++/* global __dirname */
++const assert = require('node:assert/strict');
++const fs = require('node:fs');
++const path = require('node:path');
++const vm = require('node:vm');
++const ts = require('typescript');
++const test = require('node:test');
++const root = path.join(__dirname, '..');
++const read = p => fs.readFileSync(path.join(root, p), 'utf8');
++function load(p, mocks = {}) {
++  const exports = {};
++  vm.runInNewContext(ts.transpileModule(read(p), { compilerOptions: { module: ts.ModuleKind.CommonJS,
++    target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText, { exports, require: name => mocks[name] });
++  return exports;
++}
++function mapPage() {
++  let now = 100000;
++  function Marker(o) { Object.assign(this, o); this.listeners = {}; this.setMap = m => { this.map = m; };
++    this.setPosition = p => { this.position = p; }; this.setIcon = i => { this.icon = i; }; this.setOpacity = () => {};
++    this.addListener = (n, fn) => { this.listeners[n] = fn; }; }
++  const page = vm.createContext({ window: { location: { origin: 'https://test.invalid' }, parent: { postMessage() {} }, addEventListener() {} },
++    document: { getElementById: () => ({}) }, requestAnimationFrame: () => 1, Date: { now: () => now },
++    google: { maps: { Marker, Size: function () {}, Point: function () {},
++      Map: function () { this.getZoom = () => 14; this.addListener = () => {}; } } } });
++  vm.runInContext(read('public/google-mobility-map.html').match(/<script>([\s\S]*?)<\/script>/)[1], page); page.initMap();
++  const points = [{ latitude: 52, longitude: 11 }, { latitude: 52.01, longitude: 11 }];
++  const cumulative = page.pathCumulative(points);
++  const sample = (progressM, estimateRevision, estimated = true) => {
++    const p = page.pointAtProgress(points, cumulative, progressM);
++    return { id: 'actual-source', journeyId: 'dated:T', type: 'tram', label: '9', estimated,
++      latitude: p.lat, longitude: p.lng, path: points, progressM, estimateRevision, heading: 0, speed: 20, motionState: 'MOVING' };
++  };
++  return { page, sample, advance: () => { now += 1000; } };
++}
++
++test('a virtual source revision resamples the same canonical marker instead of animating backwards or preserving a wrong lead', () => {
++  const { page, sample, advance } = mapPage();
++  page.drawVehicles([sample(200, 'epoch:old')]); const marker = page.VEHICLES['actual-source'].marker;
++  advance();
++  page.drawVehicles([sample(50, 'epoch:corrected')]); const rec = page.VEHICLES['actual-source'];
++  assert.equal(rec.marker, marker); assert.equal(rec.journeyId, 'dated:T');
++  assert.equal(rec.progNow, 50); assert.equal(rec.animStart, null);
++  assert.equal(marker.position.lat, sample(50).latitude);
++  advance(); page.drawVehicles([sample(70, 'epoch:corrected')]);
++  assert.equal(rec.progFrom, 50); assert.equal(rec.progTo, 70);
++});
++
++test('same-revision jitter retains the old no-reverse rule; GPS ignores virtual revision tokens', () => {
++  const h = mapPage(); h.page.drawVehicles([h.sample(200, 'epoch:one')]);
++  h.advance();
++  h.page.drawVehicles([h.sample(150, 'epoch:one')]);
++  assert.equal(h.page.VEHICLES['actual-source'].progNow, 200);
++  const gps = mapPage(); gps.page.drawVehicles([gps.sample(200, 'not-a-gps-revision', false)]);
++  gps.advance();
++  gps.page.drawVehicles([gps.sample(150, 'another-virtual-token', false)]);
++  assert.equal(gps.page.VEHICLES['actual-source'].estimateRevision, null);
++  assert.equal(gps.page.VEHICLES['actual-source'].progNow, 200);
++});
++
++test('bridge sends only small revision metadata when source timing changes, never reserializing static geometry', () => {
++  const { vehicleBridgeUpdates } = load('lib/vehicleBridge.ts');
++  const v = { id: 'actual-source', journeyId: 'dated:T', estimated: true, latitude: 52, longitude: 11,
++    path: [{ latitude: 52, longitude: 11 }, { latitude: 53, longitude: 11 }], estimateRevision: 'epoch:old' };
++  const first = vehicleBridgeUpdates([v], new Map());
++  const next = vehicleBridgeUpdates([{ ...v, estimateRevision: 'epoch:corrected', progressM: 50 }], first.paths);
++  assert.equal(next.updates[0].estimateRevision, 'epoch:corrected'); assert.equal('path' in next.updates[0], false);
++  assert.equal(vehicleBridgeUpdates([{ ...v, estimated: false }], next.paths).updates[0].estimateRevision, null);
++});
++
++test('API retains source evidence and correction metadata while unknown provider time/ETA stay unknown', async () => {
++  let value = [{ vehicle_id: 'T', estimated: true, position: { latitude: 52, longitude: 11 },
++    estimate_revision: 'epoch:new', timing_evidence: { timing_basis: 'PROPAGATED_STOP_DEPARTURE', timing_anchor_delay_seconds: 87 } }];
++  const api = load('lib/api/mobility.ts', { './core': { API_BASE: 'https://test.invalid/api', apiRequest: async () => value } });
++  const [v] = await api.getLiveVehicles(null);
++  assert.equal(v.estimate_revision, 'epoch:new'); assert.equal(v.timing_evidence.timing_anchor_delay_seconds, 87);
++  value = [{ vehicle_id: 'T', route_number: '9', timing_evidence: v.timing_evidence, provider_predicted_arrival: null }];
++  const [board] = await api.getBusesServing(null, 'physical:stop');
++  assert.equal(board.eta_minutes, null); assert.equal(board.provider_predicted_arrival, null);
++  assert.equal(board.timing_evidence.timing_basis, 'PROPAGATED_STOP_DEPARTURE');
++});
++
++test('derived stop times never get a direct-provider caption', () => {
++  const { timingSourceCaption } = load('lib/predictionEvidence.ts');
++  assert.equal(timingSourceCaption({ timing_basis: 'PROPAGATED_STOP_DEPARTURE' }, 'REALTIME'), 'RT-derived');
++  assert.equal(timingSourceCaption({ timing_basis: 'TRIP_DELAY' }, 'REALTIME'), 'Trip realtime delay');
++  assert.equal(timingSourceCaption({ timing_basis: 'NO_DATA' }, 'REALTIME'), 'Schedule');
++  assert.equal(timingSourceCaption({ timing_basis: 'DIRECT_STOP_UPDATE' }), 'Provider');
++});
++
++test('selected estimate explains propagation, unavailable source timestamp and correction without calling it GPS', () => {
++  const jsx = (type, props) => ({ type, props });
++  const component = load('components/shared/MobilityTimingEvidence.tsx', {
++    'react/jsx-runtime': { jsx, jsxs: jsx }, 'react-native': { View: 'View', Text: 'Text' },
++    'react-i18next': { useTranslation: () => ({ t: (_key, fallback) => fallback }) },
++  }).default;
++  assert.equal(component({ estimated: false }), null);
++  const tree = component({ estimated: true, evidence: { timing_basis: 'PROPAGATED_STOP_DEPARTURE',
++    anchor_stop_name: 'Raiffeisenstraße', timing_anchor_delay_seconds: 87, source_status: 'TRIP_CLOCK_UNKNOWN', source_correction: { reason: 'revised' } } });
++  const text = JSON.stringify(tree);
++  assert.match(text, /not GPS/); assert.match(text, /Raiffeisenstraße/); assert.match(text, /\+87s/);
++  assert.match(text, /recomputed after/); assert.match(text, /trip-update time unavailable/);
++  const fallback = JSON.stringify(component({ estimated: true, evidence: {
++    position_assurance: 'LEGACY_FALLBACK_UNCERTAIN', timing_order_adjusted: true,
++  } }));
++  assert.match(fallback, /Fallback position estimate/); assert.match(fallback, /Position is uncertain/);
++  assert.match(fallback, /Provider timings conflict/);
++});

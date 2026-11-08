@@ -45,6 +45,12 @@ _HANDOVER_STATE: dict = {}
 _PLAN_GATES: dict = {}
 
 
+def _plan_retention_seconds(snapshot):
+    # A dormant client must not lose an expired continuation merely because
+    # the ordinary short-lived physics cache was pruned by another trip.
+    return 3600.0 if snapshot.get('plan', {}).get('estimated_continuation') else 90.0
+
+
 def clear_motion_cache() -> None:
     _PLAN_CACHE.clear()
     _HANDOVER_STATE.clear()
@@ -202,7 +208,7 @@ def _plan_failure(failure: Optional[dict], reason: str, **details):
     return None
 
 
-def _spatial_slowdown_priors(infra, mode, start_m, end_m, traffic, config):
+def _spatial_slowdown_priors(infra, mode, start_m, end_m, traffic, config, *, topology_neighbors=None):
     """Only actual upcoming topology; no phase/queue observations are invented."""
     candidates=[]
     family='RAIL_SIGNAL' if mode=='tram' else 'ROAD_SIGNAL'
@@ -219,11 +225,13 @@ def _spatial_slowdown_priors(infra, mode, start_m, end_m, traffic, config):
             candidates.append({'progress_m':p,'kind':'MODELED_SIGNAL_APPROACH','anchor_id':str(event.get('signal_instance_id') or event.get('signal_id'))})
     edges=infra.get('edges') or []
     candidates.extend(directed_turn_caps(edges,start_m,end_m,config.get('turn_speed_kmh') or {}))
-    neighbors={}
-    for edge in edges:
-        a,b=edge.get('from_node'),edge.get('to_node')
-        if a is not None and b is not None:
-            neighbors.setdefault(a,set()).add(b);neighbors.setdefault(b,set()).add(a)
+    neighbors=topology_neighbors
+    if neighbors is None:
+        neighbors={}
+        for edge in edges:
+            a,b=edge.get('from_node'),edge.get('to_node')
+            if a is not None and b is not None:
+                neighbors.setdefault(a,set()).add(b);neighbors.setdefault(b,set()).add(a)
     for a,b in zip(edges,edges[1:]):
         node=a.get('to_node')
         if node is None or node!=b.get('from_node'):
@@ -382,6 +390,7 @@ async def _build_trip_plan(
     modeled_station_dwell_s: Optional[float] = None,
     handover_trajectory: Optional[dict] = None,
     station_release_index: Optional[int] = None,
+    force_rebuild: bool = False,
 ) -> Optional[dict]:
     region = get_active_region()
     config = motion_config_for(mode, region)
@@ -415,6 +424,15 @@ async def _build_trip_plan(
                 version_id=str(version_id),
             )
         if not generation_matches_path(bundle, path):
+            # The path cache can outlive an atomic generation replacement in
+            # another worker. Keep this packet failed/pending, but do not keep
+            # reusing its stale geometry indefinitely. Never mix new infra into
+            # this path or evict a concurrently newer/manual cache entry.
+            if (bundle.get('ready') is True and bundle.get('generation_id')
+                    and path.get('derived_generation')
+                    and path.get('geometry_source') != 'PERIX_MANUAL'):
+                from mobility.geometry_cache import invalidate_generation
+                invalidate_generation(pattern_id, str(version_id), str(path['derived_generation']))
             return _plan_failure(
                 failure,
                 "GENERATION_MISMATCH",
@@ -492,7 +510,7 @@ async def _build_trip_plan(
         )
     traffic_by_edge = traffic_snapshot.get("by_edge") or {}
     traffic_fingerprint=hashlib.sha256(json.dumps(traffic_by_edge,sort_keys=True,default=str).encode()).hexdigest()
-    if (station_release_index is None and spatial_enabled and previous_plan and previous_plan.get('spatial_origin_index')==int(anchors[loop_start]['timeline_index'])
+    if (not force_rebuild and station_release_index is None and spatial_enabled and previous_plan and previous_plan.get('spatial_origin_index')==int(anchors[loop_start]['timeline_index'])
             and float(previous_plan.get('modeled_station_dwell_s',0.0))==modeled_dwell
             and previous_plan.get('spatial_traffic_fingerprint')==traffic_fingerprint
             and _timeline_signature(_source_timeline(previous_plan['effective_timeline']))==_timeline_signature(timeline)):
@@ -899,6 +917,59 @@ def _new_station_forecast(gate,timeline,source_epoch):
     return key!=gate['source_key'] or (newer_clock and (key[3] is not None or key[8] is not None))
 
 
+def _station_evidence_is_safe(gate, timeline):
+    """Check both stop occurrences before using or renewing a continuation."""
+    from mobility.timing_evidence import REALTIME_BASES
+    index = gate['timeline_index']
+    if not 0 <= index < len(timeline):
+        return False
+    key = _station_forecast_key(timeline, index)
+    original=gate.get('source_key')
+    if not key or not original or key[:2]!=original[:2] or key[5:7]!=original[5:7]:
+        return False
+    next_index = next((i for i in range(index + 1, len(timeline))
+                       if timeline[i].get('relationship') != 'SKIPPED'), None)
+    if next_index is None:
+        return False
+    current, following = timeline[index], timeline[next_index]
+    if any(entry.get('relationship') in ('SKIPPED', 'NO_DATA')
+           or entry.get('ambiguous_stop_update') or entry.get('timing_order_adjusted')
+           for entry in (current, following)):
+        return False
+    return key[4] in REALTIME_BASES or key[9] in REALTIME_BASES
+
+
+def _continuation_feed_max_age():
+    # Never extend a stricter configured feed freshness window.
+    try:
+        return max(0, min(180, int(os.getenv('MOBILITY_REALTIME_FEED_FRESH_SECONDS', '180'))))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _estimated_departure_deadline(gate, timeline, plan, now_s, now_epoch,
+                                  source_epoch, feed_epoch, receipt_expiry_epoch, source_validated):
+    """Lease one modeled departure; a fresh feed is not a new trip forecast."""
+    if (source_epoch is not None or source_validated is not True or type(feed_epoch) is not int
+            or type(receipt_expiry_epoch) not in (int,float) or not math.isfinite(receipt_expiry_epoch)
+            or receipt_expiry_epoch <= now_epoch):
+        return None
+    age = now_epoch - feed_epoch
+    max_age = _continuation_feed_max_age()
+    if not -5 <= age < max_age or not _station_evidence_is_safe(gate,timeline):
+        return None
+    index = gate['timeline_index']
+    if _station_forecast_key(timeline,index) != gate['source_key']:
+        return None
+    effective = plan.get('effective_timeline') or []
+    if index >= len(effective):
+        return None
+    departure = max(float(effective[index]['predicted_departure']), float(gate['arrival_s']) + 10.0)
+    if not departure <= now_s <= departure + 180.0:
+        return None
+    return now_s + min(float(max_age), max_age - age, receipt_expiry_epoch - now_epoch)
+
+
 def _arm_station_gate(plan,timeline,path,now_s,now_local,source_epoch):
     if 'station_reforecast_gate' in plan:return plan
     authorized=plan.get('station_departure_authorized_index')
@@ -927,10 +998,18 @@ def _sample_trip_plan(
     if not segments:
         return {}
     gate=_station_gate(plan,float(now_sec))
-    if gate:
+    continuation = plan.get('estimated_continuation')
+    if gate and (not continuation or gate['arrival_s'] <= continuation['valid_until_s']):
         return {'progress_m':gate['progress_m'],'speed_kmh':0.0,'motion_state':'DWELL',
                 'next_timeline_index':gate['timeline_index'],'fit':'STATION_REFORECAST_HOLD',
                 'station_forecast_pending':True}
+    if continuation and now_sec >= continuation['valid_until_s']:
+        # Freeze at the last authorized point, not at a fictitious stop or a
+        # position extrapolated from expired feed evidence.
+        unbounded = {**plan, 'estimated_continuation': None}
+        sample = _sample_trip_plan(unbounded, continuation['valid_until_s'], timeline, stop_progress)
+        return {**sample, 'speed_kmh': 0.0, 'motion_state': 'HOLD',
+                'fit': 'ESTIMATED_CONTINUATION_EXPIRED', 'continuation_state': 'EXPIRED'}
 
     now_value = float(now_sec)
     # At a handover's exact t0, sample the partial trajectory's actual start;
@@ -1042,7 +1121,7 @@ def _sample_trip_plan(
 
 def _precise_handover_sample(plan, now_s, timeline, stop_progress):
     sample=_sample_trip_plan(plan,now_s,timeline,stop_progress)
-    if sample.get('motion_state') not in ('DWELL','AT_STOP'):
+    if sample.get('motion_state') not in ('DWELL','AT_STOP','HOLD'):
         leg=next((s for s in plan['segments'] if s['kind']=='MOVE' and s['t0']<=now_s<=s['t1']),None)
         if leg and leg.get('trajectory'):
             exact=sample_trajectory(leg['trajectory'],now_s-leg['t0'],leg.get('time_scale',1))
@@ -1104,6 +1183,9 @@ def _motion_preview(plan, now_s, now_local, path, revision, journey_id, progress
         return None
     if _station_gate(plan,float(now_s)):
         return None  # Stationary authoritative hold; never export the old departure.
+    continuation = plan.get('estimated_continuation')
+    if continuation and now_s >= continuation['valid_until_s']:
+        return None
     from mobility.service_clock import service_seconds
     day = path.get("service_date")
     if not day or now_local.tzinfo is None:
@@ -1119,6 +1201,8 @@ def _motion_preview(plan, now_s, now_local, path, revision, journey_id, progress
         return None
     # A new packet is required to cross an arrival/departure boundary.
     end = min(now_s + 8.0, float(active["t1"]), float(plan["end_s"]))
+    if continuation:
+        end = min(end, continuation['valid_until_s'])
     if active.get("kind") == "DWELL":
         # A model may reach a stop before an unallocated source arrival. Keep
         # its stationary preview on the same curve, but require a new packet
@@ -1168,9 +1252,17 @@ def _motion_preview(plan, now_s, now_local, path, revision, journey_id, progress
     index = int(active.get("next_timeline_index", active.get("timeline_index", 0)))
     effective_arrival = plan["effective_timeline"][index]["predicted_arrival"]
     physical_arrival = active["t1"] if active["kind"] == "MOVE" else active["t0"]
+    # Bind the short window to the exact geometry published by /v2/map.
+    # A missing fingerprint is deliberately not treated as a match by clients.
+    try:
+        from mobility.approach import path_fingerprint
+        geometry_fingerprint = path_fingerprint(path['points']) if len(path.get('points') or []) >= 2 else None
+    except (KeyError, IndexError, TypeError, ValueError, OverflowError):
+        geometry_fingerprint = None
     return {"schema": 1, "revision": revision, "journey_id": journey_id,
             "deployment_id": os.getenv("RAILWAY_DEPLOYMENT_ID"),
-            "pattern_id": path.get("pattern_id"), "sampled_at_ms": sampled_ms,
+            "pattern_id": path.get("pattern_id"), "approach_geometry_fingerprint": geometry_fingerprint,
+            "sampled_at_ms": sampled_ms,
             "stop_occurrence_index": index, "stop_progress_m": path["stop_progress"][index],
             "arrival_at_ms": sampled_ms + (physical_arrival - now_s) * 1000,
             "effective_arrival_at_ms": sampled_ms + (effective_arrival - now_s) * 1000,
@@ -1253,6 +1345,8 @@ def sample_cached_publication(*, trip_id, version_id, pattern_id, service_date,
     sample = _sample_trip_plan(plan,now_s,timeline,path['stop_progress'])
     if not sample or sample['progress_m'] < float(minimum_progress_m)-.15:
         return unavailable('PUBLICATION_FORWARD_SAMPLE_NOT_READY')
+    if plan.get('estimated_continuation') and not sample.get('continuation_state'):
+        sample['continuation_state']='ESTIMATED'
     index = int(sample['next_timeline_index'])
     if not 0 <= index < len(timeline):
         return unavailable('PUBLICATION_STOP_INDEX_INVALID')
@@ -1294,6 +1388,9 @@ async def _position_for_trip_locked(
     reference_clock=None,
     require_station_reforecast: bool = False,
     source_update_epoch=None,
+    source_feed_epoch=None,
+    source_receipt_expiry_epoch=None,
+    source_continuation_validated: bool = False,
 ) -> Optional[dict]:
     """Return physics progress, or an optional explainable legacy-fallback reason."""
     if reference_clock is not None:
@@ -1351,19 +1448,73 @@ async def _position_for_trip_locked(
     from mobility.motion.source_reconciliation import estimate_revision, source_frontier_conflict, source_start_index, MODEL_EPOCH
     revision_token = estimate_revision(identity)
     station_release_index=None
-    station_prior=next((v for v in reversed(list(_PLAN_CACHE.values())) if v.get('identity')==identity
-        and 0<=now_mono-v.get('cached_at',0)<=90),None) if require_station_reforecast else None
+    estimated_release=None
+    continuation_new_forecast=False
+    station_prior=max((v for v in _PLAN_CACHE.values() if v.get('identity')==identity
+        and 0<=now_mono-v.get('cached_at',0)<=_plan_retention_seconds(v)),key=lambda v:v.get('cached_at',0),default=None) if require_station_reforecast else None
     station_wait=_station_gate(station_prior['plan'],float(now_sec)) if station_prior else None
+    previous_continuation = (station_prior['plan'].get('estimated_continuation') if station_prior else None)
+    if station_wait and previous_continuation and station_wait['arrival_s'] > previous_continuation['valid_until_s']:
+        # A future station is not reached after an earlier lease expiry.
+        station_wait=None
+    if previous_continuation and not station_wait:
+        prior_path=station_prior.get('path') or {}
+        if any(prior_path.get(field)!=path.get(field) for field in
+               ('pattern_id','service_date','derived_generation','geometry_fingerprint','geometry_source','osm_snapshot_v','points','stop_progress')):
+            return {'motion_available':False, 'fallback_reason':'CONTINUATION_GEOMETRY_CHANGED',
+                    'fallback_details':{'suppress_position':True}}
+        original_gate=previous_continuation['source_gate']
+        feed_age=(now_local.timestamp()-source_feed_epoch) if type(source_feed_epoch) is int else float('inf')
+        max_feed_age=_continuation_feed_max_age()
+        receipt_remaining=(source_receipt_expiry_epoch-now_local.timestamp()
+            if type(source_receipt_expiry_epoch) in (int,float) and math.isfinite(source_receipt_expiry_epoch) else 0)
+        trusted=(source_continuation_validated is True and -5 <= feed_age < max_feed_age and receipt_remaining > 0
+                 and _station_evidence_is_safe(original_gate,timeline))
+        new_forecast=trusted and _new_station_forecast(original_gate,timeline,source_update_epoch)
+        if new_forecast:
+            continuation_new_forecast=True
+            cached=None
+        else:
+            # Keep the exact plan while the unchanged evidence is valid. An
+            # expired or absent feed cannot be revived by a reload or refit.
+            until=previous_continuation['valid_until_s']
+            if (trusted and source_update_epoch is None and float(now_sec)<until
+                    and _station_forecast_key(timeline,original_gate['timeline_index'])==original_gate['source_key']
+                    and timeline_signature==station_prior.get('source_signature')):
+                until=min(previous_continuation['max_until_s'],float(now_sec)+max_feed_age,
+                          float(now_sec)+max_feed_age-feed_age,float(now_sec)+receipt_remaining)
+            else:
+                until=min(until,float(now_sec))
+            continuation={**previous_continuation,'valid_until_s':until}
+            cached={**station_prior,'cached_at':now_mono,
+                    'plan':{**station_prior['plan'],'estimated_continuation':continuation}}
+            for old_key, old_value in list(_PLAN_CACHE.items()):
+                if old_value.get('identity')==identity:
+                    _PLAN_CACHE.pop(old_key,None)
+            _PLAN_CACHE[key]=cached
+
     if station_wait:
         if _new_station_forecast(station_wait,timeline,source_update_epoch):
             station_release_index=station_wait['timeline_index']
             cached=None
         else:
-            # Renew only the stationary publication, not source timestamps or
-            # its original arrival. Reload/100 m initialization cannot bypass it.
-            cached={**station_prior,'cached_at':now_mono}
-            _PLAN_CACHE[key]=cached
-    if initial_sync and not station_wait and os.getenv('MOBILITY_SPATIAL_SLOWDOWN_ENABLED','false').lower()=='true':
+            deadline=_estimated_departure_deadline(station_wait,timeline,station_prior['plan'],float(now_sec),
+                now_local.timestamp(),source_update_epoch,source_feed_epoch,source_receipt_expiry_epoch,
+                source_continuation_validated)
+            if deadline is not None:
+                station_release_index=station_wait['timeline_index']
+                estimated_release={'source_gate':station_wait,'valid_until_s':deadline}
+                cached=None
+            else:
+                # Renew only the stationary publication, not source timestamps or
+                # its original arrival. Reload/100 m initialization cannot bypass it.
+                cached={**station_prior,'cached_at':now_mono}
+                if previous_continuation:
+                    for old_key, old_value in list(_PLAN_CACHE.items()):
+                        if old_value.get('identity')==identity:
+                            _PLAN_CACHE.pop(old_key,None)
+                _PLAN_CACHE[key]=cached
+    if initial_sync and not station_wait and not previous_continuation and os.getenv('MOBILITY_SPATIAL_SLOWDOWN_ENABLED','false').lower()=='true':
         prior=next((v for v in reversed(list(_PLAN_CACHE.values())) if v.get('identity')==identity
                     and 0<=now_mono-v.get('cached_at',0)<=90),None)
         fresh=await _initial_source_plan(trip_id=str(trip_id),mode=str(mode),version_id=str(version_id),
@@ -1403,9 +1554,10 @@ async def _position_for_trip_locked(
         history_index = None
         prior = None
         old_progress = None
-        prior = next((value for value in reversed(list(_PLAN_CACHE.values()))
-                      if value.get("identity") == identity
-                      and 0 <= now_mono - value.get("cached_at", 0) <= 90), None)
+        prior = max((value for value in _PLAN_CACHE.values()
+                     if value.get("identity") == identity
+                     and 0 <= now_mono - value.get("cached_at", 0) <= _plan_retention_seconds(value)),
+                    key=lambda value: value.get('cached_at',0), default=None)
         if prior:
             candidate = prior["plan"]
             revision_token = prior.get("estimate_revision") or revision_token
@@ -1429,8 +1581,9 @@ async def _position_for_trip_locked(
                         reconciled_now = True
                         revision_token = estimate_revision(identity, timeline_signature)
                     elif handover_enabled() or os.getenv('MOBILITY_SPATIAL_SLOWDOWN_ENABLED','false').lower()=='true':
-                        previous_plan = candidate
-                        if sample.get("motion_state") in ("DWELL", "AT_STOP"):
+                        previous_plan = ({**candidate,'estimated_continuation':None}
+                                         if continuation_new_forecast else candidate)
+                        if sample.get("motion_state") in ("DWELL", "AT_STOP") and not (continuation_new_forecast and sample.get('continuation_state')=='EXPIRED'):
                             history_index = int(sample["next_timeline_index"])
                         else:
                             # Sample NOW, not an older poll relabelled with now.
@@ -1452,6 +1605,7 @@ async def _position_for_trip_locked(
             source_anchor_index=source_start_index(timeline, now_sec) if previous_plan is None and handover_anchor is None else None,
             modeled_station_dwell_s=10.0 if initial_sync and os.getenv('MOBILITY_SPATIAL_SLOWDOWN_ENABLED','false').lower()=='true' else None,
             station_release_index=station_release_index,
+            force_rebuild=continuation_new_forecast,
         )
         if not plan:
             if include_failure_reason:
@@ -1480,9 +1634,10 @@ async def _position_for_trip_locked(
                 if not plan:
                     return None
         for stale_key, stale_value in list(_PLAN_CACHE.items()):
-            if now_mono - float(stale_value.get("cached_at") or 0.0) > 60.0:
+            retention = _plan_retention_seconds(stale_value) if stale_value.get('plan',{}).get('estimated_continuation') else 60.0
+            if now_mono - float(stale_value.get("cached_at") or 0.0) > retention:
                 _PLAN_CACHE.pop(stale_key, None)
-        if source_correction:
+        if source_correction or continuation_new_forecast or (previous_continuation and station_release_index is not None):
             for stale_key, value in list(_PLAN_CACHE.items()):
                 if value.get("identity") == identity:
                     _PLAN_CACHE.pop(stale_key, None)
@@ -1507,6 +1662,17 @@ async def _position_for_trip_locked(
                 e["predicted_arrival"], e["predicted_departure"], e.get("timing_basis"),
                 e.get("timing_anchor_stop_id"), e.get("timing_anchor_delay_seconds")] for e in timeline]})
 
+    if estimated_release:
+        leg=next((segment for segment in plan.get('segments') or []
+                  if segment.get('kind')=='MOVE'
+                  and segment.get('from_timeline_index')==station_release_index),None)
+        if not leg or float(leg['t1']) <= float(now_sec):
+            return {'motion_available':False, 'fallback_reason':'CONTINUATION_LEG_UNAVAILABLE',
+                    'fallback_details':{'suppress_position':True}}
+        estimated_release['max_until_s']=float(leg['t1'])
+        estimated_release['valid_until_s']=min(estimated_release['valid_until_s'],float(leg['t1']))
+        plan={**plan,'estimated_continuation':estimated_release}
+        _PLAN_CACHE[key]['plan']=plan
     if require_station_reforecast:
         plan=_arm_station_gate(plan,timeline,path,float(now_sec),now_local,source_update_epoch)
         _PLAN_CACHE[key]['plan']=plan
@@ -1526,6 +1692,9 @@ async def _position_for_trip_locked(
                 "fallback_details": {},
             }
         return None
+
+    if plan.get('estimated_continuation') and not sampled.get('continuation_state'):
+        sampled['continuation_state']='ESTIMATED'
 
     if (handover_enabled() or os.getenv('MOBILITY_SPATIAL_SLOWDOWN_ENABLED','false').lower()=='true') and not reconciled_now:
         sampled = continuity_guard(

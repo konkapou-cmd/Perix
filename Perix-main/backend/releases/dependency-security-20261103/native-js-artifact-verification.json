@@ -1,0 +1,14 @@
+{
+  "ios": {
+    "bundle": "_expo/static/js/ios/entry-166ba769057a9264ffafcea8208895f2.hbc",
+    "bytes": 8942544,
+    "sha256": "a1bccb0d7779eefdc29143d293d58e72eb8ea8e7155a885a07430f03a36c688c",
+    "assets": 75
+  },
+  "android": {
+    "bundle": "_expo/static/js/android/entry-8f2991251f2d31e8e3b0131692e60023.hbc",
+    "bytes": 8955446,
+    "sha256": "cb05e545cc6500ae657cc5aa98227ec8ccee4cb2a43fef396727806d5e464f33",
+    "assets": 81
+  }
+}

@@ -6,10 +6,12 @@ The get_cached(pattern_id) API remains backward-compatible for map-match
 and telemetry callers.
 """
 from typing import Dict, List, Optional
+from threading import Lock
 
 _RESOLVED: Dict[object, dict] = {}
 _VERSION: Optional[str] = None
 _REVISION: int = 0
+_WRITE_LOCK = Lock()
 
 
 def revision() -> int:
@@ -31,18 +33,46 @@ def set_cached(
     source: Optional[str] = None,
     osm_snapshot_v: Optional[int] = None,
     geometry_fingerprint: Optional[str] = None,
+    direction_contract: Optional[dict] = None,
+    direction_verified: bool = False,
+    pattern_fingerprint: Optional[str] = None,
 ) -> None:
     if not points or len(points) < 2:
         return
     key = (str(pattern_id), str(version_id)) if version_id else str(pattern_id)
-    _RESOLVED[key] = {
+    entry = {
         "points": [[float(p[0]), float(p[1])] for p in points],
         "version_id": str(version_id) if version_id else None,
         "generation_id": str(generation_id) if generation_id else None,
         "source": source,
         "osm_snapshot_v": int(osm_snapshot_v) if osm_snapshot_v is not None else None,
         "geometry_fingerprint": geometry_fingerprint,
+        "direction_contract": direction_contract,
+        "direction_verified": direction_verified is True,
+        "pattern_fingerprint": pattern_fingerprint,
     }
+    with _WRITE_LOCK:
+        _RESOLVED[key] = entry
+
+
+def invalidate_generation(pattern_id: str, version_id: str, generation_id: str) -> bool:
+    """Remove only the exact stale atomic entry, never a concurrently newer one.
+
+    No DB write or retry: the next ordinary path read reloads its bundle.
+    Manual/legacy entries are not evidence of a stale atomic generation.
+    """
+    global _REVISION
+    if not pattern_id or not version_id or not generation_id:
+        return False
+    key = (str(pattern_id), str(version_id))
+    with _WRITE_LOCK:
+        entry = _RESOLVED.get(key)
+        if (not entry or entry.get('generation_id') != str(generation_id)
+                or entry.get('source') == 'PERIX_MANUAL'):
+            return False
+        del _RESOLVED[key]
+        _REVISION += 1  # Invalidate projections without mutating in-flight paths.
+        return True
 
 
 def get_entry(pattern_id: str, version_id: Optional[str] = None) -> Optional[dict]:
@@ -76,6 +106,17 @@ async def warm_from_generations(version_id: str) -> int:
     docs = await list_pattern_generations(str(version_id))
     for doc in docs:
         geometry = doc.get("geometry") or {}
+        contract = doc.get('direction_contract')
+        verified = False
+        if contract:
+            from mobility.direction_contract import build_direction_contract, DirectionContractError
+            try:
+                verified = contract == build_direction_contract(scope=doc,
+                    pattern=dict(mode=doc.get('mode'),route_number=doc.get('route_number'),
+                        stop_ids=contract.get('ordered_stop_ids') or []),points=geometry.get('points') or [],
+                    segments=doc.get('segments') or [],platforms=contract.get('platforms') or [])
+            except (DirectionContractError,KeyError,TypeError,ValueError):
+                verified = False
         set_cached(
             str(doc.get("pattern_id")),
             geometry.get("points") or [],
@@ -84,6 +125,9 @@ async def warm_from_generations(version_id: str) -> int:
             source=geometry.get("source"),
             osm_snapshot_v=doc.get("osm_snapshot_v"),
             geometry_fingerprint=geometry.get("geometry_fingerprint"),
+            direction_contract=doc.get('direction_contract'),
+            direction_verified=verified,
+            pattern_fingerprint=doc.get('pattern_fingerprint'),
         )
     _VERSION = str(version_id)
     return len(_RESOLVED)

@@ -1,0 +1,704 @@
+{
+  "trace": [
+    {
+      "received_at": "2026-10-26T10:01:10.565361+01:00",
+      "source_at": "2026-10-26T10:00:55+01:00",
+      "source_age_s": 15.565361022949219,
+      "now_service_s": 36070,
+      "decision": "COLD_START_NO_PREVIOUS_STATE"
+    },
+    {
+      "received_at": "2026-10-26T10:02:21.155171+01:00",
+      "source_at": "2026-10-26T10:01:55+01:00",
+      "source_age_s": 26.155170917510986,
+      "now_service_s": 36141,
+      "decision": "RECALIBRATED_FROM_PREVIOUS_CURVE",
+      "previous_state_service_s": 36070,
+      "state_age_s": 71,
+      "saved_progress_m": 1747.823069041424,
+      "saved_speed_kmh": 2.098317726875702,
+      "old_plan_now_progress_m": 2053.0807456553057,
+      "old_plan_now_speed_kmh": 19.58224953549923,
+      "advance_since_previous_state_m": 305.2576766138816,
+      "actual_handover": {
+        "progress_m": 2053.0807456553057,
+        "speed_kmh": 19.58224953549923,
+        "motion_state": "MOVING",
+        "next_timeline_index": 4,
+        "leg_from_stop_id": "2939",
+        "leg_to_stop_id": "410077",
+        "delay_delta_s": 0,
+        "scheduled_duration_s": 120.0,
+        "predicted_leg_duration_s": 120.0,
+        "engine_available_duration_s": 120.0,
+        "natural_duration_s": 46.997,
+        "fastest_duration_s": null,
+        "recovery_ratio": 0.0,
+        "physics_limited_s": 0.0,
+        "arrival_target_error_s": 0.0,
+        "incremental_physics_limited_s": 0.0,
+        "carried_lateness_s": 0.0,
+        "recovered_lateness_s": 0.0,
+        "handover_applied": false,
+        "handover_from_progress_m": null,
+        "handover_initial_speed_kmh": null,
+        "fit": "NATURAL_STRETCH",
+        "state": "MOVING",
+        "service_s": 36141
+      }
+    },
+    {
+      "received_at": "2026-10-26T10:03:34.560452+01:00",
+      "source_at": "2026-10-26T10:02:55+01:00",
+      "source_age_s": 39.56045198440552,
+      "now_service_s": 36214,
+      "decision": "UNCHANGED_PREDICTION_NO_REBUILD",
+      "previous_state_service_s": 36141,
+      "state_age_s": 73,
+      "saved_progress_m": 2053.0807456553057,
+      "saved_speed_kmh": 19.58224953549923,
+      "old_plan_now_progress_m": 2328.210493088606,
+      "old_plan_now_speed_kmh": 27.292338393064906,
+      "advance_since_previous_state_m": 275.1297474333005,
+      "actual_handover": null
+    },
+    {
+      "received_at": "2026-10-26T10:04:43.165823+01:00",
+      "source_at": "2026-10-26T10:04:25+01:00",
+      "source_age_s": 18.165822982788086,
+      "now_service_s": 36283,
+      "decision": "RECALIBRATED_FROM_PREVIOUS_CURVE",
+      "previous_state_service_s": 36214,
+      "state_age_s": 69,
+      "saved_progress_m": 2328.210493088606,
+      "saved_speed_kmh": 27.292338393064906,
+      "old_plan_now_progress_m": 2851.3136456223506,
+      "old_plan_now_speed_kmh": 27.292338393064906,
+      "advance_since_previous_state_m": 523.1031525337444,
+      "actual_handover": {
+        "progress_m": 2851.3136456223506,
+        "speed_kmh": 27.292338393064906,
+        "motion_state": "MOVING",
+        "next_timeline_index": 5,
+        "leg_from_stop_id": "410077",
+        "leg_to_stop_id": "71585",
+        "delay_delta_s": 0,
+        "scheduled_duration_s": 240.0,
+        "predicted_leg_duration_s": 240.0,
+        "engine_available_duration_s": 240.0,
+        "natural_duration_s": 131.003,
+        "fastest_duration_s": null,
+        "recovery_ratio": 0.0,
+        "physics_limited_s": 0.0,
+        "arrival_target_error_s": 0.0,
+        "incremental_physics_limited_s": 0.0,
+        "carried_lateness_s": 0.0,
+        "recovered_lateness_s": 0.0,
+        "handover_applied": false,
+        "handover_from_progress_m": null,
+        "handover_initial_speed_kmh": null,
+        "fit": "NATURAL_STRETCH",
+        "state": "MOVING",
+        "service_s": 36283
+      }
+    }
+  ],
+  "paired_replay": {
+    "trip_id": "491847",
+    "service_date": "2026-10-26",
+    "start_time": "",
+    "network": "net_7c4078011f7f",
+    "generation": "gen_f3d018208bbde715cb",
+    "next_stop_id": "71585",
+    "stop_sequence": 5,
+    "old_eta_service_s": 36426,
+    "new_eta_service_s": 36240,
+    "eta_revision_s": -186,
+    "old_target_remaining_at_common_now_s": 143,
+    "new_target_remaining_s": -43,
+    "as_implemented_anchor": {
+      "progress_m": 2851.3136456223506,
+      "speed_kmh": 27.292338393064906,
+      "motion_state": "MOVING",
+      "next_timeline_index": 5,
+      "leg_from_stop_id": "410077",
+      "leg_to_stop_id": "71585",
+      "delay_delta_s": 0,
+      "scheduled_duration_s": 240.0,
+      "predicted_leg_duration_s": 240.0,
+      "engine_available_duration_s": 240.0,
+      "natural_duration_s": 131.003,
+      "fastest_duration_s": null,
+      "recovery_ratio": 0.0,
+      "physics_limited_s": 0.0,
+      "arrival_target_error_s": 0.0,
+      "incremental_physics_limited_s": 0.0,
+      "carried_lateness_s": 0.0,
+      "recovered_lateness_s": 0.0,
+      "handover_applied": false,
+      "handover_from_progress_m": null,
+      "handover_initial_speed_kmh": null,
+      "fit": "NATURAL_STRETCH",
+      "state": "MOVING",
+      "service_s": 36283
+    },
+    "independent_now_anchor": {
+      "progress_m": 2851.3136456223506,
+      "speed_kmh": 27.292338393064906,
+      "motion_state": "MOVING",
+      "next_timeline_index": 5,
+      "leg_from_stop_id": "410077",
+      "leg_to_stop_id": "71585",
+      "delay_delta_s": 0,
+      "scheduled_duration_s": 240.0,
+      "predicted_leg_duration_s": 240.0,
+      "engine_available_duration_s": 240.0,
+      "natural_duration_s": 131.003,
+      "fastest_duration_s": null,
+      "recovery_ratio": 0.0,
+      "physics_limited_s": 0.0,
+      "arrival_target_error_s": 0.0,
+      "incremental_physics_limited_s": 0.0,
+      "carried_lateness_s": 0.0,
+      "recovered_lateness_s": 0.0,
+      "handover_applied": false,
+      "handover_from_progress_m": null,
+      "handover_initial_speed_kmh": null,
+      "fit": "NATURAL_STRETCH",
+      "state": "MOVING",
+      "service_s": 36283
+    },
+    "anchor_progress_difference_m": 0.0,
+    "anchor_speed_difference_kmh": 0.0,
+    "as_implemented_target_error_s": 122.56450193645207,
+    "independent_now_target_error_s": 122.56450193645207,
+    "physical_reference_remaining_s": 79.56450193645207,
+    "receipt_subsecond_check": {
+      "fractional_second": 0.165823,
+      "precise_service_s": 36283.165823,
+      "anchor_progress_m": 2852.570783797194,
+      "anchor_speed_kmh": 27.292338393064906,
+      "anchor_progress_delta_m": 1.257138174843476,
+      "target_error_s": 122.63994336351914,
+      "target_error_delta_s": 0.07544142706706225
+    },
+    "previous_margin_at_same_now_s": 63.435498063547925,
+    "remaining_canonical_m": 1003.7175904437886,
+    "signal_hold_s": 0,
+    "stale_anchor_counterfactual_not_actual": {
+      "progress_m": 2328.210493088606,
+      "speed_kmh": 27.292338393064906,
+      "target_error_s": 160.2278515651107,
+      "reference_s": 117.22785156511071
+    },
+    "road_time_breakdown": [
+      {
+        "edge_id": "1168794848:8644839014:34917835",
+        "way_id": 1168794848,
+        "highway": "tertiary",
+        "posted_speed_kmh": 100.0,
+        "from_m": 2851.3136456223506,
+        "to_m": 3213.881,
+        "distance_m": 362.5673543776493,
+        "physical_time_s": 27.613410962542353
+      },
+      {
+        "edge_id": "1168794848:34917835:305359297",
+        "way_id": 1168794848,
+        "highway": "tertiary",
+        "posted_speed_kmh": 100.0,
+        "from_m": 3213.881,
+        "to_m": 3242.782,
+        "distance_m": 28.901000000000295,
+        "physical_time_s": 2.080872000000017
+      },
+      {
+        "edge_id": "1168794848:305359297:305362572",
+        "way_id": 1168794848,
+        "highway": "tertiary",
+        "posted_speed_kmh": 100.0,
+        "from_m": 3242.782,
+        "to_m": 3457.453,
+        "distance_m": 214.67099999999982,
+        "physical_time_s": 15.456311999999965
+      },
+      {
+        "edge_id": "1168794848:305362572:8399991823",
+        "way_id": 1168794848,
+        "highway": "tertiary",
+        "posted_speed_kmh": 100.0,
+        "from_m": 3457.453,
+        "to_m": 3652.375,
+        "distance_m": 194.92200000000003,
+        "physical_time_s": 14.034383999999974
+      },
+      {
+        "edge_id": "1168794848:8399991823:354704023",
+        "way_id": 1168794848,
+        "highway": "tertiary",
+        "posted_speed_kmh": 100.0,
+        "from_m": 3652.375,
+        "to_m": 3796.785,
+        "distance_m": 144.40999999999985,
+        "physical_time_s": 10.526773780579681
+      },
+      {
+        "edge_id": "366358001:354704023:291894624",
+        "way_id": 366358001,
+        "highway": "tertiary",
+        "posted_speed_kmh": 50.0,
+        "from_m": 3796.785,
+        "to_m": 3850.717,
+        "distance_m": 53.932000000000244,
+        "physical_time_s": 7.171331657771745
+      },
+      {
+        "edge_id": "26613341:291894624:11805736084",
+        "way_id": 26613341,
+        "highway": "residential",
+        "posted_speed_kmh": 30.0,
+        "from_m": 3850.717,
+        "to_m": 3855.031,
+        "distance_m": 4.313999999999851,
+        "physical_time_s": 2.6814175355583387
+      },
+      {
+        "edge_id": "26613341:11805736084:291894624",
+        "way_id": 26613341,
+        "highway": "residential",
+        "posted_speed_kmh": 30.0,
+        "from_m": 3855.031,
+        "to_m": 3855.031236066139,
+        "distance_m": 0.00023606613922311226,
+        "physical_time_s": 0.0
+      }
+    ]
+  },
+  "propagation": [
+    {
+      "trip": "1209627",
+      "stop_id": "83801",
+      "target_revision_s": 68,
+      "entries": [
+        {
+          "capture": 1,
+          "target": {
+            "stop_id": "83801",
+            "stop_sequence": 16,
+            "scheduled_arrival": 36240,
+            "scheduled_departure": 36240,
+            "scheduled": 36240,
+            "predicted_arrival": 36331,
+            "predicted_departure": 36331,
+            "delay_seconds": 91,
+            "relationship": "SCHEDULED",
+            "prediction_basis": "RT_PROPAGATED"
+          },
+          "origin": {
+            "stop_id": "380541",
+            "stop_sequence": 11,
+            "scheduled_arrival": 35760,
+            "scheduled_departure": 35760,
+            "scheduled": 35760,
+            "predicted_arrival": 35851,
+            "predicted_departure": 35851,
+            "delay_seconds": 91,
+            "relationship": "SCHEDULED",
+            "prediction_basis": "RT_EXPLICIT"
+          },
+          "raw_origin": {
+            "stop_id": "380541",
+            "stop_sequence": 11,
+            "relationship": "SCHEDULED",
+            "arrival": {
+              "time": 1793005051,
+              "delay": 91
+            },
+            "departure": {
+              "time": 1793005051,
+              "delay": 91
+            }
+          },
+          "assert_propagation": true
+        },
+        {
+          "capture": 2,
+          "target": {
+            "stop_id": "83801",
+            "stop_sequence": 16,
+            "scheduled_arrival": 36240,
+            "scheduled_departure": 36240,
+            "scheduled": 36240,
+            "predicted_arrival": 36399,
+            "predicted_departure": 36399,
+            "delay_seconds": 159,
+            "relationship": "SCHEDULED",
+            "prediction_basis": "RT_PROPAGATED"
+          },
+          "origin": {
+            "stop_id": "212930",
+            "stop_sequence": 12,
+            "scheduled_arrival": 35880,
+            "scheduled_departure": 35880,
+            "scheduled": 35880,
+            "predicted_arrival": 36027,
+            "predicted_departure": 36039,
+            "delay_seconds": 147,
+            "relationship": "SCHEDULED",
+            "prediction_basis": "RT_EXPLICIT"
+          },
+          "raw_origin": {
+            "stop_id": "212930",
+            "stop_sequence": 12,
+            "relationship": "SCHEDULED",
+            "arrival": {
+              "time": 1793005227,
+              "delay": 147
+            },
+            "departure": {
+              "time": 1793005239,
+              "delay": 159
+            }
+          },
+          "assert_propagation": true
+        }
+      ]
+    },
+    {
+      "trip": "678105",
+      "stop_id": "356010",
+      "target_revision_s": 62,
+      "entries": [
+        {
+          "capture": 1,
+          "target": {
+            "stop_id": "356010",
+            "stop_sequence": 13,
+            "scheduled_arrival": 35820,
+            "scheduled_departure": 35820,
+            "scheduled": 35820,
+            "predicted_arrival": 36230,
+            "predicted_departure": 36230,
+            "delay_seconds": 410,
+            "relationship": "SCHEDULED",
+            "prediction_basis": "RT_PROPAGATED"
+          },
+          "origin": {
+            "stop_id": "521411",
+            "stop_sequence": 0,
+            "scheduled_arrival": 34740,
+            "scheduled_departure": 34740,
+            "scheduled": 34740,
+            "predicted_arrival": 35150,
+            "predicted_departure": 35150,
+            "delay_seconds": 410,
+            "relationship": "SCHEDULED",
+            "prediction_basis": "RT_EXPLICIT"
+          },
+          "raw_origin": {
+            "stop_id": "521411",
+            "stop_sequence": 0,
+            "relationship": "SCHEDULED",
+            "departure": {
+              "time": 1793004350,
+              "delay": 410
+            }
+          },
+          "assert_propagation": true
+        },
+        {
+          "capture": 2,
+          "target": {
+            "stop_id": "356010",
+            "stop_sequence": 13,
+            "scheduled_arrival": 35820,
+            "scheduled_departure": 35820,
+            "scheduled": 35820,
+            "predicted_arrival": 36292,
+            "predicted_departure": 36292,
+            "delay_seconds": 472,
+            "relationship": "SCHEDULED",
+            "prediction_basis": "RT_PROPAGATED"
+          },
+          "origin": {
+            "stop_id": "615023",
+            "stop_sequence": 10,
+            "scheduled_arrival": 35580,
+            "scheduled_departure": 35580,
+            "scheduled": 35580,
+            "predicted_arrival": 36052,
+            "predicted_departure": 36052,
+            "delay_seconds": 472,
+            "relationship": "SCHEDULED",
+            "prediction_basis": "RT_EXPLICIT"
+          },
+          "raw_origin": {
+            "stop_id": "615023",
+            "stop_sequence": 10,
+            "relationship": "SCHEDULED",
+            "arrival": {
+              "time": 1793005252,
+              "delay": 472
+            },
+            "departure": {
+              "time": 1793005252,
+              "delay": 472
+            }
+          },
+          "assert_propagation": true
+        }
+      ]
+    }
+  ],
+  "raw_trip_491847": [
+    {
+      "capture": 0,
+      "trip_id": "491847",
+      "start_date": "20261026",
+      "start_time": "",
+      "trip_relationship": "SCHEDULED",
+      "trip_delay": null,
+      "source_epoch": 1793005255,
+      "source_clock_basis": "FEED_HEADER",
+      "feed_epoch": 1793005255,
+      "stops": [
+        {
+          "stop_id": "421746",
+          "stop_sequence": 0,
+          "relationship": "SCHEDULED",
+          "departure": {
+            "time": 1793004391,
+            "delay": -509
+          }
+        },
+        {
+          "stop_id": "186236",
+          "stop_sequence": 1,
+          "relationship": "SCHEDULED",
+          "arrival": {
+            "time": 1793005088,
+            "delay": 128
+          },
+          "departure": {
+            "time": 1793005088,
+            "delay": 128
+          }
+        },
+        {
+          "stop_id": "355967",
+          "stop_sequence": 2,
+          "relationship": "SCHEDULED",
+          "arrival": {
+            "time": 1793005146,
+            "delay": 126
+          },
+          "departure": {
+            "time": 1793005146,
+            "delay": 126
+          }
+        },
+        {
+          "stop_id": "277696",
+          "stop_sequence": 12,
+          "relationship": "SCHEDULED",
+          "arrival": {
+            "time": 1793006586,
+            "delay": 126
+          }
+        }
+      ]
+    },
+    {
+      "capture": 1,
+      "trip_id": "491847",
+      "start_date": "20261026",
+      "start_time": "",
+      "trip_relationship": "SCHEDULED",
+      "trip_delay": null,
+      "source_epoch": 1793005315,
+      "source_clock_basis": "FEED_HEADER",
+      "feed_epoch": 1793005315,
+      "stops": [
+        {
+          "stop_id": "421746",
+          "stop_sequence": 0,
+          "relationship": "SCHEDULED",
+          "departure": {
+            "time": 1793004391,
+            "delay": -509
+          }
+        },
+        {
+          "stop_id": "186236",
+          "stop_sequence": 1,
+          "relationship": "SCHEDULED",
+          "arrival": {
+            "time": 1793005088,
+            "delay": 128
+          },
+          "departure": {
+            "time": 1793005088,
+            "delay": 128
+          }
+        },
+        {
+          "stop_id": "355967",
+          "stop_sequence": 2,
+          "relationship": "SCHEDULED",
+          "arrival": {
+            "time": 1793005146,
+            "delay": 126
+          },
+          "departure": {
+            "time": 1793005146,
+            "delay": 126
+          }
+        }
+      ]
+    },
+    {
+      "capture": 2,
+      "trip_id": "491847",
+      "start_date": "20261026",
+      "start_time": "",
+      "trip_relationship": "SCHEDULED",
+      "trip_delay": null,
+      "source_epoch": 1793005375,
+      "source_clock_basis": "FEED_HEADER",
+      "feed_epoch": 1793005375,
+      "stops": [
+        {
+          "stop_id": "421746",
+          "stop_sequence": 0,
+          "relationship": "SCHEDULED",
+          "departure": {
+            "time": 1793004391,
+            "delay": -509
+          }
+        },
+        {
+          "stop_id": "186236",
+          "stop_sequence": 1,
+          "relationship": "SCHEDULED",
+          "arrival": {
+            "time": 1793005088,
+            "delay": 128
+          },
+          "departure": {
+            "time": 1793005088,
+            "delay": 128
+          }
+        },
+        {
+          "stop_id": "355967",
+          "stop_sequence": 2,
+          "relationship": "SCHEDULED",
+          "arrival": {
+            "time": 1793005146,
+            "delay": 126
+          },
+          "departure": {
+            "time": 1793005146,
+            "delay": 126
+          }
+        }
+      ]
+    },
+    {
+      "capture": 3,
+      "trip_id": "491847",
+      "start_date": "20261026",
+      "start_time": "",
+      "trip_relationship": "SCHEDULED",
+      "trip_delay": null,
+      "source_epoch": 1793005465,
+      "source_clock_basis": "FEED_HEADER",
+      "feed_epoch": 1793005465,
+      "stops": [
+        {
+          "stop_id": "421746",
+          "stop_sequence": 0,
+          "relationship": "SCHEDULED",
+          "departure": {
+            "time": 1793004391,
+            "delay": -509
+          }
+        },
+        {
+          "stop_id": "186236",
+          "stop_sequence": 1,
+          "relationship": "SCHEDULED",
+          "arrival": {
+            "time": 1793005088,
+            "delay": 128
+          },
+          "departure": {
+            "time": 1793005088,
+            "delay": 128
+          }
+        },
+        {
+          "stop_id": "355967",
+          "stop_sequence": 2,
+          "relationship": "SCHEDULED",
+          "arrival": {
+            "time": 1793005131,
+            "delay": 111
+          },
+          "departure": {
+            "time": 1793005153,
+            "delay": 133
+          }
+        },
+        {
+          "stop_id": "2939",
+          "stop_sequence": 3,
+          "relationship": "SCHEDULED",
+          "arrival": {
+            "time": 1793005255,
+            "delay": 115
+          },
+          "departure": {
+            "time": 1793005255,
+            "delay": 115
+          }
+        },
+        {
+          "stop_id": "410077",
+          "stop_sequence": 4,
+          "relationship": "SCHEDULED",
+          "arrival": {
+            "time": 1793005286,
+            "delay": 26
+          },
+          "departure": {
+            "time": 1793005286,
+            "delay": 26
+          }
+        },
+        {
+          "stop_id": "71585",
+          "stop_sequence": 5,
+          "relationship": "SCHEDULED",
+          "arrival": {
+            "time": 1793005440,
+            "delay": -60
+          },
+          "departure": {
+            "time": 1793005440,
+            "delay": -60
+          }
+        }
+      ]
+    }
+  ],
+  "native_freshness_default_s": 180.0,
+  "timezone_checks": {
+    "event_date": "2026-10-26",
+    "event_offset": "+0100",
+    "new_arrival_epoch_UTC": "2026-10-26T09:04:00+00:00",
+    "source_day_mixed_with_25": false
+  },
+  "production_mutations": 0,
+  "independent_vehicle_truth": null
+}

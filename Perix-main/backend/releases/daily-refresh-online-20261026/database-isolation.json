@@ -1,0 +1,13 @@
+{
+  "separate_servers": true,
+  "references": {
+    "production": {
+      "server_ref": "01cea0c33635e8010c1ee2e49058d120b2cc9f853c673d7273e83b5f50ea9637",
+      "database_ref": "86d30e609741a1e23ec44f0efbd51cdc07b873abe4bc70ffeb97a9448c00484f"
+    },
+    "staging": {
+      "server_ref": "3b4ec111f1ed7f112196fdb24ac5f6824c4352d2fcf778dbb478a48832657d9c",
+      "database_ref": "86d30e609741a1e23ec44f0efbd51cdc07b873abe4bc70ffeb97a9448c00484f"
+    }
+  }
+}

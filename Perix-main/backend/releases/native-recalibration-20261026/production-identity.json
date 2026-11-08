@@ -1,0 +1,12 @@
+{
+  "observed_at": "2026-10-26T09:17:05.869895+00:00",
+  "active_deployments": [
+    {
+      "id": "d91ff576-492d-45e8-a388-c2b00d0746c6",
+      "status": "SUCCESS"
+    }
+  ],
+  "matches_approved_reference": true,
+  "task_production_mutations": 0,
+  "read_only_check": true
+}

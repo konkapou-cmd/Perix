@@ -1,0 +1,99 @@
+{
+  "actual_recalibration_events": 8,
+  "trips_with_progress_difference_at_30s": 3,
+  "native_max_boundary_position_jump_m": 0,
+  "native_max_boundary_speed_jump_kmh": 0,
+  "native_report_occurrences_including_preserved_history": 10,
+  "distinct_native_fits": 7,
+  "physics_violations": 0,
+  "backward_phases": 0,
+  "max_native_leg_target_error_s": 122.56450193645207,
+  "max_remaining_plan_target_error_s": 149.305,
+  "timings_recalibration_events_ms": {
+    "A": {
+      "n": 8,
+      "p50": 33.95145002286881,
+      "p95": 393.3814049581996
+    },
+    "B": {
+      "n": 8,
+      "p50": 195.91599999694154,
+      "p95": 832.2637249657416
+    },
+    "C": {
+      "n": 8,
+      "p50": 95.42725002393126,
+      "p95": 446.7891049571334
+    }
+  },
+  "changed_30s_rows": [
+    {
+      "line": "71",
+      "trip": "1209627",
+      "next_stop": "387987",
+      "time": 36141,
+      "target_revision_s": 0,
+      "GTFS_ETA": 36211,
+      "prediction_basis": "RT_PROPAGATED",
+      "A_m": 6756.846807573259,
+      "B_m": 6756.846807573259,
+      "C_m": 6821.456353352071,
+      "delta_m": 64.60954577881239,
+      "A_kmh": 36.85,
+      "C_kmh": 13.29,
+      "target_error_s": -4.263256414560601e-14,
+      "selected": "UNCHANGED_CURRENT_TARGET_RETAINED"
+    },
+    {
+      "line": "71",
+      "trip": "1209627",
+      "next_stop": "83801",
+      "time": 36214,
+      "target_revision_s": 68,
+      "GTFS_ETA": 36399,
+      "prediction_basis": "RT_PROPAGATED",
+      "A_m": 7149.508104445843,
+      "B_m": 7149.508104445843,
+      "C_m": 7189.715369995769,
+      "delta_m": 40.20726554992598,
+      "A_kmh": 13.86,
+      "C_kmh": 12.78,
+      "target_error_s": -0.0013161180924612381,
+      "selected": "SMOOTH_INFERRED_SLOWDOWN"
+    },
+    {
+      "line": "71",
+      "trip": "678105",
+      "next_stop": "356010",
+      "time": 36214,
+      "target_revision_s": 62,
+      "GTFS_ETA": 36292,
+      "prediction_basis": "RT_PROPAGATED",
+      "A_m": 7022.097999705464,
+      "B_m": 7022.097999705464,
+      "C_m": 7034.4382681522475,
+      "delta_m": 12.340268446783739,
+      "A_kmh": 3.82,
+      "C_kmh": 2.47,
+      "target_error_s": -0.0023123423965500933,
+      "selected": "SMOOTH_INFERRED_SLOWDOWN"
+    },
+    {
+      "line": "66",
+      "trip": "491847",
+      "next_stop": "410077",
+      "time": 36141,
+      "target_revision_s": 0,
+      "GTFS_ETA": 36186,
+      "prediction_basis": "RT_PROPAGATED",
+      "A_m": 2189.9261451542898,
+      "B_m": 2189.9261451542898,
+      "C_m": 2196.769790505624,
+      "delta_m": 6.843645351334089,
+      "A_kmh": 13.22,
+      "C_kmh": 9.94,
+      "target_error_s": 1.4210854715202004e-14,
+      "selected": "UNCHANGED_CURRENT_TARGET_RETAINED"
+    }
+  ]
+}

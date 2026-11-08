@@ -1,0 +1,13 @@
+{
+  "mongo_version": "8.0.34",
+  "cases": 93,
+  "checks": {
+    "unknown_clock_retains_highwater": true,
+    "older_trip_clock_rejected": true,
+    "same_feed_rejected": true,
+    "dollar_text_is_literal": true,
+    "dated_versioned_and_legacy_order": true,
+    "concurrent_updates_retain_latest": true,
+    "exact_temporary_collection_removed": true
+  }
+}

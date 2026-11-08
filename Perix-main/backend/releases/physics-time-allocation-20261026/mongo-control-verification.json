@@ -1,0 +1,17 @@
+{
+  "mongo_version": "8.0.34",
+  "checks": {
+    "one_valid_scheduler_lease": true,
+    "atomic_global_separate_caps": true,
+    "idempotent_sampling_slot": true,
+    "stale_fence_rejected": true,
+    "failover_fenced_without_budget_reset": true,
+    "no_automatic_billing_period_reset": true,
+    "account_wide_rate_halt": true,
+    "exact_temporary_collection_removed": true
+  },
+  "tomtom_http_requests": 0,
+  "production_modified": false,
+  "application_collections_modified": false,
+  "control_source_sha256": "111dceaa58167b9eb75250324ff3e23f03326cfd59aba16db677f1902a381e16"
+}

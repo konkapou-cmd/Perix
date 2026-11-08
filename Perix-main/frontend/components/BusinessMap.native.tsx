@@ -8,8 +8,13 @@ import { Business, EventItem, ActivityItem, ArtistSearchResult, Rental, Job, Ser
 import { formatEventDate } from "../lib/formatDate";
 import { COLORS } from "../lib/designTokens";
 import { isBusinessOpen } from "../lib/openingHours";
+import VisualTransitMarker, { VisualMarkerInput } from "./VisualTransitMarker.native";
+import { useNativeStationQueue } from "../hooks/city/useNativeStationQueue";
+import { mapEntityPinSize, profileInitial, transitStopAppearance } from "../lib/city/mapPresentation";
+import { MOBILITY_VIEW_SOURCES, stopMobilityView, vehicleMobilityViewAngle } from "../lib/mobilityViewSources.generated";
+import { groupTransitStopIcons } from "../lib/city/visualGeometry";
 
-type MapMarker = {
+type MapMarker = VisualMarkerInput & {
   id: string;
   latitude: number;
   longitude: number;
@@ -18,9 +23,13 @@ type MapMarker = {
   isOpen?: boolean;
   pinColor?: string;
   pinInnerColor?: string;
+  pinImage?: string | null;
+  selectionCompass?: boolean;
   type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service" | "product" | "bus" | "tram" | "taxi";
   heading?: number | null;
+  label?: string | null;
   estimated?: boolean;
+  visualEstimate?: boolean;
   path?: { latitude: number; longitude: number }[];
 };
 
@@ -30,6 +39,26 @@ type MapBounds = {
   minLng: number;
   maxLng: number;
 };
+
+function VehicleMarkerArt({mode,viewAngle,size,label}:{mode:"bus"|"tram";viewAngle:number;size:number;label?:string|null}){
+  return <View style={{width:size,height:size,alignItems:"center",justifyContent:"center"}}>
+    <Image source={MOBILITY_VIEW_SOURCES[mode][viewAngle]} resizeMode="contain" style={{width:size,height:size}} />
+    {!!label && <Text numberOfLines={1} style={{position:"absolute",bottom:-3,maxWidth:size+8,paddingHorizontal:2,
+      borderRadius:3,overflow:"hidden",backgroundColor:"rgba(255,255,255,0.94)",color:mode==="tram"?"#8B0000":"#1E3A8A",
+      fontSize:Math.max(7,Math.min(9,size*0.28)),fontWeight:"800",textAlign:"center"}}>{label}</Text>}
+  </View>;
+}
+
+function DirectoryPinArt({source,size,color,label}:{source:string;size:number;color:string;label?:string|null}){
+  const [failed,setFailed]=useState(false);
+  return <View accessibilityLabel={label || "Map location"} style={{width:size,height:size,borderRadius:size/2,
+    borderWidth:2,borderColor:"#fff",backgroundColor:color,alignItems:"center",justifyContent:"center",
+    overflow:"hidden",shadowColor:"#000",shadowOpacity:0.32,shadowRadius:3,shadowOffset:{width:0,height:1},elevation:4}}>
+    {failed ? <Text style={{color:"#fff",fontSize:size*0.42,fontWeight:"800"}}>{profileInitial(label)}</Text>
+      : <Image source={{uri:source}} resizeMode="cover" onError={()=>setFailed(true)}
+        style={{width:size-4,height:size-4,borderRadius:(size-4)/2}} />}
+  </View>;
+}
 
 type Props = {
   location?: { latitude: number; longitude: number };
@@ -46,6 +75,7 @@ type Props = {
     longitudeDelta: number;
   } | null;
   focusToken?: number;
+  focusZoom?: number;
   businesses?: Business[];
   events?: EventItem[];
   activities?: ActivityItem[];
@@ -65,28 +95,48 @@ type Props = {
   }[];
   onTransitLineClick?: (routeNumber: string, patternId?: string) => void;
   transitStops?: {
+    platform_id?: string;
+    platform_code?: string | null;
+    physical_stop_id?: string;
+    stop_ids?: string[];
     stop_id: string;
     name: string;
     latitude: number;
     longitude: number;
     modes: ("bus" | "tram")[];
     routes: { route_number: string; mode: "bus" | "tram" }[];
+    platforms?: {platform_id:string;platform_code?:string|null;name?:string;latitude?:number|null;longitude?:number|null;
+      modes?:('bus'|'tram')[];routes?:string[];directions?:string[]}[];
+    platform_ids?: string[];
+    platform_codes?: string[];
   }[];
   onTransitStopPress?: (stop: {
+    platform_id?: string;
+    platform_code?: string | null;
+    stop_ids?: string[];
+    platform_ids?: string[];
+    platform_codes?: string[];
     stop_id: string;
     name: string;
     latitude: number;
     longitude: number;
     modes: ("bus" | "tram")[];
     routes: { route_number: string; mode: "bus" | "tram" }[];
+    platforms?: {platform_id:string;platform_code?:string|null;name?:string;latitude?:number|null;longitude?:number|null;
+      modes?:('bus'|'tram')[];routes?:string[];directions?:string[]}[];
   }) => void;
   showUserLocation?: boolean;
+  planLines?: { points: { latitude: number; longitude: number }[]; color: string; weight?: number; opacity?: number }[];
+  userPinImage?: string | null;
+  userPinName?: string | null;
+  pinLocation?: { latitude: number; longitude: number } | null;
   onRegionChange?: (bounds: MapBounds) => void;
   onRegionChangeComplete?: (bounds: MapBounds) => void;
   onZoomChange?: (zoom: number) => void;
   onMarkerPress?: (markerId: string) => void;
   onMapPress?: (latitude: number, longitude: number) => void;
   height?: number;
+  horizontalInset?: number;
   disabled?: boolean;
   disabledHint?: string;
   staticMode?: boolean;
@@ -100,6 +150,7 @@ export default function BusinessMap({
   initialRegion,
   focusRegion,
   focusToken,
+  focusZoom,
   businesses = [],
   events = [],
   activities = [],
@@ -114,12 +165,17 @@ export default function BusinessMap({
   transitStops = [],
   onTransitStopPress,
   showUserLocation = false,
+  planLines = [],
+  userPinImage,
+  userPinName,
+  pinLocation,
   onRegionChange,
   onRegionChangeComplete,
   onZoomChange,
   onMarkerPress,
   onMapPress,
   height,
+  horizontalInset = 0,
   disabled = false,
   disabledHint = "Tap to enable location",
   staticMode = false,
@@ -135,6 +191,7 @@ export default function BusinessMap({
       description: business.category,
       isOpen: isBusinessOpen(business),
       type: "business" as const,
+      pinImage: business.profile_photo || business.logo_image || business.cover_image,
       pinColor: business.root_category === "hotels"
         ? COLORS.pinHotel
         : (isBusinessOpen(business) ? COLORS.pinBusiness : COLORS.pinClosed),
@@ -148,6 +205,7 @@ export default function BusinessMap({
         title: event.title,
         description: event.location || formatEventDate(event.start_time),
         type: "event" as const,
+        pinImage: event.creator?.profile_photo || event.artist?.profile_photo || event.business?.logo_image || event.cover_image_url,
         pinColor: COLORS.pinEvent,
         pinInnerColor: "#FFC400",
       })),
@@ -160,6 +218,7 @@ export default function BusinessMap({
         title: activity.title,
         description: activity.location || `${formatEventDate(activity.date)} ${activity.time || ''}`,
         type: "activity" as const,
+        pinImage: activity.creator?.profile_photo || activity.tagged_business?.logo_image || activity.cover_image_url,
         pinColor: COLORS.pinActivity,
         pinInnerColor: "#FFC400",
       })),
@@ -172,6 +231,7 @@ export default function BusinessMap({
         title: artist.name,
         description: artist.town || artist.genres?.join(", ") || "",
         type: "artist" as const,
+        pinImage: artist.profile_photo || artist.cover_photo,
         pinColor: COLORS.pinClosed,
       })),
     ...rentals
@@ -183,6 +243,7 @@ export default function BusinessMap({
         title: rental.title,
         description: rental.rent_price || rental.address || "",
         type: "rental" as const,
+        pinImage: rental.business_logo || (rental as any).owner_photo || rental.cover_image,
         pinColor: COLORS.pinRental,
       })),
     ...jobs
@@ -194,6 +255,7 @@ export default function BusinessMap({
         title: job.title,
         description: job.work_location || "",
         type: "job" as const,
+        pinImage: (job as any).business_logo,
         pinColor: COLORS.pinJob,
       })),
     ...services
@@ -205,6 +267,7 @@ export default function BusinessMap({
         title: service.name,
         description: service.address || "",
         type: "service" as const,
+        pinImage: (service as any).business_logo || service.cover_image_url,
         pinColor: COLORS.pinService,
         pinInnerColor: "#EF4444",
       })),
@@ -229,6 +292,13 @@ export default function BusinessMap({
   const readyRef = useRef(false);
   const [selectedGroup, setSelectedGroup] = useState<MapMarker[] | null>(null);
   const [zoomLevel, setZoomLevel] = useState(12);
+  const [cameraHeading,setCameraHeading] = useState(0);
+  const [pinImageFailed,setPinImageFailed]=useState(false);
+  useEffect(()=>setPinImageFailed(false),[userPinImage]);
+  const stopAppearance=transitStopAppearance(zoomLevel);
+  const groupedTransitStops=useMemo(()=>groupTransitStopIcons(transitStops || []),[transitStops]);
+  const nativeQueueSize=20*Math.max(0.8,Math.min(1.7,zoomLevel/12));
+  const stationQueue=useNativeStationQueue(mapMarkers,nativeQueueSize,cameraHeading);
   const [enabling, setEnabling] = useState(false);
   const enablingRef = useRef(false);
 
@@ -248,7 +318,7 @@ export default function BusinessMap({
         transitSingles.push(m);
         return;
       }
-      const key = `${m.latitude.toFixed(5)}_${m.longitude.toFixed(5)}`;
+      const key = `${m.selectionCompass ? m.id + ':' : ''}${m.latitude.toFixed(5)}_${m.longitude.toFixed(5)}`;
       if (!pins.has(key)) pins.set(key, []);
       pins.get(key)!.push(m);
     });
@@ -266,6 +336,7 @@ export default function BusinessMap({
         count: items.length,
         pinColor: items.length === 1 ? items[0].pinColor : "#264348",
         pinInnerColor: items.length === 1 ? items[0].pinInnerColor : undefined,
+        pinImage: items.length === 1 ? items[0].pinImage : undefined,
         memberColors: items.length > 1 ? uniqueColors.slice(0, 4) : [],
         type: items[0].type,
       };
@@ -299,10 +370,13 @@ export default function BusinessMap({
 
   useEffect(() => {
     if (!focusToken || !focusRegion || !mapRef.current) return;
-    mapRef.current.animateToRegion(focusRegion, 500);
-  }, [focusToken]);
+    if (Number.isFinite(focusZoom)) {
+      mapRef.current.animateCamera({center:{latitude:focusRegion.latitude,longitude:focusRegion.longitude},zoom:focusZoom}, {duration:500});
+    } else mapRef.current.animateToRegion(focusRegion, 500);
+  }, [focusToken,focusZoom]);
 
   const handleRegionChangeComplete = (region: Region) => {
+    void mapRef.current?.getCamera().then(camera => setCameraHeading(camera.heading || 0)).catch(() => {});
     const z = Math.max(2, Math.log2(360 / region.longitudeDelta));
     setZoomLevel(z);
     onZoomChange?.(z);
@@ -330,7 +404,7 @@ export default function BusinessMap({
   if (disabled) {
     return (
       <Pressable 
-        style={[styles.wrapper, { height }]} 
+        style={[styles.wrapper, { height, marginHorizontal:horizontalInset,width:horizontalInset ? 'auto' : '100%' }]}
         onPress={async () => {
           if (onMapPress && !enablingRef.current) {
             enablingRef.current = true;
@@ -394,11 +468,11 @@ export default function BusinessMap({
   ];
 
   return (
-    <View style={[styles.wrapper, height ? { height } : { aspectRatio: 16 / 9 }]}>
+    <View style={[styles.wrapper, height ? { height } : { aspectRatio: 16 / 9 },{marginHorizontal:horizontalInset,width:horizontalInset ? 'auto' : '100%'}]}>
       <MapView
         ref={mapRef}
         style={styles.map}
-        showsUserLocation={showUserLocation}
+        showsUserLocation={showUserLocation && !pinLocation}
         initialRegion={resolvedInitialRegion}
         customMapStyle={mapStyle}
         onRegionChangeComplete={handleRegionChangeComplete}
@@ -408,6 +482,14 @@ export default function BusinessMap({
         pitchEnabled={!staticMode}
         rotateEnabled={!staticMode}
       >
+        {planLines.map((line, index) => <Polyline key={`journey-plan-${index}`} coordinates={line.points}
+          strokeColor={line.color} strokeWidth={line.weight ?? 5} zIndex={10} />)}
+        {showUserLocation && pinLocation && <Marker coordinate={pinLocation} anchor={{ x: 0.5, y: 0.5 }} zIndex={1000}>
+          <View style={styles.userPin}>
+            {userPinImage && !pinImageFailed ? <Image source={{ uri: userPinImage }} style={styles.userPinImage} onError={()=>setPinImageFailed(true)} />
+              : <Text style={styles.userPinInitial}>{profileInitial(userPinName)}</Text>}
+          </View>
+        </Marker>}
         {transitLines.map((line, i) => (
           <Polyline
             key={`transit-line-${line.patternId || i}`}
@@ -421,52 +503,78 @@ export default function BusinessMap({
             }}
           />
         ))}
-        {zoomLevel >= 12 &&
-          transitStops.map((stop) => {
+        {groupedTransitStops.map((stop) => {
             const hasBus = stop.modes.includes("bus");
             const hasTram = stop.modes.includes("tram");
+            const platformLabel=stop.platform_codes.join(" · ");
+            const stopKey=(stop.platform_ids.length ? stop.platform_ids.slice().sort().join("|") : stop.stop_ids.slice().sort().join("|")) || stop.stop_id;
             return (
               <Marker
-                key={`transit-stop-${stop.stop_id}`}
+                key={`transit-stop-${stopKey}:${stopAppearance.bucket}`}
                 coordinate={{ latitude: stop.latitude, longitude: stop.longitude }}
                 onPress={() => onTransitStopPress?.(stop)}
                 tracksViewChanges={false}
               >
                 <View style={styles.transitStopWrap}>
-                  <View
+                  {stopAppearance.dot ? <View style={{width:stopAppearance.size,height:stopAppearance.size,borderRadius:stopAppearance.size/2,
+                    borderWidth:1,borderColor:'#fff',backgroundColor:hasBus && hasTram ? '#264348' : hasTram ? '#8B0000' : '#1E3A8A'}} /> : <View
                     style={[
                       styles.transitStopPin,
+                      {paddingHorizontal:3,paddingVertical:2},
                       {
                         backgroundColor:
                           hasBus && hasTram ? "#264348" : hasTram ? "#8B0000" : "#1E3A8A",
                       },
                     ]}
                   >
-                    {hasBus ? <Ionicons name="bus" size={13} color="#fff" /> : null}
-                    {hasTram ? <Ionicons name="train" size={13} color="#fff" /> : null}
-                  </View>
-                  {zoomLevel >= 14 && (
-                    <View style={styles.stopRouteBadges}>
-                      {stop.routes.slice(0, 3).map((r) => (
-                        <Text
-                          key={`${r.mode}-${r.route_number}`}
-                          style={[styles.stopRouteBadge, { backgroundColor: r.mode === "tram" ? "#8B0000" : "#1E3A8A" }]}
-                        >
-                          {r.route_number}
-                        </Text>
-                      ))}
-                    </View>
-                  )}
+                    {(hasBus || hasTram) && <Image source={stopMobilityView(cameraHeading)}
+                      style={{width:stopAppearance.icon,height:stopAppearance.icon}} resizeMode="contain" />}
+                  </View>}
+                  {stopAppearance.platforms && !!platformLabel && <Text numberOfLines={1}
+                    style={styles.stopPlatformCodes}>{platformLabel}</Text>}
+          {stopAppearance.names && <Text numberOfLines={1} style={{fontSize:10,color:'#264348',backgroundColor:'#fff',maxWidth:120}}>{stop.name}</Text>}
                 </View>
               </Marker>
             );
           })}
         {groupedMarkers.map((group) => {
+          if (group.count === 1 && group.items[0].selectionCompass) {
+            return <Marker key={group.key} coordinate={{latitude:group.latitude,longitude:group.longitude}}
+              anchor={{x:0.5,y:0.5}} onPress={()=>onMarkerPress?.(group.items[0].id)}>
+              <Image source={require("../assets/brand/perix-compass.png")} style={{width:38,height:38}} resizeMode="contain" />
+            </Marker>;
+          }
           const zoomScale = Math.max(0.8, Math.min(1.7, zoomLevel / 12));
-          const groupSize = (group.count > 1 ? (group.count < 3 ? 26 : group.count < 10 ? 30 : group.count < 30 ? 34 : 40) : 20) * zoomScale;
+          const isTransitPin=group.items[0].type === "bus" || group.items[0].type === "tram" || group.items[0].type === "taxi";
+          const groupSize = group.count > 1
+            ? (group.count < 3 ? 26 : group.count < 10 ? 30 : group.count < 30 ? 34 : 40) * zoomScale
+            : isTransitPin ? 20 * zoomScale : mapEntityPinSize(zoomLevel);
           const groupFontSize = Math.min(17, (group.count >= 100 ? 9 : group.count >= 10 ? 10.5 : 12) * zoomScale);
           const dotSize = 7 * zoomScale;
           const groupDotSize = 4 * zoomScale;
+          if (group.count === 1 && group.items[0].visualEstimate && (group.items[0].type === "bus" || group.items[0].type === "tram")) {
+            const item=group.items[0];
+            return <VisualTransitMarker key={group.key} marker={group.items[0]}
+              queueOffset={stationQueue.get(group.items[0].id)} iconSizePx={groupSize}
+              onPress={() => onMarkerPress?.(group.items[0].id)}
+              renderIcon={viewAngle=><VehicleMarkerArt mode={item.type as "bus"|"tram"} viewAngle={viewAngle} size={groupSize} label={item.label} />}>
+            </VisualTransitMarker>;
+          }
+          if(group.count===1 && (group.items[0].type==="bus" || group.items[0].type==="tram")){
+            const item=group.items[0];
+            return <Marker key={group.key} coordinate={{latitude:group.latitude,longitude:group.longitude}} anchor={{x:0.5,y:0.5}}
+              onPress={()=>onMarkerPress?.(item.id)}>
+              <VehicleMarkerArt mode={item.type as "bus"|"tram"} viewAngle={vehicleMobilityViewAngle(item.heading ?? 0)} size={groupSize} label={item.label} />
+            </Marker>;
+          }
+          if(group.count===1 && group.items[0].pinImage && group.items[0].type!=="taxi"){
+            const item=group.items[0];
+            return <Marker key={group.key} coordinate={{latitude:group.latitude,longitude:group.longitude}} anchor={{x:0.5,y:0.5}}
+              onPress={()=>onMarkerPress?.(item.id)}>
+              <DirectoryPinArt source={item.pinImage!} size={groupSize} color={item.pinColor || COLORS.pinClosed} label={item.title} />
+            </Marker>;
+          }
+          if (group.count === 1 && group.items[0].visualEstimate) {
           return (
           <Marker
             key={group.key}
@@ -497,6 +605,7 @@ export default function BusinessMap({
             </View>
           </Marker>
           );
+          }
         })}
       </MapView>
       <Modal visible={selectedGroup !== null} transparent animationType="slide" onRequestClose={() => setSelectedGroup(null)}>
@@ -524,6 +633,9 @@ export default function BusinessMap({
 }
 
 const styles = StyleSheet.create({
+  userPin: { width: 34, height: 34, borderRadius: 17, borderWidth: 3, borderColor: '#fff', backgroundColor: '#59ABE3', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  userPinImage: { width: 28, height: 28, borderRadius: 14 },
+  userPinInitial:{fontSize:16,fontWeight:'700',color:'#fff'},
   wrapper: {
     width: '100%',
     borderRadius: 12,
@@ -552,18 +664,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     elevation: 3,
   },
-  stopRouteBadges: { flexDirection: "row", gap: 2, marginTop: 2 },
-  stopRouteBadge: {
-    color: "#ffffff",
-    fontSize: 9,
-    fontWeight: "800",
-    borderRadius: 6,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderWidth: 1,
-    borderColor: "#ffffff",
-    overflow: "hidden",
-  },
+  stopPlatformCodes:{marginTop:1,maxWidth:120,paddingHorizontal:4,borderRadius:6,overflow:"hidden",
+    backgroundColor:"rgba(255,255,255,0.94)",color:"#264348",fontSize:9,fontWeight:"800",textAlign:"center"},
   disabledOverlay: {
     flex: 1,
     backgroundColor: COLORS.borderGray,

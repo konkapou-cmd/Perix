@@ -1,0 +1,952 @@
+--- a/mobility/roads.py
++++ b/mobility/roads.py
+@@ -230,6 +230,34 @@
+     return res["full"] or []
+ 
+ 
++def _bounded_stop_snaps(stops, nodes, adj):
++    """Reject missing road coverage before routing, without enlarging tolerance.
++
++    A long OSM edge can pass close to a platform while its endpoints are farther
++    away. In that case keep the existing node routing and let the unchanged
++    full-path validator decide. Never fabricate virtual nodes or new edges.
++    """
++    from mobility.graph import MAX_PLATFORM_DISTANCE_M
++    limit = float(MAX_PLATFORM_DISTANCE_M)
++    result = []
++    for lat, lng in stops:
++        node = _nearest_node(nodes, lat, lng)
++        if node not in nodes:
++            result.append({'node_id': None, 'accepted': False, 'reason': 'EMPTY_LOCAL_GRAPH'})
++            continue
++        distance = _haversine_m(lat, lng, *nodes[node])
++        edge_distance = distance
++        if distance > limit:
++            for a, neighbors in adj.items():
++                for b, _length, _eid in neighbors:
++                    edge_distance = min(edge_distance, _point_seg_dist_m(lat, lng, *nodes[a], *nodes[b]))
++        accepted = min(distance, edge_distance) <= limit
++        result.append({'node_id': node, 'node_distance_m': distance,
++            'edge_distance_m': edge_distance, 'limit_m': limit, 'accepted': accepted,
++            'reason': 'LOCAL_GRAPH_COVERAGE' if accepted else 'PLATFORM_OUTSIDE_LOCAL_GRAPH'})
++    return result
++
++
+ def _route_stops_segments_sync(
+     stops: List[Tuple[float, float]],
+     ways: List[dict],
+@@ -270,6 +298,7 @@
+             blocked_edges.add(f"{int(way_id)}:{int(node_b)}:{int(node_a)}")
+         except (ValueError, TypeError):
+             pass
++    snaps = _bounded_stop_snaps(stops, nodes, adj) if mode in ('bus', 'taxi') else None
+     # Corridor weights: distance of each edge midpoint to the shape hint.
+     edge_weight = {}
+     if shape_hint and len(shape_hint) >= 2:
+@@ -293,11 +322,16 @@
+         if len(nodes) < 2:
+             segments.append({"a_idx": i, "b_idx": i + 1, "points": [], "ok": False})
+             continue
+-        a = _nearest_node(nodes, stops[i][0], stops[i][1])
+-        b = _nearest_node(nodes, stops[i + 1][0], stops[i + 1][1])
++        if snaps is not None and (not snaps[i]['accepted'] or not snaps[i+1]['accepted']):
++            segments.append({'a_idx': i, 'b_idx': i+1, 'points': [], 'ok': False,
++                             'reason': 'PLATFORM_OUTSIDE_LOCAL_GRAPH'})
++            continue
++        a = snaps[i]['node_id'] if snaps is not None else _nearest_node(nodes, stops[i][0], stops[i][1])
++        b = snaps[i+1]['node_id'] if snaps is not None else _nearest_node(nodes, stops[i+1][0], stops[i+1][1])
+         result = _astar(adj, nodes, a, b, blocked_edges, edge_weight)
+         if not result or not result[0]:
+-            segments.append({"a_idx": i, "b_idx": i + 1, "points": [], "ok": False})
++            segments.append({"a_idx": i, "b_idx": i + 1, "points": [], "ok": False,
++                             "reason": "NO_DIRECTED_PATH"})
+             continue
+         path, edges = result
+         coords = [[nodes[nid][0], nodes[nid][1]] for nid in path]
+@@ -321,7 +355,8 @@
+             else:
+                 full.extend(s["points"][1:])
+     missing = [[s["a_idx"], s["b_idx"]] for s in segments if not s["ok"]]
+-    return {"segments": segments, "full": full or None, "missing_pairs": missing}
++    return {"segments": segments, "full": full or None, "missing_pairs": missing,
++            **({'snap_diagnostics': snaps} if snaps is not None else {})}
+ 
+ 
+ async def compute_pattern_geometry(stops: List[dict], mode: str = "bus") -> List[list]:
+@@ -368,7 +403,7 @@
+             ways_detailed = await get_local_ways(bbox, mode, graph_v=osm_snapshot_v)
+         except Exception:
+             ways_detailed = []
+-        if not ways_detailed:
++        if not ways_detailed and osm_snapshot_v is None:
+             # Bootstrap/refresh fallback: public Overpass as importer only.
+             try:
+                 ways_detailed = await _fetch_ways_detailed(bbox, mode)
+--- a/mobility/generations.py
++++ b/mobility/generations.py
+@@ -414,6 +414,7 @@
+             "resolved_pairs": len(
+                 [s for s in (routed.get("segments") or []) if s.get("ok")]
+             ),
++            **({'snap_diagnostics': routed['snap_diagnostics']} if 'snap_diagnostics' in routed else {}),
+         }
+ 
+     validation = validate_geometry(points, coords)
+--- a/mobility/osm_client.py
++++ b/mobility/osm_client.py
+@@ -42,6 +42,12 @@
+                     resp.raise_for_status()
+                     data = resp.json()
+ 
++                if not isinstance(data, dict) or not isinstance(data.get('elements'), list):
++                    raise RuntimeError('Invalid Overpass response structure')
++                # Overpass can return HTTP 200 plus partial elements and a
++                # timeout/out-of-memory remark. Nonempty is not completeness.
++                if data.get('remark'):
++                    raise RuntimeError('Incomplete Overpass response (remark present)')
+                 if require_elements and not data.get("elements"):
+                     raise RuntimeError("empty response (0 elements)")
+ 
+--- a/utils/mobility_workers.py
++++ b/utils/mobility_workers.py
+@@ -462,6 +462,54 @@
+         return False
+ 
+ 
++def _daily_recovery_control():
++    from mobility.daily_recovery import DailyRecovery
++    return DailyRecovery(db.mobility_daily_recovery, region_id=_ACTIVE_REGION.region_id,
++        network_id=_ACTIVE_REGION.network_id, timezone_name=_ACTIVE_REGION.timezone)
++
++async def _managed_daily_candidate(candidate_id, service_date, source_sha256):
++    from mobility.daily_recovery import enabled
++    if not enabled():
++        return None
++    from mobility.generations import atomic_generations_enabled, prepare_network_version
++    from mobility.osm_store import active_version
++    from routes.mobility import _get_active_network, _activate_network_version
++    if not AUTO_ACTIVATE or not atomic_generations_enabled():
++        return {'state': 'AUTOMATIC_ATOMIC_ACTIVATION_DISABLED'}
++    control = _daily_recovery_control()
++    row = await control.register(service_date=service_date, source_sha256=source_sha256, candidate_id=candidate_id)
++    if not row.get('candidate_id'):
++        return row
++    _event, lock, _queue = _precompute_primitives()
++    async with lock:
++        candidate = await db.bus_network_versions.find_one({'version_id': row['candidate_id'],
++            'region_id': _ACTIVE_REGION.region_id, 'network_id': _ACTIVE_REGION.network_id}, {'_id': 0})
++        if not candidate or candidate.get('service_date') != service_date:
++            return {'state': 'CANDIDATE_DATE_OR_SCOPE_MISMATCH'}
++        active = await _get_active_network()
++        if (active or {}).get('version_id') == row['candidate_id']:
++            if active.get('generation_state') not in ('READY', 'ACTIVE_READY'):
++                return {'state': 'ACTIVE_NETWORK_NOT_READY'}
++            return await control.confirm_active(row['candidate_id'], service_date)
++        result = await control.attempt(graph_v=await active_version(_ACTIVE_REGION.region_id),
++            source_version_id=str((active or {}).get('version_id') or '') or None,
++            prepare=prepare_network_version, activate=_activate_network_version)
++    alarm = result.get('alarm') or {}
++    _log(f"daily recovery: state={result.get('state')} candidate={row['candidate_id']} alarm={alarm.get('code')}")
++    return result
++
++async def _recover_daily_candidate():
++    from mobility.daily_recovery import enabled, civil_date
++    if not enabled() or not AUTO_ACTIVATE:
++        return
++    from datetime import datetime
++    from zoneinfo import ZoneInfo
++    row = await _daily_recovery_control().status()
++    today = civil_date(datetime.now(ZoneInfo(_ACTIVE_REGION.timezone)), _ACTIVE_REGION.timezone)
++    if row.get('service_date') == today and row.get('candidate_id') and row.get('state') != 'ACTIVATED':
++        await _managed_daily_candidate(row['candidate_id'], today, row['source_sha256'])
++
++
+ async def _static_worker():
+     if _ACTIVE_REGION.static_transit_type != "GTFS":
+         _log(
+@@ -600,9 +648,10 @@
+                 from routes.mobility import _create_network_version, _get_active_network
+ 
+                 await _merge_shapes(payload, await _get_active_network())
+-                result = await _create_network_version(
+-                    routes, payload.get("name") or "GTFS auto", service_date=payload["service_date"],
+-                )
++                from mobility.daily_recovery import enabled as recovery_enabled
++                reusable = await _daily_recovery_control().candidate_for(today, sha) if recovery_enabled() else None
++                result = ({'version_id': reusable, 'diff': {'reused_pending_candidate': True}} if reusable else
++                    await _create_network_version(routes, payload.get("name") or "GTFS auto", service_date=payload["service_date"]))
+                 _log(f"static: imported version {result['version_id']} diff={result['diff']}")
+                 activation_succeeded = not AUTO_ACTIVATE
+                 if AUTO_ACTIVATE:
+@@ -612,7 +661,10 @@
+                     )
+                     from routes.mobility import _activate_network_version
+ 
+-                    if atomic_generations_enabled():
++                    managed = await _managed_daily_candidate(str(result['version_id']), today, sha)
++                    if managed is not None:
++                        activation_succeeded = managed.get('state') == 'ACTIVATED'
++                    elif atomic_generations_enabled():
+                         _event, lock, _queue = _precompute_primitives()
+                         async with lock:
+                             preparation = await prepare_network_version(
+@@ -642,15 +694,7 @@
+                                 f"blocking={preparation.get('blocking_missing')}"
+                             )
+                     else:
+-                        if _static_service_date(datetime.now(ZoneInfo(_ACTIVE_REGION.timezone)), _ACTIVE_REGION.timezone) != today:
+-                            raise RuntimeError("civil date changed during import; retry without activating stale day")
+-                        await _activate_network_version(
+-                            str(result["version_id"]),
+-                            require_ready=False,
+-                            force=True,
+-                        )
+-                        request_precompute(None, reason="NETWORK_ACTIVATED_LEGACY_MODE")
+-                        activation_succeeded = True
++                        raise RuntimeError('Atomic readiness is required for automatic daily activation')
+                 # Do not mark a feed as fully synced when the version
+                 # exists but its atomic generations were not activated.
+                 # Otherwise a retry can be lost until the hash changes.
+@@ -858,3 +902,8 @@
+                 f"{type(exc).__name__}: {exc}"
+             )
+             # Never spin: periodic retry remains available in 20m.
++        try:
++            # No nested acquisition of the active-generation refresh lock.
++            await _recover_daily_candidate()
++        except Exception as exc:
++            _log(f'daily recovery: coordinator error {type(exc).__name__}')
+--- /dev/null
++++ b/mobility/daily_recovery.py
+@@ -0,0 +1,180 @@
++"""Bounded, default-off recovery of a dated GTFS candidate after graph repair.
++
++Own control metadata only. Uses existing preparation/activation callbacks and
++their unchanged readiness gate. No HTTP, routing, geometry creation or new poller.
++"""
++from datetime import date, datetime, timedelta, timezone
++import asyncio
++import os
++import re
++import uuid
++from zoneinfo import ZoneInfo
++from pymongo import ReturnDocument
++from pymongo.errors import DuplicateKeyError
++
++MAX_GRAPH_ATTEMPTS = 3
++MAX_DAY_ATTEMPTS = 12
++COOLDOWN_SECONDS = 300
++PREPARATION_TIMEOUT_SECONDS = 600
++ACTIVATION_TIMEOUT_SECONDS = 20
++LEASE_SECONDS = 900  # Longer than the bounded preparation + activation window.
++
++
++def enabled():
++    return os.getenv('MOBILITY_DAILY_RECOVERY_ENABLED', 'false').lower() == 'true'
++
++
++def civil_date(now, timezone_name):
++    if now.tzinfo is None: raise ValueError('Aware clock required')
++    return now.astimezone(ZoneInfo(timezone_name)).date().isoformat()
++
++
++def next_midnight_seconds(now, timezone_name):
++    local = now.astimezone(ZoneInfo(timezone_name))
++    tomorrow = local.date()+timedelta(days=1)
++    boundary = datetime.combine(tomorrow, datetime.min.time(), tzinfo=ZoneInfo(timezone_name))
++    return max(0., boundary.timestamp()-now.timestamp())
++
++
++class DailyRecovery:
++    def __init__(self, collection, *, region_id, network_id, timezone_name,
++                 clock=None, enabled_override=None):
++        self.collection = collection
++        self.key = f'{region_id}:{network_id}'
++        self.scope = {'region_id': region_id, 'network_id': network_id}
++        self.timezone = timezone_name
++        self.clock = clock or (lambda: datetime.now(timezone.utc))
++        self.on = enabled() if enabled_override is None else bool(enabled_override)
++        self.explicit_override = enabled_override is not None
++
++    def allowed(self):
++        return self.on and (self.explicit_override or enabled())
++
++    async def status(self):
++        if not self.allowed(): return {'state': 'DISABLED'}
++        return await self.collection.find_one({'_id': self.key}) or {'state': 'EMPTY'}
++
++    async def candidate_for(self, service_date, source_sha256):
++        if not self.allowed(): return None
++        row = await self.status()
++        if row.get('service_date') == service_date and row.get('source_sha256') == source_sha256:
++            return row.get('candidate_id')
++        return None
++
++    async def register(self, *, service_date, source_sha256, candidate_id):
++        if not self.allowed(): return {'state': 'DISABLED'}
++        if (date.fromisoformat(service_date).isoformat() != service_date or not candidate_id
++                or not re.fullmatch('[0-9a-f]{64}', source_sha256)):
++            raise ValueError('Explicit dated candidate and source digest required')
++        now = self.clock()
++        if civil_date(now, self.timezone) != service_date: return {'state': 'WRONG_SERVICE_DATE'}
++        try:
++            await self.collection.update_one({'_id': self.key}, {'$setOnInsert': {
++                **self.scope, 'fence': 0, 'lease_until': 0., 'day_attempts': 0}}, upsert=True)
++        except DuplicateKeyError:
++            pass  # Another instance initialized the same unique region control.
++        row = await self.collection.find_one({'_id': self.key})
++        if (row.get('state') == 'ACTIVATION_OUTCOME_UNKNOWN' and
++                (row.get('service_date'), row.get('source_sha256')) != (service_date, source_sha256)):
++            return {'state': 'ACTIVATION_OUTCOME_UNKNOWN', 'alarm': row.get('alarm')}
++        if row.get('lease_until', 0) > now.timestamp(): return {'state': 'BUSY'}
++        if row.get('service_date') == service_date and row.get('source_sha256') == source_sha256:
++            return row  # Reuse the first candidate; never create repeated versions as recovery.
++        return await self.collection.find_one_and_update(
++            {'_id': self.key, 'fence': row['fence'], 'lease_until': row['lease_until']},
++            {'$set': {**self.scope, 'service_date': service_date, 'source_sha256': source_sha256,
++                'candidate_id': str(candidate_id), 'state': 'PENDING', 'lease_until': 0.,
++                'day_attempts': row.get('day_attempts', 0) if row.get('service_date') == service_date else 0,
++                'graph_attempts': 0, 'last_graph_v': None, 'last_attempt_at': 0., 'alarm': None},
++            '$inc': {'fence': 1}}, return_document=ReturnDocument.AFTER) or {'state': 'BUSY'}
++
++    async def confirm_active(self, candidate_id, service_date):
++        """Called only after the worker reads back the scoped, ready active row.
++
++        This clears an ambiguous result; it never promotes a network itself.
++        Fence increment prevents an older completion from restoring a stale alarm.
++        """
++        if not self.allowed(): return {'state': 'DISABLED'}
++        row = await self.status()
++        if (row.get('candidate_id') != candidate_id or row.get('service_date') != service_date
++                or civil_date(self.clock(), self.timezone) != service_date):
++            return {'state': 'ACTIVE_CONFIRMATION_MISMATCH'}
++        return await self.collection.find_one_and_update(
++            {'_id': self.key, 'fence': row['fence'], 'candidate_id': candidate_id, 'service_date': service_date},
++            {'$set': {'state': 'ACTIVATED', 'alarm': None, 'lease_until': 0.,
++                      'finished_at': self.clock().isoformat()}, '$inc': {'fence': 1}},
++            return_document=ReturnDocument.AFTER) or {'state': 'LEASE_LOST'}
++
++    async def attempt(self, *, graph_v, source_version_id, prepare, activate=None):
++        if not self.allowed(): return {'state': 'DISABLED'}
++        if type(graph_v) is not int or graph_v <= 0: return {'state': 'NO_PINNED_GRAPH'}
++        row = await self.status(); now = self.clock(); stamp = now.timestamp()
++        if not row.get('candidate_id'): return {'state': 'EMPTY'}
++        if row['service_date'] != civil_date(now, self.timezone): return {'state': 'WRONG_SERVICE_DATE'}
++        if activate is not None and next_midnight_seconds(now, self.timezone) <= PREPARATION_TIMEOUT_SECONDS+30:
++            return {'state': 'DAY_BOUNDARY_NEAR'}
++        if row.get('state') in ('ACTIVATED', 'ACTIVATION_OUTCOME_UNKNOWN'):
++            return row
++        if row.get('lease_until', 0) > stamp: return {'state': 'BUSY'}
++        same_graph = row.get('last_graph_v') == graph_v
++        if row.get('day_attempts', 0) >= MAX_DAY_ATTEMPTS: return {'state': 'DAY_ATTEMPT_CAP'}
++        if same_graph and row.get('graph_attempts', 0) >= MAX_GRAPH_ATTEMPTS:
++            return {'state': 'WAIT_FOR_NEW_GRAPH'}
++        if same_graph and stamp-row.get('last_attempt_at', 0) < COOLDOWN_SECONDS:
++            return {'state': 'COOLDOWN'}
++        owner = uuid.uuid4().hex
++        claimed = await self.collection.find_one_and_update(
++            {'_id': self.key, 'fence': row['fence'], 'lease_until': row['lease_until'],
++             'candidate_id': row['candidate_id'], 'service_date': row['service_date']},
++            {'$inc': {'fence': 1, 'day_attempts': 1}, '$set': {
++                'lease_owner': owner, 'lease_until': stamp+LEASE_SECONDS,
++                'last_graph_v': graph_v, 'graph_attempts': row.get('graph_attempts', 0)+1 if same_graph else 1,
++                'last_attempt_at': stamp, 'state': 'PREPARING'}},
++            return_document=ReturnDocument.AFTER)
++        if claimed is None: return {'state': 'BUSY'}
++        identity = {'_id': self.key, 'fence': claimed['fence'], 'lease_owner': owner}
++
++        async def owned():
++            current = await self.collection.find_one(identity)
++            return bool(current and current['lease_until'] > self.clock().timestamp()+30
++                        and current['candidate_id'] == claimed['candidate_id'])
++
++        async def finish(state, *, alarm=None, keep_lease=False):
++            result = await self.collection.find_one_and_update(identity,
++                {'$set': {'state': state, 'alarm': alarm, 'finished_at': self.clock().isoformat(),
++                          'lease_until': claimed['lease_until'] if keep_lease else 0.}},
++                return_document=ReturnDocument.AFTER)
++            return result or {'state': 'LEASE_LOST'}
++
++        try:
++            report = await asyncio.wait_for(prepare(claimed['candidate_id'], source_version_id=source_version_id),
++                                            timeout=PREPARATION_TIMEOUT_SECONDS)
++        except Exception as exc:
++            return await finish('PREPARATION_FAILED', alarm={'code': 'DAILY_PREPARATION_FAILED',
++                'exception_type': type(exc).__name__})
++        if not self.allowed():
++            return await finish('PAUSED', alarm={'code': 'RECOVERY_DISABLED_BEFORE_ACTIVATION'})
++        if not await owned(): return {'state': 'LEASE_LOST'}
++        if (report.get('state') != 'READY' or report.get('blocking_missing')
++                or report.get('version_id') != claimed['candidate_id']):
++            return await finish('BLOCKED', alarm={'code': 'DAILY_NETWORK_NOT_READY',
++                'service_date': claimed['service_date'], 'candidate_id': claimed['candidate_id'],
++                'generation_state': report.get('state'), 'missing_patterns': (report.get('blocking_missing') or [])[:256],
++                'ready': report.get('ready'), 'expected': report.get('expected')})
++        if civil_date(self.clock(), self.timezone) != claimed['service_date']:
++            return await finish('DAY_ROLLED_OVER', alarm={'code': 'STALE_DAY_NOT_ACTIVATED'})
++        if activate is None: return await finish('READY_NOT_ACTIVATED')
++        if next_midnight_seconds(self.clock(), self.timezone) <= 30:
++            return await finish('DAY_BOUNDARY_NEAR', alarm={'code': 'STALE_DAY_NOT_ACTIVATED'})
++        try:
++            result = await asyncio.wait_for(activate(claimed['candidate_id'], require_ready=True, force=False),
++                                            timeout=ACTIVATION_TIMEOUT_SECONDS)
++        except Exception as exc:
++            # Activation may have crossed an await before an exception. Do not
++            # automatically retry ambiguous mutations or release ownership early.
++            return await finish('ACTIVATION_OUTCOME_UNKNOWN', keep_lease=True,
++                alarm={'code': 'ACTIVATION_RECONCILIATION_REQUIRED', 'exception_type': type(exc).__name__})
++        if result.get('active') != claimed['candidate_id']:
++            return await finish('ACTIVATION_OUTCOME_UNKNOWN', keep_lease=True,
++                alarm={'code': 'ACTIVATION_RECONCILIATION_REQUIRED'})
++        return await finish('ACTIVATED')
+--- /dev/null
++++ b/tools/build_osm_source.py
+@@ -0,0 +1,124 @@
++"""Build the existing importer's audited source contract from a full PBF.
++
++Optional offline tooling dependency: pyosmium (not a runtime dependency).
++No HTTP, database, activation, graph invention, routing or manual edge creation.
++"""
++from __future__ import annotations
++from datetime import datetime, timezone
++from pathlib import Path
++import argparse
++import hashlib
++import json
++import re
++import sys
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
++from mobility.roads import HIGHWAY_FILTER, RAILWAY_FILTER
++from mobility.signals import normalize_signal
++
++
++def polygon_rings(text):
++    lines = [s.strip() for s in text.splitlines() if s.strip()]
++    rings, current, hole = [], None, False
++    for s in lines[1:]:
++        if s == 'END':
++            if current is not None:
++                if len(current) < 3: raise ValueError('Invalid coverage ring')
++                rings.append((hole, current)); current = None
++            else:
++                break
++        elif current is None:
++            hole, current = s.startswith('!'), []
++        else:
++            x, y = map(float, s.split()); current.append((x, y))
++    if not rings or current is not None: raise ValueError('Incomplete coverage polygon')
++    return rings
++
++
++def polygon_contains_bbox(rings, bbox):
++    """Conservative full-rectangle proof, including holes and concave edges."""
++    south, west, north, east = bbox
++    corners = [(west, south), (east, south), (east, north), (west, north)]
++    def inside(p, ring):
++        result = False
++        for a, b in zip(ring, ring[1:]+ring[:1]):
++            if (a[1] > p[1]) != (b[1] > p[1]) and p[0] < (b[0]-a[0])*(p[1]-a[1])/(b[1]-a[1])+a[0]:
++                result = not result
++        return result
++    def orientation(a, b, c):
++        return (b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0])
++    def crossing(a, b, c, d):
++        if max(a[0], b[0]) < min(c[0], d[0]) or max(c[0], d[0]) < min(a[0], b[0]): return False
++        if max(a[1], b[1]) < min(c[1], d[1]) or max(c[1], d[1]) < min(a[1], b[1]): return False
++        return orientation(a, b, c)*orientation(a, b, d) <= 0 and orientation(c, d, a)*orientation(c, d, b) <= 0
++    if not all(any(not h and inside(p, r) for h, r in rings) and not any(h and inside(p, r) for h, r in rings) for p in corners):
++        return False
++    for _hole, ring in rings:
++        if any(west <= x <= east and south <= y <= north for x, y in ring): return False
++        if any(crossing(a, b, c, d) for a, b in zip(ring, ring[1:]+ring[:1])
++               for c, d in zip(corners, corners[1:]+corners[:1])): return False
++    return True
++
++
++def build_source(pbf, polygon, *, bbox, region_id, network_id, source_url):
++    import osmium  # Optional CLI-only dependency; never imported by the backend.
++    if not polygon_contains_bbox(polygon_rings(polygon.read_text()), bbox):
++        raise ValueError('SOURCE_POLYGON_DOES_NOT_CONTAIN_REGION')
++    reader = osmium.io.Reader(str(pbf), osmium.osm.osm_entity_bits.NOTHING)
++    header = reader.header(); stamp = header.get('osmosis_replication_timestamp')
++    reader.close()
++    if not stamp: raise ValueError('SOURCE_TIMESTAMP_MISSING')
++    elements, counts = [], {'roads': 0, 'rails': 0, 'signals': 0}
++    south, west, north, east = bbox
++    def in_bbox(lat, lon): return south <= lat <= north and west <= lon <= east
++    class Extract(osmium.SimpleHandler):
++        def __init__(self):
++            super().__init__(); self.missing_refs = 0
++        def node(self, n):
++            tags = dict(n.tags)
++            if tags.get('highway') != 'traffic_signals' and tags.get('railway') != 'signal': return
++            if not n.location.valid() or not in_bbox(n.location.lat, n.location.lon): return
++            e = {'type': 'node', 'id': int(n.id), 'lat': n.location.lat, 'lon': n.location.lon, 'tags': tags}
++            if normalize_signal(e): elements.append(e); counts['signals'] += 1
++        def way(self, w):
++            tags = dict(w.tags)
++            road = bool(re.fullmatch(HIGHWAY_FILTER, tags.get('highway', '')))
++            rail = bool(re.fullmatch(RAILWAY_FILTER, tags.get('railway', '')))
++            if not road and not rail: return
++            if any(not n.location.valid() for n in w.nodes):
++                self.missing_refs += 1; return
++            if not any(in_bbox(n.location.lat, n.location.lon) for n in w.nodes): return
++            elements.append({'type': 'way', 'id': int(w.id), 'nodes': [int(n.ref) for n in w.nodes],
++                'geometry': [{'lat': n.location.lat, 'lon': n.location.lon} for n in w.nodes], 'tags': tags})
++            counts['roads'] += road; counts['rails'] += rail
++    handler = Extract()
++    handler.apply_file(str(pbf), locations=True, idx='flex_mem')
++    if handler.missing_refs: raise ValueError('SOURCE_MISSING_NODE_REFERENCES')
++    if not counts['roads'] or not counts['rails']: raise ValueError('SOURCE_REQUIRED_LAYER_EMPTY')
++    elements.sort(key=lambda e: (e['type'], e['id']))
++    digest = hashlib.sha256(json.dumps(elements, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
++    source_sha = hashlib.sha256(pbf.read_bytes()).hexdigest()
++    return {'schema': 'perix-osm-source-v1', 'region_id': region_id, 'network_id': network_id,
++        'bbox': list(bbox), 'elements': elements, 'elements_sha256': digest,
++        'provenance': {'supplier': 'Geofabrik / OpenStreetMap', 'license': 'ODbL-1.0', 'url': source_url,
++            'sha256': source_sha, 'source_timestamp': stamp, 'polygon_contains_bbox': True,
++            'polygon_sha256': hashlib.sha256(polygon.read_bytes()).hexdigest(), 'missing_node_references': 0,
++            'extracted_at': datetime.now(timezone.utc).isoformat()},
++        'coverage': {k: {'bbox': list(bbox), 'expected': n, 'failed': 0, 'complete': True}
++                     for k, n in counts.items()}}
++
++
++if __name__ == '__main__':
++    p = argparse.ArgumentParser()
++    p.add_argument('--pbf', type=Path, required=True); p.add_argument('--polygon', type=Path, required=True)
++    p.add_argument('--output', type=Path, required=True)
++    p.add_argument('--region-id', default='magdeburg'); p.add_argument('--network-id', default='de-magdeburg-mvb')
++    p.add_argument('--bbox', type=float, nargs=4, default=[52.0, 11.45, 52.25, 11.80])
++    p.add_argument('--source-url', required=True)
++    a = p.parse_args()
++    if a.output.exists(): raise ValueError('Refusing source overwrite')
++    source = build_source(a.pbf, a.polygon, bbox=a.bbox, region_id=a.region_id,
++                          network_id=a.network_id, source_url=a.source_url)
++    a.output.write_text(json.dumps(source, separators=(',', ':'), allow_nan=False), encoding='utf-8')
++    print(json.dumps({'output': str(a.output), 'coverage': source['coverage'], 'provenance': source['provenance'],
++                      'elements_sha256': source['elements_sha256']}, indent=2))
+--- /dev/null
++++ b/tests/test_daily_network_recovery.py
+@@ -0,0 +1,402 @@
++"""No provider/production/database access: bounded-control and routing tests."""
++import asyncio
++from copy import deepcopy
++from datetime import datetime, timedelta, timezone
++from unittest.mock import AsyncMock
++import importlib.util
++from pathlib import Path
++
++import pytest
++
++from mobility.daily_recovery import DailyRecovery, civil_date, next_midnight_seconds
++from mobility import roads
++
++
++class MemoryControl:
++    def __init__(self): self.row = None; self.reads = 0
++    def matches(self, query):
++        return self.row is not None and all(self.row.get(k) == v for k, v in query.items())
++    async def find_one(self, query):
++        self.reads += 1
++        return deepcopy(self.row) if self.matches(query) else None
++    async def update_one(self, query, update, upsert=False):
++        if self.row is None and upsert:
++            self.row = {**query, **deepcopy(update.get('$setOnInsert') or {})}
++    async def find_one_and_update(self, query, update, **kwargs):
++        if not self.matches(query): return None
++        self.row.update(deepcopy(update.get('$set') or {}))
++        for key, delta in update.get('$inc', {}).items(): self.row[key] = self.row.get(key, 0)+delta
++        return deepcopy(self.row)
++
++
++def setup(on=True):
++    store = MemoryControl(); clock = [datetime(2026, 10, 26, 10, tzinfo=timezone.utc)]
++    c = DailyRecovery(store, region_id='r', network_id='n', timezone_name='Europe/Berlin',
++                      clock=lambda: clock[0], enabled_override=on)
++    return c, store, clock
++
++
++async def register(c, **changes):
++    return await c.register(**{'service_date': '2026-10-26', 'source_sha256': 'a'*64,
++                               'candidate_id': 'net_candidate', **changes})
++
++
++def blocked():
++    return AsyncMock(return_value={'state': 'BLOCKED_CHANGED_PATTERNS', 'version_id': 'net_candidate',
++        'expected': 159, 'ready': 151, 'blocking_missing': ['56:missing']})
++
++
++def ready():
++    return AsyncMock(return_value={'state': 'READY', 'version_id': 'net_candidate', 'blocking_missing': []})
++
++
++@pytest.mark.asyncio
++async def test_default_off_does_not_read_db_or_invoke_callbacks(monkeypatch):
++    monkeypatch.delenv('MOBILITY_DAILY_RECOVERY_ENABLED', raising=False)
++    store = MemoryControl()
++    c = DailyRecovery(store, region_id='r', network_id='n', timezone_name='Europe/Berlin')
++    p = ready(); a = AsyncMock()
++    assert (await c.status())['state'] == 'DISABLED'
++    assert (await c.attempt(graph_v=1, source_version_id='old', prepare=p, activate=a))['state'] == 'DISABLED'
++    assert store.reads == 0; p.assert_not_awaited(); a.assert_not_awaited()
++
++
++@pytest.mark.asyncio
++async def test_identical_source_and_day_reuse_original_candidate():
++    c, _store, _clock = setup()
++    await register(c)
++    assert (await register(c, candidate_id='duplicate'))['candidate_id'] == 'net_candidate'
++    assert await c.candidate_for('2026-10-26', 'a'*64) == 'net_candidate'
++    assert await c.candidate_for('2026-10-27', 'a'*64) is None
++    assert await c.candidate_for('2026-10-26', 'b'*64) is None
++
++
++@pytest.mark.asyncio
++async def test_blocked_is_a_durable_alarm_not_activation_or_success():
++    c, store, _clock = setup(); await register(c)
++    a = AsyncMock(); p = blocked()
++    r = await c.attempt(graph_v=1, source_version_id='old', prepare=p, activate=a)
++    assert r['state'] == 'BLOCKED'
++    assert store.row['alarm']['code'] == 'DAILY_NETWORK_NOT_READY'
++    assert store.row['alarm']['missing_patterns'] == ['56:missing']
++    a.assert_not_awaited()
++
++
++@pytest.mark.asyncio
++async def test_new_graph_retries_immediately_and_calls_unchanged_strict_activation():
++    c, _store, _clock = setup(); await register(c)
++    await c.attempt(graph_v=1, source_version_id='old', prepare=blocked())
++    p = ready(); a = AsyncMock(return_value={'active': 'net_candidate'})
++    r = await c.attempt(graph_v=2, source_version_id='old', prepare=p, activate=a)
++    assert r['state'] == 'ACTIVATED' and r['graph_attempts'] == 1
++    a.assert_awaited_once_with('net_candidate', require_ready=True, force=False)
++
++
++@pytest.mark.asyncio
++async def test_same_graph_has_cooldown_and_hard_attempt_cap():
++    c, _store, clock = setup(); await register(c); p = blocked()
++    await c.attempt(graph_v=1, source_version_id='old', prepare=p)
++    assert (await c.attempt(graph_v=1, source_version_id='old', prepare=p))['state'] == 'COOLDOWN'
++    for _ in range(2):
++        clock[0] += timedelta(seconds=301)
++        await c.attempt(graph_v=1, source_version_id='old', prepare=p)
++    clock[0] += timedelta(seconds=301)
++    assert (await c.attempt(graph_v=1, source_version_id='old', prepare=p))['state'] == 'WAIT_FOR_NEW_GRAPH'
++    assert p.await_count == 3
++
++
++@pytest.mark.asyncio
++async def test_per_day_cap_does_not_reset_on_every_graph_or_feed_change():
++    c, _store, _clock = setup(); await register(c); p = blocked()
++    for graph in range(1, 13):
++        await c.attempt(graph_v=graph, source_version_id='old', prepare=p)
++    await register(c, source_sha256='b'*64)
++    assert (await c.attempt(graph_v=13, source_version_id='old', prepare=p))['state'] == 'DAY_ATTEMPT_CAP'
++    assert p.await_count == 12
++
++
++@pytest.mark.asyncio
++async def test_concurrent_instances_reserve_only_one_attempt():
++    c, store, clock = setup(); await register(c)
++    other = DailyRecovery(store, region_id='r', network_id='n', timezone_name='Europe/Berlin',
++        clock=lambda: clock[0], enabled_override=True)
++    gate = asyncio.Event()
++    async def prepare(*args, **kw): await gate.wait(); return {'state': 'READY', 'version_id': 'net_candidate'}
++    p = AsyncMock(side_effect=prepare); a = AsyncMock(return_value={'active': 'net_candidate'})
++    first = asyncio.create_task(c.attempt(graph_v=1, source_version_id='old', prepare=p, activate=a))
++    await asyncio.sleep(0)
++    second = await other.attempt(graph_v=1, source_version_id='old', prepare=p, activate=a)
++    assert second['state'] == 'BUSY'
++    gate.set(); assert (await first)['state'] == 'ACTIVATED'
++    assert p.await_count == a.await_count == 1
++
++
++@pytest.mark.asyncio
++async def test_expired_or_stolen_lease_cannot_activate():
++    c, store, clock = setup(); await register(c)
++    async def prepare(*args, **kwargs): clock[0] += timedelta(seconds=901); return {'state': 'READY', 'version_id': 'net_candidate'}
++    a = AsyncMock()
++    assert (await c.attempt(graph_v=1, source_version_id='old', prepare=prepare, activate=a))['state'] == 'LEASE_LOST'
++    a.assert_not_awaited()
++
++
++@pytest.mark.asyncio
++async def test_date_rollover_during_preparation_never_activates_yesterday():
++    c, _store, clock = setup(); await register(c)
++    async def prepare(*args, **kwargs):
++        clock[0] += timedelta(days=1)
++        return {'state': 'READY', 'version_id': 'net_candidate'}
++    a = AsyncMock()
++    r = await c.attempt(graph_v=1, source_version_id='old', prepare=prepare, activate=a)
++    assert r['state'] in ('DAY_ROLLED_OVER', 'LEASE_LOST'); a.assert_not_awaited()
++
++
++@pytest.mark.asyncio
++async def test_uncertain_activation_is_not_automatically_retried():
++    c, _store, clock = setup(); await register(c)
++    a = AsyncMock(side_effect=TimeoutError('no exception text retained'))
++    r = await c.attempt(graph_v=1, source_version_id='old', prepare=ready(), activate=a)
++    assert r['state'] == 'ACTIVATION_OUTCOME_UNKNOWN'
++    clock[0] += timedelta(hours=1)
++    assert (await c.attempt(graph_v=2, source_version_id='old', prepare=ready(), activate=a))['state'] == 'ACTIVATION_OUTCOME_UNKNOWN'
++    assert a.await_count == 1
++
++
++@pytest.mark.asyncio
++async def test_false_ready_with_blockers_or_wrong_candidate_does_not_activate():
++    c, _store, clock = setup(); await register(c); a = AsyncMock()
++    for i, report in enumerate([{'state': 'READY', 'version_id': 'other'},
++        {'state': 'READY', 'version_id': 'net_candidate', 'blocking_missing': ['bad']}], 1):
++        r = await c.attempt(graph_v=i, source_version_id='old', prepare=AsyncMock(return_value=report), activate=a)
++        assert r['state'] == 'BLOCKED'
++    a.assert_not_awaited()
++
++
++def test_dst_day_clock_does_not_use_display_day_or_fixed_24h():
++    from zoneinfo import ZoneInfo
++    fall = datetime(2026, 10, 25, tzinfo=ZoneInfo('Europe/Berlin'))
++    assert next_midnight_seconds(fall, 'Europe/Berlin') == 90000
++    assert civil_date(datetime(2026, 10, 26, 0, 1, tzinfo=ZoneInfo('Europe/Berlin')), 'Europe/Berlin') == '2026-10-26'
++
++
++def ways(offset=0.):
++    return [{'id': 1, 'nodes': [1, 2, 3], 'points': [[52.+offset, 11.], [52.+offset, 11.001],
++        [52.+offset, 11.002]], 'tags': {'highway': 'primary'}}]
++
++
++def test_bus_missing_coverage_is_rejected_before_distant_node_routing():
++    r = roads._route_stops_segments_sync([(52., 11.), (52., 11.002)], ways(.03), mode='bus')
++    assert r['full'] is None
++    assert r['segments'][0]['reason'] == 'PLATFORM_OUTSIDE_LOCAL_GRAPH'
++    assert all(not s['accepted'] for s in r['snap_diagnostics'])
++    assert all(s['limit_m'] == 120 for s in r['snap_diagnostics'])
++
++
++def test_long_edge_near_platform_is_not_confused_with_absent_graph():
++    w = [{'id': 1, 'nodes': [1, 2], 'points': [[52., 11.], [52., 11.01]], 'tags': {}}]
++    nodes, adj, _ = roads._build_graph_detailed(w, 'bus')
++    snap = roads._bounded_stop_snaps([(52.00001, 11.005)], nodes, adj)[0]
++    assert snap['node_distance_m'] > 120 and snap['edge_distance_m'] < 2
++    assert snap['accepted'] is True
++
++
++@pytest.mark.asyncio
++async def test_pinned_snapshot_never_silently_falls_back_to_external_overpass(monkeypatch):
++    from mobility import osm_store
++    monkeypatch.setattr(osm_store, 'get_local_ways', AsyncMock(return_value=[]))
++    external = AsyncMock(side_effect=AssertionError('external canonical fetch'))
++    monkeypatch.setattr(roads, '_fetch_ways_detailed', external)
++    r = await roads.compute_pattern_segments([{'lat': 52., 'lng': 11.}, {'lat': 52., 'lng': 11.01}], 'bus', osm_snapshot_v=123)
++    assert r['missing_pairs'] == [[0, 1]]; external.assert_not_awaited()
++
++
++def test_tram_routing_does_not_receive_new_bus_snap_policy():
++    r = roads._route_stops_segments_sync([(52., 11.), (52., 11.002)], ways(.03), mode='tram')
++    assert 'snap_diagnostics' not in r
++
++
++def test_polygon_proof_rejects_holes_and_concave_intrusion():
++    spec = importlib.util.spec_from_file_location('osm_source_tool', Path(__file__).parents[1]/'tools/build_osm_source.py')
++    m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
++    outer = [(0., 0.), (10., 0.), (10., 10.), (0., 10.)]
++    bbox = (2., 2., 8., 8.)
++    assert m.polygon_contains_bbox([(False, outer)], bbox)
++    assert not m.polygon_contains_bbox([(False, outer), (True, [(4., 4.), (5., 4.), (5., 5.), (4., 5.)])], bbox)
++    assert not m.polygon_contains_bbox([(False, [(0., 0.), (10., 0.), (10., 10.), (6., 10.),
++        (6., 5.), (4., 5.), (4., 10.), (0., 10.)])], bbox)
++
++
++@pytest.mark.asyncio
++@pytest.mark.parametrize('ready_state', [False, True])
++async def test_static_worker_marks_hash_only_after_strict_activation(monkeypatch, ready_state):
++    import io
++    from types import SimpleNamespace
++    from unittest.mock import Mock
++    from utils import mobility_workers as w, gtfs
++    from routes import mobility as routes
++    from mobility import generations, daily_recovery
++    import builtins
++    class Response:
++        def raise_for_status(self): pass
++        async def aiter_bytes(self): yield b'SYNTHETIC_GTFS_ZIP_BYTES'
++        async def __aenter__(self): return self
++        async def __aexit__(self, *a): pass
++    class Client:
++        async def __aenter__(self): return self
++        async def __aexit__(self, *a): pass
++        def stream(self, *a, **k): return Response()
++    original_open = builtins.open
++    monkeypatch.setattr(builtins, 'open', lambda p, *a, **k: io.BytesIO() if p == '/tmp/perix_gtfs.zip' else original_open(p, *a, **k))
++    monkeypatch.setattr(w.httpx, 'AsyncClient', lambda **k: Client())
++    monkeypatch.setattr(w, '_ACTIVE_REGION', SimpleNamespace(static_transit_type='GTFS', region_id='r', network_id='n',
++        timezone='Europe/Berlin', agency_regex='mock', service_day_start_hour=4))
++    monkeypatch.setattr(w, 'STATIC_GTFS_URL', 'https://example.invalid/synthetic.zip')
++    monkeypatch.setattr(w, 'AUTO_ACTIVATE', True); monkeypatch.setattr(w, 'MIN_TRIPS', 1); monkeypatch.setattr(w, 'MIN_LINES', 1)
++    sync = SimpleNamespace(find_one=AsyncMock(return_value=None), replace_one=AsyncMock())
++    monkeypatch.setattr(w, 'db', SimpleNamespace(mobility_sync_state=sync,
++        mobility_schedule_audits=SimpleNamespace(replace_one=AsyncMock())))
++    monkeypatch.setenv('MOBILITY_DAILY_RECOVERY_ENABLED', 'false')
++    monkeypatch.setattr(daily_recovery, 'civil_date', lambda *a: '2026-10-26')
++    monkeypatch.setattr(w, '_merge_shapes', AsyncMock())
++    monkeypatch.setattr(w, '_precompute_primitives', lambda: (asyncio.Event(), asyncio.Lock(), None))
++    monkeypatch.setattr(routes, '_get_active_network', AsyncMock(return_value=None))
++    creator = AsyncMock(return_value={'version_id': 'net_candidate', 'diff': {}})
++    activation = AsyncMock(return_value={'active': 'net_candidate'})
++    monkeypatch.setattr(routes, '_create_network_version', creator)
++    monkeypatch.setattr(routes, '_activate_network_version', activation)
++    monkeypatch.setattr(generations, 'atomic_generations_enabled', lambda: True)
++    monkeypatch.setattr(generations, 'prepare_network_version', AsyncMock(return_value={
++        'state': 'READY' if ready_state else 'BLOCKED_CHANGED_PATTERNS', 'version_id': 'net_candidate', 'blocking_missing': [] if ready_state else ['56:missing']}))
++    payload = {'service_date': '2026-10-26', 'name': 'GTFS 2026-10-26',
++        'routes': [{'route_number': '56', 'trips': [{'trip_id': 't'}], 'stops': []}]}
++    parser = Mock(return_value=payload); monkeypatch.setattr(gtfs, 'parse_gtfs_zip_path', parser)
++    if importlib.util.find_spec('mobility.schedule_revision') is not None:
++        from mobility import schedule_revision
++        monkeypatch.setattr(schedule_revision, 'choose_contract', lambda *a, **k: None)
++        monkeypatch.setattr(schedule_revision, 'audit_schedule', lambda *a, **k: {
++            'ready_to_import': True, 'service_date': '2026-10-26', 'contract_applied': False,
++            'blocking_error_count': 0, 'warning_count': 0})
++    if importlib.util.find_spec('mobility.service_clock') is not None:
++        from mobility import service_clock
++        monkeypatch.setattr(service_clock, '_static_service_date', lambda *a: '2026-10-26')
++    async def stop_after_cycle(*a): raise asyncio.CancelledError()
++    monkeypatch.setattr(w.asyncio, 'sleep', stop_after_cycle)
++    with pytest.raises(asyncio.CancelledError): await w._static_worker()
++    assert parser.call_args.kwargs['service_date'] == '2026-10-26'
++    assert creator.call_args.kwargs['service_date'] == '2026-10-26'
++    if ready_state:
++        activation.assert_awaited_once(); sync.replace_one.assert_awaited_once()
++    else:
++        activation.assert_not_awaited(); sync.replace_one.assert_not_awaited()
++
++
++@pytest.mark.asyncio
++async def test_network_creator_preserves_explicit_day_without_forcing_active(monkeypatch):
++    from types import SimpleNamespace
++    from routes import mobility as m
++    insert = AsyncMock()
++    monkeypatch.setattr(m, 'db', SimpleNamespace(bus_network_versions=SimpleNamespace(insert_one=insert)))
++    monkeypatch.setattr(m, '_get_active_network', AsyncMock(return_value=None))
++    monkeypatch.setattr(m, '_broadcast', lambda *a: None)
++    await m._create_network_version([], 'Synthetic dated network', service_date='2026-10-26')
++    assert insert.call_args.args[0]['service_date'] == '2026-10-26'
++    assert insert.call_args.args[0]['active'] is False
++
++
++@pytest.mark.asyncio
++async def test_disabling_recovery_during_preparation_stops_new_activation(monkeypatch):
++    monkeypatch.setenv('MOBILITY_DAILY_RECOVERY_ENABLED', 'true')
++    store = MemoryControl()
++    c = DailyRecovery(store, region_id='r', network_id='n', timezone_name='Europe/Berlin',
++        clock=lambda: datetime(2026, 10, 26, 10, tzinfo=timezone.utc))
++    await register(c)
++    async def prepare(*a, **k):
++        monkeypatch.setenv('MOBILITY_DAILY_RECOVERY_ENABLED', 'false')
++        return {'state': 'READY', 'version_id': 'net_candidate'}
++    activation = AsyncMock()
++    r = await c.attempt(graph_v=1, source_version_id='old', prepare=prepare, activate=activation)
++    assert r['state'] == 'PAUSED'; activation.assert_not_awaited()
++
++
++@pytest.mark.asyncio
++async def test_unknown_outcome_cannot_be_overwritten_by_a_new_feed_revision():
++    c, store, clock = setup(); await register(c)
++    await c.attempt(graph_v=1, source_version_id='old', prepare=ready(), activate=AsyncMock(side_effect=TimeoutError()))
++    clock[0] += timedelta(hours=1)
++    r = await register(c, source_sha256='b'*64, candidate_id='new_candidate')
++    assert r['state'] == 'ACTIVATION_OUTCOME_UNKNOWN' and 'candidate_id' not in r
++    assert store.row['candidate_id'] == 'net_candidate'
++
++
++@pytest.mark.asyncio
++async def test_readback_confirmation_clears_alarm_only_for_exact_current_instance():
++    c, store, clock = setup(); await register(c)
++    await c.attempt(graph_v=1, source_version_id='old', prepare=ready(), activate=AsyncMock(side_effect=TimeoutError()))
++    assert (await c.confirm_active('wrong_candidate', '2026-10-26'))['state'] == 'ACTIVE_CONFIRMATION_MISMATCH'
++    assert (await c.confirm_active('net_candidate', '2026-10-26'))['state'] == 'ACTIVATED'
++    assert store.row['alarm'] is None
++
++
++@pytest.mark.asyncio
++async def test_worker_refuses_wrong_dated_candidate_before_preparing_or_activating(monkeypatch):
++    from types import SimpleNamespace
++    from utils import mobility_workers as w
++    from mobility import generations
++    monkeypatch.setenv('MOBILITY_DAILY_RECOVERY_ENABLED', 'true')
++    monkeypatch.setattr(w, 'AUTO_ACTIVATE', True)
++    monkeypatch.setattr(generations, 'atomic_generations_enabled', lambda: True)
++    monkeypatch.setattr(w, '_ACTIVE_REGION', SimpleNamespace(region_id='r', network_id='n'))
++    control = SimpleNamespace(register=AsyncMock(return_value={'candidate_id': 'old_candidate'}), attempt=AsyncMock())
++    monkeypatch.setattr(w, '_daily_recovery_control', lambda: control)
++    monkeypatch.setattr(w, '_precompute_primitives', lambda: (None, asyncio.Lock(), None))
++    find = AsyncMock(return_value={'version_id': 'old_candidate', 'service_date': '2026-10-25'})
++    monkeypatch.setattr(w, 'db', SimpleNamespace(bus_network_versions=SimpleNamespace(find_one=find)))
++    r = await w._managed_daily_candidate('old_candidate', '2026-10-26', 'a'*64)
++    assert r['state'] == 'CANDIDATE_DATE_OR_SCOPE_MISMATCH'; control.attempt.assert_not_awaited()
++
++
++@pytest.mark.asyncio
++async def test_initialization_race_uses_the_winning_unique_control_row():
++    from pymongo.errors import DuplicateKeyError
++    c, store, _clock = setup()
++    original = store.update_one
++    async def race(query, update, **kwargs):
++        await original(query, update, **kwargs)
++        raise DuplicateKeyError('synthetic concurrent initializer')
++    store.update_one = race
++    assert (await register(c))['candidate_id'] == 'net_candidate'
++
++
++async def overpass_case(monkeypatch, data, require_elements):
++    from mobility import osm_client
++    from types import SimpleNamespace
++    class Client:
++        async def __aenter__(self): return self
++        async def __aexit__(self, *a): pass
++        async def get(self, *a, **kw):
++            return SimpleNamespace(raise_for_status=lambda: None, json=lambda: data)
++    monkeypatch.setattr(osm_client.httpx, 'AsyncClient', lambda **kw: Client())
++    monkeypatch.setattr(osm_client, 'OVERPASS_URLS', ['https://example.invalid'])
++    monkeypatch.setattr(osm_client, 'ATTEMPTS_PER_MIRROR', 1)
++    monkeypatch.setattr(osm_client.asyncio, 'sleep', AsyncMock())
++    return await osm_client.overpass_json('synthetic query', require_elements=require_elements)
++
++
++@pytest.mark.asyncio
++@pytest.mark.parametrize('required', [False, True])
++async def test_http200_partial_overpass_elements_never_count_as_complete(monkeypatch, required):
++    with pytest.raises(RuntimeError, match='Incomplete Overpass response'):
++        await overpass_case(monkeypatch, {'elements': [{'type': 'way', 'id': 1}],
++            'remark': 'runtime error: Query timed out'}, required)
++
++
++@pytest.mark.asyncio
++@pytest.mark.parametrize('required,elements', [(True, [{'type': 'way', 'id': 1}]), (False, [])])
++async def test_complete_overpass_structure_keeps_existing_empty_policy(monkeypatch, required, elements):
++    assert await overpass_case(monkeypatch, {'elements': elements}, required) == {'elements': elements}
++
++
++@pytest.mark.asyncio
++async def test_invalid_overpass_structure_is_not_accepted_as_an_empty_tile(monkeypatch):
++    with pytest.raises(RuntimeError, match='Invalid Overpass response structure'):
++        await overpass_case(monkeypatch, {'message': 'not a query result'}, False)
+--- a/tests/test_mobility_civil_day.py
++++ b/tests/test_mobility_civil_day.py
+@@ -167,11 +167,14 @@
+     monkeypatch.setattr(workers.asyncio, "sleep", AsyncMock(side_effect=asyncio.CancelledError))
+     with pytest.raises(asyncio.CancelledError):
+         await workers._static_worker()
+-    assert parse.call_count == create.await_count == activate.await_count == expected_imports
++    assert parse.call_count == create.await_count == expected_imports
++    # Legacy force=True automatic promotion is intentionally no longer allowed.
++    # Calendar import must still happen, but only atomic-ready versions activate.
++    activate.assert_not_awaited()
++    sync.replace_one.assert_not_awaited()
+     if expected_imports:
+         assert parse.call_args.kwargs["service_date"] == "2026-10-23"
+         assert create.await_args.kwargs["service_date"] == "2026-10-23"
+-        assert sync.replace_one.await_count == 1
+ 
+ 
+ @pytest.mark.asyncio

@@ -1,0 +1,428 @@
+"""Authentication routes."""
+from fastapi import APIRouter, HTTPException, Response, Request, Depends
+from datetime import datetime, timedelta
+from pydantic import BaseModel
+import asyncio
+import httpx
+import secrets
+
+from database import db
+from models.user import RegisterInput, LoginInput, GoogleSessionInput, AuthResponse, UserPublic, UpgradeToBusinessInput, ChangePasswordInput
+from utils.helpers import generate_id, now_utc
+from config import SESSION_DAYS
+from routes.dependencies import pwd_context, build_user_public, create_session, get_current_user
+
+router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+# Password reset models
+class ForgotPasswordInput(BaseModel):
+    email: str
+
+class ResetPasswordInput(BaseModel):
+    token: str
+    new_password: str
+
+
+def set_session_cookie(response: Response, session_token: str) -> None:
+    max_age = SESSION_DAYS * 24 * 60 * 60
+    response.set_cookie(
+        key="session_token",
+        value=session_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=max_age,
+        path="/",
+    )
+
+
+@router.post("/register", response_model=AuthResponse, summary="Register new user")
+async def register_user(payload: RegisterInput, response: Response):
+    """
+    Register a new user account.
+    
+    - **name**: User's display name
+    - **email**: Unique email address
+    - **password**: Password (will be hashed)
+    
+    Returns user profile and session token.
+    """
+    existing = await db.users.find_one(
+        {"email": payload.email}, {"_id": 0, "password_hash": 0}
+    )
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    # EU compliance: explicit acceptance of the Terms of Service and
+    # confirmation that the user is at least 16 years old.
+    if not payload.accepted_terms or not payload.age_confirmed:
+        raise HTTPException(
+            status_code=400,
+            detail="You must accept the Terms of Service and confirm that you are at least 16 years old",
+        )
+
+    user_doc = {
+        "user_id": generate_id("user"),
+        "email": payload.email,
+        "name": payload.name,
+        "picture": None,
+        "password_hash": pwd_context.hash(payload.password),
+        "created_at": now_utc(),
+        "accepted_terms_at": now_utc(),
+        "age_confirmed_at": now_utc(),
+        "gallery_images": [],
+        "gallery_videos": [],
+        "profile_photo": None,
+        "cover_photo": None,
+        "bio": None,
+        "location": payload.city or None,
+        "latitude": payload.latitude,
+        "longitude": payload.longitude,
+        "friends": [],
+        "role": payload.role,
+        "email_verified": False,
+        "email_verification_token": secrets.token_urlsafe(32),
+    }
+    await db.users.insert_one(user_doc)
+
+    # Send verification email (fire and forget — registration is not blocked)
+    try:
+        from utils.email_utils import send_verification_email
+        asyncio.create_task(
+            send_verification_email(payload.email, user_doc["email_verification_token"])
+        )
+    except Exception as e:
+        print(f"Failed to send verification email: {e}")
+
+    business = None
+    if payload.role == "business":
+        # Founder access: creating a business requires the invite code.
+        # Founder businesses stay free; a paid plan may come later.
+        from routes.businesses import BUSINESS_ACCESS_CODE, _valid_access_code
+        if not _valid_access_code(payload.access_code):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid access code. The business access code is required to create a business profile.",
+            )
+        import database as db_module
+        cat_info = db_module.CATEGORY_LOOKUP.get(payload.subcategory or "", {})
+        business_name = payload.business_name or f"{payload.name}'s Business"
+        business_id = generate_id("biz")
+        business_doc = {
+            "business_id": business_id,
+            "owner_id": user_doc["user_id"],
+            "name": business_name,
+            "root_category": payload.root_category or "",
+            "subcategory": payload.subcategory or "",
+            "category": (cat_info.get("name") if cat_info else None) or payload.subcategory or "Business",
+            "description": "",
+            "address": payload.city or "",
+            "latitude": payload.latitude,
+            "longitude": payload.longitude,
+            "logo_image": None,
+            "profile_photo": None,
+            "cover_photo": None,
+            "phone": None,
+            "website": None,
+            "email": payload.email,
+            "subscription_status": "active",
+            "plan_type": "founder",
+            "access_code_used": "Perix Pro",
+            "free_until": now_utc() + timedelta(days=365),
+            "trial_expires_at": now_utc() + timedelta(days=365),
+            "created_at": now_utc(),
+            "gallery_images": [],
+            "gallery_videos": [],
+            "opening_hours": {},
+            "social_links": {},
+            "theme": None,
+            "enabled_modules": cat_info.get("modules", {}) if cat_info else {},
+        }
+        await db.businesses.insert_one(business_doc)
+        # PyMongo adds an ObjectId _id to the dict; Pydantic cannot serialize it
+        business_doc.pop("_id", None)
+        business = business_doc
+
+    session_token = await create_session(user_doc["user_id"])
+    set_session_cookie(response, session_token)
+    user_public = build_user_public(user_doc)
+    resp = AuthResponse(user=user_public, session_token=session_token)
+    if business:
+        resp.business = business  # type: ignore
+    return resp
+
+
+@router.post("/login", response_model=AuthResponse)
+async def login_user(payload: LoginInput, response: Response):
+    user = await db.users.find_one({"email": payload.email}, {"_id": 0})
+    if not user or not user.get("password_hash"):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if user.get("is_deleted") or user.get("deletion_pending"):
+        raise HTTPException(status_code=401, detail="Account is unavailable")
+    if user.get("is_blocked"):
+        raise HTTPException(status_code=403, detail="Account is blocked")
+
+    if not pwd_context.verify(payload.password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    session_token = await create_session(user["user_id"])
+    set_session_cookie(response, session_token)
+    return AuthResponse(user=build_user_public(user), session_token=session_token)
+
+
+@router.post("/google-session", response_model=AuthResponse)
+async def google_session(payload: GoogleSessionInput, response: Response):
+    async with httpx.AsyncClient(timeout=10) as client_http:
+        external = await client_http.get(
+            "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data",
+            headers={"X-Session-ID": payload.session_id},
+        )
+        if external.status_code != 200:
+            raise HTTPException(status_code=401, detail="Google auth failed")
+        data = external.json()
+
+    user = await db.users.find_one(
+        {"email": data["email"]}, {"_id": 0, "password_hash": 0}
+    )
+    if not user:
+        user = {
+            "user_id": generate_id("user"),
+            "email": data["email"],
+            "name": data.get("name") or "Google User",
+            "picture": data.get("picture"),
+            "created_at": now_utc(),
+            "gallery_images": [],
+            "gallery_videos": [],
+            "profile_photo": None,
+            "cover_photo": None,
+            "bio": None,
+            "location": None,
+            "friends": [],
+            "role": "user",
+        }
+        await db.users.insert_one(user)
+    elif user.get("is_deleted") or user.get("deletion_pending"):
+        raise HTTPException(status_code=401, detail="Account is unavailable")
+    elif user.get("is_blocked"):
+        raise HTTPException(status_code=403, detail="Account is blocked")
+
+    session_token = data["session_token"]
+    existing_session = await db.user_sessions.find_one(
+        {"session_token": session_token}, {"_id": 0}
+    )
+    if not existing_session:
+        await db.user_sessions.insert_one(
+            {
+                "user_id": user["user_id"],
+                "session_token": session_token,
+                "expires_at": now_utc() + timedelta(days=SESSION_DAYS),
+                "created_at": now_utc(),
+            }
+        )
+
+    set_session_cookie(response, session_token)
+    return AuthResponse(user=build_user_public(user), session_token=session_token)
+
+
+@router.get("/me", response_model=UserPublic)
+async def get_me(current_user: UserPublic = Depends(get_current_user)):
+    return current_user
+
+
+@router.post("/logout")
+async def logout_user(request: Request, response: Response):
+    tokens = set()
+    cookie_token = request.cookies.get("session_token")
+    if cookie_token:
+        tokens.add(cookie_token)
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.lower().startswith("bearer "):
+        tokens.add(auth_header.split(" ", 1)[1].strip())
+
+    for token in tokens:
+        await db.user_sessions.delete_one({"session_token": token})
+    response.delete_cookie(
+        "session_token",
+        path="/",
+        samesite="none",
+        secure=True,
+    )
+    return {"status": "logged_out"}
+
+
+@router.post("/upgrade-to-business")
+async def upgrade_to_business(
+    payload: UpgradeToBusinessInput,
+    current_user: UserPublic = Depends(get_current_user),
+):
+    """Upgrade a user account to a business account."""
+    if current_user.role == "business":
+        raise HTTPException(status_code=400, detail="Account is already a business")
+
+    from routes.businesses import _valid_access_code
+    if not _valid_access_code(payload.access_code):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid access code. The business access code is required to create a business profile.",
+        )
+
+    existing_count = await db.businesses.count_documents({"owner_id": current_user.user_id})
+    if existing_count >= 1:
+        raise HTTPException(status_code=400, detail="Business already exists")
+
+    import database as db_module
+    cat_info = db_module.CATEGORY_LOOKUP.get(payload.subcategory, {})
+    business_name = payload.business_name or f"{current_user.name}'s Business"
+    business_id = generate_id("biz")
+    business_doc = {
+        "business_id": business_id,
+        "owner_id": current_user.user_id,
+        "name": business_name,
+        "root_category": payload.root_category,
+        "subcategory": payload.subcategory,
+        "category": cat_info.get("name", payload.subcategory),
+        "description": "",
+        "address": current_user.location or "",
+        "latitude": current_user.latitude,
+        "longitude": current_user.longitude,
+        "logo_image": None,
+        "profile_photo": None,
+        "cover_photo": None,
+        "phone": None,
+        "website": None,
+        "email": current_user.email,
+        "subscription_status": "trial",
+        "trial_expires_at": now_utc() + timedelta(days=90),
+        "created_at": now_utc(),
+        "gallery_images": [],
+        "gallery_videos": [],
+        "opening_hours": {},
+        "social_links": {},
+        "theme": None,
+        "enabled_modules": cat_info.get("modules", {}),
+    }
+    await db.businesses.insert_one(business_doc)
+    # PyMongo adds an ObjectId _id to the dict; Pydantic cannot serialize it
+    business_doc.pop("_id", None)
+    await db.users.update_one(
+        {"user_id": current_user.user_id},
+        {"$set": {"role": "business"}}
+    )
+    current_user.role = "business"
+    return {"status": "upgraded", "business": business_doc}
+
+
+@router.put("/change-password")
+async def change_password(
+    payload: ChangePasswordInput,
+    current_user: UserPublic = Depends(get_current_user),
+):
+    """Change the current user's password."""
+    user_doc = await db.users.find_one({"user_id": current_user.user_id})
+    if not user_doc or not user_doc.get("password_hash"):
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not pwd_context.verify(payload.current_password, user_doc["password_hash"]):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    if len(payload.new_password) < 4:
+        raise HTTPException(status_code=400, detail="Password must be at least 4 characters")
+
+    await db.users.update_one(
+        {"user_id": current_user.user_id},
+        {"$set": {"password_hash": pwd_context.hash(payload.new_password)}}
+    )
+    return {"status": "password_changed"}
+
+
+@router.post("/forgot-password", summary="Request a password reset email")
+async def forgot_password(payload: ForgotPasswordInput):
+    email = payload.email.strip().lower()
+    user_doc = await db.users.find_one({"email": email})
+    generic = {"status": "reset_email_sent", "message": "If the email exists, a reset link has been sent."}
+    if not user_doc:
+        # Do not leak whether the email exists
+        return generic
+    from services.entity_ownership import can_receive_email
+    if not can_receive_email(user_doc):
+        return generic
+    if not user_doc.get("email_verified", True):
+        return generic
+
+    token = secrets.token_urlsafe(32)
+    now = datetime.utcnow()
+    await db.password_reset_tokens.insert_one({
+        "token": token,
+        "email": email,
+        "created_at": now,
+        "expires_at": now + timedelta(hours=1),
+        "used": False,
+    })
+
+    from utils.email_utils import send_password_reset_email
+    await send_password_reset_email(email, token)
+    return generic
+
+
+@router.get("/verify-email", summary="Verify a user's email address")
+async def verify_email(token: str):
+    user_doc = await db.users.find_one({"email_verification_token": token})
+    if not user_doc:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification link")
+    await db.users.update_one(
+        {"user_id": user_doc["user_id"]},
+        {"$set": {"email_verified": True, "email_verification_token": None}},
+    )
+    return {"status": "verified", "email": user_doc.get("email")}
+
+
+@router.post("/resend-verification", summary="Resend the email verification link")
+async def resend_verification(current_user: UserPublic = Depends(get_current_user)):
+    user_doc = await db.users.find_one({"user_id": current_user.user_id})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user_doc.get("email_verified"):
+        return {"status": "already_verified"}
+    token = user_doc.get("email_verification_token") or secrets.token_urlsafe(32)
+    await db.users.update_one(
+        {"user_id": current_user.user_id},
+        {"$set": {"email_verification_token": token}},
+    )
+    from utils.email_utils import send_verification_email, email_configured
+    sent = await send_verification_email(current_user.email, token)
+    return {"status": "sent" if sent else "email_not_configured"}
+
+
+@router.post("/reset-password", summary="Reset password using a token")
+async def reset_password(payload: ResetPasswordInput):
+    reset_doc = await db.password_reset_tokens.find_one({
+        "token": payload.token,
+        "used": False,
+        "expires_at": {"$gt": datetime.utcnow()},
+    })
+    if not reset_doc:
+        raise HTTPException(status_code=400, detail="Invalid or expired token")
+    if len(payload.new_password) < 4:
+        raise HTTPException(status_code=400, detail="Password must be at least 4 characters")
+
+    # Validate user before consuming token
+    user_doc = await db.users.find_one({"email": reset_doc["email"]})
+    if not user_doc:
+        raise HTTPException(status_code=400, detail="User not found")
+    from services.entity_ownership import can_receive_email
+    if not can_receive_email(user_doc):
+        raise HTTPException(status_code=400, detail="Account is unavailable")
+
+    # Atomically consume token
+    result = await db.password_reset_tokens.update_one(
+        {"token": payload.token, "used": False},
+        {"$set": {"used": True}},
+    )
+    if result.modified_count != 1:
+        raise HTTPException(status_code=400, detail="Token already used")
+
+    await db.users.update_one(
+        {"email": reset_doc["email"]},
+        {"$set": {"password_hash": pwd_context.hash(payload.new_password)}}
+    )
+    return {"status": "password_reset", "email": reset_doc["email"]}

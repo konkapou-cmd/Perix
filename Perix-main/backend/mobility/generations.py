@@ -24,7 +24,7 @@ from database import db
 from mobility.regions import get_active_region
 
 
-GENERATION_SCHEMA_VERSION = 1
+GENERATION_SCHEMA_VERSION = 2
 GEOMETRY_SCHEMA_VERSION = 3
 
 
@@ -67,6 +67,7 @@ def generation_id_for(
     pattern_fp: str,
     geometry_fp: str,
     osm_snapshot_v: int,
+    direction_fp: Optional[str] = None,
 ) -> str:
     raw = "|".join(
         (
@@ -77,7 +78,49 @@ def generation_id_for(
             str(int(osm_snapshot_v)),
         )
     )
+    if direction_fp:
+        raw += '|direction-v1:'+str(direction_fp)
     return f"gen_{_sha1(raw)[:18]}"
+
+
+def certify_generation_direction(bundle: dict, pattern: dict, platforms: list) -> dict:
+    """Prove the line's ordered edge legs, including audited legacy bundles.
+
+    Missing old metadata is reconstructed from the immutable generation's
+    actual segments, never from a pin projection or by reversing coordinates.
+    Existing but conflicting metadata is rejected, not silently repaired.
+    """
+    from mobility.direction_contract import build_direction_contract, DirectionContractError
+    if (bundle.get('ready') is not True or bundle.get('pattern_fingerprint') != pattern_fingerprint(pattern)
+            or str(bundle.get('mode') or '') != str(pattern.get('mode') or 'bus')
+            or str(bundle.get('route_number') or '') != str(pattern.get('route_number') or '')):
+        raise DirectionContractError('SOURCE_DIRECTION_BINDING_MISMATCH')
+    contract = build_direction_contract(scope=bundle,pattern=pattern,
+        points=(bundle.get('geometry') or {}).get('points') or [],
+        segments=bundle.get('segments') or [],platforms=platforms)
+    stored = bundle.get('direction_contract')
+    if stored is not None and stored != contract:
+        raise DirectionContractError('DIRECTION_CONTRACT_MISMATCH')
+    return contract
+
+
+async def certify_existing_generation(bundle: dict, pattern: dict, platforms: list) -> bool:
+    """CAS-enrich an audited legacy line; never reroute or change its clocks.
+
+    A concurrent generation replacement wins. Existing conflicting metadata
+    raises before any write, rather than being overwritten by a marker.
+    """
+    contract=certify_generation_direction(bundle,pattern,platforms)
+    if bundle.get('direction_contract') is not None:
+        return False
+    query={**_bundle_key(**{k:bundle[k] for k in ('region_id','network_id','version_id','pattern_id')}),
+        'ready':True,'generation_id':bundle['generation_id'],
+        'pattern_fingerprint':bundle['pattern_fingerprint'],'direction_contract':None,
+        'geometry.geometry_fingerprint':(bundle.get('geometry') or {}).get('geometry_fingerprint')}
+    if bundle.get('built_at') is not None:query['built_at']=bundle['built_at']
+    result=await db.mobility_pattern_generations.update_one(query,{'$set':{
+        'direction_contract':contract,'direction_certified_at':datetime.now(timezone.utc).isoformat()}})
+    return bool(result.matched_count)
 
 
 def generation_matches_path(bundle: Optional[dict], path: Optional[dict]) -> bool:
@@ -132,6 +175,7 @@ async def get_pattern_generation(
     *,
     region_id: Optional[str] = None,
     network_id: Optional[str] = None,
+    projection: Optional[dict] = None,
 ) -> Optional[dict]:
     region = get_active_region()
     return await db.mobility_pattern_generations.find_one(
@@ -141,7 +185,7 @@ async def get_pattern_generation(
             version_id=str(version_id),
             pattern_id=str(pattern_id),
         ),
-        {"_id": 0},
+        projection if projection is not None else {"_id": 0},
     )
 
 
@@ -192,6 +236,8 @@ async def geometry_inputs_for_version(
             "osm_snapshot_v": bundle.get("osm_snapshot_v"),
             "geometry_fingerprint": geometry.get("geometry_fingerprint"),
             "source": geometry.get("source"),
+            "direction_contract": bundle.get('direction_contract'),
+            "pattern_fingerprint": bundle.get('pattern_fingerprint'),
         }
     return {
         "roads_by_pattern": roads_by_pattern,
@@ -426,6 +472,14 @@ async def build_pattern_generation(
             "validation": validation,
         }
 
+    from mobility.direction_contract import build_direction_contract, DirectionContractError
+    try:
+        direction_contract = build_direction_contract(
+            scope=dict(region_id=region_id,network_id=network_id,version_id=version_id,pattern_id=pattern_id),
+            pattern=pattern,points=points,segments=routed.get('segments') or [],
+            platforms=[platforms[str(sid)] for sid in pattern['stop_ids']])
+    except DirectionContractError as exc:
+        return {'ok':False,'reason':'DIRECTED_ROUTE_VALIDATION_FAILED','direction_reason':str(exc),'pattern_id':pattern_id}
     geometry_fp = geometry_fingerprint(points)
     generation_id = generation_id_for(
         version_id=version_id,
@@ -433,6 +487,7 @@ async def build_pattern_generation(
         pattern_fp=pattern_fp,
         geometry_fp=geometry_fp,
         osm_snapshot_v=int(snapshot),
+        direction_fp=direction_contract['fingerprint'],
     )
     segments = _normalized_segments(
         routed.get("segments") or [],
@@ -444,6 +499,10 @@ async def build_pattern_generation(
         osm_snapshot_v=int(snapshot),
         generation_id=generation_id,
     )
+    segments.sort(key=lambda s:s['a_idx'])
+    for segment,leg in zip(segments,direction_contract['legs']):
+        segment.update(from_stop_id=leg['from_stop_id'],to_stop_id=leg['to_stop_id'],
+            direction_fingerprint=direction_contract['fingerprint'])
     expected_pairs = max(0, len(pattern.get("stop_ids") or []) - 1)
     if len(segments) != expected_pairs:
         return {
@@ -470,6 +529,7 @@ async def build_pattern_generation(
             "pattern_id": pattern_id,
         }
     infrastructure["derived_generation"] = generation_id
+    infrastructure['direction_fingerprint'] = direction_contract['fingerprint']
 
     built_at = datetime.now(timezone.utc).isoformat()
     bundle = {
@@ -485,6 +545,7 @@ async def build_pattern_generation(
         "route_number": str(pattern.get("route_number") or ""),
         "direction": str(pattern.get("direction") or ""),
         "pattern_fingerprint": pattern_fp,
+        "direction_contract": direction_contract,
         "restriction_fingerprint": closure_sig,
         "generation_id": generation_id,
         "osm_snapshot_v": int(snapshot),
@@ -534,6 +595,7 @@ async def copy_generation_to_version(
     *,
     target_network: dict,
     target_pattern: dict,
+    target_domain: dict,
     reason: str = "NETWORK_REUSE",
 ) -> dict:
     target_fp = pattern_fingerprint(target_pattern)
@@ -549,6 +611,17 @@ async def copy_generation_to_version(
     network_id = str(target_network.get("network_id") or region.network_id)
     version_id = str(target_network.get("version_id") or "")
     pattern_id = str(target_pattern.get("pattern_id") or "")
+    from mobility.direction_contract import build_direction_contract, DirectionContractError
+    platforms = _platforms_by_id(target_domain)
+    try:
+        ordered_platforms = [platforms[str(x)] for x in target_pattern.get('stop_ids') or []]
+        certify_generation_direction(source,target_pattern,ordered_platforms)
+        direction_contract = build_direction_contract(
+            scope=dict(region_id=region_id,network_id=network_id,version_id=version_id,pattern_id=pattern_id),
+            pattern=target_pattern,points=(source.get('geometry') or {}).get('points') or [],
+            segments=source.get('segments') or [],platforms=ordered_platforms)
+    except (DirectionContractError,KeyError) as exc:
+        return {'ok':False,'reason':'DIRECTED_ROUTE_REUSE_REJECTED','direction_reason':str(exc),'pattern_id':pattern_id}
     cloned = copy.deepcopy(source)
 
     geometry = cloned.get("geometry") or {}
@@ -558,6 +631,7 @@ async def copy_generation_to_version(
         pattern_fp=target_fp,
         geometry_fp=str(geometry.get("geometry_fingerprint") or ""),
         osm_snapshot_v=int(cloned.get("osm_snapshot_v")),
+        direction_fp=direction_contract['fingerprint'],
     )
 
     cloned.update(
@@ -571,6 +645,8 @@ async def copy_generation_to_version(
             "route_number": str(target_pattern.get("route_number") or ""),
             "direction": str(target_pattern.get("direction") or ""),
             "pattern_fingerprint": target_fp,
+            "schema_v": GENERATION_SCHEMA_VERSION,
+            "direction_contract": direction_contract,
             "generation_id": generation_id,
             "build_reason": str(reason),
             "reused_from_version_id": source.get("version_id"),
@@ -581,6 +657,7 @@ async def copy_generation_to_version(
         }
     )
     for segment in cloned.get("segments") or []:
+        leg=direction_contract['legs'][segment['a_idx']]
         segment.update(
             {
                 "version_id": version_id,
@@ -588,6 +665,8 @@ async def copy_generation_to_version(
                 "network_id": network_id,
                 "pattern_id": pattern_id,
                 "derived_generation": generation_id,
+                "from_stop_id":leg['from_stop_id'],"to_stop_id":leg['to_stop_id'],
+                "direction_fingerprint":direction_contract['fingerprint'],
             }
         )
     infrastructure = cloned.get("infrastructure") or {}
@@ -598,6 +677,7 @@ async def copy_generation_to_version(
             "network_id": network_id,
             "pattern_id": pattern_id,
             "derived_generation": generation_id,
+            "direction_fingerprint":direction_contract['fingerprint'],
         }
     )
 
@@ -710,7 +790,18 @@ async def summarize_generation_version(
             semantics.get("clustered_head_reduction_count") or 0
         )
 
-    ready_ids = pattern_ids & set(by_pid)
+    patterns_by_id = {str(p['pattern_id']):p for p in domain.get('patterns',[])}
+    platforms = _platforms_by_id(domain)
+    directed_ids = set()
+    direction_failures = {}
+    for pid in pattern_ids & set(by_pid):
+        try:
+            pattern=patterns_by_id[pid]
+            certify_generation_direction(by_pid[pid],pattern,[platforms[str(x)] for x in pattern['stop_ids']])
+            directed_ids.add(pid)
+        except (ValueError,KeyError,TypeError) as exc:
+            direction_failures[pid]=str(exc)[:160]
+    ready_ids = directed_ids
     missing = sorted(pattern_ids - ready_ids)
     expected = len(pattern_ids)
     ready = len(ready_ids)
@@ -719,9 +810,12 @@ async def summarize_generation_version(
         "state": network.get("generation_state") or "UNPREPARED",
         "expected": expected,
         "ready": ready,
+        "direction_ready":len(directed_ids),
+        "direction_contract_stored":sum(bool(by_pid[p].get('direction_contract')) for p in directed_ids),
+        "direction_failures":direction_failures,
         "ready_ratio": round(ready / max(1, expected), 4),
         "current_osm_snapshot_v": int(snapshot) if snapshot is not None else None,
-        "current_snapshot_ready": ready - len(stale),
+        "current_snapshot_ready": len(ready_ids-set(stale)),
         "stale_count": len(stale),
         "stale_patterns": sorted(stale),
         "missing_count": len(missing),
@@ -842,6 +936,7 @@ async def prepare_network_version(
                 source_bundle,
                 target_network=candidate,
                 target_pattern=pattern,
+                target_domain=candidate_domain,
                 reason="NETWORK_REUSE",
             )
             if result.get("ok"):
@@ -971,6 +1066,8 @@ async def refresh_network_version(
     retained = []
     skipped = []
     failed = {}
+    direction_certified = []
+    platforms = _platforms_by_id(domain)
 
     for pattern in domain.get("patterns", []):
         pid = str(pattern.get("pattern_id") or "")
@@ -978,6 +1075,15 @@ async def refresh_network_version(
             continue
         existing = current.get(pid)
         fp = pattern_fingerprint(pattern)
+        direction_valid = False
+        if existing:
+            try:
+                attached=await certify_existing_generation(existing,pattern,
+                    [platforms[str(x)] for x in pattern.get('stop_ids') or []])
+                direction_valid=True
+                if attached:direction_certified.append(pid)
+            except (ValueError,KeyError,TypeError):
+                direction_valid=False
         selector = {
             "mode": str(pattern.get("mode") or "bus"),
             "route_number": str(pattern.get("route_number") or ""),
@@ -986,6 +1092,7 @@ async def refresh_network_version(
         closure_sig = restriction_signature(active_restrictions, **selector)
         if (
             existing
+            and direction_valid
             and existing.get("ready")
             and str(existing.get("pattern_fingerprint") or "") == fp
             and str(existing.get("restriction_fingerprint") or "") == closure_sig
@@ -1026,6 +1133,8 @@ async def refresh_network_version(
     state = "ACTIVE_READY" if int(summary.get("ready") or 0) > 0 else "ACTIVE_EMPTY"
     report = {
         **summary,
+        'direction_certified':len(direction_certified),
+        'direction_certified_patterns':direction_certified,
         "state": state,
         "refreshed": len(refreshed),
         "retained_last_good": len(retained),

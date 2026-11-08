@@ -1,0 +1,121 @@
+{
+  "base": "accepted physics-time-allocation working tree, not clean HEAD/production",
+  "modified_existing_files": [
+    "Perix-main/backend/mobility/tomtom_scheduler.py",
+    "Perix-main/backend/mobility/tomtom_traffic.py",
+    "Perix-main/backend/mobility/motion/time_allocation.py",
+    "Perix-main/backend/mobility/motion/engine.py",
+    "Perix-main/backend/mobility/v2.py",
+    ".github/workflows/mobility-physics-research.yml"
+  ],
+  "added_source_files": [
+    "Perix-main/backend/mobility/tomtom_schedule.py",
+    "Perix-main/backend/mobility/tomtom_temporal.py",
+    "Perix-main/backend/mobility/motion/bus_time_evidence.py",
+    "Perix-main/backend/mobility/sampling_policies/magdeburg-weekly-v1.json",
+    "Perix-main/backend/tests/test_adaptive_traffic_sampling.py",
+    "Perix-main/backend/tests/test_bus_temporal_position.py",
+    "Perix-main/backend/tools/benchmark_adaptive_traffic.py"
+  ],
+  "changes": {
+    "Perix-main/backend/mobility/tomtom_scheduler.py": {
+      "before": "097509348adb56644d7f16a2692fa764f132ff619f2aaa42cd56b3b27dff52a2",
+      "after": "58ec694f25641dbd422e01e265c110e2d16b2e41bb5bc6dd0ceaccb635490af4"
+    },
+    "Perix-main/backend/mobility/tomtom_traffic.py": {
+      "before": "f5371cf7f53bab4acc99c8534c9095d287268fa75cef74a605b65bdd2bbb162b",
+      "after": "61e7166cc66c0a4398414fe93b1c6f1de8a9911cbbcdd85b80308681523bb0c2"
+    },
+    "Perix-main/backend/mobility/motion/time_allocation.py": {
+      "before": "a6a43bb3bc75ff34daaee3be248267df77cd1be083256e4ffc1cfddcf8011d63",
+      "after": "757d54425453a471eda405ffee89c8cb1949584e3d62da50676d4c8ce1eb8e81"
+    },
+    "Perix-main/backend/mobility/motion/engine.py": {
+      "before": "77cc8c80747790eb22b81163b98bfc1470acdc0d4c20a02fc5a1a6c110d42df8",
+      "after": "68797833e546f792ebc23a2dd82696c8028ee8680abcfb87e48c5dacadc04c7d"
+    },
+    "Perix-main/backend/mobility/v2.py": {
+      "before": "1293149327c94ee2d57e26ae4848d47190bc781ea0c143eb0a2570e2b854ff5a",
+      "after": "7edb1bac9c41432dff3ef6f119a7445592d26a1ba4c7f5b2482ee0c7ed70a04e"
+    },
+    ".github/workflows/mobility-physics-research.yml": {
+      "before": "541e323a9efdd3071a03264482e4282d12b5cb5b7ada5ae9e6206fcb26ccb486",
+      "after": "30d9c00ed075f9091b7f6d68af9c8cbe824f4ef6526172c2dbb9be3e96ae7a1e"
+    },
+    "Perix-main/backend/mobility/tomtom_schedule.py": {
+      "before": null,
+      "after": "bf701c45aa8d31e03fa561afec02b185b928e515140d4d650e91c93d0f02079c"
+    },
+    "Perix-main/backend/mobility/tomtom_temporal.py": {
+      "before": null,
+      "after": "0350b2dcf89ef512f7a02ee1f1ac39f8c1dceaf2451dbd2a3b8e3733a1a71350"
+    },
+    "Perix-main/backend/mobility/motion/bus_time_evidence.py": {
+      "before": null,
+      "after": "65214c32f124d3c2918cbb6231ef16652f3f862b11c5a4a29a45f2e0400776cf"
+    },
+    "Perix-main/backend/mobility/sampling_policies/magdeburg-weekly-v1.json": {
+      "before": null,
+      "after": "aae20ccf4162c99deda41ee1e7cf454c8ef752e3bac8e5549194249b9f954feb"
+    },
+    "Perix-main/backend/tests/test_adaptive_traffic_sampling.py": {
+      "before": null,
+      "after": "8396dc4bdcdf946721039268cf3e4d9364311fd125469eefe5b4e70973fd73b0"
+    },
+    "Perix-main/backend/tests/test_bus_temporal_position.py": {
+      "before": null,
+      "after": "7122b6ab8071250765992d5e851f09bdd40a5d8b483c4df0b8e6eceb4a8d596b"
+    },
+    "Perix-main/backend/tools/benchmark_adaptive_traffic.py": {
+      "before": null,
+      "after": "66540fc61eb42fc4e22014d10f3062d00d76e445ab6d9f229d696d3541934338"
+    }
+  },
+  "protected_files_unchanged": {
+    "Perix-main/backend/mobility/motion/tram.py": "f615c74b88b8c590a7bf6ca48a5c65ce67e74f047cce15a20fa51989286e43df",
+    "Perix-main/backend/mobility/motion/bus.py": "263426d40a06e7bdb72c2bc6a3125e1b80aa1560186befc0a04673f0260b2de5",
+    "Perix-main/backend/mobility/motion/common.py": "b44b03f383178c0600766f226646edbf12a6c9d27e23b3a1b0a24d21137f15f1",
+    "Perix-main/backend/mobility/motion/config.py": "e5d56759e84e12272a8c77dca70abec911add8d84e0f229f8e5897c6a0662e87",
+    "Perix-main/backend/mobility/motion/handover.py": "baf8affa06362713bad79a1e9883acdfecc1888c34925e0ef08e119654fb2c58",
+    "Perix-main/backend/mobility/motion/google_traffic.py": "2395e9024cc22ed35579dcf3238a807af015d44c2b5ccf0273b64f5e5831f1b2",
+    "Perix-main/backend/mobility/motion/traffic.py": "d58506263331200c9f38e36cfa3795d12bb31cb5849466feff3756af8f1ff1cb",
+    "Perix-main/backend/mobility/tomtom_control.py": "111dceaa58167b9eb75250324ff3e23f03326cfd59aba16db677f1902a381e16",
+    "Perix-main/backend/mobility/tomtom_sampling.py": "c3dc374f53f1a29b97829fa48f5cf71bb7d7c92ab64b94d50bedd4df7627af8c",
+    "Perix-main/backend/mobility/regions.py": "58e5dabc2a0be216ca100e4613656dc04b2f9804011777182f962b985982cb7c",
+    "Perix-main/backend/mobility/generations.py": "bfccae65936ed85c5d6669be95088bf8655930a4ed4fa5bf05cf05594343ba0d",
+    "Perix-main/backend/mobility/infrastructure.py": "66dba81afbacb25ab59aed792f6a4bcbd9dbd45a03a7b46e09b2118663f7dd1b",
+    "Perix-main/backend/mobility/signal_semantics.py": "edcdaadcce61580842f5a5d335187fc2591bf2f2377ecadfdfd5a69bbe831a33",
+    "Perix-main/backend/mobility/traffic_profiles.py": "9f211c7b72d61129aa230f019bc471e84b8924e2da77f2ff0024e263fc0a6c2c",
+    "Perix-main/backend/releases/physics-time-allocation-20261026/README.md": "403c9ddf74bd130c6b12fc0a780e2e304d462bd3e99af531cbe3b0bc08055dc7"
+  },
+  "old_report_unchanged": true,
+  "existing_mongo_proof_retained_by_source_hash": true,
+  "task_patch_sha256": "ac21b4b7772fed7152b743e3b2d544540590a486601b007292444e6cc0e22146",
+  "byte_exact_reconstructed_source_files": 13,
+  "new_units": {
+    "tests": 33,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "regression": {
+    "tests": 364,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "regression_passed": 363,
+  "new_flags_default_false": [
+    "MOBILITY_TOMTOM_ADAPTIVE_SAMPLING_ENABLED",
+    "MOBILITY_TOMTOM_TRENDS_ENABLED",
+    "MOBILITY_BUS_TIME_EVIDENCE_ENABLED"
+  ],
+  "flags_activated": false,
+  "tomtom_provider_requests": 0,
+  "production_operations": 0,
+  "deployment": false,
+  "commit_push": false,
+  "actual_directional_coverage": 0.0,
+  "independent_eta_mae_s": null,
+  "actual_api_latency": null
+}

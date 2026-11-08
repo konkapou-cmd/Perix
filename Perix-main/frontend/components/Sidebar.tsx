@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useBadge } from "../context/BadgeContext";
 import { COLORS } from "../lib/designTokens";
+import PerixLogo from "./brand/PerixLogo";
 
 interface NavItem {
   key: string;
@@ -93,10 +94,7 @@ export default function Sidebar() {
         style={styles.logoContainer}
         onPress={() => router.navigate("/(tabs)/home" as any)}
       >
-        <View style={styles.logoIcon}>
-          <Ionicons name="location" size={24} color={COLORS.background} />
-        </View>
-        <Text style={styles.logoText}>Perix</Text>
+        <PerixLogo size="compact" />
       </Pressable>
 
       {/* Navigation Items */}

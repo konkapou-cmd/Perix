@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from "react";
 import {
   Modal,
+  Image,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
+  type ImageSourcePropType,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,6 +21,7 @@ export type ProgressivePickerOption<T extends string = string> = {
   key: T;
   label: string;
   icon?: IconName;
+  iconSource?: ImageSourcePropType;
   iconColor?: string;
   count?: number;
   disabled?: boolean;
@@ -149,7 +152,7 @@ export default function ProgressivePicker<T extends string = string>({
                     accessibilityLabel={opt.label}
                     accessibilityState={{ selected: opt.key === validValue, disabled: opt.disabled }}
                   >
-                    {opt.icon && (
+                    {opt.iconSource ? <Image source={opt.iconSource} resizeMode="contain" style={[styles.modalOptionIcon, { width: 20, height: 20 }]} /> : opt.icon && (
                       <Ionicons
                         name={opt.icon}
                         size={20}

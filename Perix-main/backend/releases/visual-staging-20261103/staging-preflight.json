@@ -1,0 +1,9 @@
+{
+  "deployment": "01e0cf0a-3b6e-4fac-8062-38fa75e6f906",
+  "standalone_mongo": true,
+  "endpoint_matches_stage_private_domain": true,
+  "app_initial_database_env_matches": true,
+  "app_processes": 2,
+  "candidate_database_empty": true,
+  "database_strategy": "New isolated name; existing DB unchanged; no imports or deletes"
+}

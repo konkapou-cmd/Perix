@@ -1,0 +1,30 @@
+{
+  "source_tree_sha256": "dd56ab52a4c6e1550bd73a3ff270bcc08f8f18f57613a84b68ea99b0a52b016d",
+  "offline_backend": {
+    "passed": 275,
+    "skipped": 1
+  },
+  "isolated_backend": {
+    "passed": 19,
+    "elapsed_s": 174.63,
+    "prior_180s_timeout_retained": true
+  },
+  "frontend_tests": {
+    "passed": 53
+  },
+  "npm_ci_from_lock": true,
+  "web_export_passed": true,
+  "typescript": {
+    "candidate_errors": 5,
+    "baseline_errors": 6,
+    "new_errors": 0,
+    "fully_green": false
+  },
+  "hosted": {
+    "runtime_files_matched": 181,
+    "geometry_loss_board_eta_s": 206,
+    "approach_samples": 23,
+    "both_endpoints_and_source_dwell_passed": true
+  },
+  "production_approved": false
+}

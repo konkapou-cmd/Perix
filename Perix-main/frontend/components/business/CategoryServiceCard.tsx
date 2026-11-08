@@ -13,6 +13,7 @@ import { optionLabel } from "../../lib/categoryTranslation";
 import AdaptiveImage from "../AdaptiveImage";
 import AdaptiveVideo from "../AdaptiveVideo";
 import FocalImage from "../FocalImage";
+import IllustratedIcon from "../icons/IllustratedIcon";
 
 function MediaWithOverlay({ service, placeholderIcon }: { service: Service; placeholderIcon: string }) {
   const imageUri = service.cover_image_url || service.image_urls?.[0] || service.gallery_images?.[0];
@@ -28,7 +29,7 @@ function MediaWithOverlay({ service, placeholderIcon }: { service: Service; plac
         <FocalImage uri={imageUri} focalPoint={service.cover_focal_point} borderRadius={0} showLoader={false} style={{ width: "100%", height: "100%" }} />
       ) : (
         <View style={s.imagePlaceholder}>
-          <Ionicons name={placeholderIcon as any} size={32} color="#264348" />
+          <IllustratedIcon kind="service-module" iconKey={service.type} size={32} fallback={placeholderIcon as any} />
         </View>
       )}
       {galleryCount > 0 && (
@@ -185,7 +186,7 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
       />
       <View style={s.imageBadges}>
         <View style={[s.typeBadge, { backgroundColor: primaryColor }]}>
-          <Ionicons name={typeIcon as any} size={10} color="#fff" />
+          <IllustratedIcon kind="service-module" iconKey={service.type} size={10} fallback={typeIcon as any} color="#fff" />
           <Text style={s.typeBadgeText} numberOfLines={1}>{typeName}</Text>
         </View>
         {ctaType !== "browse_only" && (

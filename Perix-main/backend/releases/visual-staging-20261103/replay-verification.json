@@ -1,0 +1,8 @@
+{
+  "baseline": "082be7d5c2851c74c5420eaa4d4be2f3d8434d4b",
+  "patch_sha256": "bb6a619d3c5ab1389040025073040fec3e32db6a071460f31cfbf30ff4396ab1",
+  "replayed_files": 715,
+  "exact_replay": true,
+  "git_autocrlf": false,
+  "runtime_zip_sha256": "87864c0768e98fdbd14544a083e040498112c13e23c85d5f1aa7190d69fe9677"
+}

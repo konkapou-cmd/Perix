@@ -1,0 +1,7 @@
+{
+  "baseline": "082be7d5c2851c74c5420eaa4d4be2f3d8434d4b",
+  "source_files": 716,
+  "exact_replay": true,
+  "patch_sha256": "dd8df818107f7c16d564e66a3cd258aec60aa34cabe6f648b5e1b885f117f515",
+  "runtime_zip_sha256": "87864c0768e98fdbd14544a083e040498112c13e23c85d5f1aa7190d69fe9677"
+}

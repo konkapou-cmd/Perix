@@ -1,0 +1,58 @@
+{
+  "at_utc": "2026-11-03T09:12:15.308222+00:00",
+  "version": "net_31f88b117124",
+  "service_date": "2026-11-03",
+  "indexed_trips": 2813,
+  "realtime": {
+    "feed_timestamp": 1793696905,
+    "feed_age_seconds": 230.30822253227234,
+    "raw_sha256": "127f69d5d692087b79cfec981c7b9f8b2e3b50c389ec6eed45370ec5f0e9dfc9",
+    "matching_reasons": {
+      "MATCHED": 418
+    },
+    "matched_updates_with_stop_timing": 394,
+    "matched_updates_with_trip_timestamp": 0
+  },
+  "configured_static_head": {
+    "last-modified": "Sat, 31 Oct 2026 09:38:22 GMT",
+    "etag": "\"10220433-65f1fac72db28\"",
+    "content-length": "270664755"
+  },
+  "archived_static_sha256": "5695daa64d69a3a187aad9f7a8616988b56d6f05977281773abb1d839fa3efcb",
+  "static_comparison": {
+    "scope": {
+      "network_version_id": "net_31f88b117124",
+      "service_date": "2026-11-03"
+    },
+    "counts": {
+      "network_trips": 2813,
+      "matched_trip_ids": 2813,
+      "date_and_route_identity_matched": 2813,
+      "stop_occurrence_matched_trips": 2813,
+      "matched_stop_occurrences": 62861,
+      "valid_time_occurrences": 62861,
+      "matched_minute_time_pairs": 62861,
+      "matched_exact_second_time_pairs": 62861
+    },
+    "by_mode": {
+      "bus": {
+        "network_trips": 1361
+      },
+      "tram": {
+        "network_trips": 1452
+      }
+    },
+    "issues": [],
+    "limits": [
+      "Matching a captured feed does not prove which feed production imported.",
+      "Calendar and scheduled times are static source data, not realtime or observed vehicle movement.",
+      "No route geometry, infrastructure direction, traffic, GPS or physical accuracy was checked."
+    ]
+  },
+  "limits": [
+    "Read-only public source sample; no source ingestion, activation or dataset writes.",
+    "Cached dated static archive compared to current public network, not a fresh static download.",
+    "Network activation timestamp/archive identity not exposed; pre-activation safety not checked.",
+    "Feed header freshness and timing-field presence do not prove fresh trip forecasts, all-day coverage, physical accuracy or licence compliance."
+  ]
+}

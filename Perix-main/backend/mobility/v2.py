@@ -12,9 +12,11 @@ import json
 import hashlib
 import math
 import os
+import time
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel, Field
 
 from database import db
 from mobility.domain import build_domain, NETWORK_ID, _service_date
@@ -22,8 +24,13 @@ from models.user import UserPublic
 from routes.dependencies import get_current_user_optional
 
 router = APIRouter(prefix="/mobility/v2", tags=["MobilityV2"])
+from mobility.public_sources import router as public_sources_router
+router.include_router(public_sources_router)
 _MAP_CACHE = {}
 _MAP_INFLIGHT = {}
+_NEARBY_CONTEXT_CACHE = {}
+_NEARBY_CONTEXT_INFLIGHT = {}
+_NEARBY_CONTEXT_TTL_S = 10.0
 
 
 async def _domain(network: Optional[dict] = None):
@@ -40,6 +47,14 @@ async def _domain(network: Optional[dict] = None):
         {"_id": 0},
     ).to_list(500)
     return build_domain(network, NETWORK_ID, list(overrides))
+
+
+@router.get("/clock")
+async def v2_clock():
+    """Small clock bridge, separate from potentially queued fleet computation."""
+    import time
+    received=time.time()*1000
+    return {'server_received_at_ms':received,'server_sent_at_ms':time.time()*1000}
 
 
 @router.get("/networks")
@@ -161,6 +176,18 @@ def _resolve_patterns(domain, platforms_by_id, overlays, roads_by_pattern, rails
                     generation_id = meta.get("generation_id")
                     osm_snapshot_v = meta.get("osm_snapshot_v")
 
+                contract = None
+                if generation_id and source != 'PERIX_MANUAL':
+                    from mobility.generations import pattern_fingerprint
+                    from mobility.direction_contract import build_direction_contract, DirectionContractError
+                    if meta.get('pattern_fingerprint') != pattern_fingerprint(pat):
+                        raise DirectionContractError('SOURCE_DIRECTION_BINDING_MISMATCH')
+                    contract = build_direction_contract(scope={**domain['network'],'pattern_id':pid},
+                        pattern=pat,points=resolved['points'],segments=segments_by_pattern.get(pid) or [],
+                        platforms=[platforms_by_id[str(s)] for s in pat.get('stop_ids') or []])
+                    if meta.get('direction_contract') is not None and meta['direction_contract'] != contract:
+                        raise DirectionContractError('DIRECTION_CONTRACT_MISMATCH')
+
                 geometry_cache.set_cached(
                     pid,
                     resolved["points"],
@@ -169,11 +196,14 @@ def _resolve_patterns(domain, platforms_by_id, overlays, roads_by_pattern, rails
                     source=source,
                     osm_snapshot_v=osm_snapshot_v,
                     geometry_fingerprint=geom_fp,
+                    direction_contract=contract,direction_verified=contract is not None,
+                    pattern_fingerprint=meta.get('pattern_fingerprint'),
                 )
                 resolved["derived_generation"] = generation_id
                 resolved["osm_snapshot_v"] = osm_snapshot_v
-            except Exception:
-                pass
+                resolved['direction_contract'] = contract
+            except Exception as exc:
+                resolved.update(points=[],valid=False,render=False,direction_reason=str(exc)[:160])
         out.append(
             {
                 **{k: v for k, v in pat.items() if k != "points"},
@@ -353,17 +383,35 @@ async def v2_diagnostic_patterns(
     return out
 
 
-@router.get("/map")
-async def v2_map(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
-    """The stable map payload the Locator consumes: resolved lines
-    (validated geometry + source + per-line stops) and physical stops."""
+async def _physical_map_domains():
+    """Existing accepted network documents, independent of active trip clocks."""
+    from routes.mobility import networks_for_journey_window, _get_active_network
+    networks = await networks_for_journey_window()
+    if not networks:
+        retained = await _get_active_network()
+        networks = [retained] if retained else []
+    domains = []
+    for network in networks:
+        domain = await _domain(network=network)
+        if domain:
+            domains.append((network, domain))
+    return domains
+
+
+async def _dated_service_domains(network_domains=None):
+    """Today's service plus active overnight trips, retaining physical places."""
     from routes.mobility import networks_for_journey_window, _berlin_now, _network_service_date
     from mobility.service_clock import _static_service_date
     from mobility.regions import get_active_region
     today = _static_service_date(_berlin_now(), get_active_region().timezone)
-    lines, stops, warnings = [], {}, []
-    for network in await networks_for_journey_window():
-        domain = await _domain(network=network)
+    from datetime import date, timedelta
+    previous = (date.fromisoformat(today)-timedelta(days=1)).isoformat()
+    domains = []
+    if network_domains is None:
+        network_domains = await _physical_map_domains()
+    for network, domain in network_domains:
+        if _network_service_date(network) not in (today, previous):
+            continue  # Retained geometry is not evidence of today's service.
         if not domain:
             continue
         if _network_service_date(network) != today:
@@ -373,22 +421,378 @@ async def v2_map(current_user: Optional[UserPublic] = Depends(get_current_user_o
             rt = await _realtime_delays_for(ids, network=network)
             clock = _now_service_seconds(_network_service_date(network))
             active_patterns = set()
+            active_routes = []
             for route in network.get("routes", []):
+                active_trips = []
                 for trip in route.get("trips", []):
                     timeline = _predicted_stop_timeline(route, trip, rt.get(str(trip.get("trip_id"))))
                     if timeline and timeline[0]["predicted_arrival"] - 60 <= clock <= timeline[-1]["predicted_departure"] + 60:
                         active_patterns.add(_pattern_id(str(route.get("route_number")), _pattern_key(trip)))
-            domain = {**domain, "patterns": [p for p in domain["patterns"] if p["pattern_id"] in active_patterns]}
+                        active_trips.append(trip)
+                if active_trips:
+                    active_routes.append({**route, "trips": active_trips})
+            from mobility.domain import _physical_stops
+            service_stops = {s['stop_id']: s for s in _physical_stops({**network, 'routes': active_routes})}
+            service_platforms = {p['platform_id']: p for s in service_stops.values() for p in s.get('platforms', [])}
+            dated_stops = deepcopy(domain['stops'])
+            for stop in dated_stops:
+                # Preserve operator stop overrides/aliases/coordinates. Project
+                # only dated service fields, not a second raw physical catalogue.
+                stop['routes'] = service_stops.get(stop['stop_id'], {}).get('routes', [])
+                for platform in stop.get('platforms', []):
+                    service = service_platforms.get(platform['platform_id'], {})
+                    for field in ('routes', 'directions'):
+                        platform[field] = service.get(field, [])
+            domain = {**domain, "patterns": [p for p in domain["patterns"] if p["pattern_id"] in active_patterns],
+                      "stops": dated_stops}
             if not domain["patterns"]:
                 continue
-        result = await _map_dated(domain)
+        domains.append((network, domain))
+    return domains
+
+
+def _merge_service_stop(stops, stop):
+    """Union dated service, not route catalogues; never mutate domain caches."""
+    key = stop['stop_id']
+    if key not in stops:
+        stops[key] = deepcopy(stop)
+        return
+    target = stops[key]
+    target['stop_ids'] = sorted(set(target.get('stop_ids', [])) | set(stop.get('stop_ids', [])))
+    target['modes'] = sorted(set(target.get('modes', [])) | set(stop.get('modes', [])))
+    platforms = {p['platform_id']: p for p in target.get('platforms', [])}
+    for platform in stop.get('platforms', []):
+        pid = platform['platform_id']
+        if pid not in platforms:
+            platforms[pid] = deepcopy(platform)
+        else:
+            for field in ('routes', 'directions'):
+                platforms[pid][field] = sorted(set(platforms[pid].get(field, [])) | set(platform.get(field, [])))
+    target['platforms'] = list(platforms.values())
+    routes = {(r['mode'], r['route_number']): r for r in target.get('routes', [])}
+    for route in stop.get('routes', []):
+        rid = (route['mode'], route['route_number'])
+        if rid not in routes:
+            routes[rid] = deepcopy(route)
+        else:
+            routes[rid]['directions'] = sorted(set(routes[rid]['directions']) | set(route['directions']))
+    target['routes'] = list(routes.values())
+
+
+def _stable_stops_with_service(physical_domains, service_domains):
+    """Preserve physical inventory; only serving fields come from dated trips."""
+    inventory, owners, serving = {}, {}, {}
+    complete_catalogue = bool(physical_domains and physical_domains[0][0].get('stop_catalogue') is not None)
+    for _, domain in service_domains:
+        for stop in domain['stops']:
+            for platform in stop.get('platforms', []):
+                pid = str(platform['platform_id'])
+                entry = serving.setdefault(pid, dict(routes={}, directions=set()))
+                entry['directions'].update(platform.get('directions') or [])
+                for route in stop.get('routes', []):
+                    if (route['route_number'] in (platform.get('routes') or [])
+                            and (not platform.get('modes') or route['mode'] in platform['modes'])):
+                        key = (route['mode'], route['route_number'])
+                        record = entry['routes'].setdefault(key, {**route, 'directions': set()})
+                        record['directions'].update(set(route.get('directions') or []) & set(platform.get('directions') or []))
+    for index, (_, domain) in enumerate(physical_domains):
+        for source in domain['stops']:
+            stop = deepcopy(source)
+            sid = stop['stop_id']
+            stop['platforms'] = [p for p in stop.get('platforms', [])
+                if (str(p['platform_id']) not in owners or owners[str(p['platform_id'])] == sid)
+                and (index == 0 or not complete_catalogue or bool(serving.get(str(p['platform_id']), {}).get('routes')))]
+            if source.get('platforms') and not stop['platforms']:
+                continue
+            stop['stop_ids'] = [str(p['platform_id']) for p in stop['platforms']]
+            stop['routes'] = []
+            for platform in stop['platforms']:
+                owners[str(platform['platform_id'])] = sid
+                platform['routes'], platform['directions'] = [], []
+            _merge_service_stop(inventory, stop)
+    for stop in inventory.values():
+        routes = {}
+        for platform in stop.get('platforms', []):
+            service = serving.get(str(platform['platform_id']), {})
+            platform['directions'] = sorted(service.get('directions') or [])
+            platform['routes'] = sorted({r['route_number'] for r in service.get('routes', {}).values()})
+            platform['service_active'] = bool(platform['routes'])
+            for key, route in service.get('routes', {}).items():
+                target = routes.setdefault(key, {**route, 'directions': set()})
+                target['directions'].update(route['directions'])
+        stop['routes'] = [{**r, 'directions': sorted(r['directions'])} for r in routes.values()]
+        stop['service_active'] = bool(stop['routes'])
+    return list(inventory.values())
+
+
+@router.get("/map")
+async def v2_map(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    """Resolved directed lines and the same dated service as /stops."""
+    from routes.mobility import _network_service_date
+    physical_domains = await _physical_map_domains()
+    service_domains = await _dated_service_domains(physical_domains)
+    lines, warnings, manifests = [], [], []
+    active_patterns = {(str(n.get('version_id')), p['pattern_id']) for n, d in service_domains for p in d['patterns']}
+    stops = _stable_stops_with_service(physical_domains, service_domains)
+    for network, domain in physical_domains:
+        physical = deepcopy(domain)
+        for stop in physical['stops']:
+            stop['routes'] = []
+            for platform in stop.get('platforms', []):
+                platform['routes'], platform['directions'] = [], []
+        result = await _map_dated(physical)
         for line in result["lines"]:
             line.update(network_version_id=network.get("version_id"), service_date=_network_service_date(network))
+            line['service_active'] = (str(network.get('version_id')), line['pattern_id']) in active_patterns
         lines.extend(result["lines"])
-        for stop in result["stops"]:
-            stops.setdefault(stop["stop_id"], stop)
         warnings.extend(result["diversion_warnings"])
-    return {"lines": lines, "stops": list(stops.values()), "diversion_warnings": warnings[:100]}
+        # Credit only networks whose geometry is actually displayed, with the
+        # version-bound allowlisted record (no secrets, no licence inference).
+        if result["lines"]:
+            manifests.append({"network_version_id": network.get("version_id"),
+                              "service_date": _network_service_date(network),
+                              "manifest": domain["network"].get("source_manifest")})
+    return {"lines": lines, "stops": stops, "diversion_warnings": warnings[:100],
+            "source_manifests": manifests}
+
+
+class NearbyMapBounds(BaseModel):
+    min_lat: float = Field(ge=-90, le=90)
+    max_lat: float = Field(ge=-90, le=90)
+    min_lng: float = Field(ge=-180, le=180)
+    max_lng: float = Field(ge=-180, le=180)
+
+
+class NearbyMapRequest(BaseModel):
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+    bounds: NearbyMapBounds
+    limit: int = Field(default=1, ge=1, le=3)
+    radius_m: int = Field(default=150, ge=1, le=5000)
+    position_pattern_ids: list[str] = Field(default_factory=list, max_length=40)
+
+
+class NearbyVehiclesRequest(NearbyMapRequest):
+    initial_sync: bool = False
+    visual_preview_seconds: int = Field(default=45, ge=8, le=45)
+    vehicle_ids: list[str] = Field(default_factory=list, max_length=40)
+
+
+def _distance_meters(a_lat: float, a_lng: float, b_lat: float, b_lng: float) -> float:
+    r=math.pi/180.0
+    p1,p2=a_lat*r,b_lat*r
+    dp=(b_lat-a_lat)*r
+    dl=(b_lng-a_lng)*r
+    h=math.sin(dp/2)**2+math.cos(p1)*math.cos(p2)*math.sin(dl/2)**2
+    return 6371000.0*2*math.asin(min(1.0,math.sqrt(h)))
+
+
+def _nearby_bounds_are_compact(bounds: NearbyMapBounds, max_span_m=14000):
+    if not (bounds.min_lat<bounds.max_lat and bounds.min_lng<bounds.max_lng):
+        return False
+    lat_span=(bounds.max_lat-bounds.min_lat)*111132.0
+    center=math.radians((bounds.max_lat+bounds.min_lat)/2)
+    lng_span=(bounds.max_lng-bounds.min_lng)*111320.0*max(0.0,math.cos(center))
+    return max(lat_span,lng_span)<=max_span_m
+
+
+def _nearest_boarding_places(stops, latitude: float, longitude: float, *, limit=3, radius_m=3000,bounds=None):
+    """Rank visible physical stops by their closest geocoded boarding platform."""
+    candidates=[]
+    for stop in stops or []:
+        if not any(route.get('mode') in ('bus','tram') for route in stop.get('routes',[])):
+            continue
+        platforms=[]
+        for platform in stop.get('platforms',[]):
+            try:
+                lat,lng=float(platform.get('latitude')),float(platform.get('longitude'))
+            except (TypeError,ValueError):
+                continue
+            if not (math.isfinite(lat) and math.isfinite(lng) and abs(lat)<=90 and abs(lng)<=180):
+                continue
+            if bounds is not None and not (bounds.min_lat<=lat<=bounds.max_lat
+                    and bounds.min_lng<=lng<=bounds.max_lng):
+                continue
+            platforms.append((_distance_meters(latitude,longitude,lat,lng),
+                              str(platform.get('platform_id') or '')))
+        # A parent centroid is not a boarding point; fail closed if platforms
+        # have no usable coordinates rather than inventing a nearby stop.
+        if not platforms:
+            continue
+        distance,platform_id=min(platforms,key=lambda row:(row[0],row[1]))
+        if distance>radius_m:
+            continue
+        row=deepcopy(stop)
+        row['nearby_distance_m']=round(distance,1)
+        row['nearest_platform_id']=platform_id
+        candidates.append((distance,str(stop.get('stop_id') or ''),row))
+    candidates.sort(key=lambda row:(row[0],row[1]))
+    return [row for _,_,row in candidates[:limit]]
+
+
+def _nearby_context_key(payload: NearbyMapRequest):
+    bounds=payload.bounds
+    material=[payload.latitude,payload.longitude,bounds.min_lat,bounds.max_lat,
+        bounds.min_lng,bounds.max_lng,payload.limit,payload.radius_m,sorted(set(payload.position_pattern_ids))]
+    return hashlib.sha256(json.dumps(material,separators=(",",":" )).encode()).hexdigest()
+
+
+def _cache_nearby_context(key, context):
+    now=time.monotonic()
+    for old,entry in list(_NEARBY_CONTEXT_CACHE.items()):
+        if entry["expires_at"]<=now:
+            _NEARBY_CONTEXT_CACHE.pop(old,None)
+    if len(_NEARBY_CONTEXT_CACHE)>=32:
+        _NEARBY_CONTEXT_CACHE.pop(next(iter(_NEARBY_CONTEXT_CACHE)))
+    _NEARBY_CONTEXT_CACHE[key]={"expires_at":now+_NEARBY_CONTEXT_TTL_S,"value":context}
+    return context
+
+
+async def _build_nearby_context(payload: NearbyMapRequest, key):
+    if not (math.isfinite(payload.latitude) and math.isfinite(payload.longitude)):
+        return _cache_nearby_context(key,{"zoom_required":False,"stops":[],"domains":[]})
+    if not _nearby_bounds_are_compact(payload.bounds):
+        return _cache_nearby_context(key,{"zoom_required":True,"stops":[],"domains":[]})
+    physical_domains=await _physical_map_domains()
+    if not physical_domains:
+        return _cache_nearby_context(key,{"zoom_required":False,"stops":[],"domains":[]})
+    service_domains=await _dated_service_domains(physical_domains)
+    nearby=_nearest_boarding_places(
+        _stable_stops_with_service(physical_domains,service_domains),payload.latitude,payload.longitude,
+        limit=payload.limit,radius_m=payload.radius_m,bounds=payload.bounds)
+    if not nearby:
+        return _cache_nearby_context(key,{"zoom_required":False,"stops":[],"domains":[]})
+
+    target_platform_ids={str(pid) for stop in nearby for pid in (stop.get('stop_ids') or [])}
+    route_keys={(str(route.get('mode') or ''),str(route.get('route_number') or ''))
+                for stop in nearby for route in stop.get('routes',[])
+                if route.get('mode') in ('bus','tram')}
+    active_patterns={(str(network.get('version_id') or ''),str(pattern.get('pattern_id') or ''))
+                     for network,domain in service_domains for pattern in domain.get('patterns',[])}
+    requested_position_patterns={str(value) for value in payload.position_pattern_ids if value}
+    selected_domains=[]
+    for network,domain in physical_domains:
+        version_id=str(network.get('version_id') or '')
+        patterns=[pattern for pattern in domain.get('patterns',[])
+            if (version_id,str(pattern.get('pattern_id') or '')) in active_patterns
+            and (str(pattern.get('mode') or ''),str(pattern.get('route_number') or '')) in route_keys
+            and (target_platform_ids.intersection(str(pid) for pid in (pattern.get('stop_ids') or []))
+                 or str(pattern.get('pattern_id') or '') in requested_position_patterns)]
+        if not patterns:
+            continue
+        pattern_platform_ids={str(pid) for pattern in patterns for pid in (pattern.get('stop_ids') or [])}
+        scoped=deepcopy(domain)
+        scoped['patterns']=patterns
+        scoped['stops']=[{**stop,'platforms':[platform for platform in stop.get('platforms',[])
+            if str(platform.get('platform_id') or '') in pattern_platform_ids]}
+            for stop in domain.get('stops',[])
+            if any(str(platform.get('platform_id') or '') in pattern_platform_ids
+                   for platform in stop.get('platforms',[]))]
+        selected_domains.append((network,scoped,{str(p.get('pattern_id') or '') for p in patterns}))
+    return _cache_nearby_context(key,{"zoom_required":False,"stops":nearby,"domains":selected_domains})
+
+
+async def _get_nearby_context(payload: NearbyMapRequest):
+    key=_nearby_context_key(payload)
+    cached=_NEARBY_CONTEXT_CACHE.get(key)
+    now=time.monotonic()
+    if cached and cached["expires_at"]>now:
+        return cached["value"]
+    task=_NEARBY_CONTEXT_INFLIGHT.get(key)
+    if task is None:
+        task=asyncio.create_task(_build_nearby_context(payload,key))
+        _NEARBY_CONTEXT_INFLIGHT[key]=task
+        def cleanup(done):
+            if _NEARBY_CONTEXT_INFLIGHT.get(key) is done:
+                _NEARBY_CONTEXT_INFLIGHT.pop(key,None)
+        task.add_done_callback(cleanup)
+    return await asyncio.shield(task)
+
+
+@router.post("/nearby-stops")
+async def v2_nearby_stops(payload: NearbyMapRequest,
+                          current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    """Fast first stage: up to three visible boarding stops, no route geometry."""
+    context=await _get_nearby_context(payload)
+    return {"stops":deepcopy(context["stops"]),"radius_m":payload.radius_m,
+            "zoom_required":context["zoom_required"]}
+
+
+@router.post("/nearby-map")
+async def v2_nearby_map(payload: NearbyMapRequest,
+                        current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    """Second stage: only valid dated route lines for the nearby stops."""
+    context=await _get_nearby_context(payload)
+    if context["zoom_required"]:
+        return {"lines":[],"source_manifests":[],"diversion_warnings":[],"zoom_required":True}
+    if not context["stops"]:
+        return {"lines":[],"source_manifests":[],"diversion_warnings":[]}
+    from routes.mobility import _network_service_date
+    from mobility.graph import get_overlays
+    from mobility.detour_guard import detour_states_for_domain
+    overlays=await get_overlays()
+    lines,warnings,manifests=[],[],[]
+    for network,scoped,allowed in context["domains"]:
+        gates=await detour_states_for_domain(scoped)
+        result=await _build_map_dated(deepcopy(scoped),overlays=overlays,detour_states=gates)
+        before=len(lines)
+        for line in result.get('lines',[]):
+            if str(line.get('pattern_id') or '') not in allowed or line.get('valid') is not True:
+                continue
+            line.update(network_version_id=network.get('version_id'),
+                        service_date=_network_service_date(network),service_active=True,
+                        source='QA_SYNTHETIC' if network.get('qa_synthetic') is True else line.get('source'))
+            lines.append(line)
+        warnings.extend(result.get('diversion_warnings',[]))
+        if len(lines)>before:
+            manifests.append({"network_version_id":network.get('version_id'),
+                "service_date":_network_service_date(network),
+                "manifest":scoped["network"].get("source_manifest")})
+    return {"lines":lines,"source_manifests":manifests,"diversion_warnings":warnings[:25]}
+
+
+@router.post("/nearby-vehicles")
+async def v2_nearby_vehicles(payload: NearbyVehiclesRequest,
+                             current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    """Return only positioned vehicles on patterns serving the selected stops.
+
+    The canonical fleet serializer remains the identity/physics authority. Its
+    full result is reduced here to exact dated patterns in this visible nearby
+    context before crossing the API boundary.
+    """
+    context=await _get_nearby_context(payload)
+    requested_vehicle_ids={str(value) for value in payload.vehicle_ids if value}
+    if context["zoom_required"] or not context["stops"] or not requested_vehicle_ids:
+        return []
+    from routes.mobility import _network_service_date
+    all_vehicles=await v2_vehicles(current_user,payload.initial_sync,
+        payload.visual_preview_seconds,"station-cycle-v2")
+    result=[]
+    seen=set()
+    for network,scoped,_allowed in context["domains"]:
+        expected_version=str(network.get("version_id") or "")
+        expected_date=str(_network_service_date(network) or "")
+        patterns={str(pattern.get("pattern_id") or ""): (
+            str(pattern.get("route_number") or ""),str(pattern.get("mode") or ""))
+            for pattern in scoped.get("patterns",[])}
+        selected_routes=set(patterns.values())
+        for vehicle in all_vehicles:
+            vehicle_id=str(vehicle.get("vehicle_id") or "")
+            identity=vehicle.get("trip_instance_id")
+            route_key=(str((vehicle.get("route") or {}).get("number") or ""),str(vehicle.get("mode") or ""))
+            position=vehicle.get("position") or {}
+            latitude,longitude=position.get("latitude"),position.get("longitude")
+            if (not vehicle_id or vehicle_id not in requested_vehicle_ids or vehicle_id in seen
+                    or route_key not in selected_routes
+                    or str(vehicle.get("network_version_id") or "")!=expected_version
+                    or str(vehicle.get("service_date") or "")!=expected_date
+                    or not vehicle.get("trip_id") or not identity
+                    or not isinstance(latitude,(int,float)) or not math.isfinite(latitude)
+                    or not isinstance(longitude,(int,float)) or not math.isfinite(longitude)):
+                continue
+            seen.add(vehicle_id)
+            result.append(vehicle)
+    return result
 
 
 async def _map_dated(domain):
@@ -407,7 +811,8 @@ async def _map_dated(domain):
     generations, overlays, gates, snapshot = await asyncio.gather(
         db.mobility_pattern_generations.find(scope, {"_id": 0, "pattern_id": 1,
             "generation_id": 1, "ready": 1, "osm_snapshot_v": 1,
-            "geometry.geometry_fingerprint": 1, "restriction_fingerprint": 1}).to_list(5000),
+            "geometry.geometry_fingerprint": 1, "restriction_fingerprint": 1,
+            "pattern_fingerprint":1,"direction_contract.fingerprint":1}).to_list(5000),
         get_overlays(), detour_states_for_domain(domain), active_version(net["region_id"]))
     key = hashlib.sha256(json.dumps([net, domain.get("patterns"), domain.get("stops"),
         sorted(generations, key=lambda g: str(g.get("pattern_id"))), overlays, gates, snapshot],
@@ -474,9 +879,14 @@ async def _build_map_dated(domain, *, overlays=None, detour_states=None):
                 "valid": g.get("valid"),
                 "max_platform_distance_m": g.get("max_platform_distance_m"),
                 "stops": line_stops,
+                "direction_contract": {k:g['direction_contract'][k] for k in
+                    ('fingerprint','direction_key','origin_stop_id','terminal_stop_id','ordered_stop_ids','stop_progress_m')}
+                    if g.get('direction_contract') else None,
             }
         )
-    stops = await asyncio.to_thread(_stops_with_sides, deepcopy(domain.get("stops", [])), lines)
+    # Actual platform coordinates are the placement authority. The public root
+    # projects dated service separately; avoid an unused nearest-side scan here.
+    stops = deepcopy(domain.get('stops', []))
     warning_states = {"NO_VERIFIED_CLOSURE", "VERIFIED_DETOUR_READY"}
     diversion_warnings = [
         {"route_number": p.get("route_number"), "mode": p.get("mode"),
@@ -583,20 +993,23 @@ async def v2_create_overlay(payload: dict, current_user: UserPublic = Depends(ge
 
 @router.get("/stops")
 async def v2_stops(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
-    domain = await _domain()
-    if not domain:
-        return []
-    return domain["stops"]
+    physical = await _physical_map_domains()
+    return _stable_stops_with_service(physical, await _dated_service_domains(physical))
 
 
 @router.get("/stops/{stop_id}/arrivals")
 async def v2_stop_arrivals(stop_id: str, current_user: Optional[UserPublic] = Depends(get_current_user_optional),
-                          platform_id: Optional[str] = None):
+                          platform_id: Optional[str] = None, visual_rule_version: Optional[str] = None,
+                          limit: int = 20, offset: int = 0):
     """Unified arrivals for a physical stop: LIVE GPS, realtime and
     schedule arrivals from one engine, honoring canceled/skipped."""
     from mobility.arrivals import unified_arrivals
 
-    return await unified_arrivals(stop_id, platform_id=platform_id)
+    limit=max(1,min(50,int(limit)))
+    offset=max(0,min(100,int(offset)))
+    rows=await unified_arrivals(stop_id,limit=limit+offset,platform_id=platform_id,
+        **({'visual_rule_version':visual_rule_version} if visual_rule_version == 'station-cycle-v2' else {}))
+    return rows[offset:offset+limit]
 
 
 @router.get("/plan")
@@ -1354,7 +1767,8 @@ async def v2_traffic(current_user: Optional[UserPublic] = Depends(get_current_us
 
 @router.get("/vehicles")
 async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_user_optional),
-                      initial_sync: bool = False):
+                      initial_sync: bool = False, visual_preview_seconds: int = 8,
+                      visual_rule_version: Optional[str] = None):
     """Canonical vehicle state: position always carries source/quality, and
     every scheduled vehicle has a stable trip_instance_id. Adding a new
     position source later only changes `source` - never the shape."""
@@ -1362,7 +1776,8 @@ async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_u
     received_ms = time.time() * 1000
     from routes.mobility import _all_active_vehicles, networks_for_journey_window, _vehicle_in_network
     networks = await networks_for_journey_window()
-    vehicles = await _all_active_vehicles(networks=networks,**({'initial_sync':True} if initial_sync else {}))
+    vehicles = await _all_active_vehicles(networks=networks,**({'initial_sync':True} if initial_sync else {}),
+        **({'visual_rule_version':visual_rule_version} if visual_rule_version == 'station-cycle-v2' else {}))
     out = []
     assigned = set()
     for network in networks:
@@ -1378,7 +1793,15 @@ async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_u
     for vehicle in out:
         motion = vehicle.get("motion") or {}
         preview = motion.get("preview")
+        if preview and motion.get('model') == 'TIME_NORMALIZED_VISUAL_ESTIMATE':
+            from mobility.motion.visual_progress import bound_visual_preview
+            preview = bound_visual_preview(preview, visual_preview_seconds,
+                occurrence_aware=visual_rule_version in ('station-relative-v1', 'station-cycle-v2')
+                    and preview.get('visual_rule_version') == visual_rule_version)
+            motion = {**motion, 'preview': preview}
+            vehicle['motion'] = motion
         if vehicle.get("estimated") and preview:
+            vehicle['eta_sampled_at_ms'] = preview.get('sampled_at_ms')
             bounded_window=('sampled_at_ms' in preview or 'valid_until_ms' in preview
                             or motion.get('publication_binding') is not None)
             if bounded_window and (not isinstance(preview.get('sampled_at_ms'),(int,float))
@@ -1416,6 +1839,11 @@ def _refresh_estimated_publications(vehicles, now_local):
     from mobility.timing_evidence import timing_evidence, has_realtime_timing
     out=[]
     for vehicle in vehicles:
+        if (vehicle.get('motion') or {}).get('model') == 'TIME_NORMALIZED_VISUAL_ESTIMATE':
+            # Separate schema/authority: do not resample an optical curve from
+            # the physical-plan cache or overwrite its source clock targets.
+            out.append(vehicle)
+            continue
         if (not vehicle.get('estimated') or vehicle.get('mode') not in ('bus','tram')
                 or vehicle.get('progress_m') is None or not vehicle.get('trip_id')
                 or not vehicle.get('motion_plan_revision')):
@@ -1442,7 +1870,8 @@ def _refresh_estimated_publications(vehicles, now_local):
         entry=timeline[index]
         distance=max(0.0,float(sample['path']['stop_progress'][index])-sample['progress_m'])
         stopped=sample.get('motion_state') in ('DWELL','AT_STOP') and distance<=1e-6
-        eta=0 if stopped else max(0,math.ceil(float(entry['predicted_arrival'])-sample['now_service_s']))
+        expired_between_stops=sample.get('continuation_state')=='EXPIRED' and distance>1e-6
+        eta=None if expired_between_stops else 0 if stopped else max(0,math.ceil(float(entry['predicted_arrival'])-sample['now_service_s']))
         evidence=timing_evidence(entry)
         old_evidence=vehicle.get('timing_evidence') or {}
         for field in ('source_status','trip_update_timestamp','feed_timestamp','received_at',
@@ -1467,7 +1896,8 @@ def _refresh_estimated_publications(vehicles, now_local):
                 'leg_to_stop_id':sample.get('leg_to_stop_id'),
                 'next_timeline_index':index,'preview':sample['motion_preview'],
                 'publication_resampled':True,'publication_status':'READY','publication_pending_reason':None,
-                'station_forecast_pending':sample.get('station_forecast_pending',False),
+                 'station_forecast_pending':sample.get('station_forecast_pending',False),
+                 'continuation_state':sample.get('continuation_state'),
                 'publication_binding':sample.get('publication_binding'),
                 'publication_revision_replaced':sample.get('motion_plan_revision',vehicle['motion_plan_revision'])!=vehicle['motion_plan_revision']}
         for field in ('delay_delta_s','scheduled_duration_s','predicted_leg_duration_s',
@@ -1482,10 +1912,10 @@ def _refresh_estimated_publications(vehicles, now_local):
             'next_stop_id':entry.get('stop_id'),
             'next_stop_name':entry.get('name') or (entry.get('stop') or {}).get('name'),
             'distance_to_next_stop_m':distance,'next_stop_eta_seconds':eta,
-            'next_stop_predicted_arrival':_fmt_service_time(int(entry['predicted_arrival'])),
+            'next_stop_predicted_arrival':None if expired_between_stops else _fmt_service_time(int(entry['predicted_arrival'])),
             'source_next_stop_predicted_arrival':_fmt_service_time(int(entry.get('source_predicted_arrival',entry['predicted_arrival']))),
-            'prediction_basis':entry.get('prediction_basis','SOURCE_TIMELINE'),
-            'next_stop_eta_source':'PERIX_ESTIMATE' if entry.get('prediction_basis')=='PERIX_MOTION_PLAN' else vehicle.get('next_stop_eta_source'),
+            'prediction_basis':'EXPIRED_ESTIMATE' if expired_between_stops else entry.get('prediction_basis','SOURCE_TIMELINE'),
+            'next_stop_eta_source':'UNKNOWN' if expired_between_stops else 'PERIX_ESTIMATE' if entry.get('prediction_basis')=='PERIX_MOTION_PLAN' else vehicle.get('next_stop_eta_source'),
             'delay_minutes':round(float(entry.get('delay_seconds') or 0)/60),
             'timing_evidence':evidence,'motion':motion})
     return out

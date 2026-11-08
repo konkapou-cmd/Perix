@@ -13,14 +13,18 @@ interface IdentityDropdownProps {
   businesses: Business[];
   onSelectIdentity: (type: "user" | "business", id: string, name: string, avatar?: string | null) => void;
   onCreateBusiness: () => void;
+  onAfterSelect?: () => void;
   customLabel?: string;
+  compact?: boolean;
 }
 
 export const IdentityDropdown: React.FC<IdentityDropdownProps> = ({
   businesses,
   onSelectIdentity,
   onCreateBusiness,
-  customLabel
+  onAfterSelect,
+  customLabel,
+  compact = false,
 }) => {
   const { t } = useTranslation();
   const { user, activeIdentity } = useAuth();
@@ -28,15 +32,23 @@ export const IdentityDropdown: React.FC<IdentityDropdownProps> = ({
 
   if (!user) return null;
 
-  const currentAvatar = activeIdentity?.avatar || user.profile_photo || user.picture;
+  const currentAvatar = activeIdentity?.type === "business"
+    ? activeIdentity.avatar
+    : activeIdentity?.avatar || user.profile_photo || user.picture;
 
   return (
     <>
-      <Pressable 
-        style={styles.container} 
+      <Pressable
+        testID={compact ? "account-type-switcher" : undefined}
+        accessibilityRole="button"
+        accessibilityLabel={customLabel || t("profile.switchIdentity") || "Switch account type"}
+        style={styles.container}
         onPress={() => setModalVisible(true)}
       >
-        <View style={styles.pillButton}>
+        {compact ? <View style={styles.compactButton}>
+          {currentAvatar ? <Image source={{ uri: currentAvatar }} style={styles.compactAvatar} />
+            : <Text style={styles.compactInitial}>{(activeIdentity?.name || user.name || "U").charAt(0).toUpperCase()}</Text>}
+        </View> : <View style={styles.pillButton}>
           <View style={styles.leftSection}>
             {currentAvatar ? (
               <Image source={{ uri: currentAvatar }} style={styles.avatar} />
@@ -48,7 +60,7 @@ export const IdentityDropdown: React.FC<IdentityDropdownProps> = ({
             <Text style={styles.name} numberOfLines={1}>{activeIdentity?.name || user.name}</Text>
           </View>
           <Ionicons name="chevron-down" size={16} color="#264348" />
-        </View>
+        </View>}
       </Pressable>
 
       <Modal
@@ -75,6 +87,7 @@ export const IdentityDropdown: React.FC<IdentityDropdownProps> = ({
               onPress={() => {
                 onSelectIdentity("user", user.user_id, user.name, user.profile_photo || user.picture);
                 setModalVisible(false);
+                onAfterSelect?.();
               }}
             >
               {user.profile_photo || user.picture ? (
@@ -104,6 +117,7 @@ export const IdentityDropdown: React.FC<IdentityDropdownProps> = ({
                 onPress={() => {
                   onSelectIdentity("business", business.business_id, business.name, business.logo_image);
                   setModalVisible(false);
+                  onAfterSelect?.();
                 }}
               >
                 {business.logo_image ? (
@@ -141,9 +155,11 @@ export const IdentityDropdown: React.FC<IdentityDropdownProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    alignSelf: "flex-start",
+    alignSelf: "stretch",
+    maxWidth:'100%',minWidth:0,flexShrink:1,
   },
   pillButton: {
+    maxWidth:'100%',minWidth:0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -153,10 +169,15 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     gap: 8,
   },
+  compactButton: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center",
+    backgroundColor: "#DDF2FF", borderWidth: 1, borderColor: "#59ABE3", overflow: "hidden" },
+  compactAvatar: { width: "100%", height: "100%", borderRadius: 20 },
+  compactInitial: { color: "#064472", fontSize: 16, fontWeight: "700" },
   leftSection: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
+    minWidth:0,
   },
   avatar: {
     width: 28,
@@ -181,6 +202,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   name: {
+    flexShrink:1,minWidth:0,
     fontSize: 13,
     fontWeight: "600",
     color: "#264348",

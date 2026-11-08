@@ -1,0 +1,318 @@
+"""Unified mobility graph (Mobility Core V2 - Phase 2).
+
+Effective transit graph = OSM/GTFS-derived geometries + Perix manual
+overlays, resolved per pattern by the Geometry Resolver with strict
+validation: a geometry that drifts far from its platforms (or leaves
+buildings crossed) is rejected and the pattern falls back to the
+ordered-stop polyline - never a wrong street.
+"""
+import math
+from typing import List, Optional
+
+# A geometry is invalid when any platform is farther than this from it
+MAX_PLATFORM_DISTANCE_M = 120.0
+
+
+def _haversine_m(lat1, lng1, lat2, lng2) -> float:
+    r = 6371000.0
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dp = math.radians(lat2 - lat1)
+    dl = math.radians(lng2 - lng1)
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return r * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def _point_to_polyline_m(lat: float, lng: float, points: List[list]) -> float:
+    best = float("inf")
+    for i in range(len(points) - 1):
+        x0, y0 = points[i][0], points[i][1]
+        x1, y1 = points[i + 1][0], points[i + 1][1]
+        dx, dy = x1 - x0, y1 - y0
+        if dx == 0 and dy == 0:
+            d = _haversine_m(lat, lng, x0, y0)
+        else:
+            t = max(0.0, min(1.0, ((lat - x0) * dx + (lng - y0) * dy) / (dx * dx + dy * dy)))
+            d = _haversine_m(lat, lng, x0 + t * dx, y0 + t * dy)
+        if d < best:
+            best = d
+    return best
+
+
+def validate_geometry(points: List[list], platforms: List[dict]) -> dict:
+    """Validate platforms against geometry in TRAVEL ORDER.
+
+    Global nearest-point projection is wrong for loops/retraced corridors:
+    a later stop can be geometrically closest to an earlier occurrence of
+    the same street. For each platform, consider only projections that do
+    not move more than 60m behind the previously selected progress. When
+    repeated occurrences are similarly close, prefer the earliest forward
+    occurrence so the route cannot silently skip ahead by one loop.
+    """
+    if not points or len(points) < 2 or not platforms:
+        return {
+            "valid": False,
+            "max_platform_distance_m": None,
+            "missing_platforms": len(platforms) or None,
+            "projection_ordered": False,
+            "projection_positions_m": [],
+        }
+
+    cum = [0.0]
+    for i in range(len(points) - 1):
+        cum.append(
+            cum[-1]
+            + _haversine_m(
+                points[i][0],
+                points[i][1],
+                points[i + 1][0],
+                points[i + 1][1],
+            )
+        )
+    if cum[-1] <= 0:
+        return {
+            "valid": False,
+            "max_platform_distance_m": None,
+            "missing_platforms": len(platforms),
+            "projection_ordered": False,
+            "projection_positions_m": [],
+        }
+
+    positions = []
+    max_d = 0.0
+    missing = 0
+    previous_pos = 0.0
+    backward_tolerance_m = 60.0
+    similar_distance_slack_m = 20.0
+
+    for platform in platforms:
+        lat = platform.get("latitude")
+        lng = platform.get("longitude")
+        if lat is None or lng is None:
+            missing += 1
+            continue
+
+        candidates = []
+        for i in range(len(points) - 1):
+            x0, y0 = points[i]
+            x1, y1 = points[i + 1]
+            dx, dy = x1 - x0, y1 - y0
+            denom = dx * dx + dy * dy
+            t = (
+                0.0
+                if denom == 0
+                else max(
+                    0.0,
+                    min(
+                        1.0,
+                        ((lat - x0) * dx + (lng - y0) * dy) / denom,
+                    ),
+                )
+            )
+            progress = cum[i] + t * (cum[i + 1] - cum[i])
+            if progress < previous_pos - backward_tolerance_m:
+                continue
+            d = _haversine_m(
+                lat,
+                lng,
+                x0 + t * dx,
+                y0 + t * dy,
+            )
+            candidates.append((d, progress))
+
+        if not candidates:
+            missing += 1
+            continue
+
+        best_distance = min(x[0] for x in candidates)
+        if best_distance > MAX_PLATFORM_DISTANCE_M:
+            missing += 1
+            max_d = max(max_d, best_distance)
+            continue
+
+        # Repeated corridors can have several nearly-equivalent
+        # projections. Choose the earliest forward one among candidates
+        # whose distance is still plausible.
+        plausible_limit = min(
+            MAX_PLATFORM_DISTANCE_M,
+            best_distance + similar_distance_slack_m,
+        )
+        plausible = [x for x in candidates if x[0] <= plausible_limit]
+        chosen_d, chosen_pos = min(plausible, key=lambda x: x[1])
+        positions.append(chosen_pos)
+        max_d = max(max_d, chosen_d)
+        previous_pos = max(previous_pos, chosen_pos)
+
+    ordered = len(positions) == len(
+        [
+            p
+            for p in platforms
+            if p.get("latitude") is not None and p.get("longitude") is not None
+        ]
+    )
+    return {
+        "valid": missing == 0 and ordered,
+        "max_platform_distance_m": round(max_d, 1),
+        "missing_platforms": missing,
+        "projection_ordered": ordered,
+        "projection_positions_m": [round(x, 1) for x in positions],
+    }
+
+
+def assemble_segments(segs: List[dict]) -> Optional[List[list]]:
+    """Join stored stop-pair segments into ONE polyline - but only when
+    consecutive segments share the same graph node (segment[i].end_node_id
+    == segment[i+1].start_node_id). Without a shared node there is NO
+    continuous road/rail - joining coordinates would draw a fake line
+    across buildings, so the assembly is rejected instead. STRICT: a
+    segment without node ids invalidates the whole assembly (legacy
+    segments are rebuilt by the worker, never joined leniently)."""
+    segs = sorted(segs, key=lambda s: (int(s.get("a_idx", 0)), int(s.get("b_idx", 0))))
+    assembled: List[list] = []
+    prev_end = None
+    for s in segs:
+        pts = [[float(p[0]), float(p[1])] for p in (s.get("points") or [])]
+        if not pts:
+            return None
+        start_node = s.get("start_node_id")
+        end_node = s.get("end_node_id")
+        if start_node is None or end_node is None:
+            return None
+        if prev_end is not None and int(start_node) != int(prev_end):
+            return None
+        if not assembled:
+            assembled.extend(pts)
+        else:
+            assembled.extend(pts[1:])
+        prev_end = end_node
+    return assembled if len(assembled) >= 2 else None
+
+
+def resolve_pattern_geometry(
+    pat: dict,
+    platforms_by_id: dict,
+    overlays: List[dict],
+    road_geometries: Optional[dict] = None,
+    rail_geometries: Optional[dict] = None,
+    segments: Optional[List[dict]] = None,
+) -> dict:
+    """Geometry Resolver - mode-aware and honest.
+
+    BUS/TAXI: GTFS shape > verified manual overlay > OSM road-graph
+    reconstruction > assembled per-pair segments > HIDE (no fake line
+    through buildings).
+    TRAM:     GTFS shape > verified manual overlay > OSM rail-graph
+    reconstruction > assembled per-pair segments > HIDE.
+    """
+    mode = str(pat.get("mode") or "bus")
+    pid = str(pat.get("pattern_id"))
+    stop_platforms = [
+        platforms_by_id.get(str(sid))
+        for sid in (pat.get("stop_ids") or [])
+        if platforms_by_id.get(str(sid))
+    ]
+    diagnostic_points = [
+        [float(p.get("latitude")), float(p.get("longitude"))]
+        for p in stop_platforms
+        if p.get("latitude") is not None and p.get("longitude") is not None
+    ]
+
+    candidates: List[tuple] = []
+    # The Perix graph is the ONLY authority. GTFS shapes and legacy route
+    # polylines are NOT candidates anymore - they are import hints only
+    # (kept on the pattern doc for diagnostics). A line is either our
+    # canonical OSM edge chain, a verified manual correction, or hidden.
+    for ov in overlays or []:
+        if not ov.get("verified"):
+            continue
+        if str(ov.get("route_number") or "") not in ("", str(pat.get("route_number"))):
+            continue
+        if ov.get("direction") and str(ov.get("direction")) != str(pat.get("direction")):
+            continue
+        if ov.get("allowed_modes") and mode not in ov.get("allowed_modes"):
+            continue
+        geom = ov.get("geometry") or []
+        if len(geom) >= 2:
+            candidates.append(("PERIX_MANUAL", [[float(p[0]), float(p[1])] for p in geom]))
+    if mode == "tram":
+        rail = (rail_geometries or {}).get(pid)
+        if rail and len(rail) >= 2:
+            candidates.append(("OSM_RAIL", [[float(p[0]), float(p[1])] for p in rail]))
+    else:
+        road = (road_geometries or {}).get(pid)
+        if road and len(road) >= 2:
+            candidates.append(("OSM_ROADS", [[float(p[0]), float(p[1])] for p in road]))
+    # Segment registry: assemble the canonical line from stored stop-pairs.
+    # Only complete patterns count - a missing pair still hides the line,
+    # but every resolved pair is kept for the next attempt.
+    segs = sorted((segments or []), key=lambda s: (int(s.get("a_idx", 0)), int(s.get("b_idx", 0))))
+    expected_pairs = max(0, len(pat.get("stop_ids") or []) - 1)
+    if segs and expected_pairs > 0:
+        covered = {(int(s.get("a_idx")), int(s.get("b_idx"))) for s in segs if s.get("points")}
+        if len(covered) == expected_pairs:
+            assembled = assemble_segments(segs)
+            if assembled is not None:
+                candidates.append(
+                    ("OSM_RAIL_SEGMENTS" if mode == "tram" else "OSM_ROADS_SEGMENTS", assembled)
+                )
+
+    for source, pts in candidates:
+        check = validate_geometry(pts, stop_platforms)
+        if check["valid"]:
+            return {
+                "points": pts,
+                "source": source,
+                "valid": True,
+                "render": True,
+                "max_platform_distance_m": check["max_platform_distance_m"],
+            }
+
+    # No verified real geometry: HIDE instead of drawing a fake line.
+    return {
+        "points": [],
+        "diagnostic_points": diagnostic_points,
+        "source": "STOP_FALLBACK",
+        "valid": False,
+        "render": False,
+        "max_platform_distance_m": None,
+    }
+
+
+async def get_overlays() -> List[dict]:
+    from database import db
+    from mobility.regions import get_active_region
+
+    region = get_active_region()
+    docs = await db.mobility_graph_overlays.find(
+        {"region_id": region.region_id, "network_id": region.network_id},
+        {"_id": 0},
+    ).to_list(500)
+    return list(docs)
+
+
+async def create_overlay(payload: dict) -> dict:
+    import uuid
+
+    from database import db
+    from mobility.regions import get_active_region
+    from routes.mobility import now_utc
+
+    region = get_active_region()
+    doc = {
+        "region_id": region.region_id,
+        "network_id": region.network_id,
+        "overlay_id": f"ovl_{uuid.uuid4().hex[:12]}",
+        "name": str(payload.get("name") or "").strip(),
+        "geometry": [[float(p[0]), float(p[1])] for p in (payload.get("geometry") or []) if len(p) >= 2],
+        "allowed_modes": [m for m in (payload.get("allowed_modes") or []) if m in ("bus", "tram", "taxi")],
+        "route_number": str(payload.get("route_number") or "") or None,
+        "direction": str(payload.get("direction") or "") or None,
+        "verified": bool(payload.get("verified", False)),
+        "source": "PERIX_MANUAL",
+        "created_at": now_utc().isoformat(),
+    }
+    if len(doc["geometry"]) < 2:
+        raise ValueError("geometry needs at least 2 points")
+    await db.mobility_graph_overlays.replace_one(
+        {"overlay_id": doc["overlay_id"]}, doc, upsert=True
+    )
+    return doc

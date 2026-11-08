@@ -15,7 +15,8 @@ function load(file, dependencies) {
   return exports;
 }
 const installed = [];
-const registry = load("i18n/city.ts", { "./index": { default: { isInitialized: true, addResourceBundle: (...args) => installed.push(args) } }, "./city.json": { default: copy } });
+const registry = load("i18n/city.ts", { "./index": { default: { isInitialized: true, addResourceBundle: (...args) => installed.push(args) } }, "./city.json": { default: copy },
+  "./googleDirections.json": { default: JSON.parse(fs.readFileSync(path.join(root, 'i18n/googleDirections.json'), 'utf8')) } });
 const helper = load("lib/city/localization.ts", {
   "../../i18n/city": registry, "../api/core": { ACTIVITY_CATEGORIES: {}, ACTIVITY_SUBCATEGORIES: {} },
   "../marketplace/marketplaceTaxonomy": { MARKETPLACE_CATEGORIES: [] }, "../config/serviceModules": { SERVICE_MODULES: {} },
@@ -26,12 +27,17 @@ test("all ten supported languages have complete root, empty-state and source tra
   const supported = [...fs.readFileSync(path.join(root, "i18n/index.ts"), "utf8").matchAll(/code: '([^']+)'/g)].map(m => m[1]);
   assert.deepEqual(Object.keys(copy).sort(), supported.sort());
   assert.equal(installed.length, supported.length);
+  assert.equal(registry.CITY_ROOT_IDS[0], 'public-services');
+  assert.deepEqual(Array.from(registry.CITY_ROOT_IDS), ['public-services','mobility','events','activities','businesses','hotels','services','jobs','rentals','products','homes-nearby','posts','sos','login']);
   for (const [language, resource] of Object.entries(copy)) {
     assert.equal(resource.roots.length, 14, language);
     assert.equal(resource.empty.length, 13, language);
     assert.equal(new Set(resource.empty).size, 13, language);
     assert.equal(resource.groups.length, 7, language);
     assert.equal(resource.source.length, 14, language);
+    assert.equal(resource.roots[0], ({en:'Public services',de:'Öffentliche Dienste',el:'Δημόσιες Υπηρεσίες',es:'Servicios públicos',sq:'Shërbime publike',fr:'Services publics',it:'Servizi pubblici',sr:'Javne službe',pl:'Usługi publiczne',ru:'Государственные услуги'})[language]);
+    assert.ok(resource.osmRoutingPrefix.trim().length > 0, language);
+    assert.ok(resource.schedulePrefix.trim().length > 0, language);
     assert.deepEqual(Object.keys(resource.ui).sort(), Object.keys(copy.en.ui).sort(), language);
     assert.deepEqual(Object.keys(resource.leaves).sort(), Object.keys(copy.en.leaves).sort(), language);
     for (const value of [...resource.roots, ...resource.empty, ...resource.groups, ...resource.source, ...Object.values(resource.ui)]) assert.ok(value.trim().length > 0);
@@ -50,6 +56,8 @@ test("switching languages changes labels and category-specific messages, never I
     translated.forEach((node, i) => { assert.equal(node.id, nodes[i].id); assert.equal(node.query, queries[i]); assert.equal(node.label, copy[language].roots[i]); });
     assert.equal(t("empty.0"), copy[language].empty[0]);
     assert.equal(t("empty.1"), copy[language].empty[1]);
+    assert.equal(t("osmRoutingPrefix"), copy[language].osmRoutingPrefix);
+    assert.equal(t("schedulePrefix"), copy[language].schedulePrefix);
   }
 });
 

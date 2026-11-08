@@ -1,0 +1,2527 @@
+--- a/Perix-main/backend/mobility/motion/common.py
++++ b/Perix-main/backend/mobility/motion/common.py
+@@ -78,6 +78,72 @@
+         if float(angle_deg) >= raw_threshold:
+             selected = raw_speed
+     return selected
++
++
++def directed_turn_caps(edges: list[dict], start_m: float, end_m: float,
++                       rules: dict, window_m: float = 20.0) -> list[dict]:
++    """Opt-in, fixed-distance bearings on the existing directed edge chain.
++
++    The window is a geometric modeling criterion, not a measured road feature.
++    Never bridge disconnected topology. Tiny polyline zigzags cancel over the
++    window instead of becoming independent intersection turns.
++    """
++    if not math.isfinite(window_m) or window_m <= 0:
++        return []
++
++    def point(progress):
++        for edge in edges:
++            a, b = float(edge['from_m']), float(edge['to_m'])
++            if a <= progress <= b and b > a:
++                ratio = (progress - a) / (b - a)
++                p, q = edge['from_point'], edge['to_point']
++                return [p[i] + ratio * (q[i] - p[i]) for i in (0, 1)]
++        return None
++
++    out = []
++    for index, (a, b) in enumerate(zip(edges, edges[1:])):
++        p = float(a.get('to_m') or 0)
++        if not start_m < p < end_m or a.get('to_node') is None or a.get('to_node') != b.get('from_node'):
++            continue
++        lo, hi = max(start_m, p - window_m), min(end_m, p + window_m)
++        chain = [e for e in edges if e['to_m'] > lo and e['from_m'] < hi]
++        if any(x.get('to_node') != y.get('from_node') or abs(x['to_m'] - y['from_m']) > .01
++               for x, y in zip(chain, chain[1:])):
++            continue
++        try:
++            before, center, after = point(lo), point(p), point(hi)
++            if not before or not center or not after:
++                continue
++            angle = turn_angle_degrees({'from_point': before, 'to_point': center},
++                                       {'from_point': center, 'to_point': after})
++        except (KeyError, TypeError, ValueError):
++            continue
++        cap = turn_speed_cap_kmh(angle, rules)
++        if cap is not None:
++            out.append({'progress_m': p, 'speed_cap_kmh': cap, 'angle_deg': angle,
++                        'from_edge_id': a.get('edge_id'), 'to_edge_id': b.get('edge_id'),
++                        'kind': 'MODELED_TURN', 'window_m': window_m})
++    return out
++
++
++def refine_scenario_inputs(spans, edges, point_caps, scenario, config, start_m, end_m):
++    """Pure opt-in input refinement; baseline builders never enter this path."""
++    spans = [dict(s) for s in spans]
++    for span in spans:
++        edge = next((e for e in edges if str(e.get('edge_id')) == span.get('edge_id')), {})
++        posted = (edge.get('way') or {}).get('maxspeed_kmh')
++        valid = isinstance(posted, (int, float)) and not isinstance(posted, bool) and math.isfinite(posted) and posted > 0
++        if valid:
++            span['speed_cap_kmh'] = min(span['speed_cap_kmh'], posted, config['max_speed_kmh'])
++        span['limit_basis'] = 'OSM_TAG' if valid else 'MODELED_DEFAULT'
++        # Even an OSM tag is source evidence, not a legal certification.
++        span['legal_limit_verified'] = False
++        if span['edge_id'] in scenario.get('slow_edge_ids', []):
++            span['speed_cap_kmh'] *= max(.1, min(1., scenario.get('speed_factor', 1.)))
++    if scenario.get('refine_turns'):
++        point_caps = directed_turn_caps(edges, start_m, end_m, config.get('turn_speed_kmh') or {},
++                                        float(config.get('turn_window_m', 20.0)))
++    return spans, point_caps
+ 
+ 
+ def _unique_positions(values: Iterable[float], epsilon: float = 0.001) -> list[float]:
+@@ -338,3 +404,30 @@
+             local = 2.0 * x / denominator if denominator > 0.0 else 0.0
+         return t0 + _clamp(local, 0.0, duration)
+     return float(trajectory.get("duration_s") or 0.0)
++
++
++def remaining_trajectory(trajectory: dict, elapsed_s: float, time_scale: float = 1.0) -> dict:
++    """Clip an already legal plan at NOW without changing its position/speed.
++
++    Used only by opt-in allocation when new traffic cannot justify a compatible
++    mid-leg change. Reparameterize remaining phases; never rewrite past motion.
++    """
++    scale = max(1., float(time_scale))
++    elapsed = max(0., elapsed_s / scale)
++    segments, total = [], 0.
++    for source in trajectory.get('segments', []):
++        if source['t1'] <= elapsed:
++            continue
++        offset = max(0., elapsed - source['t0'])
++        duration = source['t1'] - source['t0']
++        acceleration = (source['v1'] - source['v0']) / duration if duration > 0 else 0.
++        p0 = source['p0'] + source['v0'] * offset + .5 * acceleration * offset * offset
++        dt = (source['t1'] - max(elapsed, source['t0'])) * scale
++        segments.append({'t0':total,'t1':total+dt,'p0':p0,'p1':source['p1'],
++            'v0':(source['v0']+acceleration*offset)/scale,'v1':source['v1']/scale,
++            'state':source.get('state','MOVING'), **({'hold_id':source['hold_id']} if 'hold_id' in source else {})})
++        total += dt
++    return {'start_m':segments[0]['p0'] if segments else trajectory['end_m'],
++            'end_m':trajectory['end_m'],'duration_s':total,'segments':segments,
++            'model':trajectory.get('model'),'traffic_edge_count':trajectory.get('traffic_edge_count',0),
++            'signal_stop_count':sum(s['state']!='MOVING' for s in segments)}
+--- a/Perix-main/backend/mobility/motion/bus.py
++++ b/Perix-main/backend/mobility/motion/bus.py
+@@ -10,6 +10,7 @@
+     trajectory_time_at_progress,
+     turn_angle_degrees,
+     turn_speed_cap_kmh,
++    refine_scenario_inputs,
+ )
+ 
+ MODEL_NAME = "BUS_PHYSICS_V1"
+@@ -45,6 +46,7 @@
+     config: dict,
+     recovery_ratio: float = 0.0,
+     initial_speed_kmh: float = 0.0,
++    scenario: dict | None = None,
+ ) -> dict:
+     """Build one physical bus leg.
+ 
+@@ -88,7 +90,7 @@
+             and observed > 0.0
+             and not isinstance(traffic.get("expected_speed_kmh"), bool)
+         ):
+-            natural = min(hard, observed if non_recoverable else max(5.0, observed))
++            natural = min(hard, observed if non_recoverable or scenario is not None else max(5.0, observed))
+             if non_recoverable:
+                 hard = natural
+             traffic_edges += 1
+@@ -114,6 +116,9 @@
+         if cap is not None:
+             point_caps.append({"progress_m": boundary, "speed_cap_kmh": cap})
+ 
++    if scenario is not None:
++        spans, point_caps = refine_scenario_inputs(spans, leg_edges, point_caps, scenario, config, start_m, end_m)
++
+     preliminary = build_speed_trajectory(
+         start_m=start_m,
+         end_m=end_m,
+@@ -138,6 +143,10 @@
+                 or not (float(start_m) < progress < float(end_m))
+             ):
+                 continue
++            if scenario is not None:
++                event_id = str(signal.get('signal_instance_id') or signal.get('signal_id'))
++                if event_id != scenario.get('hold_event_id'):
++                    continue
+             # A boundary signal belongs to the incoming edge, not the next edge.
+             if any(
+                 span["edge_id"] in signal_delay_edges
+@@ -146,7 +155,7 @@
+             ):
+                 continue
+             arrival_elapsed = trajectory_time_at_progress(preliminary, progress) + cumulative_hold
+-            hold = deterministic_signal_hold_seconds(
++            hold = scenario.get('hold_s', 0.0) if scenario is not None else deterministic_signal_hold_seconds(
+                 signal.get("signal_instance_id") or signal.get("signal_id"),
+                 float(departure_service_s) + arrival_elapsed,
+                 cycle_s=float(config["road_signal_cycle_s"]),
+@@ -154,13 +163,13 @@
+                 max_hold_s=float(config["road_signal_max_hold_s"]),
+             )
+             hold *= 1.0 - ratio
+-            if hold < float(config["road_signal_min_stop_s"]):
++            if scenario is None and hold < float(config["road_signal_min_stop_s"]):
+                 continue
+             mandatory.append(
+                 {
+                     "progress_m": progress,
+                     "hold_s": hold,
+-                    "state": "SIGNAL_HOLD",
++                    "state": "HYPOTHETICAL_SIGNAL_HOLD" if scenario is not None else "SIGNAL_HOLD",
+                     "id": signal.get("signal_instance_id") or signal.get("signal_id"),
+                 }
+             )
+@@ -197,4 +206,5 @@
+         "traffic_edge_count": traffic_edges,
+         "signal_stop_count": len(mandatory),
+         "traffic_delay_s": traffic_delay_s,
++        **({'turn_events': point_caps, 'speed_constraints': spans, 'hypothetical': True} if scenario is not None else {}),
+     }
+--- a/Perix-main/backend/mobility/motion/tram.py
++++ b/Perix-main/backend/mobility/motion/tram.py
+@@ -8,6 +8,7 @@
+     trajectory_time_at_progress,
+     turn_angle_degrees,
+     turn_speed_cap_kmh,
++    refine_scenario_inputs,
+ )
+ 
+ MODEL_NAME = "TRAM_PHYSICS_V1"
+@@ -39,6 +40,7 @@
+     config: dict,
+     recovery_ratio: float = 0.0,
+     initial_speed_kmh: float = 0.0,
++    scenario: dict | None = None,
+ ) -> dict:
+     """Build one tram leg.
+ 
+@@ -70,6 +72,9 @@
+         if cap is not None:
+             point_caps.append({"progress_m": boundary, "speed_cap_kmh": cap})
+ 
++    if scenario is not None:
++        spans, point_caps = refine_scenario_inputs(spans, leg_edges, point_caps, scenario, config, start_m, end_m)
++
+     preliminary = build_speed_trajectory(
+         start_m=start_m,
+         end_m=end_m,
+@@ -84,7 +89,7 @@
+ 
+     mandatory = []
+     cumulative_hold = 0.0
+-    if bool(config.get("rail_signal_enabled", False)):
++    if scenario is None and bool(config.get("rail_signal_enabled", False)):
+         for signal in sorted(signals or [], key=lambda x: float(x.get("progress_m") or 0.0)):
+             kinds = set(signal.get("kinds") or [])
+             progress = float(signal.get("progress_m") or 0.0)
+@@ -132,4 +137,5 @@
+         "recovery_ratio": ratio,
+         "traffic_edge_count": 0,
+         "signal_stop_count": len(mandatory),
++        **({'turn_events': point_caps, 'speed_constraints': spans, 'hypothetical': True} if scenario is not None else {}),
+     }
+--- a/Perix-main/backend/mobility/motion/engine.py
++++ b/Perix-main/backend/mobility/motion/engine.py
+@@ -318,8 +318,14 @@
+ 
+     traffic_snapshot = {"provider": None, "profile_versions": [], "by_edge": {}}
+     if str(mode) == "bus":
++        traffic_edges_input = infra.get("edges") or []
++        from mobility.tomtom_traffic import approval
++        if approval(now_local) is not None:
++            traffic_edges_input = [{**e, '_traffic_graph_v': infra.get('osm_snapshot_v'),
++                '_traffic_version_id': str(version_id), '_traffic_generation_id': infra.get('derived_generation')}
++                for e in traffic_edges_input]
+         traffic_snapshot = await traffic_snapshot_for_edges(
+-            infra.get("edges") or [],
++            traffic_edges_input,
+             now_local,
+             region_id=region.region_id,
+             network_id=region.network_id,
+@@ -333,6 +339,14 @@
+          if value.get("provider") == "GOOGLE_ROUTES" and value.get("expires_at")),
+         default=None,
+     )
++    from mobility.motion import time_allocation
++    from mobility.tomtom_traffic import flag, approval
++    active_allocation = time_allocation.enabled() and not time_allocation.shadow_only() and not flag('MOBILITY_TOMTOM_SHADOW_ONLY', 'true')
++    direct_expiries = [datetime.fromisoformat(v['expires_at']).timestamp()
++                      for v in traffic_snapshot.get('direct_by_edge', {}).values()
++                      if active_allocation and v.get('expires_at')]
++    if direct_expiries:
++        traffic_expires_at = min(direct_expiries + ([traffic_expires_at] if traffic_expires_at is not None else []))
+     if traffic_snapshot_out is not None:
+         traffic_snapshot_out.update(traffic_snapshot)
+ 
+@@ -483,6 +497,54 @@
+             desired_duration,
+             int(config["calibration_iterations"]),
+         )
++        allocation_report = None
++        from mobility.motion import time_allocation
++        if time_allocation.enabled():
++            direct = {edge_id: value for edge_id, value in traffic_snapshot.get('direct_by_edge', {}).items()
++                if any(str(e.get('edge_id')) == edge_id and e['from_m'] >= leg_start_m
++                       for e in infra.get('edges', []))
++                and (traffic_by_edge.get(edge_id) or {}).get('constraint') != 'NON_RECOVERABLE'} if approval(now_local) is not None else {}
++
++            def scenario_builder(scenario, evidence):
++                args = dict(edges=infra.get('edges') or [],
++                    signals=time_allocation.eligible_signals(infra, str(mode), leg_start_m, float(nxt['progress_m']),
++                        float(config.get('allocation_stop_buffer_m', 20.0))),
++                    start_m=leg_start_m, end_m=float(nxt['progress_m']),
++                    departure_service_s=effective_departure, config=config,
++                    initial_speed_kmh=initial_speed_kmh, scenario=scenario)
++                if mode == 'tram':
++                    return build_tram_leg(**args)
++                return build_bus_leg(**args, traffic_by_edge={**traffic_by_edge, **evidence})
++
++            comparison_baseline = fitted
++            if fitted.get('fastest_duration_s') is None:
++                comparison_baseline = {**fitted, 'fastest_duration_s': builder(1.0).get('duration_s')}
++            allocated, allocation_report = time_allocation.allocate(comparison_baseline, scenario_builder,
++                desired_duration, infra=infra, mode=str(mode), start_m=leg_start_m,
++                end_m=float(nxt['progress_m']), config=config, direct_by_edge=direct,
++                initial_speed_kmh=initial_speed_kmh)
++            allocation_report['shadow_only'] = time_allocation.shadow_only()
++            allocation_report['traffic_evidence'] = traffic_snapshot.get('evidence_diagnostics', [])
++            from mobility.tomtom_traffic import flag
++            allocation_report['shadow_only'] = allocation_report['shadow_only'] or flag('MOBILITY_TOMTOM_SHADOW_ONLY', 'true')
++            if not time_allocation.shadow_only() and not flag('MOBILITY_TOMTOM_SHADOW_ONLY', 'true'):
++                fitted = allocated
++                if allocation_report['selected'] == 'DIRECT_TRAFFIC_SLOWDOWN':
++                    traffic_snapshot['provider'] = 'TOMTOM_FLOW'
++                if is_handover_leg and previous_plan is not None:
++                    initial = (fitted['trajectory'].get('segments') or [{}])[0].get('v0', 0.) * 3.6 / fitted['time_scale']
++                    prior_leg = next((s for s in previous_plan.get('segments', [])
++                        if s['kind'] == 'MOVE' and s['next_timeline_index'] == int(nxt['timeline_index'])
++                        and s['t0'] <= effective_departure < s['t1']), None)
++                    if (abs(initial-initial_speed_kmh) > .05 and prior_leg is not None
++                            and abs(prior_leg['t1']-desired_arrival) < 1e-6):
++                        from mobility.motion.common import remaining_trajectory
++                        retained = remaining_trajectory(prior_leg['trajectory'],
++                            effective_departure-prior_leg['t0'], prior_leg.get('time_scale',1.))
++                        fitted = {**fitted,'trajectory':retained,'time_scale':1.,'fit':'RETAINED_CURRENT_LEG'}
++                        allocation_report.update(selected='CURRENT_LEG_RETAINED',
++                            continuity_reason='SAME_TARGET_RETAINED_INSTEAD_OF_SPEED_DISCONTINUITY',
++                            allocated_duration_s=retained['duration_s'])
+         trajectory = fitted["trajectory"]
+         duration = (
+             float(trajectory.get("duration_s") or 0.0)
+@@ -594,6 +656,7 @@
+                 # by which the effective arrival misses the realtime target.
+                 "physics_limited_s": round(arrival_target_error, 3),
+                 "fit": fitted.get("fit"),
++                **({'time_allocation': allocation_report} if allocation_report is not None else {}),
+             }
+         )
+         effective_arrival = effective_next_arrival
+@@ -838,6 +901,15 @@
+         traffic_context,
+         revision,
+     )
++    from mobility.motion import time_allocation
++    from mobility.tomtom_traffic import flag
++    if (time_allocation.enabled() and not time_allocation.shadow_only()
++            and not flag('MOBILITY_TOMTOM_SHADOW_ONLY', 'true')):
++        from mobility.tomtom_traffic import flag, approval
++        from mobility.tomtom_scheduler import policy_fingerprint
++        allocation_policy = approval(now_local)
++        key += ('allocation-v1', time_allocation.shadow_only(), flag('MOBILITY_TOMTOM_SHADOW_ONLY', 'true'),
++                policy_fingerprint(allocation_policy) if allocation_policy else 'disabled', int(now_local.timestamp()) // 30)
+ 
+     now_mono = time.monotonic()
+     previous_state = _HANDOVER_STATE.get(identity)
+@@ -916,7 +988,9 @@
+             ):
+                 _PLAN_CACHE.pop(stale_key, None)
+         if traffic_context == "google_locator" and mode == "bus":
+-            key = (*key[:-1], observation_revision(region.region_id, region.network_id))
++            # Google observation revision is at the original key offset, even
++            # when a separately scoped experimental cache suffix is present.
++            key = (*key[:13], observation_revision(region.region_id, region.network_id), *key[14:])
+         _PLAN_CACHE[key] = {"cached_at": now_mono, "plan": plan,
+                             "identity": identity, "service_s": float(now_sec),
+                             "allow_live_fetch": bool(allow_live_fetch)}
+--- a/Perix-main/backend/mobility/motion/traffic.py
++++ b/Perix-main/backend/mobility/motion/traffic.py
+@@ -56,9 +56,22 @@
+             if value.get("profile_version")
+         }
+     )
+-    return {
++    snapshot = {
+         "provider": "+".join(providers) if google else PROVIDER_NAME,
+         "providers": providers,
+         "profile_versions": versions,
+         "by_edge": by_edge,
+     }
++    # Never fetch TomTom here. No extra DB work or output change with flags off.
++    from mobility.tomtom_traffic import approval
++    if approval(when) is not None:
++        from mobility.tomtom_scheduler import cached_evidence
++        direct, rejected = await cached_evidence(edges, when, region_id=region_id, network_id=network_id)
++        snapshot['direct_by_edge'] = direct
++        snapshot['evidence_diagnostics'] = rejected
++        snapshot['evidence_sources'] = (['STATIC_PROFILE'] if static else []) + (['TOMTOM_FLOW'] if direct else [])
++        if any(r.get('source') == 'TOMTOM_INCIDENT' for r in rejected):
++            snapshot['evidence_sources'].append('TOMTOM_INCIDENT')
++        if not snapshot['evidence_sources']:
++            snapshot['evidence_sources'] = ['NONE']
++    return snapshot
+--- a/Perix-main/backend/mobility/motion/diagnostics.py
++++ b/Perix-main/backend/mobility/motion/diagnostics.py
+@@ -13,6 +13,16 @@
+ from mobility.signal_semantics import signal_coverage_for_leg
+ 
+ DIAGNOSTICS_SCHEMA_VERSION = 2
++
++
++def allocation_summary(plan: dict) -> dict:
++    """Research-only summary; no accuracy claim without independent labels."""
++    reports = [s['time_allocation'] for s in plan.get('segments', []) if s.get('time_allocation')]
++    return {'evaluated_legs': len(reports), 'fallback_legs': sum(bool(r.get('fallback_reason')) for r in reports),
++            'hypothetical_signal_candidates': sum(c['name'] == 'POSSIBLE_SIGNAL_STOP'
++                for r in reports for c in r['candidates']),
++            'independent_eta_mae_s': None, 'independent_position_error_m': None,
++            'accuracy_status': 'NO_INDEPENDENT_OBSERVATIONS', 'legs': reports}
+ 
+ 
+ def _round(value, digits: int = 3):
+--- a/Perix-main/backend/mobility/motion/explain.py
++++ b/Perix-main/backend/mobility/motion/explain.py
+@@ -22,6 +22,7 @@
+     lateness_flow,
+     timeline_leg_contract,
+     trajectory_metrics,
++    allocation_summary,
+ )
+ from mobility.motion.engine import _build_trip_plan
+ from mobility.motion.tram import build_tram_leg
+@@ -217,6 +218,7 @@
+     timeline: list[dict],
+     path: dict,
+     now_local: Optional[datetime] = None,
++    include_research: bool = False,
+ ) -> dict:
+     """Build a full, on-demand report without changing the live trajectory."""
+     region = get_active_region()
+@@ -531,6 +533,7 @@
+     return {
+         "schema_v": DIAGNOSTICS_SCHEMA_VERSION,
+         "available": True,
++        **({'time_allocation_research': allocation_summary(plan)} if include_research else {}),
+         "region_id": region.region_id,
+         "network_id": region.network_id,
+         "trip_id": str(trip_id),
+--- a/Perix-main/backend/mobility/v2.py
++++ b/Perix-main/backend/mobility/v2.py
+@@ -1045,11 +1045,15 @@
+ 
+ 
+ @router.get("/diagnostic/motion/trips/{trip_id}")
+-async def v2_diagnostic_motion_trip(
++async def v2_diagnostic_motion_trip(
+     trip_id: str,
+     current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+-):
+-    """Explain every physical leg of one active-network trip."""
++):
++    """Explain every physical leg of one active-network trip."""
++    return await _motion_trip_report(trip_id)
++
++
++async def _motion_trip_report(trip_id: str, research=False):
+     from mobility.motion.explain import explain_trip_plan
+     from mobility.regions import get_active_region
+     from routes.mobility import (
+@@ -1114,12 +1118,13 @@
+             "legs": [],
+         }
+ 
+-    report = await explain_trip_plan(
++    report = await explain_trip_plan(
+         trip_id=str(trip_id),
+         mode=str(route.get("mode") or "bus"),
+         version_id=str(network.get("version_id") or ""),
+         timeline=timeline,
+-        path=path,
++        path=path,
++        **({'include_research': True} if research else {}),
+     )
+     return {
+         "region_id": region.region_id,
+@@ -1129,8 +1134,77 @@
+         "route_number": route.get("route_number"),
+         "direction": trip.get("headsign"),
+         "realtime_source": (realtime or {}).get("source"),
+-        **report,
+-    }
++        **report,
++    }
++
++
++def _research_admin(user):
++    from fastapi import HTTPException
++    if user is None:
++        raise HTTPException(401, 'Authentication required')
++    if getattr(user, 'is_admin', False) is not True:
++        raise HTTPException(403, 'Administrator required')
++
++
++@router.get('/diagnostic/research/allocation/{trip_id}')
++async def v2_research_allocation(trip_id: str, current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
++    _research_admin(current_user)
++    from mobility.motion.time_allocation import enabled
++    if not enabled():
++        return {'enabled': False, 'reason': 'MOBILITY_TIME_ALLOCATION_ENABLED_FALSE'}
++    return await _motion_trip_report(trip_id, research=True)
++
++
++@router.get('/diagnostic/research/sampling')
++async def v2_research_sampling(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
++    _research_admin(current_user)
++    from mobility.generations import list_pattern_generations
++    from mobility.tomtom_sampling import rank_points, choose_points
++    from mobility.traffic_profiles import annotate_profile_availability
++    domain = await _domain()
++    if not domain:
++        return {'available': False, 'reason': 'NO_ACTIVE_NETWORK'}
++    network = domain['network']
++    # Domain metadata may omit scope carried by the active source network.
++    from routes.mobility import _get_active_network
++    network = await _get_active_network()
++    if not network or any(str((domain.get('network') or {}).get(k) or '') != str(network.get(k) or '')
++           for k in ('region_id', 'network_id', 'version_id')):
++        return {'available':False,'reason':'NETWORK_CHANGED_DURING_REPORT'}
++    bundles = await annotate_profile_availability(await list_pattern_generations(network['version_id']),
++        region_id=network['region_id'], network_id=network['network_id'])
++    from mobility.tomtom_traffic import approval
++    policy = approval()
++    measurements = []
++    if policy:
++        from datetime import datetime, timezone
++        from mobility.tomtom_scheduler import policy_fingerprint
++        measurements = await db.mobility_tomtom_evidence.find({
++            'region_id':network['region_id'],'network_id':network['network_id'],
++            'version_id':network['version_id'],'policy_id':policy_fingerprint(policy),
++            'expires_at':{'$gt':datetime.now(timezone.utc)}},{'_id':0}).to_list(12)
++    report = rank_points(network, domain, bundles, matched_measurements=measurements)
++    chosen = choose_points(report)
++    # Own canonical configuration only. No TomTom calls or quota reservation.
++    return {'available': True, 'scope': report['scope'], 'service_date': report['service_date'],
++            'candidate_count': len(report['ranked']), **chosen}
++
++
++@router.get('/diagnostic/research/status')
++async def v2_research_status(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
++    _research_admin(current_user)
++    from mobility.motion.time_allocation import enabled, shadow_only
++    from mobility.tomtom_traffic import approval, flag
++    policy = approval()
++    budget = {'initialized': False}
++    if policy:
++        from mobility.tomtom_control import TrafficControl
++        control = TrafficControl(db.client[policy['control_database']].mobility_tomtom_control, policy)
++        budget = await control.status()  # Read only: never acquire/reserve/fetch.
++    return {'time_allocation_enabled': enabled(), 'time_allocation_shadow_only': shadow_only(),
++            'tomtom_enabled': flag('MOBILITY_TOMTOM_ENABLED'), 'effective_approval': policy is not None,
++            'tomtom_shadow_only': flag('MOBILITY_TOMTOM_SHADOW_ONLY', 'true'),
++            'license_status': 'OPERATOR_ATTESTED' if policy else 'NOT_CONFIRMED', 'budget': budget}
+ 
+ 
+ @router.get("/traffic")
+--- a/Perix-main/backend/mobility/traffic_profiles.py
++++ b/Perix-main/backend/mobility/traffic_profiles.py
+@@ -425,3 +425,25 @@
+                     "baseline": profile.get("baseline"),
+                 }
+     return None
++
++
++async def annotate_profile_availability(bundles: list[dict], *, region_id: str, network_id: str) -> list[dict]:
++    """Research selection only: record presence, not calibrated live coverage.
++
++    Keep the committed atomic bundle immutable. A profile for another graph or
++    opposite direction does not justify even an availability score.
++    """
++    rows = await db.mobility_traffic_profiles.find({'region_id':region_id,'network_id':network_id},
++        {'_id':0,'way_id':1,'osm_snapshot_v':1,'osm_direction':1}).to_list(10000)
++    available = {(r.get('way_id'),r.get('osm_snapshot_v'),r.get('osm_direction')) for r in rows}
++    result = []
++    for bundle in bundles:
++        infra = bundle.get('infrastructure') or {}
++        edges = []
++        for edge in infra.get('edges', []):
++            follows = (edge.get('way') or {}).get('follows_osm_way')
++            direction = 'FORWARD' if follows is True else 'BACKWARD' if follows is False else 'BOTH'
++            found = any((edge.get('way_id'),bundle.get('osm_snapshot_v'),d) in available for d in (direction,'BOTH'))
++            edges.append({**edge,'traffic_profile_available':found})
++        result.append({**bundle,'infrastructure':{**infra,'edges':edges}})
++    return result
+--- a/Perix-main/backend/utils/mobility_workers.py
++++ b/Perix-main/backend/utils/mobility_workers.py
+@@ -559,14 +559,16 @@
+     event.set()
+ 
+ 
+-def start_mobility_workers():
++def start_mobility_workers():
+     _precompute_primitives()
+     asyncio.create_task(_realtime_worker())
+     asyncio.create_task(_static_worker())
+     # EXACTLY ONE long-lived precompute coordinator per backend process.
+     asyncio.create_task(_precompute_road_geometries())
+     request_precompute(None, reason="STARTUP")
+-    asyncio.create_task(_osm_snapshot_worker())
++    asyncio.create_task(_osm_snapshot_worker())
++    from mobility.tomtom_scheduler import start_scheduler
++    start_scheduler()  # No task, DB access or HTTP with the new flags off.
+ 
+ 
+ async def _osm_snapshot_worker():
+--- /dev/null
++++ b/Perix-main/backend/mobility/motion/time_allocation.py
+@@ -0,0 +1,125 @@
++"""Bounded experiments on the existing builders, not another motion engine."""
++import math
++import os
++from copy import deepcopy
++
++from mobility.motion.common import sample_trajectory
++from mobility.signal_semantics import build_signal_semantics
++
++
++def enabled():
++    return os.getenv('MOBILITY_TIME_ALLOCATION_ENABLED', 'false').lower() == 'true'
++
++
++def shadow_only():
++    return os.getenv('MOBILITY_TIME_ALLOCATION_SHADOW_ONLY', 'true').lower() != 'false'
++
++
++def eligible_signals(infra, mode, start_m, end_m, stop_buffer_m=20.0):
++    if mode != 'bus':
++        return []  # No invented rail phases, including experimental scenarios.
++    semantics = build_signal_semantics(infra.get('signals') or [], infra.get('edges') or [], mode=mode)
++    # Require explicit direction evidence on exact directed topology. Spatial,
++    # untagged and ambiguous heads remain diagnostics, never stop candidates.
++    verified = [s for s in semantics['instances'] if s.get('semantic_eligible')
++                and s.get('direction_status') in ('MATCH', 'BOTH') and s.get('direction_basis_edge_ids')]
++    events = build_signal_semantics(verified, infra.get('edges') or [], mode=mode)['events']
++    return [s for s in events if s.get('usable_for_motion')
++            and start_m + stop_buffer_m < s['progress_m'] < end_m - stop_buffer_m]
++
++
++def allocate(baseline, builder, target_s, *, infra, mode, start_m, end_m,
++             config, direct_by_edge=None, initial_speed_kmh=0.0):
++    """builder(scenario, direct_evidence) rebuilds the entire physical leg.
++
++    Arrival proximity is feasibility, not evidence for red lights. Unobserved
++    stop scenarios are retained as alternatives, not selected as factual stops.
++    Direct traffic can support a moving slowdown only when it fits the existing
++    target. Otherwise the unchanged baseline wins; no extra traffic ETA added.
++    """
++    direct = direct_by_edge or {}
++    target = float(target_s)
++    fastest = baseline.get('fastest_duration_s')
++    report = {'target_s': target, 'baseline_s': baseline['natural_duration_s'],
++              'fastest_s': fastest, 'slack_s': max(0., target - baseline['natural_duration_s']),
++              'initial_speed_kmh': initial_speed_kmh, 'candidates': [], 'selected': 'BASELINE',
++              'uncertainty': 'UNOBSERVED_WITHIN_LEG', 'fallback_reason': None}
++    report['direct_traffic_evidence'] = [dict(edge_id=edge_id, **{k: value.get(k) for k in
++        ('provider','age_seconds','fetched_at','expires_at','confidence','data_version','reason','age_basis')})
++        for edge_id,value in direct.items()]
++    if baseline.get('fit') in ('EMPTY', 'PHYSICS_LIMITED'):
++        report['fallback_reason'] = 'BASELINE_PHYSICS_LIMITED'
++        return baseline, report
++    no_stop_scenario = {'refine_turns': True}
++    no_stop = builder(no_stop_scenario, {})
++    if not no_stop.get('segments'):
++        report['fallback_reason'] = 'NO_REBUILDABLE_TRAJECTORY'
++        return baseline, report
++    if fastest is None:
++        report['fastest_s'] = no_stop['duration_s']
++
++    def add(name, trajectory, extra=None):
++        duration = float(trajectory.get('duration_s') or 0)
++        feasible = math.isfinite(duration) and 0 < duration <= target + 1e-6
++        first_speed = (trajectory.get('segments') or [{}])[0].get('v0', 0) * 3.6
++        scaled_first = first_speed / max(1., target / duration) if duration > 0 else 0
++        if abs(scaled_first - initial_speed_kmh) > .05:
++            feasible = False
++        item = {'name': name, 'duration_s': duration, 'feasible': feasible,
++                'reason': 'INITIAL_SPEED_DISCONTINUITY' if abs(scaled_first - initial_speed_kmh) > .05
++                    else 'FITS_EXISTING_TARGET' if feasible else 'EXCEEDS_TARGET',
++                'hypothetical': True, **(extra or {})}
++        item['evidence_tier'] = 2 if item.get('support') == 'ACCEPTED_ROAD_FLOW_NOT_BUS_GPS' else 1
++        if feasible:
++            item['progress_samples_m'] = [sample_trajectory(trajectory, target * r,
++                max(1., target / duration))['progress_m'] for r in (.25, .5, .75)]
++        report['candidates'].append(item)
++        return feasible
++
++    add('NO_EXTRA_STOP', no_stop)
++    turns = no_stop.get('turn_events') or []
++    slow_ids = sorted({e for turn in turns for e in (turn.get('from_edge_id'), turn.get('to_edge_id')) if e})
++    if slow_ids:
++        slowed = builder({'refine_turns': True, 'slow_edge_ids': slow_ids, 'speed_factor': .85}, {})
++        add('MODELED_TURN_SLOWDOWN', slowed, {'support': 'GEOMETRY_ONLY_NOT_OBSERVED'})
++    events = eligible_signals(infra, mode, start_m, end_m,
++                              float(config.get('allocation_stop_buffer_m', 20.0)))
++    report['eligible_signal_ids'] = [s['signal_instance_id'] for s in events]
++    # At most two events, each evaluated from the same initial state and caps.
++    for event in events[:2]:
++        identity = event['signal_instance_id']
++        stopped = builder({'refine_turns': True, 'hold_event_id': identity, 'hold_s': 0.}, {})
++        physical_cost = max(0., stopped['duration_s'] - no_stop['duration_s'])
++        remaining = target - stopped['duration_s']
++        hold = max(0., min(remaining, float(config['road_signal_max_hold_s'])))
++        candidate = builder({'refine_turns': True, 'hold_event_id': identity, 'hold_s': hold}, {})
++        add('POSSIBLE_SIGNAL_STOP', candidate, {'signal_id': identity, 'stop_cost_s': physical_cost,
++            'hold_s': hold, 'support': 'ELIGIBLE_LOCATION_NOT_PHASE_OBSERVATION'})
++    chosen = None
++    if direct and mode == 'bus':
++        candidate = builder(no_stop_scenario, direct)
++        if add('DIRECT_TRAFFIC_SLOWDOWN', candidate, {'support': 'ACCEPTED_ROAD_FLOW_NOT_BUS_GPS'}):
++            # No stop attribution: road-flow evidence cannot identify red phase.
++            chosen = candidate
++    if chosen is None:
++        report['fallback_reason'] = 'DIRECT_TRAFFIC_CONFLICTS_WITH_TARGET' if direct else 'NO_DISTINGUISHING_EVIDENCE'
++        fitted = baseline
++    else:
++        fitted = {**baseline, 'trajectory': chosen, 'time_scale': max(1., target / chosen['duration_s']),
++                  'fit': 'EVIDENCE_TIME_ALLOCATION', 'physics_limited_s': 0., 'recovery_ratio': 0.}
++        report['selected'] = 'DIRECT_TRAFFIC_SLOWDOWN'
++    report['turn_events'] = turns
++    report['ranked_candidates'] = [c['name'] for c in sorted(report['candidates'],
++        key=lambda c: (not c['feasible'], -c['evidence_tier'], c['name']))]
++    report['ranking_basis'] = 'FEASIBILITY_THEN_EVIDENCE_NOT_TARGET_PROXIMITY'
++    possible = [c['progress_samples_m'] for c in report['candidates'] if c.get('feasible')]
++    report['position_envelope_samples_m'] = [
++        [min(p[i] for p in possible), max(p[i] for p in possible)] for i in range(3)] if possible else []
++    report['allocated_duration_s'] = fitted['trajectory']['duration_s'] * fitted['time_scale']
++    # Bounded comparison, including ambiguity, not independent position truth.
++    report['position_delta_samples_m'] = [
++        sample_trajectory(fitted['trajectory'], target * ratio, fitted['time_scale'])['progress_m']
++        - sample_trajectory(baseline['trajectory'], target * ratio, baseline['time_scale'])['progress_m']
++        for ratio in (.25, .5, .75)]
++    report['eta_delta_s'] = report['allocated_duration_s'] - baseline['trajectory']['duration_s'] * baseline['time_scale']
++    return fitted, deepcopy(report)
+--- /dev/null
++++ b/Perix-main/backend/mobility/tomtom_traffic.py
+@@ -0,0 +1,283 @@
++"""License/activation-gated TomTom v4/v5 adapter. No vehicle-poll HTTP calls.
++
++No rights are inferred from a key or public documentation. Until explicit
++approval, only synthetic test fixtures may enter parsing/matching functions.
++"""
++import asyncio
++from datetime import datetime, timezone
++import hashlib
++import http.client
++import json
++import math
++import os
++from urllib.parse import urlencode
++
++FLOW_PATH = '/traffic/services/4/flowSegmentData/absolute/{zoom}/json'
++INCIDENT_PATH = '/traffic/services/5/incidentDetails'
++INCIDENT_FIELDS = '{incidents{type,geometry{type,coordinates},properties{id,iconCategory,startTime,endTime,timeValidity,delay}}}'
++CATEGORIES = {0: 'Unknown', 1: 'Accident', 2: 'Fog', 3: 'DangerousConditions', 4: 'Rain',
++              5: 'Ice', 6: 'Jam', 7: 'LaneClosed', 8: 'RoadClosed', 9: 'RoadWorks',
++              10: 'Wind', 11: 'Flooding', 14: 'BrokenDownVehicle'}
++RIGHTS = ('commercial_prediction', 'osm_combination', 'google_maps_combination',
++          'temporary_storage', 'derived_diagnostics', 'derived_motion_state')
++
++
++def flag(name, default='false'):
++    return os.getenv(name, default).lower() == 'true'
++
++
++def approval(now=None):
++    """Fail closed, including unverified quota-renewal/account scope/retention."""
++    if not flag('MOBILITY_TOMTOM_ENABLED') or not flag('MOBILITY_TOMTOM_LICENSE_APPROVED'):
++        return None
++    now = now or datetime.now(timezone.utc)
++    try:
++        value = json.loads(os.getenv('MOBILITY_TOMTOM_APPROVAL_JSON', '{}'))
++        if (not all(value.get(k) is True for k in RIGHTS)
++                or value.get('activation_approved') is not True
++                or value.get('billing_period_verified') is not True
++                or value.get('free_tier_verified') is not True
++                or value.get('shared_budget_scope_confirmed') is not True
++                or value.get('storage_backend') != 'MONGO_TTL'
++                or value.get('backup_retention_approved') is not True
++                or value.get('asynchronous_ttl_cleanup_approved') is not True
++                or not value.get('control_database')
++                or not value.get('review_reference') or not value.get('account_ref')):
++            return None
++        start, end, expiry = [datetime.fromisoformat(value[k]) for k in ('period_start', 'period_end', 'approval_expires')]
++        if (any(d.utcoffset() is None for d in (start, end, expiry))
++                or not start <= now < min(end, expiry) or not 0 < (end - start).total_seconds() <= 32 * 86400):
++            return None
++        retention = value.get('retention_seconds')
++        if type(retention) is not int or not 0 < retention <= 1200:
++            return None
++        for kind, cap in (('flow', 15000), ('incident', 2000)):
++            requested = int(os.getenv('TOMTOM_' + kind.upper() + '_MONTHLY_HARD_CAP', str(cap)))
++            remaining = value.get('verified_remaining_' + kind + '_requests')
++            if type(remaining) is not int or remaining < 0:
++                return None
++            value[kind + '_cap'] = max(0, min(cap, requested, remaining))
++        return value
++    except (ValueError, TypeError, KeyError, OverflowError):
++        return None
++
++
++def number(value, minimum=0):
++    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < minimum:
++        raise ValueError('invalid numeric evidence')
++    return float(value)
++
++
++def parse_flow(payload):
++    data = payload['flowSegmentData']
++    points = [(number(p['latitude'], -90), number(p['longitude'], -180))
++              for p in data['coordinates']['coordinate']]
++    if not 2 <= len(points) <= 1000 or any(abs(a) > 85 or abs(b) > 180 for a, b in points):
++        raise ValueError('unsupported geometry')
++    out = {name: number(data[name]) for name in ('currentSpeed', 'freeFlowSpeed', 'currentTravelTime', 'freeFlowTravelTime', 'confidence')}
++    if out['confidence'] > 1 or type(data['roadClosure']) is not bool:
++        raise ValueError('invalid flow confidence/closure')
++    if out['freeFlowSpeed'] <= 0 or out['currentTravelTime'] <= 0 or out['freeFlowTravelTime'] <= 0:
++        raise ValueError('invalid flow duration')
++    return {**out, 'roadClosure': data['roadClosure'], 'points': points,
++            'openlr': data.get('openlr'), 'source_observed_at': None}
++
++
++def parse_incidents(payload, now):
++    if not isinstance(payload, dict) or not isinstance(payload.get('incidents'), list):
++        return []
++    out = []
++    for feature in payload.get('incidents', [])[:1000]:
++        try:
++            prop, geo = feature['properties'], feature['geometry']
++            category = prop['iconCategory']
++            if type(category) is not int or category not in CATEGORIES or prop.get('timeValidity') != 'present':
++                continue
++            for key, future in (('startTime', True), ('endTime', False)):
++                if prop.get(key):
++                    clock = datetime.fromisoformat(prop[key].replace('Z', '+00:00'))
++                    if clock.utcoffset() is None or (future and clock > now) or (not future and clock <= now):
++                        raise ValueError('not a current incident')
++            coords = geo['coordinates'] if geo['type'] == 'LineString' else [geo['coordinates']] if geo['type'] == 'Point' else []
++            points = [(number(p[1], -90), number(p[0], -180)) for p in coords]
++            if not points or any(abs(a) > 85 or abs(b) > 180 for a, b in points):
++                continue
++            out.append({'provider': 'TOMTOM_INCIDENT', 'category': CATEGORIES[category],
++                'incident_id': str(prop.get('id') or ''), 'points': points,
++                'motion_effect': 'NONE', 'reason': 'INCIDENT_IS_NOT_BUS_DELAY_OR_DIRECTION_PROOF'})
++        except (ValueError, KeyError, TypeError, IndexError):
++            continue
++    return out
++
++
++def _project(points, point):
++    """Finite-chain projection; caller checks every vertex and both directions."""
++    scale = 111320 * math.cos(math.radians(point[0]))
++    best, along, cumulative = math.inf, 0., 0.
++    for a, b in zip(points, points[1:]):
++        ax, ay = (a[1] - point[1]) * scale, (a[0] - point[0]) * 110540
++        bx, by = (b[1] - point[1]) * scale, (b[0] - point[0]) * 110540
++        dx, dy = bx - ax, by - ay
++        length = math.hypot(dx, dy)
++        ratio = max(0., min(1., -(ax * dx + ay * dy) / (length * length))) if length else 0.
++        distance = math.hypot(ax + ratio * dx, ay + ratio * dy)
++        if distance < best:
++            best, along = distance, cumulative + ratio * length
++        cumulative += length
++    return best, along
++
++
++def incident_geometry_diagnostics(incidents, chains, max_distance_m=15.):
++    """Associate geometry, but never infer travel direction/closure from it."""
++    out = []
++    for incident in incidents:
++        candidates = set()
++        points = incident['points']
++        if len(points) >= 2:
++            for chain in chains:
++                edges = chain.get('edges') or []
++                if chain.get('mode') != 'bus' or not edges:
++                    continue
++                canonical = [edges[0]['from_point']] + [e['to_point'] for e in edges]
++                if all(_project(canonical, p)[0] <= max_distance_m for p in points):
++                    candidates.update(str(e['edge_id']) for e in edges
++                        if _project(points, e['from_point'])[0] <= max_distance_m
++                        and _project(points, e['to_point'])[0] <= max_distance_m)
++        out.append({'source':'TOMTOM_INCIDENT','category':incident['category'],
++                    'candidate_edge_ids':sorted(candidates),'motion_effect':'NONE',
++                    'reason':'DIRECTION_UNVERIFIED' if candidates else 'GEOMETRY_UNMATCHED_OR_POINT_ONLY'})
++    return out
++
++
++def match_flow(flow, point, alternatives, *, max_distance_m=15., min_confidence=.7):
++    """Reject parallel/wrong-direction/ambiguous chains, never nearest-point only.
++
++    v4 documents shifted visualization geometry, not unambiguous heading proof.
++    Require a separately reviewed OpenLR-direction binding before using flow.
++    Geometry order is an additional compatibility check, NOT that proof itself.
++    """
++    if (not math.isfinite(max_distance_m) or not 0 < max_distance_m <= 50
++            or not math.isfinite(min_confidence) or not 0 <= min_confidence <= 1):
++        return {}, 'INVALID_MATCHING_CRITERIA'
++    if flow['confidence'] < min_confidence:
++        return {}, 'LOW_CONFIDENCE'
++    if (not point.get('direction_verification_ref') or not point.get('approved_openlr')
++            or flow.get('openlr') != point['approved_openlr']):
++        return {}, 'DIRECTION_NOT_VERIFIED'
++    if flow['roadClosure'] or flow['currentSpeed'] <= 0:
++        return {}, 'CLOSURE_OR_STOPPED_FLOW_REQUIRES_OPERATOR_REVIEW'
++    if flow['currentSpeed'] > flow['freeFlowSpeed'] or flow['currentTravelTime'] < flow['freeFlowTravelTime']:
++        return {}, 'INCONSISTENT_FLOW'
++    accepted = []
++    for chain in alternatives:
++        if (chain.get('mode') != 'bus' or chain.get('osm_snapshot_v') != point.get('osm_snapshot_v')
++                or chain.get('region_id') != point.get('region_id') or chain.get('network_id') != point.get('network_id')
++                or chain.get('version_id') != point.get('version_id')):
++            continue
++        edges = chain.get('edges') or []
++        if not edges or any(a.get('to_node') != b.get('from_node') for a, b in zip(edges, edges[1:])):
++            continue
++        canonical = [edges[0]['from_point']] + [e['to_point'] for e in edges]
++        lat_pad = max_distance_m / 110540
++        lon_pad = max_distance_m / (111320 * math.cos(math.radians(flow['points'][0][0])))
++        if (min(p[0] for p in flow['points']) < min(p[0] for p in canonical)-lat_pad
++                or max(p[0] for p in flow['points']) > max(p[0] for p in canonical)+lat_pad
++                or min(p[1] for p in flow['points']) < min(p[1] for p in canonical)-lon_pad
++                or max(p[1] for p in flow['points']) > max(p[1] for p in canonical)+lon_pad):
++            continue
++        projections = [_project(canonical, p) for p in flow['points']]
++        if max(d for d, _ in projections) > max_distance_m:
++            continue
++        progress = [p for _, p in projections]
++        if progress[-1] <= progress[0] or any(b + .5 < a for a, b in zip(progress, progress[1:])):
++            continue
++        matched = [e for e in edges if _project(flow['points'], e['from_point'])[0] <= max_distance_m
++                   and _project(flow['points'], e['to_point'])[0] <= max_distance_m
++                   and _project(flow['points'], e['from_point'])[1] < _project(flow['points'], e['to_point'])[1]]
++        accepted.append((chain, {str(e['edge_id']) for e in matched}))
++    target = next((ids for chain, ids in accepted if chain.get('chain_id') == point.get('chain_id')), set())
++    if not target:
++        return {}, 'GEOMETRY_OR_DIRECTION_MISMATCH'
++    if any(ids and not ids.intersection(target) for _, ids in accepted):
++        return {}, 'AMBIGUOUS_PARALLEL_ROAD'
++    return {edge_id: {'provider': 'TOMTOM_FLOW', 'source': 'TOMTOM_FLOW',
++                'expected_speed_kmh': flow['currentSpeed'], 'free_flow_speed_kmh': flow['freeFlowSpeed'],
++                'confidence': flow['confidence'], 'constraint': 'EVIDENCE_ONLY',
++                'includes_signal_delay': True, 'reason': 'DIRECTED_GEOMETRY_AND_REVIEWED_OPENLR',
++                'source_observed_at': None, 'age_basis': 'RECEIPT_ONLY'} for edge_id in target}, 'ACCEPTED'
++
++
++async def safe_http(path, params, key):
++    """stdlib transport does not log authenticated URLs; no redirects/retries.
++
++    Exceptions/payloads never escape to logs or API diagnostics. Count is
++    reserved before entering this function, even for timeout/cancellation.
++    """
++    def run():
++        connection = http.client.HTTPSConnection('api.tomtom.com', timeout=5)
++        try:
++            connection.set_debuglevel(0)
++            connection.request('GET', path + '?' + urlencode({**params, 'key': key}))
++            response = connection.getresponse()
++            raw = response.read(1024 * 1024 + 1)
++            if len(raw) > 1024 * 1024:
++                return 0, None
++            return response.status, json.loads(raw) if response.status == 200 else None
++        except Exception:
++            return 0, None
++        finally:
++            connection.close()
++    return await asyncio.to_thread(run)
++
++
++class TomTomClient:
++    def __init__(self, control, transport=safe_http):
++        self.control, self.transport = control, transport
++
++    async def request(self, lease, kind, params, slot):
++        policy = approval()
++        if policy is None or policy != self.control.policy:
++            return None, 'DISABLED_OR_UNAPPROVED'
++        key = os.getenv('TOMTOM_TRAFFIC_API_KEY', '').strip()
++        if not key:
++            return None, 'NO_CREDENTIAL'
++        if kind == 'flow':
++            path = FLOW_PATH.format(zoom=18)
++            try:
++                lat, lon = map(float, params['point'].split(','))
++                if not math.isfinite(lat) or not math.isfinite(lon) or not -85 <= lat <= 85 or not -180 <= lon <= 180:
++                    return None, 'INVALID_POINT'
++            except (ValueError, KeyError, AttributeError):
++                return None, 'INVALID_POINT'
++            params = {'point': params['point'], 'unit': 'kmph', 'openLr': 'true'}
++        elif kind == 'incident':
++            path = INCIDENT_PATH
++            try:
++                west, south, east, north = map(float, params['bbox'].split(','))
++                area = 6371. ** 2 * abs(math.sin(math.radians(north))-math.sin(math.radians(south))) * math.radians(east-west)
++                if not all(map(math.isfinite, (west,south,east,north))) or not -180 <= west < east <= 180 or not -85 <= south < north <= 85 or area > 10000:
++                    return None, 'INVALID_OR_OVERSIZED_BBOX'
++            except (ValueError, KeyError, AttributeError):
++                return None, 'INVALID_OR_OVERSIZED_BBOX'
++            params = {'bbox': params['bbox'], 'fields': INCIDENT_FIELDS, 'timeValidityFilter': 'present'}
++        else:
++            return None, 'UNSUPPORTED_PRODUCT'
++        for attempt in range(2):
++            if approval() != policy or os.getenv('TOMTOM_TRAFFIC_API_KEY', '').strip() != key:
++                return None, 'APPROVAL_OR_CREDENTIAL_CHANGED'
++            if not await self.control.reserve(lease, kind, slot + ':' + str(attempt)):
++                return None, 'BUDGET_LEASE_OR_SLOT_DENIED'
++            if approval() != policy or os.getenv('TOMTOM_TRAFFIC_API_KEY', '').strip() != key:
++                return None, 'APPROVAL_OR_CREDENTIAL_CHANGED'
++            try:
++                status, payload = await self.transport(path, params, key)
++            except Exception:
++                status, payload = 0, None
++            if status == 200:
++                return payload, 'RECEIVED'
++            if status in (401, 403, 429):
++                await self.control.halt(status)
++                return None, 'AUTH_OR_RATE_HALTED'
++            if status not in (0, 500, 502, 503, 504):
++                break
++        return None, 'TRANSPORT_OR_SERVICE_UNAVAILABLE'
+--- /dev/null
++++ b/Perix-main/backend/mobility/tomtom_control.py
+@@ -0,0 +1,73 @@
++"""One shared Mongo control document: fenced lease + conservative attempt budget.
++
++Only PERIX control metadata is stored here, never provider payloads or API keys.
++The billing period is explicitly approved, never inferred/reset by calendar.
++"""
++from datetime import datetime, timezone
++import hashlib
++import json
++from pymongo import ReturnDocument
++from pymongo.errors import DuplicateKeyError
++
++FLOW_CAP = 15000
++INCIDENT_CAP = 2000
++LEASE_MS = 90000
++REQUEST_MARGIN_MS = 15000
++
++
++class TrafficControl:
++    def __init__(self, collection, policy):
++        self.collection, self.policy = collection, policy
++        self.key = 'tomtom:' + policy['account_ref']
++        self.policy_id = hashlib.sha256(json.dumps(policy, sort_keys=True).encode()).hexdigest()
++
++    async def initialize(self):
++        try:
++            await self.collection.update_one({'_id': self.key}, {'$setOnInsert': {
++                'policy_id': self.policy_id, 'period_start': self.policy['period_start'],
++                'period_end': self.policy['period_end'], 'used': {'flow': 0, 'incident': 0},
++                'reservations': {}, 'halted': False, 'epoch': 0,
++                'lease_owner': None, 'lease_until': datetime(2000, 1, 1, tzinfo=timezone.utc),
++            }}, upsert=True)
++        except DuplicateKeyError:
++            pass
++
++    def _period(self):
++        return [{'$lte': [datetime.fromisoformat(self.policy['period_start']), '$$NOW']},
++                {'$gt': [datetime.fromisoformat(self.policy['period_end']), '$$NOW']}]
++
++    async def acquire(self, owner):
++        await self.initialize()
++        query = {'_id': self.key, 'policy_id': self.policy_id, 'halted': False,
++                 '$expr': {'$and': self._period() + [{'$or': [
++                     {'$eq': ['$lease_owner', {'$literal': owner}]}, {'$lte': ['$lease_until', '$$NOW']}]}]}}
++        return await self.collection.find_one_and_update(query, [{'$set': {
++            'epoch': {'$add': ['$epoch', {'$cond': [{'$eq': ['$lease_owner', {'$literal': owner}]}, 0, 1]}]},
++            'lease_owner': {'$literal': owner}, 'lease_until': {'$add': ['$$NOW', LEASE_MS]},
++        }}], return_document=ReturnDocument.AFTER)
++
++    async def reserve(self, lease, kind, slot):
++        if kind not in ('flow', 'incident') or not lease:
++            return False
++        token = hashlib.sha256((kind + ':' + slot).encode()).hexdigest()
++        maximum = min(FLOW_CAP if kind == 'flow' else INCIDENT_CAP,
++                      int(self.policy[kind + '_cap']))
++        query = {'_id': self.key, 'policy_id': self.policy_id, 'halted': False,
++                 'lease_owner': lease['lease_owner'], 'epoch': lease['epoch'],
++                 'reservations.' + token: {'$exists': False}, '$expr': {'$and': self._period() + [
++                     {'$gt': ['$lease_until', {'$add': ['$$NOW', REQUEST_MARGIN_MS]}]},
++                     {'$lt': ['$used.' + kind, maximum]}]}}
++        result = await self.collection.update_one(query, {'$inc': {'used.' + kind: 1},
++            '$set': {'reservations.' + token: True}})
++        return result.modified_count == 1
++
++    async def halt(self, status):
++        if status in (401, 403, 429):
++            await self.collection.update_one({'_id': self.key}, {'$set': {
++                'halted': True, 'halt_status': status}})
++
++    async def status(self):
++        value = await self.collection.find_one({'_id': self.key}, {
++            '_id': 0, 'used': 1, 'halted': 1, 'halt_status': 1, 'period_start': 1,
++            'period_end': 1, 'lease_until': 1, 'epoch': 1})
++        return value or {'initialized': False}
+--- /dev/null
++++ b/Perix-main/backend/mobility/tomtom_sampling.py
+@@ -0,0 +1,133 @@
++"""Rank actual scheduled traversals on validated directed generations only."""
++import hashlib
++from collections import Counter
++
++
++def rank_points(network, domain, bundles, *, minimum_edge_m=40.0, matched_measurements=()):
++    scope = {k: str(network.get(k) or '') for k in ('region_id', 'network_id', 'version_id')}
++    if not all(scope.values()):
++        raise ValueError('explicit network scope required')
++    templates = domain.get('trip_templates') or []
++    by_pattern = {}
++    for trip in templates:
++        by_pattern.setdefault(str(trip.get('pattern_id')), []).append(trip)
++    candidates = {}
++    total_passes = 0
++    for bundle in bundles:
++        if (not bundle.get('ready') or bundle.get('mode') != 'bus'
++                or any(str(bundle.get(k) or '') != v for k, v in scope.items())
++                or (bundle.get('geometry') or {}).get('validation', {}).get('valid') is not True):
++            continue
++        infra = bundle.get('infrastructure') or {}
++        if (infra.get('derived_generation') != bundle.get('generation_id')
++                or any(str(infra.get(k) or '') != v for k, v in scope.items())
++                or infra.get('pattern_id') != bundle.get('pattern_id')):
++            continue
++        trips = by_pattern.get(str(bundle['pattern_id']), [])
++        edges = infra.get('edges') or []
++        for index, edge in enumerate(edges):
++            if (edge.get('length_m', 0) < minimum_edge_m or not edge.get('from_point')
++                    or not edge.get('to_point') or not (edge.get('way') or {}).get('highway')):
++                continue
++            total_passes += len(trips)
++            key = (bundle['osm_snapshot_v'], str(edge['edge_id']))
++            item = candidates.setdefault(key, {'region_id': scope['region_id'], 'network_id': scope['network_id'],
++                'version_id': scope['version_id'], 'osm_snapshot_v': bundle['osm_snapshot_v'],
++                'edge_id': edge['edge_id'], 'direction': f"{edge.get('from_node')}->{edge.get('to_node')}",
++                'point': [(edge['from_point'][i] + edge['to_point'][i]) / 2 for i in (0, 1)],
++                'pattern_ids': set(), 'trip_ids': set(), 'lines': set(), 'scheduled_passes': 0,
++                'road_class': edge['way']['highway'], 'signal_events': 0, 'historical_evidence': False,
++                'generation_ids': set(), 'chains': []})
++            item['pattern_ids'].add(bundle['pattern_id'])
++            item['generation_ids'].add(bundle['generation_id'])
++            item['trip_ids'].update(str(t['trip_id']) for t in trips)
++            item['lines'].update(str(t.get('route_number') or bundle.get('route_number') or '') for t in trips)
++            item['scheduled_passes'] += len(trips)
++            item['signal_events'] = max(item['signal_events'], sum(1 for s in infra.get('signal_events', [])
++                if s.get('usable_for_motion') and abs(s['progress_m'] - edge['from_m']) <= 150))
++            # Only record a documented profile flag; absence remains unknown.
++            item['historical_evidence'] |= bool(edge.get('traffic_profile_available'))
++            # A finite, connected same-way chain, not a new inferred route.
++            lo, hi = index, index + 1
++            while lo > 0 and edges[lo-1].get('way_id') == edge.get('way_id') and edges[lo-1]['to_node'] == edges[lo]['from_node'] and edge['from_m'] - edges[lo-1]['from_m'] <= 500:
++                lo -= 1
++            while hi < len(edges) and edges[hi].get('way_id') == edge.get('way_id') and edges[hi-1]['to_node'] == edges[hi]['from_node'] and edges[hi]['to_m'] - edge['to_m'] <= 500:
++                hi += 1
++            item['chains'].append({'chain_id': str(bundle['pattern_id']) + ':' + str(index),
++                **scope, 'mode': 'bus', 'osm_snapshot_v': bundle['osm_snapshot_v'],
++                'pattern_id': bundle['pattern_id'], 'generation_id': bundle['generation_id'], 'edges': edges[lo:hi]})
++    rows = []
++    for item in candidates.values():
++        item['point_id'] = hashlib.sha256(repr((scope, item['osm_snapshot_v'], item['edge_id'])).encode()).hexdigest()[:20]
++        item['score'] = item['scheduled_passes'] + 2 * len(item['lines']) + item['signal_events'] + int(item['historical_evidence'])
++        item['score_basis'] = 'SCHEDULED_PASSES_LINES_SIGNALS_HISTORY_NOT_MEASURED_COVERAGE'
++        for key in ('pattern_ids', 'generation_ids', 'trip_ids', 'lines'):
++            item[key] = sorted(item[key])
++        rows.append(item)
++    rows.sort(key=lambda r: (-r['score'], r['point_id']))
++    measurements = [r for r in matched_measurements if all(str(r.get(k) or '') == v for k,v in scope.items())]
++    matched_edges = {(r['osm_snapshot_v'],r['edge_id']) for r in rows for m in measurements
++        if m.get('osm_snapshot_v') == r['osm_snapshot_v']
++        and set(m.get('generation_ids', [])).intersection(r['generation_ids'])
++        and r['edge_id'] in m.get('by_edge', {})}
++    covered_passes = sum(r['scheduled_passes'] for r in rows if (r['osm_snapshot_v'],r['edge_id']) in matched_edges)
++    return {'scope': scope, 'service_date': network.get('service_date'),
++            'candidate_edge_passes': total_passes, 'scheduled_trip_count': len({t['trip_id'] for t in templates}),
++            'scheduled_bus_trip_count': len({t['trip_id'] for t in templates if t.get('mode') == 'bus'}),
++            'matched_tomtom_measurements': sum(any((m.get('osm_snapshot_v'),e) in matched_edges for e in m.get('by_edge', {})) for m in measurements),
++            'direct_traffic_coverage': covered_passes / total_passes if total_passes else 0.,
++            'direct_coverage_denominator': 'ELIGIBLE_SCHEDULED_EDGE_PASSES', 'ranked': rows}
++
++
++def choose_points(report, count=6):
++    """Greedy marginal journey coverage with spatial/road diversity tie-breaks.
++
++    No enforced 4+2 split: a rotating benefit cannot be proven without a time
++    horizon/repeated observations. Start with measured ranking, keep stable IDs.
++    """
++    pending = list(report['ranked'])
++    selected, covered, classes = [], set(), Counter()
++    while pending and len(selected) < min(6, count):
++        def utility(row):
++            near = any(abs(row['point'][0] - p['point'][0]) < .002
++                       and abs(row['point'][1] - p['point'][1]) < .002 for p in selected)
++            return (len(set(row['trip_ids']) - covered), not near,
++                    classes[row['road_class']] == 0, row['score'])
++        best = max(pending, key=utility)
++        pending.remove(best)
++        selected.append({**best, 'role': 'FIXED', 'selection_reason': 'MARGINAL_SCHEDULED_COVERAGE_WITH_DIVERSITY'})
++        covered.update(best['trip_ids'])
++        classes[best['road_class']] += 1
++    total = report.get('scheduled_bus_trip_count', report['scheduled_trip_count'])
++    return {'points': selected, 'scheduled_potential_trip_coverage': len(covered) / total if total else None,
++            'scheduled_trips_covered': len(covered), 'scheduled_trip_count': total,
++            'coverage_denominator': 'SCHEDULED_BUS_TRIPS', 'network_scheduled_trip_count': report['scheduled_trip_count'],
++            'direct_measured_coverage': report['direct_traffic_coverage'],
++            'rotation_decision': 'NOT_JUSTIFIED_WITHOUT_REPEATED_MATCHED_OBSERVATIONS',
++            'rotation_min_window_seconds': 3600, 'no_random_coordinates': True}
++
++
++def validate_plan(plan, network, domain, bundles):
++    """Verify configured points against the current actual canonical ranking."""
++    ranked = rank_points(network, domain, bundles)
++    by_id = {p['point_id']: p for p in ranked['ranked']}
++    points, chains = [], {}
++    for requested in plan.get('points', []):
++        canonical = by_id.get(requested.get('point_id'))
++        if not canonical or canonical['point'] != requested.get('point'):
++            raise ValueError('point is not from active validated geometry')
++        if requested.get('role', 'FIXED') != 'FIXED':
++            raise ValueError('rotation requires a separately reviewed coverage evaluation')
++        chain = canonical['chains'][0]
++        points.append({**canonical, 'chain_id': chain['chain_id'],
++            'approved_openlr': requested.get('approved_openlr'),
++            'direction_verification_ref': requested.get('direction_verification_ref')})
++        for candidate in ranked['ranked']:
++            for c in candidate['chains']:
++                chains[c['chain_id']] = c
++    if not 1 <= len(points) <= 6 or len({p['point_id'] for p in points}) != len(points):
++        raise ValueError('invalid sampling count')
++    # Existing region order is south,west,north,east; API order is lon,lat.
++    from mobility.regions import get_region
++    south, west, north, east = get_region(network['region_id']).bbox
++    return {'points': points, 'chains': list(chains.values()), 'incident_bbox': [west, south, east, north]}
+--- /dev/null
++++ b/Perix-main/backend/mobility/tomtom_scheduler.py
+@@ -0,0 +1,179 @@
++"""Globally leased sampler; never invoked by passenger polling or trip builds."""
++import asyncio
++from datetime import datetime, timedelta, timezone
++import hashlib
++import json
++import os
++import uuid
++
++from mobility.tomtom_control import TrafficControl
++from mobility.tomtom_traffic import TomTomClient, approval, flag, parse_flow, parse_incidents, match_flow, incident_geometry_diagnostics
++
++
++def policy_fingerprint(policy):
++    return hashlib.sha256(json.dumps(policy, sort_keys=True).encode()).hexdigest()
++
++
++async def cached_evidence(edges, when, *, region_id, network_id):
++    """Cache-only read. No HTTP, lease acquisition or budget mutation here."""
++    policy = approval(when)
++    if policy is None:
++        return {}, []
++    if (region_id, network_id) not in [tuple(s) for s in policy.get('allowed_scopes', [])]:
++        return {}, [{'source': 'NONE', 'reason': 'APPROVAL_SCOPE_MISMATCH'}]
++    # Explicit backend/backup retention permission is required, not inferred
++    # from a generic license boolean. No real persistence without this approval.
++    if policy.get('storage_backend') != 'MONGO_TTL' or policy.get('backup_retention_approved') is not True:
++        return {}, [{'source': 'NONE', 'reason': 'STORAGE_TERMS_NOT_APPROVED'}]
++    from database import db
++    scope = {'region_id': region_id, 'network_id': network_id, 'policy_id': policy_fingerprint(policy),
++             'expires_at': {'$gt': when.astimezone(timezone.utc)}}
++    rows = await db.mobility_tomtom_evidence.find(scope, {'_id': 0}).to_list(12)
++    wanted = {str(e.get('edge_id')) for e in edges if (e.get('way') or {}).get('highway')}
++    out, diagnostics = {}, []
++    for row in rows:
++        fetched = row['fetched_at']
++        if fetched.tzinfo is None:
++            fetched = fetched.replace(tzinfo=timezone.utc)
++        age = (when - fetched).total_seconds()
++        if not 0 <= age < policy['retention_seconds']:
++            continue
++        for edge_id, evidence in row.get('by_edge', {}).items():
++            if edge_id not in wanted:
++                continue
++            # Same directed id can reappear in another snapshot: require graph
++            # and generation identity on each incoming canonical edge.
++            edge = next(e for e in edges if str(e.get('edge_id')) == edge_id)
++            if (edge.get('_traffic_graph_v') != row['osm_snapshot_v']
++                    or edge.get('_traffic_version_id') != row['version_id']
++                    or edge.get('_traffic_generation_id') not in row['generation_ids']):
++                diagnostics.append({'source': 'TOMTOM_FLOW', 'reason': 'GENERATION_MISMATCH'})
++                continue
++            expiry = row['expires_at']
++            if expiry.tzinfo is None:
++                expiry = expiry.replace(tzinfo=timezone.utc)
++            out[edge_id] = {**evidence, 'age_seconds': age, 'fetched_at': fetched.isoformat(),
++                            'expires_at': expiry.isoformat(), 'data_version': row['version_id']}
++        diagnostics.extend(d for d in row.get('diagnostics', [])
++            if wanted.intersection(d.get('candidate_edge_ids', row.get('requested_edge_ids', []))))
++    return out, diagnostics
++
++
++async def sample_cycle(control, client, lease, plan, now, collection):
++    """Explicit plan only, <=6 points/20m and <=1 incident bbox/30m.
++
++    Reservations make duplicate scheduler ticks idempotent. Retries reserve a
++    distinct attempt. Point choices do not change per HTTP call.
++    """
++    policy = approval(now)
++    if policy is None or policy != control.policy:
++        return {'requests': 0, 'reason': 'DISABLED_OR_UNAPPROVED'}
++    if policy.get('storage_backend') != 'MONGO_TTL' or policy.get('backup_retention_approved') is not True:
++        return {'requests': 0, 'reason': 'STORAGE_TERMS_NOT_APPROVED'}
++    points = plan.get('points') or []
++    if len(points) > 6 or not points or len({p['point_id'] for p in points}) != len(points):
++        return {'requests': 0, 'reason': 'INVALID_SIX_POINT_PLAN'}
++    # Configuration changes may not obtain another six calls in the same slot:
++    # reservation identity is an ordinal, independent of point/region changes.
++    slot = int(now.timestamp()) // 1200
++    stored = 0
++    for index, point in enumerate(points):
++        if (point.get('region_id'), point.get('network_id')) not in [tuple(s) for s in policy.get('allowed_scopes', [])]:
++            continue
++        payload, reason = await client.request(lease, 'flow', {'point': ','.join(map(str, point['point']))}, f'{slot}:{index}')
++        if reason == 'BUDGET_LEASE_OR_SLOT_DENIED':
++            continue  # Duplicate tick must not erase an accepted fresh sample.
++        by_edge = {}
++        if payload is not None:
++            try:
++                by_edge, reason = await asyncio.to_thread(match_flow, parse_flow(payload), point, plan.get('chains') or [],
++                    max_distance_m=float(policy.get('match_max_distance_m', 15.)),
++                    min_confidence=float(policy.get('match_min_confidence', .7)))
++            except (ValueError, KeyError, TypeError):
++                reason = 'INVALID_V4_PAYLOAD'
++        receipt = datetime.now(timezone.utc)
++        if approval(receipt) != policy:
++            return {'accepted_points':stored,'configured_points':len(points),'reason':'APPROVAL_CHANGED_DISCARDED'}
++        record = {'point_id': point['point_id'], 'region_id': point['region_id'], 'network_id': point['network_id'],
++            'version_id': point['version_id'], 'osm_snapshot_v': point['osm_snapshot_v'],
++            'generation_ids': point['generation_ids'], 'policy_id': policy_fingerprint(policy),
++            'fetched_at': receipt, 'expires_at': min(receipt + timedelta(seconds=policy['retention_seconds']),
++                datetime.fromisoformat(policy['approval_expires']), datetime.fromisoformat(policy['period_end'])),
++            'by_edge': by_edge, 'diagnostics': [{'source': 'TOMTOM_FLOW', 'reason': reason}]}
++        record['requested_edge_ids'] = [str(e['edge_id']) for c in plan.get('chains', [])
++                                       if c.get('chain_id') == point['chain_id'] for e in c['edges']]
++        # Only normalized approved evidence, never raw authenticated responses.
++        await collection.replace_one({'point_id': point['point_id']}, record, upsert=True)
++        stored += bool(by_edge)
++    if plan.get('incident_bbox'):
++        payload, reason = await client.request(lease, 'incident', {'bbox': ','.join(map(str, plan['incident_bbox']))},
++                                               str(int(now.timestamp()) // 1800))
++        # Incidents are diagnostic only; never sum their delay onto RT or flow.
++        if reason == 'BUDGET_LEASE_OR_SLOT_DENIED':
++            return {'accepted_points': stored, 'configured_points': len(points)}
++        if approval() != policy:
++            return {'accepted_points':stored,'configured_points':len(points),'reason':'APPROVAL_CHANGED_DISCARDED'}
++        incidents = parse_incidents(payload, datetime.now(timezone.utc)) if payload else []
++        # No redistribution of raw geometry/incident text via passenger APIs.
++        await collection.replace_one({'point_id': 'incidents'}, {'point_id': 'incidents',
++            'region_id': points[0]['region_id'], 'network_id': points[0]['network_id'],
++            'version_id': points[0]['version_id'], 'osm_snapshot_v': points[0]['osm_snapshot_v'],
++            'generation_ids': points[0]['generation_ids'], 'policy_id': policy_fingerprint(policy),
++            'fetched_at': now, 'expires_at': min(now + timedelta(seconds=policy['retention_seconds']),
++                datetime.fromisoformat(policy['approval_expires']), datetime.fromisoformat(policy['period_end'])), 'by_edge': {},
++            'diagnostics': incident_geometry_diagnostics(incidents, plan.get('chains') or [])}, upsert=True)
++    return {'accepted_points': stored, 'configured_points': len(points)}
++
++
++async def run_scheduler():
++    policy = approval()
++    if policy is None or not os.getenv('TOMTOM_TRAFFIC_API_KEY', '').strip():
++        return
++    if policy.get('storage_backend') != 'MONGO_TTL' or policy.get('backup_retention_approved') is not True:
++        return
++    from database import db
++    # Operator must explicitly approve one shared control DB across all PERIX
++    # instances/environments using this account. Other account consumers remain
++    # outside PERIX's control and require console-side monitoring/caps.
++    control_db = db.client[policy['control_database']]
++    control = TrafficControl(control_db.mobility_tomtom_control, policy)
++    client = TomTomClient(control)
++    owner = uuid.uuid4().hex
++    last_slots = None
++    await db.mobility_tomtom_evidence.create_index('expires_at', expireAfterSeconds=0)
++    while approval() == policy:
++        try:
++            lease = await control.acquire(owner)
++            if lease:
++                clock = datetime.now(timezone.utc)
++                slots = (int(clock.timestamp()) // 1200, int(clock.timestamp()) // 1800)
++                if slots == last_slots:
++                    await asyncio.sleep(30)
++                    continue
++                # Plan is own canonical configuration, never inferred from a
++                # browser request. Absence is fail closed, not random sampling.
++                plan = json.loads(os.getenv('MOBILITY_TOMTOM_SAMPLING_PLAN_JSON', '{}'))
++                from routes.mobility import _get_active_network
++                from mobility.domain import build_domain
++                from mobility.generations import list_pattern_generations
++                from mobility.tomtom_sampling import validate_plan
++                network = await _get_active_network()
++                if not network:
++                    await asyncio.sleep(30)
++                    continue
++                bundles = await list_pattern_generations(network['version_id'])
++                domain = build_domain(network, network['network_id'], [])
++                plan = validate_plan(plan, network, domain, bundles)
++                await sample_cycle(control, client, lease, plan, datetime.now(timezone.utc), db.mobility_tomtom_evidence)
++                last_slots = slots
++        except asyncio.CancelledError:
++            raise
++        except Exception:
++            pass  # No exception text/URL/key or provider body in application logs.
++        await asyncio.sleep(30)
++
++
++def start_scheduler():
++    if approval() is not None:
++        return asyncio.create_task(run_scheduler())
++    return None
+--- /dev/null
++++ b/Perix-main/backend/tests/test_mobility_time_allocation.py
+@@ -0,0 +1,297 @@
++"""Synthetic engineering regressions, not measured vehicle accuracy."""
++import asyncio
++import importlib.util
++from copy import deepcopy
++from datetime import datetime, timezone
++from pathlib import Path
++from types import SimpleNamespace
++from unittest.mock import AsyncMock
++
++import pytest
++
++from mobility.motion import bus, tram, engine, time_allocation
++from mobility.motion.common import directed_turn_caps, sample_trajectory
++from mobility.motion.config import motion_config_for
++
++
++def edges():
++    return [dict(edge_id='1:1:2', way_id=1, from_node=1, to_node=2, from_m=0., to_m=300., length_m=300.,
++                 from_point=[0., 0.], to_point=[0., .0027], way={'highway': 'primary', 'maxspeed_kmh': 40., 'follows_osm_way': True}),
++            dict(edge_id='2:2:3', way_id=2, from_node=2, to_node=3, from_m=300., to_m=600., length_m=300.,
++                 from_point=[0., .0027], to_point=[.0027, .0027], way={'highway': 'primary', 'maxspeed_kmh': 40., 'follows_osm_way': True})]
++
++
++def signal(direction='forward', method='NODE_EXACT', progress=300.):
++    return dict(signal_id=2, signal_instance_id='2:0', kinds=['ROAD_SIGNAL'], progress_m=progress,
++                latitude=0., longitude=.0027, match_method=method, usable_for_motion=True,
++                tags={'traffic_signals:direction': direction})
++
++
++def setup():
++    config = motion_config_for('bus')
++    infra = {'edges': edges(), 'signals': [signal()]}
++    args = dict(edges=infra['edges'], start_m=0., end_m=600., departure_service_s=0., config=config)
++    baseline = engine._fit_leg(lambda ratio: bus.build_bus_leg(**args, signals=[], traffic_by_edge={}, recovery_ratio=ratio), 200., 10)
++    def builder(scenario, direct):
++        return bus.build_bus_leg(**args, signals=time_allocation.eligible_signals(infra, 'bus', 0, 600),
++                                 traffic_by_edge=direct, scenario=scenario)
++    return config, infra, baseline, builder
++
++
++def assert_physics(trajectory, config):
++    previous = None
++    for segment in trajectory['segments']:
++        ds = segment['p1'] - segment['p0']
++        assert ds >= 0 and segment['t1'] >= segment['t0']
++        assert segment['v1'] ** 2 <= segment['v0'] ** 2 + 2 * config['acceleration_mps2'] * ds + 1e-6
++        assert segment['v0'] ** 2 <= segment['v1'] ** 2 + 2 * config['braking_mps2'] * ds + 1e-6
++        if previous:
++            assert segment['p0'] == pytest.approx(previous['p1'])
++            assert segment['v0'] == pytest.approx(previous['v1'])
++        previous = segment
++
++
++def test_turn_braking_and_reacceleration_use_existing_envelope():
++    config, infra, _, builder = setup()
++    trajectory = builder({'refine_turns': True}, {})
++    assert len(trajectory['turn_events']) == 1
++    cap = trajectory['turn_events'][0]['speed_cap_kmh'] / 3.6
++    at_turn = [s for s in trajectory['segments'] if s['p1'] == 300][0]
++    assert at_turn['v1'] <= cap
++    assert any(s['v1'] < s['v0'] for s in trajectory['segments'] if s['p1'] <= 300)
++    assert any(s['v1'] > s['v0'] for s in trajectory['segments'] if s['p0'] >= 300)
++    assert_physics(trajectory, config)
++
++
++def test_polygon_zigzags_do_not_become_repeated_turns():
++    chain = []
++    for i in range(12):
++        chain.append(dict(edge_id=str(i), from_node=i, to_node=i+1, from_m=i*10., to_m=(i+1)*10.,
++            from_point=[(.00003 if i % 2 else 0), i*.00009],
++            to_point=[(.00003 if (i+1) % 2 else 0), (i+1)*.00009]))
++    turns = directed_turn_caps(chain, 0, 120, {'20': 25, '70': 15}, 20)
++    assert not [t for t in turns if 20 <= t['progress_m'] <= 100]
++    chain[6]['from_node'] = 999
++    assert not [t for t in directed_turn_caps(chain, 0, 120, {'20': 25}, 20) if t['progress_m'] == 60]
++
++
++@pytest.mark.parametrize('mode', ['bus', 'tram'])
++def test_short_leg_cannot_reach_road_speed(mode):
++    config = motion_config_for(mode)
++    e = edges()[0]; e.update(to_m=20., length_m=20.)
++    args = dict(edges=[e], signals=[], start_m=0., end_m=20., departure_service_s=0., config=config,
++                scenario={'refine_turns': True})
++    result = bus.build_bus_leg(**args, traffic_by_edge={}) if mode == 'bus' else tram.build_tram_leg(**args)
++    assert max(max(s['v0'], s['v1']) for s in result['segments']) * 3.6 < 40
++    assert_physics(result, config)
++
++
++@pytest.mark.parametrize('direction,method,count', [('forward','NODE_EXACT',1), ('backward','NODE_EXACT',0),
++    ('forward','SPATIAL_NEAR_PATH',0), ('unknown','NODE_EXACT',0)])
++def test_signal_requires_real_directed_approach(direction, method, count):
++    infra = {'edges': edges(), 'signals': [signal(direction, method)]}
++    assert len(time_allocation.eligible_signals(infra, 'bus', 0, 600)) == count
++
++
++def test_duplicate_heads_dedup_and_near_stop_no_second_dwell():
++    infra = {'edges': edges(), 'signals': [signal(), signal()]}
++    assert len(time_allocation.eligible_signals(infra, 'bus', 0, 600)) == 1
++    assert not time_allocation.eligible_signals(infra, 'bus', 295, 600)
++    assert not time_allocation.eligible_signals(infra, 'tram', 0, 600)
++
++
++def test_signal_cost_is_full_rebuild_and_insufficient_margin_rejects():
++    config, infra, baseline, builder = setup()
++    event = time_allocation.eligible_signals(infra, 'bus', 0, 600)[0]
++    no_stop = builder({'refine_turns': True}, {})
++    stopped = builder({'refine_turns': True, 'hold_event_id': event['signal_instance_id'], 'hold_s': 0}, {})
++    cost = stopped['duration_s'] - no_stop['duration_s']
++    assert cost > 0
++    target = no_stop['duration_s'] + cost / 2
++    _, report = time_allocation.allocate(baseline, builder, target, infra=infra, mode='bus',
++                                         start_m=0, end_m=600, config=config)
++    item = next(c for c in report['candidates'] if c['name'] == 'POSSIBLE_SIGNAL_STOP')
++    assert item['stop_cost_s'] == pytest.approx(cost)
++    assert not item['feasible']
++    assert_physics(stopped, config)
++
++
++def test_no_distinguishing_evidence_retains_baseline_and_reports_ambiguity():
++    config, infra, baseline, builder = setup()
++    actual, report = time_allocation.allocate(baseline, builder, 200, infra=infra, mode='bus',
++                                             start_m=0, end_m=600, config=config)
++    assert actual is baseline
++    assert report['fallback_reason'] == 'NO_DISTINGUISHING_EVIDENCE'
++    assert report['uncertainty'] == 'UNOBSERVED_WITHIN_LEG'
++    assert report['position_envelope_samples_m']
++
++
++def test_direct_flow_allocates_existing_target_not_an_extra_delay():
++    config, infra, baseline, builder = setup()
++    evidence = {'2:2:3': {'expected_speed_kmh': 15., 'provider': 'TOMTOM_FLOW', 'includes_signal_delay': True}}
++    fitted, report = time_allocation.allocate(baseline, builder, 200, infra=infra, mode='bus',
++        start_m=0, end_m=600, config=config, direct_by_edge=evidence)
++    assert report['selected'] == 'DIRECT_TRAFFIC_SLOWDOWN'
++    assert fitted['trajectory']['duration_s'] * fitted['time_scale'] == pytest.approx(200)
++    assert report['eta_delta_s'] == pytest.approx(0)
++    assert fitted['trajectory']['signal_stop_count'] == 0
++    assert_physics(fitted['trajectory'], config)
++    impossible = {'2:2:3': {'expected_speed_kmh': .5, 'constraint': 'NON_RECOVERABLE'}}
++    fallback, report = time_allocation.allocate(baseline, builder, 200, infra=infra, mode='bus',
++        start_m=0, end_m=600, config=config, direct_by_edge=impossible)
++    assert fallback is baseline and report['fallback_reason'] == 'DIRECT_TRAFFIC_CONFLICTS_WITH_TARGET'
++
++
++def test_impossible_rt_target_preserves_physics_limited_behavior():
++    config, infra, _, builder = setup()
++    baseline = engine._fit_leg(lambda ratio: bus.build_bus_leg(edges=edges(), signals=[], traffic_by_edge={},
++        start_m=0, end_m=600, departure_service_s=0, config=config, recovery_ratio=ratio), 1, 10)
++    fitted, report = time_allocation.allocate(baseline, builder, 1, infra=infra, mode='bus',
++                                             start_m=0, end_m=600, config=config)
++    assert fitted is baseline and fitted['fit'] == 'PHYSICS_LIMITED'
++    assert not report['candidates']
++
++
++def test_no_new_scaled_initial_speed_discontinuity_from_moving_handover():
++    config, infra, baseline, _ = setup()
++    def builder(scenario, evidence):
++        return bus.build_bus_leg(edges=edges(), signals=[], traffic_by_edge=evidence,
++            start_m=0, end_m=600, departure_service_s=0, config=config,
++            initial_speed_kmh=25., scenario=scenario)
++    fitted, report = time_allocation.allocate(baseline, builder, 200, infra=infra, mode='bus',
++        start_m=0,end_m=600,config=config,initial_speed_kmh=25.,
++        direct_by_edge={'2:2:3':{'expected_speed_kmh':15.,'provider':'TOMTOM_FLOW'}})
++    assert fitted is baseline
++    assert any(c['reason']=='INITIAL_SPEED_DISCONTINUITY' for c in report['candidates'])
++
++
++def test_scenario_preserves_small_posted_limit_and_default_provenance():
++    config=motion_config_for('bus');chain=edges()
++    chain[0]['way']['maxspeed_kmh']=2.
++    chain[1]['way'].pop('maxspeed_kmh')
++    result=bus.build_bus_leg(edges=chain,signals=[],traffic_by_edge={},start_m=0,end_m=600,
++        departure_service_s=0,config=config,scenario={'refine_turns':True})
++    assert result['speed_constraints'][0]['speed_cap_kmh']==2.
++    assert result['speed_constraints'][0]['limit_basis']=='OSM_TAG'
++    assert result['speed_constraints'][1]['limit_basis']=='MODELED_DEFAULT'
++    assert not any(s['legal_limit_verified'] for s in result['speed_constraints'])
++
++
++def test_scenario_does_not_enable_rail_cycles(monkeypatch):
++    monkeypatch.setattr(tram, 'deterministic_signal_hold_seconds', lambda *a, **k: pytest.fail('invented rail phase'))
++    result = tram.build_tram_leg(edges=edges(), signals=[], start_m=0, end_m=600, departure_service_s=0,
++        config={**motion_config_for('tram'), 'rail_signal_enabled': True}, scenario={'refine_turns': True})
++    assert result['signal_stop_count'] == 0
++
++
++def test_default_builders_equal_snapshot_of_preexisting_wip():
++    # Optional local byte-level behavior proof; CI has baseline regression suites.
++    root = Path(r'C:\Users\PC\AppData\Local\Temp\opencode\perix-physics-tomtom-baseline-20261026')
++    if not root.exists():
++        pytest.skip('local pre-change WIP snapshot not available')
++    for mode, module in [('bus', bus), ('tram', tram)]:
++        spec = importlib.util.spec_from_file_location('old_' + mode, root / 'mobility/motion' / (mode + '.py'))
++        old = importlib.util.module_from_spec(spec); spec.loader.exec_module(old)
++        args = dict(edges=edges(), signals=[signal()], start_m=0., end_m=600., departure_service_s=43200.,
++                    config=motion_config_for(mode))
++        if mode == 'bus':
++            args['traffic_by_edge'] = {}
++        assert getattr(module, 'build_' + mode + '_leg')(**args) == getattr(old, 'build_' + mode + '_leg')(**args)
++
++
++@pytest.mark.asyncio
++async def test_shadow_keeps_passenger_plan_and_handover(monkeypatch):
++    from mobility import generations
++    region = SimpleNamespace(region_id='r', network_id='n', timezone='UTC', motion={})
++    infra = {'total_m': 600., 'edges': edges(), 'signals': [signal()]}
++    monkeypatch.setattr(engine, 'get_active_region', lambda: region)
++    monkeypatch.setattr(engine, 'db', SimpleNamespace(mobility_pattern_infrastructure=SimpleNamespace(find_one=AsyncMock(return_value=infra))))
++    monkeypatch.setattr(generations, 'atomic_generations_enabled', lambda: False)
++    monkeypatch.setattr(engine, 'traffic_snapshot_for_edges', AsyncMock(return_value={'by_edge': {}}))
++    monkeypatch.setenv('MOBILITY_PLAN_HANDOVER_ENABLED', 'true')
++    monkeypatch.setenv('MOBILITY_TIME_ALLOCATION_ENABLED', 'false')
++    kwargs = dict(trip_id='t', mode='bus', version_id='v', path={'pattern_id':'p','total_m':600.,'stop_progress':[0,600]},
++        timeline=[{'stop_id':'A','predicted_arrival':0,'predicted_departure':1},
++                  {'stop_id':'B','predicted_arrival':300,'predicted_departure':310}], now_sec=50)
++    engine.clear_motion_cache()
++    baseline = await engine.position_for_trip(**kwargs)
++    baseline_plan = deepcopy(next(iter(engine._PLAN_CACHE.values()))['plan'])
++    engine.clear_motion_cache()
++    monkeypatch.setenv('MOBILITY_TIME_ALLOCATION_ENABLED', 'true')
++    candidate = await engine.position_for_trip(**kwargs)
++    plan = next(iter(engine._PLAN_CACHE.values()))['plan']
++    assert candidate == baseline
++    assert plan['effective_timeline'] == baseline_plan['effective_timeline']
++    assert any(s.get('time_allocation') for s in plan['segments'])
++    assert all(s.get('time_allocation', {}).get('shadow_only', True) for s in plan['segments'])
++    following = await engine.position_for_trip(**{**kwargs, 'now_sec':51})
++    assert following['progress_m'] >= candidate['progress_m']
++    engine.clear_motion_cache()
++
++
++@pytest.mark.asyncio
++async def test_shadow_cannot_invalidate_baseline_cache_at_traffic_bucket_or_expiry(monkeypatch):
++    from mobility import generations
++    clock = [100.]
++    real_clock = [datetime(2026,10,26,12,0,29,tzinfo=timezone.utc)]
++    class Clock(datetime):
++        @classmethod
++        def now(cls,tz=None):return real_clock[0].astimezone(tz)
++    region=SimpleNamespace(region_id='r',network_id='n',timezone='UTC',motion={})
++    infra={'total_m':600.,'edges':edges(),'signals':[]}
++    lookup=AsyncMock(return_value=infra)
++    monkeypatch.setattr(engine,'db',SimpleNamespace(mobility_pattern_infrastructure=SimpleNamespace(find_one=lookup)))
++    monkeypatch.setattr(engine,'get_active_region',lambda:region)
++    monkeypatch.setattr(engine,'datetime',Clock)
++    monkeypatch.setattr(engine,'time',SimpleNamespace(monotonic=lambda:clock[0]))
++    monkeypatch.setattr(generations,'atomic_generations_enabled',lambda:False)
++    monkeypatch.setattr(engine,'traffic_snapshot_for_edges',AsyncMock(return_value={'by_edge':{},
++        'direct_by_edge':{'2:2:3':{'expires_at':'2026-10-26T12:00:30+00:00'}}}))
++    monkeypatch.setenv('MOBILITY_TIME_ALLOCATION_ENABLED','true')
++    monkeypatch.setenv('MOBILITY_TIME_ALLOCATION_SHADOW_ONLY','true')
++    monkeypatch.setenv('MOBILITY_PLAN_HANDOVER_ENABLED','true')
++    args=dict(trip_id='shadow',mode='bus',version_id='v',path={'pattern_id':'p','total_m':600.,'stop_progress':[0,600]},
++        timeline=[{'stop_id':'A','predicted_arrival':0,'predicted_departure':1},
++                  {'stop_id':'B','predicted_arrival':300,'predicted_departure':310}])
++    engine.clear_motion_cache()
++    first=await engine.position_for_trip(**args,now_sec=50)
++    clock[0]+=3.;real_clock[0]=datetime(2026,10,26,12,0,32,tzinfo=timezone.utc)
++    second=await engine.position_for_trip(**args,now_sec=53)
++    assert lookup.await_count==1
++    assert second['progress_m']>=first['progress_m']
++    engine.clear_motion_cache()
++
++
++@pytest.mark.asyncio
++async def test_accepted_traffic_change_rebuilds_only_future_with_no_backward_jump(monkeypatch):
++    from mobility import generations, tomtom_traffic
++    clock=[100.]
++    region=SimpleNamespace(region_id='r',network_id='n',timezone='UTC',motion={})
++    infra={'total_m':600.,'edges':edges(),'signals':[]}
++    monkeypatch.setattr(engine,'get_active_region',lambda:region)
++    monkeypatch.setattr(engine,'db',SimpleNamespace(mobility_pattern_infrastructure=SimpleNamespace(find_one=AsyncMock(return_value=infra))))
++    monkeypatch.setattr(generations,'atomic_generations_enabled',lambda:False)
++    monkeypatch.setattr(engine,'time',SimpleNamespace(monotonic=lambda:clock[0]))
++    monkeypatch.setattr(tomtom_traffic,'approval',lambda *a:{'synthetic_approval':True})
++    observation={'2:2:3':{'provider':'TOMTOM_FLOW','expected_speed_kmh':15.,'includes_signal_delay':True}}
++    monkeypatch.setattr(engine,'traffic_snapshot_for_edges',AsyncMock(side_effect=lambda *a,**k:{'by_edge':{},'direct_by_edge':deepcopy(observation)}))
++    monkeypatch.setenv('MOBILITY_TIME_ALLOCATION_ENABLED','true')
++    monkeypatch.setenv('MOBILITY_TIME_ALLOCATION_SHADOW_ONLY','false')
++    monkeypatch.setenv('MOBILITY_TOMTOM_SHADOW_ONLY','false')
++    monkeypatch.setenv('MOBILITY_PLAN_HANDOVER_ENABLED','true')
++    args=dict(trip_id='active',mode='bus',version_id='v',path={'pattern_id':'p','total_m':600.,'stop_progress':[0,600]},
++        timeline=[{'stop_id':'A','predicted_arrival':0,'predicted_departure':1},
++                  {'stop_id':'B','predicted_arrival':300,'predicted_departure':310}])
++    original=deepcopy(args['timeline'])
++    engine.clear_motion_cache()
++    first=await engine.position_for_trip(**args,now_sec=50)
++    prior=next(iter(engine._PLAN_CACHE.values()))['plan']
++    assert any(s.get('time_allocation',{}).get('selected')=='DIRECT_TRAFFIC_SLOWDOWN' for s in prior['segments'])
++    expected=engine._sample_trip_plan(prior,63,args['timeline'],[0,600])
++    clock[0]+=13.;observation['2:2:3']['expected_speed_kmh']=.5
++    changed=await engine.position_for_trip(**args,now_sec=63)
++    assert changed['progress_m']==pytest.approx(expected['progress_m'])
++    assert changed['progress_m']>=first['progress_m'] and changed['handover_applied']
++    assert changed['speed_kmh']==pytest.approx(expected['speed_kmh'],abs=.01)
++    assert args['timeline']==original
++    engine.clear_motion_cache()
+--- /dev/null
++++ b/Perix-main/backend/tests/test_tomtom_evidence.py
+@@ -0,0 +1,249 @@
++import asyncio
++from copy import deepcopy
++from datetime import datetime, timedelta, timezone
++import json
++from types import SimpleNamespace
++from unittest.mock import AsyncMock
++
++import pytest
++
++from mobility import tomtom_traffic as tt, tomtom_scheduler as scheduler
++from mobility.motion import traffic
++
++
++@pytest.fixture(autouse=True)
++def disabled(monkeypatch):
++    for name in ('MOBILITY_TOMTOM_ENABLED', 'MOBILITY_TOMTOM_LICENSE_APPROVED',
++                 'MOBILITY_TOMTOM_APPROVAL_JSON', 'TOMTOM_TRAFFIC_API_KEY'):
++        monkeypatch.delenv(name, raising=False)
++
++
++@pytest.fixture
++def approved(monkeypatch):
++    now = datetime.now(timezone.utc)
++    raw = {k: True for k in tt.RIGHTS}
++    raw.update(account_ref='synthetic-test-account', review_reference='MOCK_NOT_A_REAL_LICENSE',
++        activation_approved=True, billing_period_verified=True, free_tier_verified=True,
++        shared_budget_scope_confirmed=True, control_database='synthetic_control',
++        verified_remaining_flow_requests=20000, verified_remaining_incident_requests=2500,
++        period_start=(now-timedelta(hours=1)).isoformat(), period_end=(now+timedelta(days=1)).isoformat(),
++        approval_expires=(now+timedelta(days=1)).isoformat(), retention_seconds=1200,
++        storage_backend='MONGO_TTL', backup_retention_approved=True,
++        asynchronous_ttl_cleanup_approved=True, allowed_scopes=[['r','n']])
++    monkeypatch.setenv('MOBILITY_TOMTOM_ENABLED', 'true')
++    monkeypatch.setenv('MOBILITY_TOMTOM_LICENSE_APPROVED', 'true')
++    monkeypatch.setenv('MOBILITY_TOMTOM_APPROVAL_JSON', json.dumps(raw))
++    monkeypatch.setenv('TOMTOM_TRAFFIC_API_KEY', 'SYNTHETIC_KEY_NOT_A_CREDENTIAL')
++    return tt.approval()
++
++
++def sample_flow():
++    return {'flowSegmentData': {'currentSpeed':20,'freeFlowSpeed':40,'currentTravelTime':60,
++        'freeFlowTravelTime':30,'confidence':.9,'roadClosure':False,'openlr':'MOCK_OPENLR',
++        'coordinates':{'coordinate':[{'latitude':52.,'longitude':11.}, {'latitude':52.,'longitude':11.005}]}}}
++
++
++def geometry():
++    scope = {'region_id':'r','network_id':'n','version_id':'v','osm_snapshot_v':3}
++    chain = {**scope,'chain_id':'c','mode':'bus','edges':[{'edge_id':'1:1:2','from_node':1,'to_node':2,
++        'from_point':[52.,11.],'to_point':[52.,11.005],'from_m':0.,'to_m':340.,'way':{'highway':'primary'}}]}
++    point = {**scope,'point_id':'p','chain_id':'c','point':[52.,11.0025], 'generation_ids':['g'],
++        'approved_openlr':'MOCK_OPENLR','direction_verification_ref':'SYNTHETIC_REVIEW'}
++    return point, chain
++
++
++class FakeControl:
++    """Client behavior fake; Mongo atomic semantics are tested separately."""
++    def __init__(self, policy, cap=10):
++        self.policy, self.cap = policy, cap
++        self.calls, self.slots, self.halted = [], set(), False
++        self.lock = asyncio.Lock()
++    async def reserve(self, lease, kind, slot):
++        async with self.lock:
++            if not lease or self.halted or len(self.calls) >= self.cap or (kind,slot) in self.slots:
++                return False
++            self.calls.append((kind,slot)); self.slots.add((kind,slot)); return True
++    async def halt(self, status):
++        self.halted = True
++
++
++@pytest.mark.asyncio
++async def test_key_presence_cannot_enable_client_or_scheduler(monkeypatch):
++    monkeypatch.setenv('TOMTOM_TRAFFIC_API_KEY','SYNTHETIC_ONLY')
++    transport = AsyncMock()
++    control = FakeControl({})
++    result, reason = await tt.TomTomClient(control, transport).request({}, 'flow', {'point':'52,11'}, 'slot')
++    assert result is None and reason == 'DISABLED_OR_UNAPPROVED'
++    assert scheduler.start_scheduler() is None
++    transport.assert_not_awaited(); assert not control.calls
++
++
++@pytest.mark.parametrize('missing', list(tt.RIGHTS)+['activation_approved','billing_period_verified','free_tier_verified','shared_budget_scope_confirmed'])
++def test_every_approval_is_required(approved, monkeypatch, missing):
++    policy = dict(approved); policy[missing] = False
++    monkeypatch.setenv('MOBILITY_TOMTOM_APPROVAL_JSON',json.dumps(policy))
++    assert tt.approval() is None
++
++
++def test_caps_cannot_be_increased_by_environment(approved, monkeypatch):
++    monkeypatch.setenv('TOMTOM_FLOW_MONTHLY_HARD_CAP','999999')
++    monkeypatch.setenv('TOMTOM_INCIDENT_MONTHLY_HARD_CAP','999999')
++    assert tt.approval()['flow_cap'] == 15000 and tt.approval()['incident_cap'] == 2000
++    policy = dict(approved); policy['verified_remaining_flow_requests'] = 13
++    monkeypatch.setenv('MOBILITY_TOMTOM_APPROVAL_JSON',json.dumps(policy))
++    assert tt.approval()['flow_cap'] == 13
++
++
++@pytest.mark.parametrize('status',[401,403,429])
++@pytest.mark.asyncio
++async def test_terminal_errors_halt_without_retry(approved, status):
++    control = FakeControl(approved)
++    transport = AsyncMock(return_value=(status,None))
++    client = tt.TomTomClient(control,transport)
++    assert (await client.request({'owner':'test'},'flow',{'point':'52,11'},'slot'))[0] is None
++    assert transport.await_count == 1 and len(control.calls) == 1 and control.halted
++    await client.request({'owner':'test'},'incident',{'bbox':'11,52,12,53'},'slot2')
++    assert transport.await_count == 1
++
++
++@pytest.mark.asyncio
++async def test_retries_timeout_and_exhausted_budget_are_counted_before_http(approved):
++    control = FakeControl(approved,cap=2)
++    transport = AsyncMock(side_effect=TimeoutError('DO_NOT_LOG_AUTHENTICATED_URL'))
++    client = tt.TomTomClient(control,transport)
++    await client.request({'owner':'test'},'flow',{'point':'52,11'},'slot')
++    assert transport.await_count == len(control.calls) == 2
++    await client.request({'owner':'test'},'flow',{'point':'52,11'},'next')
++    assert transport.await_count == 2
++
++
++@pytest.mark.asyncio
++async def test_exact_versioned_endpoints_parameters_and_no_secret_in_result(approved):
++    control = FakeControl(approved)
++    transport = AsyncMock(return_value=(200,sample_flow()))
++    client = tt.TomTomClient(control,transport)
++    payload, reason = await client.request({'owner':'test'},'flow',{'point':'52,11'},'slot')
++    path, params, key = transport.await_args.args
++    assert path == '/traffic/services/4/flowSegmentData/absolute/18/json'
++    assert params == {'point':'52,11','unit':'kmph','openLr':'true'} and 'key' not in params
++    assert key not in json.dumps(payload) and reason == 'RECEIVED'
++    await client.request({'owner':'test'},'incident',{'bbox':'11,52,12,53'},'slot')
++    assert transport.await_args.args[0] == '/traffic/services/5/incidentDetails'
++    assert transport.await_args.args[1]['timeValidityFilter'] == 'present'
++
++
++def test_geometry_direction_confidence_and_parallel_ambiguity():
++    point, chain = geometry(); flow = tt.parse_flow(sample_flow())
++    matched, reason = tt.match_flow(flow,point,[chain])
++    assert reason == 'ACCEPTED' and set(matched) == {'1:1:2'}
++    assert matched['1:1:2']['source_observed_at'] is None
++    assert tt.match_flow({**flow,'confidence':.3},point,[chain])[1] == 'LOW_CONFIDENCE'
++    assert tt.match_flow(flow,{**point,'approved_openlr':None},[chain])[1] == 'DIRECTION_NOT_VERIFIED'
++    assert not tt.match_flow({**flow,'points':list(reversed(flow['points']))},point,[chain])[0]
++    assert not tt.match_flow(flow,point,[{**chain,'mode':'tram'}])[0]
++    parallel = deepcopy(chain); parallel['chain_id']='parallel'; parallel['edges'][0]['edge_id']='2:3:4'
++    parallel['edges'][0]['from_point'][0] += .00005; parallel['edges'][0]['to_point'][0] += .00005
++    assert tt.match_flow(flow,point,[chain,parallel])[1] == 'AMBIGUOUS_PARALLEL_ROAD'
++    assert not tt.match_flow(flow,point,[{**chain,'osm_snapshot_v':4}])[0]
++
++
++@pytest.mark.parametrize('field,value',[('currentSpeed',False),('confidence',2),('currentTravelTime',0),('freeFlowSpeed',float('nan'))])
++def test_invalid_flow_is_not_motion_evidence(field,value):
++    payload=sample_flow();payload['flowSegmentData'][field]=value
++    with pytest.raises((ValueError,TypeError)):
++        tt.parse_flow(payload)
++
++
++def test_incidents_are_current_geometry_not_automatic_closure_or_bus_delay():
++    now=datetime.now(timezone.utc)
++    payload={'incidents':[{'properties':{'id':'mock','iconCategory':6,'timeValidity':'present','delay':90},
++        'geometry':{'type':'LineString','coordinates':[[11.,52.],[11.005,52.]]}}]}
++    result=tt.parse_incidents(payload,now)
++    assert result[0]['category']=='Jam' and result[0]['motion_effect']=='NONE'
++    point,chain=geometry()
++    diagnostic=tt.incident_geometry_diagnostics(result,[chain])[0]
++    assert diagnostic['candidate_edge_ids']==['1:1:2']
++    assert diagnostic['motion_effect']=='NONE' and diagnostic['reason']=='DIRECTION_UNVERIFIED'
++    payload['incidents'][0]['properties']['startTime']=(now+timedelta(hours=1)).isoformat()
++    assert not tt.parse_incidents(payload,now)
++
++
++@pytest.mark.asyncio
++async def test_duplicate_scheduler_tick_does_not_fetch_or_erase_cache(approved):
++    point,chain=geometry();plan={'points':[point],'chains':[chain]}
++    control=FakeControl(approved);transport=AsyncMock(return_value=(200,sample_flow()))
++    collection=SimpleNamespace(replace_one=AsyncMock())
++    client=tt.TomTomClient(control,transport);now=datetime.now(timezone.utc)
++    assert (await scheduler.sample_cycle(control,client,{'owner':'x'},plan,now,collection))['accepted_points']==1
++    await scheduler.sample_cycle(control,client,{'owner':'x'},plan,now,collection)
++    assert transport.await_count==1 and collection.replace_one.await_count==1
++    bad={'points':[point]*7,'chains':[chain]}
++    assert (await scheduler.sample_cycle(control,client,{'owner':'x'},bad,now,collection))['requests']==0
++
++
++@pytest.mark.asyncio
++async def test_revoked_approval_prevents_retry(approved,monkeypatch):
++    control=FakeControl(approved)
++    async def changed(*args):
++        monkeypatch.setenv('MOBILITY_TOMTOM_LICENSE_APPROVED','false')
++        return 503,None
++    transport=AsyncMock(side_effect=changed)
++    result,reason=await tt.TomTomClient(control,transport).request({'owner':'x'},'flow',{'point':'52,11'},'slot')
++    assert result is None and reason=='APPROVAL_OR_CREDENTIAL_CHANGED'
++    assert len(control.calls)==transport.await_count==1
++
++
++@pytest.mark.asyncio
++async def test_revoked_approval_discards_response_before_provider_storage(approved,monkeypatch):
++    point,chain=geometry();control=FakeControl(approved)
++    async def changed(*args):
++        monkeypatch.setenv('MOBILITY_TOMTOM_LICENSE_APPROVED','false')
++        return 200,sample_flow()
++    collection=SimpleNamespace(replace_one=AsyncMock())
++    result=await scheduler.sample_cycle(control,tt.TomTomClient(control,AsyncMock(side_effect=changed)),
++        {'owner':'x'},{'points':[point],'chains':[chain]},datetime.now(timezone.utc),collection)
++    assert result['reason']=='APPROVAL_CHANGED_DISCARDED'
++    collection.replace_one.assert_not_awaited()
++
++
++@pytest.mark.asyncio
++async def test_vehicle_snapshot_is_cache_only_and_flags_false_exact_baseline(monkeypatch):
++    static=AsyncMock(return_value={'e':{'expected_speed_kmh':20,'profile_version':'p'}})
++    monkeypatch.setattr(traffic,'traffic_for_edges',static)
++    client=AsyncMock(side_effect=AssertionError('vehicle polls must not invoke TomTom'))
++    monkeypatch.setattr(tt.TomTomClient,'request',client)
++    expected={'provider':'STATIC_PROFILE_V1','providers':['STATIC_PROFILE_V1'],'profile_versions':['p'],
++              'by_edge':{'e':{'expected_speed_kmh':20,'profile_version':'p','provider':'STATIC_PROFILE_V1'}}}
++    for _ in range(10):
++        assert await traffic.traffic_snapshot_for_edges([],datetime.now(timezone.utc),region_id='r',network_id='n')==expected
++    client.assert_not_awaited()
++
++
++@pytest.mark.asyncio
++async def test_cached_evidence_rejects_stale_future_and_wrong_generation(approved, monkeypatch):
++    import database
++    point,chain=geometry();now=datetime.now(timezone.utc)
++    e={**chain['edges'][0],'_traffic_graph_v':3,'_traffic_version_id':'v','_traffic_generation_id':'g'}
++    row={**point,'fetched_at':now,'expires_at':now+timedelta(seconds=1200),
++         'by_edge':{'1:1:2':{'provider':'TOMTOM_FLOW','expected_speed_kmh':20}},'diagnostics':[]}
++    find=SimpleNamespace(to_list=AsyncMock(return_value=[row]))
++    monkeypatch.setattr(database,'db',SimpleNamespace(mobility_tomtom_evidence=SimpleNamespace(find=lambda *a:find)))
++    assert (await scheduler.cached_evidence([e],now,region_id='r',network_id='n'))[0]
++    row['fetched_at']=now-timedelta(seconds=1201)
++    assert not (await scheduler.cached_evidence([e],now,region_id='r',network_id='n'))[0]
++    row['fetched_at']=now+timedelta(seconds=1)
++    assert not (await scheduler.cached_evidence([e],now,region_id='r',network_id='n'))[0]
++    row['fetched_at']=now
++    assert not (await scheduler.cached_evidence([{**e,'_traffic_graph_v':4}],now,region_id='r',network_id='n'))[0]
++
++
++@pytest.mark.asyncio
++async def test_research_endpoints_are_admin_only_and_default_disabled():
++    from fastapi import HTTPException
++    from routes import mobility as _mobility  # Preserve existing package import order.
++    from mobility import v2
++    for user,code in [(None,401),(SimpleNamespace(is_admin=False),403)]:
++        with pytest.raises(HTTPException) as error:
++            await v2.v2_research_allocation('t',user)
++        assert error.value.status_code==code
++    assert (await v2.v2_research_allocation('t',SimpleNamespace(is_admin=True)))['enabled'] is False
+--- /dev/null
++++ b/Perix-main/backend/tests/test_tomtom_sampling_control.py
+@@ -0,0 +1,109 @@
++from copy import deepcopy
++import json
++from types import SimpleNamespace
++
++import pytest
++
++from mobility.tomtom_sampling import rank_points, choose_points, validate_plan
++
++
++def inputs():
++    net={'region_id':'r','network_id':'n','version_id':'v','service_date':'2026-10-26'}
++    domain={'trip_templates':[]}; bundles=[]
++    for i in range(8):
++        p='p'+str(i)
++        for j in range(10-i):
++            domain['trip_templates'].append({'pattern_id':p,'trip_id':f'{i}-{j}','mode':'bus','route_number':str(i)})
++        scope={k:net[k] for k in ('region_id','network_id','version_id')}
++        edge={'edge_id':f'{i+1}:1:2','from_node':1,'to_node':2,'way_id':i+1,'from_m':0.,'to_m':100.,
++              'length_m':100.,'from_point':[52.+i*.01,11.], 'to_point':[52.+i*.01,11.0015],
++              'way':{'highway':'primary' if i%2 else 'residential'}}
++        bundles.append({**scope,'pattern_id':p,'generation_id':'g'+str(i),'osm_snapshot_v':1,
++            'ready':True,'mode':'bus','geometry':{'validation':{'valid':True}},
++            'infrastructure':{**scope,'pattern_id':p,'derived_generation':'g'+str(i),'edges':[edge],'signal_events':[]}})
++    return net,domain,bundles
++
++
++def test_actual_counts_not_fake_measured_coverage_and_stable_selection():
++    net,domain,bundles=inputs()
++    report=rank_points(net,domain,bundles)
++    assert report['scheduled_bus_trip_count']==sum(range(3,11))
++    assert report['ranked'][0]['scheduled_passes']==10
++    assert report['matched_tomtom_measurements']==0 and report['direct_traffic_coverage']==0
++    selected=choose_points(report)
++    assert len(selected['points'])==6 and selected['direct_measured_coverage']==0
++    assert selected==choose_points(report)
++    assert selected['scheduled_trips_covered']==sum(range(5,11))
++    assert all(p['role']=='FIXED' and p['generation_ids'] for p in selected['points'])
++    assert selected['rotation_decision']=='NOT_JUSTIFIED_WITHOUT_REPEATED_MATCHED_OBSERVATIONS'
++
++
++def test_invalid_or_unready_generations_and_tram_not_sampled():
++    net,domain,bundles=inputs()
++    bundles[0]['ready']=False
++    bundles[1]['geometry']['validation']['valid']=False
++    bundles[2]['infrastructure']['derived_generation']='different'
++    bundles[3]['region_id']='another'
++    bundles[4]['mode']='tram'
++    assert len(rank_points(net,domain,bundles)['ranked'])==3
++
++
++def test_measured_coverage_requires_actual_matching_graph_and_generation():
++    net,domain,bundles=inputs()
++    measurement={**net,'osm_snapshot_v':1,'generation_ids':['g0'],'by_edge':{'1:1:2':{'provider':'TOMTOM_FLOW'}}}
++    report=rank_points(net,domain,bundles,matched_measurements=[measurement])
++    assert report['matched_tomtom_measurements']==1
++    assert report['direct_traffic_coverage']==pytest.approx(10/sum(range(3,11)))
++    measurement['osm_snapshot_v']=2
++    assert rank_points(net,domain,bundles,matched_measurements=[measurement])['matched_tomtom_measurements']==0
++
++
++def test_sampling_plan_rejects_random_coordinates_and_stale_versions(monkeypatch):
++    from mobility import regions
++    monkeypatch.setattr(regions,'get_region',lambda *a:SimpleNamespace(bbox=(51,10,53,12)))
++    net,domain,bundles=inputs()
++    chosen=choose_points(rank_points(net,domain,bundles))
++    plan=validate_plan(chosen,net,domain,bundles)
++    assert plan['incident_bbox']==[10,51,12,53]
++    assert len(plan['points'])==6 and plan['chains']
++    invalid=deepcopy(chosen);invalid['points'][0]['point'][0]+=.01
++    with pytest.raises(ValueError):validate_plan(invalid,net,domain,bundles)
++    with pytest.raises(ValueError):validate_plan(chosen,{**net,'version_id':'changed'},domain,bundles)
++    invalid=deepcopy(chosen);invalid['points'][0]['role']='ROTATING'
++    with pytest.raises(ValueError):validate_plan(invalid,net,domain,bundles)
++
++
++@pytest.mark.asyncio
++async def test_real_mongo_lease_and_global_caps_if_explicit_local_service(monkeypatch):
++    """Optional isolated integration; NEVER uses config.MONGO_URL or test_db."""
++    import os,uuid,asyncio
++    from datetime import datetime,timedelta,timezone
++    from urllib.parse import urlsplit
++    from motor.motor_asyncio import AsyncIOMotorClient
++    from mobility.tomtom_control import TrafficControl
++    url=os.getenv('MOBILITY_RESEARCH_TEST_MONGO_URL')
++    if not url:pytest.skip('explicit isolated local Mongo service not configured')
++    assert urlsplit(url).hostname in ('127.0.0.1','localhost'), 'integration URL must be isolated local Mongo'
++    client=AsyncIOMotorClient(url,serverSelectionTimeoutMS=5000)
++    db=client['perix_mobility_research_tests']
++    name='control_'+uuid.uuid4().hex
++    now=datetime.now(timezone.utc)
++    policy={'account_ref':'synthetic','period_start':(now-timedelta(days=1)).isoformat(),
++            'period_end':(now+timedelta(days=1)).isoformat(),'flow_cap':5,'incident_cap':3}
++    control=TrafficControl(db[name],policy)
++    try:
++        leases=await asyncio.gather(*(control.acquire(str(i)) for i in range(20)))
++        assert sum(l is not None for l in leases)==1
++        leader=next(l for l in leases if l)
++        reserved=await asyncio.gather(*(control.reserve(leader,'flow',str(i)) for i in range(40)))
++        assert sum(reserved)==5
++        incidents=await asyncio.gather(*(control.reserve(leader,'incident',str(i)) for i in range(40)))
++        assert sum(incidents)==3
++        assert not await control.reserve({**leader,'epoch':leader['epoch']-1},'flow','stale')
++        await control.halt(429)
++        assert not await control.acquire('new-owner')
++        assert (await control.status())['halted']
++    finally:
++        assert name.startswith('control_')
++        await db.drop_collection(name)
++        client.close()
+--- /dev/null
++++ b/Perix-main/backend/tools/mobility_physics_research.py
+@@ -0,0 +1,36 @@
++"""Offline evidence export; no API key or external traffic requests.
++
++Usage: python tools/mobility_physics_research.py --network-json FILE
++       --generations-json FILE --output FILE
++Inputs must be actual canonical snapshots; synthetic fixtures remain labelled.
++"""
++import argparse
++import json
++from pathlib import Path
++import sys
++
++sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
++from mobility.domain import build_domain
++from mobility.tomtom_sampling import rank_points, choose_points
++
++
++def main():
++    parser=argparse.ArgumentParser()
++    parser.add_argument('--network-json',required=True)
++    parser.add_argument('--generations-json',required=True)
++    parser.add_argument('--output',required=True)
++    args=parser.parse_args()
++    network=json.loads(Path(args.network_json).read_bytes())
++    bundles=json.loads(Path(args.generations_json).read_bytes())
++    domain=build_domain(network,network['network_id'],[])
++    ranked=rank_points(network,domain,bundles)
++    chosen=choose_points(ranked)
++    output=Path(args.output)
++    if output.exists():raise ValueError('refusing overwrite of evidence')
++    output.write_text(json.dumps({'scope':ranked['scope'],'service_date':ranked['service_date'],
++        'candidate_count':len(ranked['ranked']),**chosen},indent=2),encoding='utf-8')
++    print(json.dumps({'output':str(output),'points':len(chosen['points']),
++        'direct_measured_coverage':0.,'network_version':network['version_id']}))
++
++
++if __name__=='__main__':main()
+--- /dev/null
++++ b/Perix-main/backend/tools/benchmark_time_allocation.py
+@@ -0,0 +1,71 @@
++"""Synthetic CPU/consistency benchmark; NOT observed ETA/position accuracy."""
++from collections import Counter
++import json
++from pathlib import Path
++import statistics
++import sys
++import time
++
++sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
++from mobility.motion.bus import build_bus_leg
++from mobility.motion.config import motion_config_for
++from mobility.motion.engine import _fit_leg
++from mobility.motion.time_allocation import allocate
++from mobility.motion.common import sample_trajectory
++
++
++def percentile(values,p):
++    return sorted(values)[min(len(values)-1,int((len(values)-1)*p))]
++
++
++def benchmark(iterations=40):
++    config=motion_config_for('bus')
++    edges=[dict(edge_id='1:1:2',from_node=1,to_node=2,from_m=0.,to_m=300.,
++        from_point=[0.,0.],to_point=[0.,.0027],way={'highway':'primary','maxspeed_kmh':40.,'follows_osm_way':True}),
++        dict(edge_id='2:2:3',from_node=2,to_node=3,from_m=300.,to_m=600.,
++        from_point=[0.,.0027],to_point=[.0027,.0027],way={'highway':'primary','maxspeed_kmh':40.,'follows_osm_way':True})]
++    infra={'edges':edges,'signals':[]}
++    original=dict(edges=edges,signals=[],start_m=0.,end_m=600.,departure_service_s=0.,config=config)
++    baseline_ms=[];research_ms=[];deltas=[];fallbacks=Counter();violations=0;backward=0;eta_delta=[]
++    for i in range(iterations):
++        target=[50.,100.,200.,400.][i%4]
++        start=time.perf_counter()
++        base=_fit_leg(lambda r:build_bus_leg(**original,traffic_by_edge={},recovery_ratio=r),target,10)
++        baseline_ms.append((time.perf_counter()-start)*1000)
++        def builder(scenario,evidence):return build_bus_leg(**original,traffic_by_edge=evidence,scenario=scenario)
++        start=time.perf_counter()
++        fitted,report=allocate(base,builder,target,infra=infra,mode='bus',start_m=0.,end_m=600.,config=config,
++            direct_by_edge={'2:2:3':{'provider':'TOMTOM_FLOW','expected_speed_kmh':15.,'includes_signal_delay':True}})
++        research_ms.append((time.perf_counter()-start)*1000)
++        fallbacks[report.get('fallback_reason') or 'SELECTED']+=1
++        scale=fitted['time_scale'];trajectory=fitted['trajectory']
++        for s in trajectory['segments']:
++            ds=s['p1']-s['p0']
++            if (ds<0 or s['v1']**2>s['v0']**2+2*config['acceleration_mps2']*ds+1e-5
++                    or s['v0']**2>s['v1']**2+2*config['braking_mps2']*ds+1e-5):violations+=1
++        end=trajectory['duration_s']*scale
++        previous=0.
++        for j in range(101):
++            p=sample_trajectory(trajectory,end*j/100,scale)['progress_m']
++            backward+=p<previous-1e-6;previous=p
++        for r in (.25,.5,.75):
++            deltas.append(abs(sample_trajectory(trajectory,target*r,scale)['progress_m']-
++                sample_trajectory(base['trajectory'],target*r,base['time_scale'])['progress_m']))
++        eta_delta.append(end-base['trajectory']['duration_s']*base['time_scale'])
++    return {'type':'SYNTHETIC_ENGINEERING_NOT_ACCURACY','iterations':iterations,
++        'baseline_fit_cpu_ms':{'p50':statistics.median(baseline_ms),'p95':percentile(baseline_ms,.95)},
++        'additional_research_cpu_ms':{'p50':statistics.median(research_ms),'p95':percentile(research_ms,.95)},
++        'baseline_new_position_delta_m':{'p50':statistics.median(deltas),'p95':percentile(deltas,.95)},
++        'maximum_absolute_eta_delta_s':max(map(abs,eta_delta)),'physics_violations':violations,
++        'backward_samples':backward,'fallback_counts':dict(fallbacks),
++        'direct_traffic_fixture_distance_coverage':.5,'actual_tomtom_requests':0,'actual_provider_coverage':0.,
++        'rejected_measurement_ratio':None,'request_budget_cost':{'flow':0,'incident':0},
++        'eta_mae_s':None,'independent_position_error_m':None,'api_latency_p50_p95':None,
++        'reason':'No independent observations or API load benchmark supplied'}
++
++
++if __name__=='__main__':
++    result=benchmark()
++    if len(sys.argv)>1:
++        output=Path(sys.argv[1]);assert not output.exists();output.write_text(json.dumps(result,indent=2))
++    print(json.dumps(result,indent=2))
+--- /dev/null
++++ b/Perix-main/backend/MOBILITY_PHYSICS_TOMTOM_AUDIT_2026-10-26.md
+@@ -0,0 +1,110 @@
++# Pre-change inspection — Physics-aware allocation / TomTom evidence
++
++## Baseline and boundaries
++
++Inspection precedes implementation. This checkout contains unrelated existing
++WIP in motion/common, bus, engine, explain, traffic, v2, GTFS, workers and tests.
++It is NOT byte-identical to production d91ff576-492d-45e8-a388-c2b00d0746c6.
++In particular its Google traffic fusion, effective-timeline orchestration and
++physics defaults differ. Do not replace that WIP with a production snapshot or
++deploy the checkout wholesale. This task adds opt-in extensions to this tree;
++production stays untouched. No credentials/configuration or passenger UI changes.
++
++Inspected required modules: motion/common.py, bus.py, tram.py, engine.py,
++traffic.py, config.py, diagnostics.py, explain.py; signal_semantics.py,
++infrastructure.py, traffic_profiles.py, traffic_counts.py, generations.py,
++regions.py, v2.py, utils/gtfs.py, utils/mobility_workers.py; related motion,
++fusion, signal, GTFS and generation tests and the dated production evidence.
++
++## Actual chain and contracts
++
++1. utils/gtfs.py parses the selected region/date/timezone. It already retains
++   seconds, extended hours and ordered stop_times_sequence separately from the
++   legacy stop_id dictionaries. Regression tests cover loops and midnight.
++2. workers ingest GTFS-RT; routes.mobility._predicted_stop_timeline resolves
++   arrival/departure separately. Local RT ingestion is older than production
++   (stop_id keyed); do not silently graft another importer into this feature.
++3. generations validates canonical pattern geometry, derives directed edges
++   and signal infrastructure, and atomically replaces one scoped bundle.
++   get_pattern_generation is region/network/version/pattern-scoped.
++4. engine._build_trip_plan validates generation identity and path length, skips
++   SKIPPED anchors, reads batched traffic snapshots for buses, and builds legs.
++5. bus/tram apply spatial speed spans and point turn caps. common performs the
++   forward acceleration and backward braking envelope and constructs kinematic
++   segments; mandatory stops trigger a complete envelope rebuild.
++6. _fit_leg chooses natural/recovery/fastest trajectories; time_scale >= 1
++   stretches the whole leg. An impossible target propagates a physics-limited
++   ETA, never speed compression. Local WIP retains raw predicted clocks and
++   returns a shared effective timeline.
++7. _acquire_trip_plan caches by scoped identity, geometry, time bucket, timeline
++   and traffic context/revision. Rebuilds sample the previous plan at NOW and
++   pass initial speed/progress/history into handover. continuity_guard remains.
++
++## Existing capabilities to extend, not duplicate
++
++- common already solves v_next² <= v_current² + 2*a*distance and its braking
++  counterpart. Keep existing a/b defaults, including local WIP values.
++- Turn angles currently use consecutive polyline-edge bearings, so sampling
++  noise can create false turns. Add directed-chain/window refinement opt-in.
++- Signal semantics distinguishes NODE_EXACT from spatial diagnostic candidates,
++  resolves direction and clusters heads. The new experiment must consume this
++  stricter event layer even when the legacy semantics flag is off; legacy
++  behavior itself must not change. Pseudo-phase is not a real signal phase.
++- Bus road signals default on; periodic rail-signal modeling defaults off.
++  This task must not enable rail cycles or feed car speeds into tram tracks.
++- Historical traffic profiles use directional lanes, day types and intervals;
++  BPR_V1_UNCALIBRATED is explicitly a model, not measured bus speed.
++- traffic.py already mediates static/optional Google evidence. Retain that WIP.
++  New TomTom reads must be cache-only on this path, with source/age/reasons.
++- Existing Google refresh/budget is per-process. No distributed lease or
++  atomic account-period external-request budget exists to reuse safely.
++- explain/diagnostics already report fastest/natural/effective times, physics,
++  signal/traffic/geometry coverage. Add bounded research diagnostics there.
++- Existing motion diagnostics use optional authentication. Do not change their
++  public contract; add a separate admin-protected research endpoint.
++
++## Implementation decisions / safety gates
++
++New physics/allocation behavior defaults off. Allocation shadow defaults on
++when explicitly enabled: passengers retain baseline output. Candidate builders
++reuse bus/tram/common, original initial conditions and exact canonical path;
++no additive delay on top of a GTFS-RT target. Inconclusive candidates fall back.
++Refinements are opt-in; baseline output equality is tested with flags false.
++
++TomTom client, matching and scheduler are separate from vehicle polling.
++Enabled, license approval, account-period approval, retention permission and
++server-side key are ALL required before an actual request. Key presence alone
++never enables anything. Default implementation/testing uses synthetic mocks.
++No client, key probe, scheduler initialization or content storage runs by default.
++Central reservations count every attempt, with separate <=15000/<=2000 caps,
++idempotent sampling slots, a fenced scheduler lease and a global auth/rate halt.
++Unverified account renewal periods fail closed; no automatic calendar reset.
++
++## API / licensing inspection
++
++Official Incident Details documentation identifies services/5/incidentDetails,
++bbox order minLon,minLat,maxLon,maxLat, GeoJSON lon/lat coordinates and present
++validity. It distinguishes Jam/LaneClosed/RoadClosed/RoadWorks; an incident is
++not automatically a bus delay or closure. Documentation advertises separate
++Orbis APIs: do not mix their formats with the requested legacy versions.
++The old Flow documentation URL redirected to an unrelated Vector Tiles page;
++the canonical Flow Segment documentation must be used, not that redirect.
++
++API documentation is not contractual approval. Commercial prediction, OSM
++matching, Google Maps display/derived output, caching/retention and diagnostics
++rights have NOT been confirmed for this account/architecture. Nor have the
++user-quoted free quotas or account renewal period been verified. Internal caps
++are conservative PERIX limits, not proof of free account-wide use. No live
++endpoint/key availability test is authorized before these gates are resolved.
++
++## Validation plan
++
++Snapshot pre-existing source hashes and run explicit offline suites, excluding
++the destructive test_db fixture. Test flag-off equality, turns/physics,
++directional signal eligibility/dedup/stop proximity, stop-cost recomputation,
++infeasible slack and double-count prevention; TomTom parsing/matching/expiry,
++lease/budget races and terminal errors with mocks. Independently verified ETA
++labels are required for MAE; otherwise report unavailable, not invented accuracy.
++Rank six sampling points only from validated active-network bundles and real
++scheduled trip templates; report missing coverage and rejected geometry. Do not
++present mock coverage as actual coverage or force a 4+2 split without comparison.
+--- /dev/null
++++ b/Perix-main/backend/MOBILITY_PHYSICS_TOMTOM.md
+@@ -0,0 +1,177 @@
++# Physics-aware time allocation and TomTom traffic evidence
++
++## Status / non-goals
++
++Implementation is in the existing working tree, not deployed. This checkout has
++pre-existing unrelated WIP and differs from production d91ff576. Do not deploy
++it wholesale. The pre-change audit is MOBILITY_PHYSICS_TOMTOM_AUDIT_2026-10-26.md.
++Physics defaults, canonical domain, atomic generations, geometry and passenger
++contracts are retained. All new behavior defaults off; the passenger UI is not
++modified. Existing Google traffic WIP is preserved, not enabled or repurposed.
++
++## Flags
++
++| Setting | Default | Effect |
++|---|---|---|
++| MOBILITY_TIME_ALLOCATION_ENABLED | false | Evaluate alternatives with existing bus/tram/common builders |
++| MOBILITY_TIME_ALLOCATION_SHADOW_ONLY | true | Return baseline to passengers, keep bounded private comparisons |
++| MOBILITY_TOMTOM_ENABLED | false | Permit approved background sampler/cache path only |
++| MOBILITY_TOMTOM_LICENSE_APPROVED | false | Operator-attested contractual gate, not automatic approval |
++| MOBILITY_TOMTOM_SHADOW_ONLY | true | Prevent direct flow from changing passenger plans |
++| TOMTOM_FLOW_MONTHLY_HARD_CAP | 15000 | Cannot be increased above 15000 by configuration |
++| TOMTOM_INCIDENT_MONTHLY_HARD_CAP | 2000 | Cannot be increased above 2000 by configuration |
++
++Only TOMTOM_TRAFFIC_API_KEY supplies the server credential. Key presence cannot
++enable requests. No frontend secret, paid-service fallback or key-probe endpoint
++is provided. This document grants no permission to change production flags.
++
++## Exact baseline and shadow behavior
++
++The original _fit_leg remains the baseline. The forward/backward envelope is
++not replaced. New builders accept an optional scenario; None takes the original
++path. Fixed-distance directed topology windows refine turn caps only in the
++experimental rebuild. OSM_TAG and MODELED_DEFAULT provenance are distinct; even
++an OSM tag is not a legal certification of a posted/conditional speed limit.
++
++Candidate legs rebuild acceleration, braking, turns, static/direct flow and a
++possible signal stop from identical initial conditions. Near-stop, opposite,
++spatial-only, untagged and ambiguous signals do not become stop hypotheses.
++Existing signal semantic clustering is reused. Rail-cycle hypotheses are never
++enabled by this extension. Full stop cost is with-stop minus without-stop,
++including braking/reacceleration, not just an appended wait.
++
++Physical infeasibility preserves baseline physics-limited propagation. Matching
++the GTFS-RT target does not prove a red light. Ambiguous geometric hypotheses
++remain an envelope in diagnostics; absent distinguishing flow evidence uses the
++baseline. Compatible direct road-flow evidence may redistribute an existing
++target, never add its travel time/incident delay to that target. Candidates that
++would change the moving handover's initial speed, including by global stretch,
++are rejected. Only future full edges can acquire new direct evidence.
++
++Shadow mode preserves the baseline cache key, expiry and handover schedule;
++TomTom receipt expiry and the experimental 30-second revision bucket cannot
++force an extra passenger plan rebuild in shadow. Active experiments have a
++separate key including approval fingerprint; the original handover identity
++and history remain unchanged. Active direct flow requires BOTH shadow flags
++false plus licensing/activation gates. None are switched by this task.
++
++## TomTom contracts and blocked live usage
++
++Documented formats are pinned, never auto-upgraded to Orbis:
++
++- Flow v4: https://docs.tomtom.com/traffic-api/documentation/tomtom-maps/v1/traffic-flow/flow-segment-data
++- Incidents v5: https://docs.tomtom.com/traffic-api/documentation/tomtom-maps/v1/traffic-incidents/incident-details
++
++Flow uses absolute/18/json, point=lat,lon, unit=kmph, openLr=true. Incidents uses
++bbox=minLon,minLat,maxLon,maxLat, an explicit field set and present validity.
++The old unqualified Flow docs URL redirected to Vector Tiles; that page was
++not used as the Flow Segment contract. The docs advertise separate Orbis APIs;
++their payloads are not mixed into these parsers. Actual key entitlement/version
++availability has NOT been probed: no contractual approval is available.
++
++MOBILITY_TOMTOM_APPROVAL_JSON must explicitly contain all true rights:
++commercial_prediction, osm_combination, google_maps_combination,
++temporary_storage, derived_diagnostics, derived_motion_state. It must also
++include activation_approved, billing_period_verified, free_tier_verified,
++shared_budget_scope_confirmed, backup_retention_approved,
++asynchronous_ttl_cleanup_approved, storage_backend=MONGO_TTL, a nonempty
++review_reference, account_ref and shared control_database. allowed_scopes lists
++explicit region/network pairs. period_start, period_end and approval_expires
++must be timezone-aware ISO timestamps; an expired/unknown period fails closed.
++verified_remaining_flow_requests/verified_remaining_incident_requests further
++reduce hard caps. retention_seconds must be positive and <=1200.
++
++These are attestations supplied AFTER human contractual review, not evidence
++that this implementation has obtained those rights. No sample filled approval
++or actual credential is committed. Approval must cover server storage, derived
++motion history, Google Maps display, backups and asynchronous Mongo TTL cleanup;
++application expiry is immediate, physical deletion is asynchronous. If such
++terms cannot be approved, keep the adapter mock-only or implement another
++explicitly approved storage arrangement before any live call.
++
++The public free-tier numbers quoted in the request and the actual account reset
++period have NOT been verified for this account. For the specified cadence,
++6*3*24*31=13392 Flow and 2*24*31=1488 Incident requests exclude retries. Every
++retry still reserves budget. A shared account used outside this PERIX control
++database needs separate console-side controls; internal counters cannot cap
++those consumers or guarantee a zero invoice.
++
++## Central safeguards
++
++One Mongo control document per account contains policy fingerprint, explicit
++period, a server-time fenced lease, separate counters, idempotent slot tokens
++and an account-wide halt. Lease/budget/slot conditions are checked in the same
++atomic update before each request; no counter refund follows timeout, malformed
++payload or cancellation. A changed period/policy does not reset the ledger.
++Renewal/review requires an explicit operator procedure preserving current
++counters; there is intentionally no automatic monthly reset.
++
++All instances/environments sharing an account must use the same reviewed
++control_database/cluster. A process-local limiter would not meet this contract.
++401/403/429 halt globally with no retry. Transient transport/5xx failures have at
++most one additional, separately reserved attempt. Exhaustion means no new calls.
++The scheduler owns calls; traffic_snapshot_for_edges, /vehicles and diagnostics
++cannot acquire a sampling lease or trigger HTTP. The transport has no automatic
++redirect/retry or authenticated-URL logging and never returns exception text.
++
++The scheduler validates configuration against active canonical generations,
++requests at most six global ordinal slots per 20 minutes and one bbox per 30
++minutes, and never catches up missed slots. Configuration/region changes cannot
++obtain another six calls within the same slot. Duplicate ticks do not erase
++fresh cache records. Provider cache is separate from the permanent own-control
++ledger and guarded by approved retention, version/generation and receipt age.
++
++## Geometry/direction and cache
++
++Flow speed is a road aggregate, never bus GPS/speed. Every vertex must agree
++with a connected directed OSM chain; wrong orientation, parallel alternatives,
++low confidence, closure/stopped ambiguity and stale generation are rejected.
++15m corridor / 0.7 confidence are configurable modeling criteria, not proof.
++v4 visualization coordinates are zoom-shifted; geometric order is not treated
++as sufficient heading proof. A separately reviewed OpenLR-direction binding is
++required before motion use. Missing binding means rejected evidence, not a
++nearest-road guess. No road flow is applied to tram trajectories.
++
++Flow has no per-record observation timestamp in this contract. source_observed_at
++therefore remains null, and age_basis is RECEIPT_ONLY. An old receipt is never
++served, but receipt freshness does not prove the underlying measurement age.
++Incidents are geometrically associated for diagnostics, not automatically
++converted into directed bus closures/delays. Their delay is never summed with
++RT or Flow. Source labels distinguish STATIC_PROFILE/TOMTOM_FLOW/
++TOMTOM_INCIDENT/NONE without calling a virtual vehicle LIVE.
++
++## Admin diagnostics and offline tools
++
++New endpoints require is_admin=True (401 anonymous, 403 other users):
++
++- GET /api/mobility/v2/diagnostic/research/status — flags/approval/control counters only
++- GET /api/mobility/v2/diagnostic/research/sampling — own canonical candidate/coverage report
++- GET /api/mobility/v2/diagnostic/research/allocation/{trip_id} — opt-in bounded comparisons
++
++Existing public diagnostic/API contracts remain unchanged. Reports include
++baseline/new progress samples, feasible alternatives, hypothetical signal costs,
++turn events, targets/fastest/slack, accepted/rejected provenance and fallback.
++They report independent ETA MAE and position error as unavailable without labels.
++
++tools/mobility_physics_research.py ranks actual scheduled bus passes from supplied
++network + ready-generation snapshots. Tools never fabricate six coordinates or
++perform TomTom requests. Six fixed points are the current conservative proposal;
++4+2 rotation is explicitly NOT justified until repeated matched observations
++and a temporal coverage comparison exist. This is not a deployed configuration.
++tools/benchmark_time_allocation.py measures synthetic CPU/consistency, not API
++latency or accuracy. See releases/physics-time-allocation-20261026 for evidence.
++
++## Tests / rollback / activation decision
++
++Explicit suites avoid the destructive test_db fixture. A separate CI workflow
++adds an isolated localhost Mongo integration service and needs no traffic key.
++The local optional Mongo test is skipped unless that service is explicitly
++configured; separate scoped staging-Mongo evidence verifies real atomic races.
++
++No deployment or production configuration changes occurred. Keeping flags off
++is the rollback for future experiments; baseline output remains unchanged.
++For source rollback use the task-only patch against its recorded pre-change WIP,
++not git reset/checkout over unrelated work. Before any future release reconcile
++this WIP-based extension with the published neighbour-timing production source.
++Activation is NOT recommended until licensing, live matching/coverage, independent
++accuracy and real API load/latency gates are satisfied and explicitly approved.
+--- /dev/null
++++ b/.github/workflows/mobility-physics-research.yml
+@@ -0,0 +1,58 @@
++name: Mobility physics and traffic safeguards
++on:
++  pull_request:
++    paths:
++      - 'Perix-main/backend/mobility/**'
++      - 'Perix-main/backend/utils/gtfs.py'
++      - 'Perix-main/backend/utils/mobility_workers.py'
++      - 'Perix-main/backend/tests/test_mobility_*.py'
++      - 'Perix-main/backend/tests/test_tomtom_*.py'
++      - '.github/workflows/mobility-physics-research.yml'
++  workflow_dispatch:
++permissions:
++  contents: read
++jobs:
++  offline-and-budget-integration:
++    runs-on: ubuntu-latest
++    timeout-minutes: 15
++    services:
++      mongo:
++        image: mongo:7
++        ports: ['27017:27017']
++        options: >-
++          --health-cmd "mongosh --eval 'db.adminCommand({ping:1})'"
++          --health-interval 10s --health-timeout 5s --health-retries 10
++    defaults:
++      run:
++        working-directory: Perix-main/backend
++    env:
++      MONGO_URL: mongodb://127.0.0.1:1
++      DB_NAME: perix_mobility_offline
++      MOBILITY_RESEARCH_TEST_MONGO_URL: mongodb://127.0.0.1:27017
++      MOBILITY_TIME_ALLOCATION_ENABLED: 'false'
++      MOBILITY_TOMTOM_ENABLED: 'false'
++      MOBILITY_TOMTOM_LICENSE_APPROVED: 'false'
++      MOBILITY_TOMTOM_SHADOW_ONLY: 'true'
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-python@v5
++        with:
++          python-version: '3.11'
++          cache: pip
++          cache-dependency-path: Perix-main/backend/requirements.txt
++      - run: pip install -r requirements.txt pytest pytest-asyncio
++      - name: Explicit suites only — never the destructive test_db fixture
++        run: >-
++          python -m pytest -q --junitxml=mobility-research-results.xml
++          tests/test_mobility_time_allocation.py tests/test_tomtom_evidence.py
++          tests/test_tomtom_sampling_control.py tests/test_mobility_motion_common.py
++          tests/test_mobility_motion_bus_tram.py tests/test_mobility_motion_engine.py
++          tests/test_mobility_motion_handover.py tests/test_mobility_motion_fusion.py
++          tests/test_mobility_motion_diagnostics.py tests/test_mobility_motion_explain.py
++          tests/test_mobility_signal_semantics.py tests/test_mobility_signal_clustering.py
++          tests/test_gtfs_island_integrity.py tests/test_mobility_timeline_contract.py
++      - uses: actions/upload-artifact@v4
++        if: always()
++        with:
++          name: mobility-research-results
++          path: Perix-main/backend/mobility-research-results.xml

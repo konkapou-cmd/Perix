@@ -1,0 +1,8 @@
+{
+  "deployment": "c53bf814-f21e-4b54-ad55-dd1e8ba0ecc4",
+  "original_runtime_settings_verified": true,
+  "original_database_restored": true,
+  "only_owned_isolated_database_removed": true,
+  "native_enabled": false,
+  "traffic_enabled": false
+}

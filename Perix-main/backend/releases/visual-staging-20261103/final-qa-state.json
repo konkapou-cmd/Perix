@@ -1,0 +1,7 @@
+{
+  "qa_trips_canceled": true,
+  "fleet_empty": true,
+  "qa_boards_empty": true,
+  "http_statuses_all_200": true,
+  "live_ingestion_enabled": false
+}

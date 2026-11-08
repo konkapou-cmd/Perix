@@ -1,0 +1,355 @@
+{
+  "live_deployment": "86787584-b517-4c4a-acbb-da7ef325add5",
+  "runtime_backend_files_verified": 278,
+  "input_sha256": "be64d21c6eba89c55719582878ce5dd8410e25131be11215cd872f9ca70d71a8",
+  "same_stored_synthetic_inputs": true,
+  "production_cached_departure_floor_bug_present": false,
+  "production_already_meets_both_consistent_case_targets": true,
+  "reason": "Verified live engine already releases obsolete cached departure holds; the local-only 79-line patch has no corresponding optional hold to release in that production code.",
+  "gate": "BLOCKED_NO_JUSTIFIED_PRODUCTION_DELTA",
+  "deployment_submitted": false,
+  "production_writes": 0,
+  "runtime_settings_changes": 0,
+  "rows": [
+    {
+      "mode": "bus",
+      "case": "consistent",
+      "local_before": {
+        "first_arrival_s": 43327.49831572689,
+        "first_departure_s": 43300.0,
+        "source_target_miss_s": 7.4983157268870855,
+        "modeled_progress_gap_at_source_eta_m": 33.734843244036995,
+        "progress_at_update_m": 0.0,
+        "speed_at_update_kmh": 0.0,
+        "released_wait_s": 0
+      },
+      "local_patch": {
+        "first_arrival_s": 43320.0,
+        "first_departure_s": 43292.50168427311,
+        "source_target_miss_s": 0,
+        "modeled_progress_gap_at_source_eta_m": 0,
+        "progress_at_update_m": 0.0,
+        "speed_at_update_kmh": 0.0,
+        "released_wait_s": 7.498315726885714
+      },
+      "existing_production_solver_same_physical_config": {
+        "first_departure_s": 43270.0,
+        "first_arrival_s": 43320.0,
+        "source_target_miss_s": 0,
+        "modeled_progress_gap_at_source_eta_m": 0
+      },
+      "existing_production_solver_deployed_physical_config": {
+        "first_departure_s": 43270.0,
+        "first_arrival_s": 43320.0,
+        "source_target_miss_s": 0,
+        "modeled_progress_gap_at_source_eta_m": 0
+      }
+    },
+    {
+      "mode": "bus",
+      "case": "one_update",
+      "local_before": {
+        "first_arrival_s": 43327.49831572689,
+        "first_departure_s": 43300.0,
+        "source_target_miss_s": 7.4983157268870855,
+        "modeled_progress_gap_at_source_eta_m": 33.734843244036995,
+        "progress_at_update_m": 0.0,
+        "speed_at_update_kmh": 0.0,
+        "released_wait_s": 0
+      },
+      "local_patch": {
+        "first_arrival_s": 43327.49831572689,
+        "first_departure_s": 43300.0,
+        "source_target_miss_s": 7.4983157268870855,
+        "modeled_progress_gap_at_source_eta_m": 33.734843244036995,
+        "progress_at_update_m": 0.0,
+        "speed_at_update_kmh": 0.0,
+        "released_wait_s": 0
+      },
+      "existing_production_solver_same_physical_config": {
+        "first_departure_s": 43270.0,
+        "first_arrival_s": 43320.0,
+        "source_target_miss_s": 0,
+        "modeled_progress_gap_at_source_eta_m": 0
+      },
+      "existing_production_solver_deployed_physical_config": {
+        "first_departure_s": 43270.0,
+        "first_arrival_s": 43320.0,
+        "source_target_miss_s": 0,
+        "modeled_progress_gap_at_source_eta_m": 0
+      }
+    },
+    {
+      "mode": "bus",
+      "case": "stale",
+      "local_before": {
+        "first_arrival_s": 43327.49831572689,
+        "first_departure_s": 43300.0,
+        "source_target_miss_s": 7.4983157268870855,
+        "modeled_progress_gap_at_source_eta_m": 33.734843244036995,
+        "progress_at_update_m": 0.0,
+        "speed_at_update_kmh": 0.0,
+        "released_wait_s": 0
+      },
+      "local_patch": {
+        "first_arrival_s": 43327.49831572689,
+        "first_departure_s": 43300.0,
+        "source_target_miss_s": 7.4983157268870855,
+        "modeled_progress_gap_at_source_eta_m": 33.734843244036995,
+        "progress_at_update_m": 0.0,
+        "speed_at_update_kmh": 0.0,
+        "released_wait_s": 0
+      },
+      "existing_production_solver_same_physical_config": {
+        "first_departure_s": 43270.0,
+        "first_arrival_s": 43320.0,
+        "source_target_miss_s": 0,
+        "modeled_progress_gap_at_source_eta_m": 0
+      },
+      "existing_production_solver_deployed_physical_config": {
+        "first_departure_s": 43270.0,
+        "first_arrival_s": 43320.0,
+        "source_target_miss_s": 0,
+        "modeled_progress_gap_at_source_eta_m": 0
+      }
+    },
+    {
+      "mode": "bus",
+      "case": "mandatory",
+      "local_before": {
+        "first_arrival_s": 43427.49831572689,
+        "first_departure_s": 43400.0,
+        "source_target_miss_s": 107.49831572688709,
+        "modeled_progress_gap_at_source_eta_m": 200.0,
+        "progress_at_update_m": 0.0,
+        "speed_at_update_kmh": 0.0,
+        "released_wait_s": 0
+      },
+      "local_patch": {
+        "first_arrival_s": 43427.49831572689,
+        "first_departure_s": 43400.0,
+        "source_target_miss_s": 107.49831572688709,
+        "modeled_progress_gap_at_source_eta_m": 200.0,
+        "progress_at_update_m": 0.0,
+        "speed_at_update_kmh": 0.0,
+        "released_wait_s": 0.0
+      },
+      "existing_production_solver_same_physical_config": {
+        "first_departure_s": 43270.0,
+        "first_arrival_s": 43320.0,
+        "source_target_miss_s": 0,
+        "modeled_progress_gap_at_source_eta_m": 0
+      },
+      "existing_production_solver_deployed_physical_config": {
+        "first_departure_s": 43270.0,
+        "first_arrival_s": 43320.0,
+        "source_target_miss_s": 0,
+        "modeled_progress_gap_at_source_eta_m": 0
+      }
+    },
+    {
+      "mode": "bus",
+      "case": "impossible",
+      "local_before": {
+        "first_arrival_s": 43349.098315726886,
+        "first_departure_s": 43300.0,
+        "source_target_miss_s": 29.09831572688563,
+        "modeled_progress_gap_at_source_eta_m": 323.76234552742164,
+        "progress_at_update_m": 0.0,
+        "speed_at_update_kmh": 0.0,
+        "released_wait_s": 0
+      },
+      "local_patch": {
+        "first_arrival_s": 43334.098315726886,
+        "first_departure_s": 43285.0,
+        "source_target_miss_s": 14.09831572688563,
+        "modeled_progress_gap_at_source_eta_m": 115.42901219408799,
+        "progress_at_update_m": 0.0,
+        "speed_at_update_kmh": 0.0,
+        "released_wait_s": 15.0
+      },
+      "existing_production_solver_same_physical_config": {
+        "first_departure_s": 43270.0,
+        "first_arrival_s": 43320.0,
+        "source_target_miss_s": 0,
+        "modeled_progress_gap_at_source_eta_m": 0
+      },
+      "existing_production_solver_deployed_physical_config": {
+        "first_departure_s": 43270.0,
+        "first_arrival_s": 43320.0,
+        "source_target_miss_s": 0,
+        "modeled_progress_gap_at_source_eta_m": 0
+      }
+    },
+    {
+      "mode": "tram",
+      "case": "consistent",
+      "local_before": {
+        "first_arrival_s": 43330.00168601388,
+        "first_departure_s": 43300.0,
+        "source_target_miss_s": 10.001686013878498,
+        "modeled_progress_gap_at_source_eta_m": 50.01686156008276,
+        "progress_at_update_m": 0.0,
+        "speed_at_update_kmh": 0.0,
+        "released_wait_s": 0
+      },
+      "local_patch": {
+        "first_arrival_s": 43320.0,
+        "first_departure_s": 43289.99831398612,
+        "source_target_miss_s": 0,
+        "modeled_progress_gap_at_source_eta_m": 0,
+        "progress_at_update_m": 0.0,
+        "speed_at_update_kmh": 0.0,
+        "released_wait_s": 10.001686013876139
+      },
+      "existing_production_solver_same_physical_config": {
+        "first_departure_s": 43270.0,
+        "first_arrival_s": 43320.0,
+        "source_target_miss_s": 0,
+        "modeled_progress_gap_at_source_eta_m": 0
+      },
+      "existing_production_solver_deployed_physical_config": {
+        "first_departure_s": 43270.0,
+        "first_arrival_s": 43320.0,
+        "source_target_miss_s": 0,
+        "modeled_progress_gap_at_source_eta_m": 0
+      }
+    },
+    {
+      "mode": "tram",
+      "case": "one_update",
+      "local_before": {
+        "first_arrival_s": 43330.00168601388,
+        "first_departure_s": 43300.0,
+        "source_target_miss_s": 10.001686013878498,
+        "modeled_progress_gap_at_source_eta_m": 50.01686156008276,
+        "progress_at_update_m": 0.0,
+        "speed_at_update_kmh": 0.0,
+        "released_wait_s": 0
+      },
+      "local_patch": {
+        "first_arrival_s": 43330.00168601388,
+        "first_departure_s": 43300.0,
+        "source_target_miss_s": 10.001686013878498,
+        "modeled_progress_gap_at_source_eta_m": 50.01686156008276,
+        "progress_at_update_m": 0.0,
+        "speed_at_update_kmh": 0.0,
+        "released_wait_s": 0
+      },
+      "existing_production_solver_same_physical_config": {
+        "first_departure_s": 43270.0,
+        "first_arrival_s": 43320.0,
+        "source_target_miss_s": 0,
+        "modeled_progress_gap_at_source_eta_m": 0
+      },
+      "existing_production_solver_deployed_physical_config": {
+        "first_departure_s": 43270.0,
+        "first_arrival_s": 43320.0,
+        "source_target_miss_s": 0,
+        "modeled_progress_gap_at_source_eta_m": 0
+      }
+    },
+    {
+      "mode": "tram",
+      "case": "stale",
+      "local_before": {
+        "first_arrival_s": 43330.00168601388,
+        "first_departure_s": 43300.0,
+        "source_target_miss_s": 10.001686013878498,
+        "modeled_progress_gap_at_source_eta_m": 50.01686156008276,
+        "progress_at_update_m": 0.0,
+        "speed_at_update_kmh": 0.0,
+        "released_wait_s": 0
+      },
+      "local_patch": {
+        "first_arrival_s": 43330.00168601388,
+        "first_departure_s": 43300.0,
+        "source_target_miss_s": 10.001686013878498,
+        "modeled_progress_gap_at_source_eta_m": 50.01686156008276,
+        "progress_at_update_m": 0.0,
+        "speed_at_update_kmh": 0.0,
+        "released_wait_s": 0
+      },
+      "existing_production_solver_same_physical_config": {
+        "first_departure_s": 43270.0,
+        "first_arrival_s": 43320.0,
+        "source_target_miss_s": 0,
+        "modeled_progress_gap_at_source_eta_m": 0
+      },
+      "existing_production_solver_deployed_physical_config": {
+        "first_departure_s": 43270.0,
+        "first_arrival_s": 43320.0,
+        "source_target_miss_s": 0,
+        "modeled_progress_gap_at_source_eta_m": 0
+      }
+    },
+    {
+      "mode": "tram",
+      "case": "mandatory",
+      "local_before": {
+        "first_arrival_s": 43430.00168601388,
+        "first_departure_s": 43400.0,
+        "source_target_miss_s": 110.0016860138785,
+        "modeled_progress_gap_at_source_eta_m": 200.0,
+        "progress_at_update_m": 0.0,
+        "speed_at_update_kmh": 0.0,
+        "released_wait_s": 0
+      },
+      "local_patch": {
+        "first_arrival_s": 43430.00168601388,
+        "first_departure_s": 43400.0,
+        "source_target_miss_s": 110.0016860138785,
+        "modeled_progress_gap_at_source_eta_m": 200.0,
+        "progress_at_update_m": 0.0,
+        "speed_at_update_kmh": 0.0,
+        "released_wait_s": 0.0
+      },
+      "existing_production_solver_same_physical_config": {
+        "first_departure_s": 43270.0,
+        "first_arrival_s": 43320.0,
+        "source_target_miss_s": 0,
+        "modeled_progress_gap_at_source_eta_m": 0
+      },
+      "existing_production_solver_deployed_physical_config": {
+        "first_departure_s": 43270.0,
+        "first_arrival_s": 43320.0,
+        "source_target_miss_s": 0,
+        "modeled_progress_gap_at_source_eta_m": 0
+      }
+    },
+    {
+      "mode": "tram",
+      "case": "impossible",
+      "local_before": {
+        "first_arrival_s": 43351.626342168674,
+        "first_departure_s": 43300.0,
+        "source_target_miss_s": 31.626342168674455,
+        "modeled_progress_gap_at_source_eta_m": 342.7906880667723,
+        "progress_at_update_m": 0.0,
+        "speed_at_update_kmh": 0.0,
+        "released_wait_s": 0
+      },
+      "local_patch": {
+        "first_arrival_s": 43336.626342168674,
+        "first_departure_s": 43285.0,
+        "source_target_miss_s": 16.626342168674455,
+        "modeled_progress_gap_at_source_eta_m": 134.45735473343865,
+        "progress_at_update_m": 0.0,
+        "speed_at_update_kmh": 0.0,
+        "released_wait_s": 15.0
+      },
+      "existing_production_solver_same_physical_config": {
+        "first_departure_s": 43270.0,
+        "first_arrival_s": 43321.626342168674,
+        "source_target_miss_s": 1.626342168674455,
+        "modeled_progress_gap_at_source_eta_m": 1.3224944248002544
+      },
+      "existing_production_solver_deployed_physical_config": {
+        "first_departure_s": 43270.0,
+        "first_arrival_s": 43320.0,
+        "source_target_miss_s": 0,
+        "modeled_progress_gap_at_source_eta_m": 0
+      }
+    }
+  ]
+}

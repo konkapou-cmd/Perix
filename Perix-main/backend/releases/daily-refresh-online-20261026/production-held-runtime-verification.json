@@ -1,0 +1,16 @@
+{
+  "deployment": "2eefd022-f880-4514-a5bc-fd2105c64385",
+  "status": "SUCCESS",
+  "runtime_files_verified": 278,
+  "mismatches": [],
+  "native_enabled": false,
+  "traffic_enabled": false,
+  "source_and_frontend_manifest_verified": true,
+  "held_flags_verified": {
+    "MOBILITY_SYNC_AUTO_ACTIVATE": false,
+    "MOBILITY_DAILY_RECOVERY_ENABLED": false,
+    "MOBILITY_NATIVE_RECALIBRATION_ENABLED": false,
+    "MOBILITY_GOOGLE_TRAFFIC_ENABLED": false,
+    "MOBILITY_TOMTOM_ENABLED": false
+  }
+}

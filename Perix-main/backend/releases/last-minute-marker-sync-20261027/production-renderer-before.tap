@@ -1,0 +1,137 @@
+✔ 45 seconds legitimately rounds to one minute through the existing ETA adapter (182.5337ms)
+✖ bus: same trip, same plan revision and server timestamp has no extra poll of render delay (9.542ms)
+✖ tram: same trip, same plan revision and server timestamp has no extra poll of render delay (2.0145ms)
+✖ 30-second earlier source revision uses the newest backend position, not a delayed tween (1.8184ms)
+✖ a short stop between polls does not leave a departing virtual bus rendered before the stop (2.3056ms)
+✖ stop anchor and required two-second source dwell are preserved without extrapolation (3.5241ms)
+✖ two N5 and one N4 keep exact journey identities and independent rendered positions (6.5249ms)
+✔ real GPS interpolation remains unchanged (4.549ms)
+✔ estimated taxi interpolation remains unchanged (4.6697ms)
+✔ unmarked backward jitter still uses the existing no-backtracking guard (4.0094ms)
+✔ missing canonical progress does not activate the new estimated-sample branch (2.6978ms)
+✔ model-only source timestamps never become observed GPS/boarding evidence (0.8486ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 6
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 615.5521
+
+✖ failing tests:
+
+test at tests\last-minute-marker-sync.test.cjs:67:37
+✖ bus: same trip, same plan revision and server timestamp has no extra poll of render delay (9.542ms)
+  AssertionError [ERR_ASSERTION]: render lag: 34.906666277081015m for de-magdeburg-mvb:offline-v:2026-10-27:N5:first / 37757d60e8141f15cb48
+      at assertAtBackend (C:\Users\PC\Downloads\Perix1\Perix-main\frontend\tests\last-minute-marker-sync.test.cjs:50:12)
+      at TestContext.<anonymous> (C:\Users\PC\Downloads\Perix1\Perix-main\frontend\tests\last-minute-marker-sync.test.cjs:71:3)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1103:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:785:18)
+      at Test.postRun (node:internal/test_runner/test:1232:19)
+      at Test.run (node:internal/test_runner/test:1160:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\last-minute-marker-sync.test.cjs:67:37
+✖ tram: same trip, same plan revision and server timestamp has no extra poll of render delay (2.0145ms)
+  AssertionError [ERR_ASSERTION]: render lag: 34.906666277081015m for de-magdeburg-mvb:offline-v:2026-10-27:N5:first / 37757d60e8141f15cb48
+      at assertAtBackend (C:\Users\PC\Downloads\Perix1\Perix-main\frontend\tests\last-minute-marker-sync.test.cjs:50:12)
+      at TestContext.<anonymous> (C:\Users\PC\Downloads\Perix1\Perix-main\frontend\tests\last-minute-marker-sync.test.cjs:71:3)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1103:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:785:18)
+      at Test.postRun (node:internal/test_runner/test:1232:19)
+      at Test.run (node:internal/test_runner/test:1160:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:785:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\last-minute-marker-sync.test.cjs:74:1
+✖ 30-second earlier source revision uses the newest backend position, not a delayed tween (1.8184ms)
+  AssertionError [ERR_ASSERTION]: render lag: 15.75701774393946m for de-magdeburg-mvb:offline-v:2026-10-27:N5:first / 7044cd56cecc7161035d
+      at assertAtBackend (C:\Users\PC\Downloads\Perix1\Perix-main\frontend\tests\last-minute-marker-sync.test.cjs:50:12)
+      at TestContext.<anonymous> (C:\Users\PC\Downloads\Perix1\Perix-main\frontend\tests\last-minute-marker-sync.test.cjs:80:3)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1103:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:785:18)
+      at Test.postRun (node:internal/test_runner/test:1232:19)
+      at Test.run (node:internal/test_runner/test:1160:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:785:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\last-minute-marker-sync.test.cjs:83:1
+✖ a short stop between polls does not leave a departing virtual bus rendered before the stop (2.3056ms)
+  AssertionError [ERR_ASSERTION]: render lag: 5.680122753484113m for de-magdeburg-mvb:offline-v:2026-10-27:N5:first / 30114bfac3c925231ebf
+      at assertAtBackend (C:\Users\PC\Downloads\Perix1\Perix-main\frontend\tests\last-minute-marker-sync.test.cjs:50:12)
+      at TestContext.<anonymous> (C:\Users\PC\Downloads\Perix1\Perix-main\frontend\tests\last-minute-marker-sync.test.cjs:88:3)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1103:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:785:18)
+      at Test.postRun (node:internal/test_runner/test:1232:19)
+      at Test.run (node:internal/test_runner/test:1160:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:785:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\last-minute-marker-sync.test.cjs:91:1
+✖ stop anchor and required two-second source dwell are preserved without extrapolation (3.5241ms)
+  AssertionError [ERR_ASSERTION]: render lag: 0.2789742682642782m for de-magdeburg-mvb:offline-v:2026-10-27:N5:first / 24036dc877bb4290e106
+      at assertAtBackend (C:\Users\PC\Downloads\Perix1\Perix-main\frontend\tests\last-minute-marker-sync.test.cjs:50:12)
+      at TestContext.<anonymous> (C:\Users\PC\Downloads\Perix1\Perix-main\frontend\tests\last-minute-marker-sync.test.cjs:104:21)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1103:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:785:18)
+      at Test.postRun (node:internal/test_runner/test:1232:19)
+      at Test.run (node:internal/test_runner/test:1160:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:785:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\last-minute-marker-sync.test.cjs:108:1
+✖ two N5 and one N4 keep exact journey identities and independent rendered positions (6.5249ms)
+  AssertionError [ERR_ASSERTION]: render lag: 34.906666277081015m for de-magdeburg-mvb:offline-v:2026-10-27:N5:first / 37757d60e8141f15cb48
+      at assertAtBackend (C:\Users\PC\Downloads\Perix1\Perix-main\frontend\tests\last-minute-marker-sync.test.cjs:50:12)
+      at TestContext.<anonymous> (C:\Users\PC\Downloads\Perix1\Perix-main\frontend\tests\last-minute-marker-sync.test.cjs:114:3)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1103:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:785:18)
+      at Test.postRun (node:internal/test_runner/test:1232:19)
+      at Test.run (node:internal/test_runner/test:1160:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:785:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+

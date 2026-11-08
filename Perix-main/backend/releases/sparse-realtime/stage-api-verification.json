@@ -1,0 +1,29 @@
+{
+  "origin": "https://backend-staging-staging-7ada.up.railway.app",
+  "read_only": true,
+  "fleet_count": 48,
+  "virtual_count": 48,
+  "anchored_schedule_count": 4,
+  "moving_with_evidence_count": 44,
+  "anchored_schedule_without_timing_evidence": 4,
+  "gps_count": 0,
+  "gps_virtual_fields_absent": true,
+  "live_gps_observation_tested": false,
+  "virtual_sample": {
+    "trip_id": "894798",
+    "version_id": "net_c90c160d4ce6",
+    "service_date": "2026-10-25",
+    "timing_basis": "PROPAGATED_STOP_DEPARTURE",
+    "source_status": "TRIP_CLOCK_UNKNOWN",
+    "position_assurance": "MODEL_ESTIMATE",
+    "estimate_revision_matches_detail": true,
+    "detail_ms": 2387.94
+  },
+  "fleet_ms": 2289.87,
+  "diagnostic_ms": 534.43,
+  "history_retained_events": 99,
+  "history_dropped_events": 0,
+  "scope_validation_passed": true,
+  "synthetic_live_updates_inserted": false,
+  "production_changed": false
+}

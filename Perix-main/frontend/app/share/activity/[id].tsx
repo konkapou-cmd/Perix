@@ -135,8 +135,7 @@ export default function ShareActivityPage() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Header */}
       <View style={styles.header}>
-        <Image source={require("../../../assets/images/prx-logo.jpg")} style={styles.logo} />
-        <Text style={styles.brandName}>Perix</Text>
+        <Image source={require("../../../assets/brand/perix-watercolor-wordmark.png")} resizeMode="contain" style={styles.logo} />
       </View>
 
       {/* Activity Preview Card */}
@@ -244,9 +243,8 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   logo: {
-    width: 40,
+    width: 110,
     height: 40,
-    borderRadius: 10,
   },
   brandName: {
     fontSize: 24,

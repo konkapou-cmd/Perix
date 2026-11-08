@@ -9,12 +9,14 @@ Env:
   MOBILITY_SYNC_MIN_LINES    (default 10)
   MOBILITY_SYNC_AUTO_ACTIVATE ("false" to disable auto-activate)
   MOBILITY_STATIC_INTERVAL_HOURS (default 6)
+  MOBILITY_WORKERS_ENABLED   ("false" disables all in-process mobility workers)
 """
 import asyncio
 import hashlib
 import json
 import logging
 import os
+import tempfile
 from typing import Optional
 
 import httpx
@@ -524,11 +526,14 @@ async def _static_worker():
 
     while True:
         today = None
+        tmp_path = None
         try:
             # Stream to disk (the nationwide feed is ~270MB - never hold it in RAM)
-            tmp_path = "/tmp/perix_gtfs.zip"
+            # Each worker/cycle owns its file. A shared path allows concurrent
+            # processes to truncate or replace the bytes associated with a hash.
+            fd, tmp_path = tempfile.mkstemp(prefix="perix_gtfs_", suffix=".zip")
             _log("static: downloading feed...")
-            with open(tmp_path, "wb") as out:
+            with os.fdopen(fd, "wb") as out:
                 async with httpx.AsyncClient(timeout=600) as client:
                     async with client.stream("GET", STATIC_GTFS_URL) as resp:
                         resp.raise_for_status()
@@ -538,6 +543,8 @@ async def _static_worker():
                             sha.update(chunk)
             sha = sha.hexdigest()
             _log(f"static: downloaded, sha={sha[:12]}...")
+            from tools.inspect_gtfs_notices import notice_identity
+            static_notices = notice_identity(tmp_path)
             sync_key = f"static_sha256:{_ACTIVE_REGION.region_id}:{_ACTIVE_REGION.network_id}"
             state = await db.mobility_sync_state.find_one({"key": sync_key}) or {}
             # Skip only when the feed hash is unchanged AND the ACTIVE
@@ -580,14 +587,17 @@ async def _static_worker():
                 and has_trip_stops
                 and has_stop_meta
                 and _has_occurrence_timing(active)
+                and bool(active.get('stop_catalogue'))
+                and all(t.get('source_time_seconds_preserved') is True
+                        for r in active.get('routes', []) for t in r.get('trips', []))
             ):
                 _log("static: feed unchanged")
             else:
                 from utils.gtfs import parse_gtfs_zip_path
 
                 _log("static: parsing feed...")
-                payload = parse_gtfs_zip_path(
-                    tmp_path,
+                payload = await asyncio.to_thread(
+                    parse_gtfs_zip_path, tmp_path,
                     service_date=today,
                     agency_regex=_ACTIVE_REGION.agency_regex,
                     timezone=_ACTIVE_REGION.timezone,
@@ -650,8 +660,31 @@ async def _static_worker():
                 await _merge_shapes(payload, await _get_active_network())
                 from mobility.daily_recovery import enabled as recovery_enabled
                 reusable = await _daily_recovery_control().candidate_for(today, sha) if recovery_enabled() else None
+                if reusable:
+                    timed = await db.bus_network_versions.find_one({'version_id':reusable,
+                        'region_id':_ACTIVE_REGION.region_id, 'network_id':_ACTIVE_REGION.network_id,
+                        'service_date':today, 'static_input.sha256':sha},
+                        {'_id':0, 'routes.trips.source_time_seconds_preserved':1})
+                    if not timed or not all(t.get('source_time_seconds_preserved') is True
+                            for r in timed.get('routes', []) for t in r.get('trips', [])):
+                        reusable = None
+                if reusable and payload.get('stop_catalogue'):
+                    attached = await db.bus_network_versions.update_one({
+                        'version_id': reusable, 'region_id': _ACTIVE_REGION.region_id,
+                        'network_id': _ACTIVE_REGION.network_id, 'service_date': today,
+                        'static_input.sha256': sha}, {'$set': {'stop_catalogue': payload['stop_catalogue']}})
+                    if not attached.matched_count:
+                        reusable = None  # Unknown source identity must use the normal audited import.
+                _static_input = {"kind": "GTFS_ARCHIVE", "sha256": sha, "ingestion": "DOWNLOAD",
+                                 "notices": static_notices}
+                _feed = payload.get("feed_info")
+                if isinstance(_feed, dict) and isinstance(_feed.get("publisher_name"), str) \
+                        and isinstance(_feed.get("publisher_url"), str):
+                    _static_input["publisher"] = {"publisher_name": _feed["publisher_name"],
+                                                  "publisher_url": _feed["publisher_url"]}
                 result = ({'version_id': reusable, 'diff': {'reused_pending_candidate': True}} if reusable else
-                    await _create_network_version(routes, payload.get("name") or "GTFS auto", service_date=payload["service_date"]))
+                    await _create_network_version(routes, payload.get("name") or "GTFS auto", service_date=payload["service_date"],
+                        static_input=_static_input, stop_catalogue=payload.get('stop_catalogue')))
                 _log(f"static: imported version {result['version_id']} diff={result['diff']}")
                 activation_succeeded = not AUTO_ACTIVATE
                 if AUTO_ACTIVATE:
@@ -716,6 +749,14 @@ async def _static_worker():
                 )
         except Exception as e:
             _log(f"static: cycle error: {type(e).__name__}: {e}")
+        finally:
+            if tmp_path is not None:
+                try:
+                    os.unlink(tmp_path)
+                except FileNotFoundError:
+                    pass
+                except OSError as e:
+                    _log(f"static: temporary file cleanup failed: {type(e).__name__}")
         # Refresh promptly at civil midnight, independent of UI grouping, even
         # when the normal feed interval is six hours.
         from mobility.schedule_revision import seconds_until_next_service_day
@@ -759,6 +800,14 @@ def request_precompute(
 
 
 def start_mobility_workers():
+    # Staging can disable *all* these workers before startup; disabling static
+    # auto-activation alone does not stop OSM imports or realtime polling.
+    setting = os.getenv("MOBILITY_WORKERS_ENABLED", "true").strip().lower()
+    if setting not in ("true", "false"):
+        raise ValueError("MOBILITY_WORKERS_ENABLED must be true or false")
+    if setting == "false":
+        _log("mobility workers disabled")
+        return
     _precompute_primitives()
     asyncio.create_task(_realtime_worker())
     asyncio.create_task(_static_worker())

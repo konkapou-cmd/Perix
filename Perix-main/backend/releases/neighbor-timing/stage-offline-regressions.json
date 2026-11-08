@@ -1,0 +1,10 @@
+{
+  "status": 0,
+  "passed": 24,
+  "python": "3.11.17",
+  "offline_only": true,
+  "database_writes": false,
+  "framework": "stdlib extraction of test_neighbor_timing.py",
+  "pytest_available": false,
+  "application_process_modified": false
+}

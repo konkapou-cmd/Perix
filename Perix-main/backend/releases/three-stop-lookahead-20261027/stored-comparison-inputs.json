@@ -1,0 +1,1212 @@
+[
+  {
+    "mode": "bus",
+    "case": "consistent",
+    "old": [
+      {
+        "stop_id": "A",
+        "scheduled_arrival": 43100,
+        "scheduled_departure": 43110,
+        "predicted_arrival": 43200,
+        "predicted_departure": 43300,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "B",
+        "scheduled_arrival": 43200,
+        "scheduled_departure": 43200,
+        "predicted_arrival": 43335,
+        "predicted_departure": 43335,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "C",
+        "scheduled_arrival": 43300,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43450,
+        "predicted_departure": 43450,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "D",
+        "scheduled_arrival": 43400,
+        "scheduled_departure": 43400,
+        "predicted_arrival": 43570,
+        "predicted_departure": 43570,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      }
+    ],
+    "new": [
+      {
+        "stop_id": "A",
+        "scheduled_arrival": 43100,
+        "scheduled_departure": 43110,
+        "predicted_arrival": 43200,
+        "predicted_departure": 43260,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "B",
+        "scheduled_arrival": 43200,
+        "scheduled_departure": 43200,
+        "predicted_arrival": 43320,
+        "predicted_departure": 43320,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "C",
+        "scheduled_arrival": 43300,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43435,
+        "predicted_departure": 43435,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "D",
+        "scheduled_arrival": 43400,
+        "scheduled_departure": 43400,
+        "predicted_arrival": 43555,
+        "predicted_departure": 43555,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      }
+    ],
+    "long_leg": false
+  },
+  {
+    "mode": "bus",
+    "case": "one_update",
+    "old": [
+      {
+        "stop_id": "A",
+        "scheduled_arrival": 43100,
+        "scheduled_departure": 43110,
+        "predicted_arrival": 43200,
+        "predicted_departure": 43300,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "B",
+        "scheduled_arrival": 43200,
+        "scheduled_departure": 43200,
+        "predicted_arrival": 43335,
+        "predicted_departure": 43335,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "C",
+        "scheduled_arrival": 43300,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43450,
+        "predicted_departure": 43450,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "D",
+        "scheduled_arrival": 43400,
+        "scheduled_departure": 43400,
+        "predicted_arrival": 43570,
+        "predicted_departure": 43570,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      }
+    ],
+    "new": [
+      {
+        "stop_id": "A",
+        "scheduled_arrival": 43100,
+        "scheduled_departure": 43110,
+        "predicted_arrival": 43200,
+        "predicted_departure": 43260,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "B",
+        "scheduled_arrival": 43200,
+        "scheduled_departure": 43200,
+        "predicted_arrival": 43320,
+        "predicted_departure": 43320,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "C",
+        "scheduled_arrival": 43300,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43450,
+        "predicted_departure": 43450,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "D",
+        "scheduled_arrival": 43400,
+        "scheduled_departure": 43400,
+        "predicted_arrival": 43570,
+        "predicted_departure": 43570,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      }
+    ],
+    "long_leg": false
+  },
+  {
+    "mode": "bus",
+    "case": "stale",
+    "old": [
+      {
+        "stop_id": "A",
+        "scheduled_arrival": 43100,
+        "scheduled_departure": 43110,
+        "predicted_arrival": 43200,
+        "predicted_departure": 43300,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "B",
+        "scheduled_arrival": 43200,
+        "scheduled_departure": 43200,
+        "predicted_arrival": 43335,
+        "predicted_departure": 43335,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "C",
+        "scheduled_arrival": 43300,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43450,
+        "predicted_departure": 43450,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "D",
+        "scheduled_arrival": 43400,
+        "scheduled_departure": 43400,
+        "predicted_arrival": 43570,
+        "predicted_departure": 43570,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      }
+    ],
+    "new": [
+      {
+        "stop_id": "A",
+        "scheduled_arrival": 43100,
+        "scheduled_departure": 43110,
+        "predicted_arrival": 43200,
+        "predicted_departure": 43260,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "B",
+        "scheduled_arrival": 43200,
+        "scheduled_departure": 43200,
+        "predicted_arrival": 43320,
+        "predicted_departure": 43320,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "C",
+        "scheduled_arrival": 43300,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43435,
+        "predicted_departure": 43435,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268770.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "D",
+        "scheduled_arrival": 43400,
+        "scheduled_departure": 43400,
+        "predicted_arrival": 43555,
+        "predicted_departure": 43555,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      }
+    ],
+    "long_leg": false
+  },
+  {
+    "mode": "bus",
+    "case": "mandatory",
+    "old": [
+      {
+        "stop_id": "A",
+        "scheduled_arrival": 43100,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43200,
+        "predicted_departure": 43300,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "B",
+        "scheduled_arrival": 43200,
+        "scheduled_departure": 43200,
+        "predicted_arrival": 43335,
+        "predicted_departure": 43335,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "C",
+        "scheduled_arrival": 43300,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43450,
+        "predicted_departure": 43450,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "D",
+        "scheduled_arrival": 43400,
+        "scheduled_departure": 43400,
+        "predicted_arrival": 43570,
+        "predicted_departure": 43570,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      }
+    ],
+    "new": [
+      {
+        "stop_id": "A",
+        "scheduled_arrival": 43100,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43200,
+        "predicted_departure": 43260,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "B",
+        "scheduled_arrival": 43200,
+        "scheduled_departure": 43200,
+        "predicted_arrival": 43320,
+        "predicted_departure": 43320,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "C",
+        "scheduled_arrival": 43300,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43435,
+        "predicted_departure": 43435,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "D",
+        "scheduled_arrival": 43400,
+        "scheduled_departure": 43400,
+        "predicted_arrival": 43555,
+        "predicted_departure": 43555,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      }
+    ],
+    "long_leg": false
+  },
+  {
+    "mode": "bus",
+    "case": "impossible",
+    "old": [
+      {
+        "stop_id": "A",
+        "scheduled_arrival": 43100,
+        "scheduled_departure": 43110,
+        "predicted_arrival": 43200,
+        "predicted_departure": 43300,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "B",
+        "scheduled_arrival": 43200,
+        "scheduled_departure": 43200,
+        "predicted_arrival": 43335,
+        "predicted_departure": 43335,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "C",
+        "scheduled_arrival": 43300,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43450,
+        "predicted_departure": 43450,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "D",
+        "scheduled_arrival": 43400,
+        "scheduled_departure": 43400,
+        "predicted_arrival": 43570,
+        "predicted_departure": 43570,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      }
+    ],
+    "new": [
+      {
+        "stop_id": "A",
+        "scheduled_arrival": 43100,
+        "scheduled_departure": 43110,
+        "predicted_arrival": 43200,
+        "predicted_departure": 43260,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "B",
+        "scheduled_arrival": 43200,
+        "scheduled_departure": 43200,
+        "predicted_arrival": 43320,
+        "predicted_departure": 43320,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "C",
+        "scheduled_arrival": 43300,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43435,
+        "predicted_departure": 43435,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "D",
+        "scheduled_arrival": 43400,
+        "scheduled_departure": 43400,
+        "predicted_arrival": 43555,
+        "predicted_departure": 43555,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      }
+    ],
+    "long_leg": true
+  },
+  {
+    "mode": "tram",
+    "case": "consistent",
+    "old": [
+      {
+        "stop_id": "A",
+        "scheduled_arrival": 43100,
+        "scheduled_departure": 43110,
+        "predicted_arrival": 43200,
+        "predicted_departure": 43300,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "B",
+        "scheduled_arrival": 43200,
+        "scheduled_departure": 43200,
+        "predicted_arrival": 43335,
+        "predicted_departure": 43335,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "C",
+        "scheduled_arrival": 43300,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43450,
+        "predicted_departure": 43450,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "D",
+        "scheduled_arrival": 43400,
+        "scheduled_departure": 43400,
+        "predicted_arrival": 43570,
+        "predicted_departure": 43570,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      }
+    ],
+    "new": [
+      {
+        "stop_id": "A",
+        "scheduled_arrival": 43100,
+        "scheduled_departure": 43110,
+        "predicted_arrival": 43200,
+        "predicted_departure": 43260,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "B",
+        "scheduled_arrival": 43200,
+        "scheduled_departure": 43200,
+        "predicted_arrival": 43320,
+        "predicted_departure": 43320,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "C",
+        "scheduled_arrival": 43300,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43435,
+        "predicted_departure": 43435,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "D",
+        "scheduled_arrival": 43400,
+        "scheduled_departure": 43400,
+        "predicted_arrival": 43555,
+        "predicted_departure": 43555,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      }
+    ],
+    "long_leg": false
+  },
+  {
+    "mode": "tram",
+    "case": "one_update",
+    "old": [
+      {
+        "stop_id": "A",
+        "scheduled_arrival": 43100,
+        "scheduled_departure": 43110,
+        "predicted_arrival": 43200,
+        "predicted_departure": 43300,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "B",
+        "scheduled_arrival": 43200,
+        "scheduled_departure": 43200,
+        "predicted_arrival": 43335,
+        "predicted_departure": 43335,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "C",
+        "scheduled_arrival": 43300,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43450,
+        "predicted_departure": 43450,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "D",
+        "scheduled_arrival": 43400,
+        "scheduled_departure": 43400,
+        "predicted_arrival": 43570,
+        "predicted_departure": 43570,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      }
+    ],
+    "new": [
+      {
+        "stop_id": "A",
+        "scheduled_arrival": 43100,
+        "scheduled_departure": 43110,
+        "predicted_arrival": 43200,
+        "predicted_departure": 43260,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "B",
+        "scheduled_arrival": 43200,
+        "scheduled_departure": 43200,
+        "predicted_arrival": 43320,
+        "predicted_departure": 43320,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "C",
+        "scheduled_arrival": 43300,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43450,
+        "predicted_departure": 43450,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "D",
+        "scheduled_arrival": 43400,
+        "scheduled_departure": 43400,
+        "predicted_arrival": 43570,
+        "predicted_departure": 43570,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      }
+    ],
+    "long_leg": false
+  },
+  {
+    "mode": "tram",
+    "case": "stale",
+    "old": [
+      {
+        "stop_id": "A",
+        "scheduled_arrival": 43100,
+        "scheduled_departure": 43110,
+        "predicted_arrival": 43200,
+        "predicted_departure": 43300,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "B",
+        "scheduled_arrival": 43200,
+        "scheduled_departure": 43200,
+        "predicted_arrival": 43335,
+        "predicted_departure": 43335,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "C",
+        "scheduled_arrival": 43300,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43450,
+        "predicted_departure": 43450,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "D",
+        "scheduled_arrival": 43400,
+        "scheduled_departure": 43400,
+        "predicted_arrival": 43570,
+        "predicted_departure": 43570,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      }
+    ],
+    "new": [
+      {
+        "stop_id": "A",
+        "scheduled_arrival": 43100,
+        "scheduled_departure": 43110,
+        "predicted_arrival": 43200,
+        "predicted_departure": 43260,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "B",
+        "scheduled_arrival": 43200,
+        "scheduled_departure": 43200,
+        "predicted_arrival": 43320,
+        "predicted_departure": 43320,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "C",
+        "scheduled_arrival": 43300,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43435,
+        "predicted_departure": 43435,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268770.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "D",
+        "scheduled_arrival": 43400,
+        "scheduled_departure": 43400,
+        "predicted_arrival": 43555,
+        "predicted_departure": 43555,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      }
+    ],
+    "long_leg": false
+  },
+  {
+    "mode": "tram",
+    "case": "mandatory",
+    "old": [
+      {
+        "stop_id": "A",
+        "scheduled_arrival": 43100,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43200,
+        "predicted_departure": 43300,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "B",
+        "scheduled_arrival": 43200,
+        "scheduled_departure": 43200,
+        "predicted_arrival": 43335,
+        "predicted_departure": 43335,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "C",
+        "scheduled_arrival": 43300,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43450,
+        "predicted_departure": 43450,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "D",
+        "scheduled_arrival": 43400,
+        "scheduled_departure": 43400,
+        "predicted_arrival": 43570,
+        "predicted_departure": 43570,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      }
+    ],
+    "new": [
+      {
+        "stop_id": "A",
+        "scheduled_arrival": 43100,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43200,
+        "predicted_departure": 43260,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "B",
+        "scheduled_arrival": 43200,
+        "scheduled_departure": 43200,
+        "predicted_arrival": 43320,
+        "predicted_departure": 43320,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "C",
+        "scheduled_arrival": 43300,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43435,
+        "predicted_departure": 43435,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "D",
+        "scheduled_arrival": 43400,
+        "scheduled_departure": 43400,
+        "predicted_arrival": 43555,
+        "predicted_departure": 43555,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      }
+    ],
+    "long_leg": false
+  },
+  {
+    "mode": "tram",
+    "case": "impossible",
+    "old": [
+      {
+        "stop_id": "A",
+        "scheduled_arrival": 43100,
+        "scheduled_departure": 43110,
+        "predicted_arrival": 43200,
+        "predicted_departure": 43300,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "B",
+        "scheduled_arrival": 43200,
+        "scheduled_departure": 43200,
+        "predicted_arrival": 43335,
+        "predicted_departure": 43335,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "C",
+        "scheduled_arrival": 43300,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43450,
+        "predicted_departure": 43450,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "D",
+        "scheduled_arrival": 43400,
+        "scheduled_departure": 43400,
+        "predicted_arrival": 43570,
+        "predicted_departure": 43570,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268840.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      }
+    ],
+    "new": [
+      {
+        "stop_id": "A",
+        "scheduled_arrival": 43100,
+        "scheduled_departure": 43110,
+        "predicted_arrival": 43200,
+        "predicted_departure": 43260,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "B",
+        "scheduled_arrival": 43200,
+        "scheduled_departure": 43200,
+        "predicted_arrival": 43320,
+        "predicted_departure": 43320,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "C",
+        "scheduled_arrival": 43300,
+        "scheduled_departure": 43300,
+        "predicted_arrival": 43435,
+        "predicted_departure": 43435,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      },
+      {
+        "stop_id": "D",
+        "scheduled_arrival": 43400,
+        "scheduled_departure": 43400,
+        "predicted_arrival": 43555,
+        "predicted_departure": 43555,
+        "relationship": "SCHEDULED",
+        "motion_prediction": {
+          "source": "GTFS_RT",
+          "source_timestamp": 1767268870.0,
+          "arrival_explicit": true,
+          "departure_explicit": true
+        }
+      }
+    ],
+    "long_leg": true
+  }
+]

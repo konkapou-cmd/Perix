@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
 import { MARKETPLACE_CATEGORIES, MarketplaceCategory, MarketplaceSubcategory } from "../../lib/marketplace/marketplaceTaxonomy";
+import IllustratedIcon from "../icons/IllustratedIcon";
 
 type AllowedTaxonomy = Record<string, "*" | string[]>;
 
@@ -65,7 +66,7 @@ export default function MarketplaceCategoryPicker({ visible, selectedCategory, s
                 style={styles.row}
                 onPress={() => handleCatPick(cat)}
               >
-                <Ionicons name={cat.icon as any} size={24} color="#264348" style={{ marginRight: 12 }} />
+                <IllustratedIcon kind="marketplace-parent" iconKey={cat.key} size={24} fallback={cat.icon as any} style={{ marginRight: 12 }} />
                 <Text style={styles.rowText}>{t(cat.labelKey, cat.fallback)}</Text>
                 <Ionicons name="chevron-forward" size={18} color="#264348" />
               </Pressable>
@@ -83,6 +84,7 @@ export default function MarketplaceCategoryPicker({ visible, selectedCategory, s
                 style={[styles.row, selectedSubcategory === sub.key && styles.rowSelected]}
                 onPress={() => handleSubPick(sub.key)}
               >
+                <IllustratedIcon kind="marketplace-subcategory" iconKey={sub.key} size={22} fallback={currentCat?.icon as any} style={{marginRight:12}} />
                 <Text style={styles.rowText}>{t(sub.labelKey, sub.fallback)}</Text>
                 {selectedSubcategory === sub.key && (
                   <Ionicons name="checkmark" size={18} color="#59ABE3" />

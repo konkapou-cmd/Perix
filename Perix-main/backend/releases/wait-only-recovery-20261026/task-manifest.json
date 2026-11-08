@@ -1,0 +1,14 @@
+{
+  "scope": "Local current-source hashes, includes inherited WIP; NOT a production patch or deployable package",
+  "default_enabled": false,
+  "production_deployment_performed": false,
+  "new_tests_passed": 60,
+  "total_relevant_tests_passed": 525,
+  "files": {
+    "mobility/motion/wait_recovery.py": "6a93efaa15ee7d249d654f023c8c7cfec461294a03df3271466d87fca87241a4",
+    "mobility/motion/engine.py": "3de8becb5603d7c68e1e58e787d29ef0c78f5c62310ef73f55495c599fb0c80a",
+    "routes/mobility.py": "f880e6ab75b3d76ce760957fb15be57eb88af6e79ae11762ff640356d5658037",
+    "utils/mobility_workers.py": "58614da3244847759d5ff6b8a95e60729bceee9a1148c633bd0b0771d5eba9a5",
+    "tests/test_mobility_wait_recovery.py": "298ab6e860483cdf73bfce8a8f4df64e112dde06424202e722c0fde5a9eca9d4"
+  }
+}

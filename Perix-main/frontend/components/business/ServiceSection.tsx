@@ -9,6 +9,7 @@ import { getDefaultModule } from "../../lib/config/serviceCategoryMatrix";
 import { EmptyState } from "../shared";
 import { SectionHeader } from "../shared/SectionHeader";
 import CategoryServiceCard from "./CategoryServiceCard";
+import IllustratedIcon, { illustratedIconSource } from "../icons/IllustratedIcon";
 
 type Props = {
   services: Service[];
@@ -82,6 +83,7 @@ export default function ServiceSection({
     <View style={s.container}>
       <SectionHeader
         icon={getServiceModuleIcon(getDefaultModule(rootCategory)) || "construct"}
+        iconSource={illustratedIconSource("service-module",getDefaultModule(rootCategory))}
         title={tabLabel}
         accent={primaryColor}
         onSeeAll={!readOnly && onAddService ? () => onAddService(getDefaultModule(rootCategory)) : undefined}
@@ -96,7 +98,8 @@ export default function ServiceSection({
           <View key={type}>
             {typeEntries.length > 1 && (
               <View style={s.typeHeader}>
-                <Ionicons name={icon} size={16} color={primaryColor} style={{ marginRight: SPACING.small }} />
+                <IllustratedIcon kind="service-module" iconKey={type} size={16} fallback={icon}
+                  color={primaryColor} style={{ marginRight: SPACING.small }} />
                 <Text style={[s.categoryTitle, { color: textColor }]}>{label}</Text>
               </View>
             )}

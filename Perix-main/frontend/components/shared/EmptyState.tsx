@@ -15,6 +15,7 @@ type EmptyStateProps = {
   actionLabel?: string;
   onAction?: () => void;
   fullWidth?: boolean;
+  messageColor?: string;
 };
 
 const SIZE_CONFIG = {
@@ -34,6 +35,7 @@ export const EmptyState = ({
   actionLabel,
   onAction,
   fullWidth = false,
+  messageColor,
 }: EmptyStateProps) => {
   const { t } = useTranslation();
   const text = message ?? (i18nKey ? t(i18nKey) : t("common.noItems", "Keine Einträge"));
@@ -44,11 +46,11 @@ export const EmptyState = ({
   return (
     <View style={[styles.container, fullWidth && styles.fullWidth, { paddingVertical: cfg.padding }]}>
       <Ionicons name={icon} size={cfg.icon} color={iconColor} />
-      <Text style={[styles.text, { fontSize: cfg.font }, muted && styles.textMuted, fullWidth && styles.textFullWidth]}>
+      <Text style={[styles.text, { fontSize: cfg.font }, muted && styles.textMuted, fullWidth && styles.textFullWidth, messageColor ? { color: messageColor } : null]}>
         {text}
       </Text>
       {sub && (
-        <Text style={[styles.sub, muted && styles.textMuted]}>{sub}</Text>
+        <Text style={[styles.sub, muted && styles.textMuted, messageColor ? { color: messageColor } : null]}>{sub}</Text>
       )}
       {actionLabel && onAction && (
         <Pressable style={styles.actionBtn} onPress={onAction}>

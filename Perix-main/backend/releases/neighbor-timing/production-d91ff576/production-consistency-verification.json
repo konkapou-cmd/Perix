@@ -1,0 +1,56 @@
+{
+  "origin": "https://app.perix.eu",
+  "read_only": true,
+  "synthetic_live_updates_inserted": false,
+  "samples": [
+    {
+      "mode": "bus",
+      "tested": true,
+      "trip_id": "1671106",
+      "route_number": "N7",
+      "service_date": "2026-10-25",
+      "network_version_id": "net_7f0605d2409e",
+      "attempts": [
+        {
+          "attempt": 1,
+          "same_plan": true,
+          "same_revision_as_detail": true,
+          "dated_board_row_present": true,
+          "clock_consistency_passed": true,
+          "next_stop_id": "114048",
+          "predicted_arrival": "23:15",
+          "eta_seconds": 158,
+          "board_eta_seconds": 158,
+          "distance_to_next_stop_m": 1443,
+          "timing_basis": "PROPAGATED_STOP_DEPARTURE"
+        }
+      ],
+      "coherent_snapshot_observed": true
+    },
+    {
+      "mode": "tram",
+      "tested": true,
+      "trip_id": "883974",
+      "route_number": "4",
+      "service_date": "2026-10-25",
+      "network_version_id": "net_7f0605d2409e",
+      "attempts": [
+        {
+          "attempt": 1,
+          "same_plan": true,
+          "same_revision_as_detail": true,
+          "dated_board_row_present": true,
+          "clock_consistency_passed": true,
+          "next_stop_id": "106471",
+          "predicted_arrival": "23:15",
+          "eta_seconds": 117,
+          "board_eta_seconds": 117,
+          "distance_to_next_stop_m": 577,
+          "timing_basis": "BETWEEN_STOP_UPDATES"
+        }
+      ],
+      "coherent_snapshot_observed": true
+    }
+  ],
+  "all_available_samples_coherent": true
+}

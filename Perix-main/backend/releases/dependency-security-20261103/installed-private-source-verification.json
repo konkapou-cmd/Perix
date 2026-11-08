@@ -1,0 +1,32 @@
+[
+  {
+    "package": "@perix/deepmerge-safe",
+    "version": "4.3.1-perix.1",
+    "sha256": "6de601989d1ce272c8198d703081b974c4f75c24e5ba3e434fbaa7e11144f4c7"
+  },
+  {
+    "package": "@perix/glob-compat",
+    "version": "1.0.1",
+    "sha256": "0e6142db4767fd2bc8f6f5e16976370e796752d0add6d7e4ed4b8a9d41007784"
+  },
+  {
+    "package": "@perix/image-size-compat",
+    "version": "1.0.0",
+    "sha256": "ac3d9cda8d37630664a18a562247a3c98788e962ebd680a6ea4e209e5c2dd5fe"
+  },
+  {
+    "package": "@perix/minimatch-compat",
+    "version": "1.0.0",
+    "sha256": "79effa6a1f8a96ba0f2810aa95c66a5af4a4858066216239ba96bfe21d55cb7d"
+  },
+  {
+    "package": "@perix/query-string-compat",
+    "version": "1.0.0",
+    "sha256": "91460ea8d285d3618f593fb03d9c0ee66016d39b6051d29795de94e9ef43abf8"
+  },
+  {
+    "package": "@perix/uuid-compat",
+    "version": "1.0.0",
+    "sha256": "051c6d4a30173a4a16f14959086d8a0922f81a690ff2b7040c4572c1f98f078f"
+  }
+]

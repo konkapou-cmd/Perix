@@ -3,6 +3,7 @@ import { Platform, View, Text, Pressable, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS } from "../lib/designTokens";
+import PerixLogo from "./brand/PerixLogo";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -106,10 +107,7 @@ export default function InstallBanner() {
   return (
     <>
       <View style={styles.banner}>
-        <View style={styles.brandWrap}>
-          <Text style={styles.logoText}>Perix</Text>
-          <Ionicons name="sunny" size={9} color="#FFC93C" style={styles.brandSun} />
-        </View>
+        <PerixLogo size="banner" />
         <View style={styles.textWrap}>
           <Text style={styles.title}>{t("install.title", "Install Perix")}</Text>
           <Text style={styles.subtitle} numberOfLines={2}>
@@ -139,6 +137,7 @@ export default function InstallBanner() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
+            <PerixLogo size="compact" />
             <Text style={styles.modalTitle}>
               {ios
                 ? t("install.iosTitle", "Add Perix to your Home Screen")

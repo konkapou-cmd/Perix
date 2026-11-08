@@ -1,0 +1,39 @@
+{
+  "deployment": "2c4a3dc0-6a5f-4c96-9856-19810774491b",
+  "server_version": "8.0.34",
+  "scope": "Synthetic staging mobility only; no users",
+  "restore_database": "perix_visual_stage_20261103_v1_restore_0f82b2a4",
+  "source_database_unchanged": true,
+  "collections": {
+    "bus_network_versions": {
+      "count": 2,
+      "bson_hash_equal": true,
+      "indexes_equal": true,
+      "source_unchanged": true
+    },
+    "mobility_pattern_generations": {
+      "count": 4,
+      "bson_hash_equal": true,
+      "indexes_equal": true,
+      "source_unchanged": true
+    },
+    "mobility_trip_realtime_journeys": {
+      "count": 4,
+      "bson_hash_equal": true,
+      "indexes_equal": true,
+      "source_unchanged": true
+    },
+    "mobility_visual_progress_state": {
+      "count": 9,
+      "bson_hash_equal": true,
+      "indexes_equal": true,
+      "source_unchanged": true
+    }
+  },
+  "archive_sha256": "67560898e1a131c86d24e081b3ebff8db2875c299df2b6671dc5e9ab6d3bfec7",
+  "limits": [
+    "QA mobility data only, not production or full app data.",
+    "New namespace restore, not in-place restore or volume recovery.",
+    "Temporary server copy and local retained copy; automated retention/backup scheduling not established."
+  ]
+}

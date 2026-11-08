@@ -52,7 +52,7 @@ function BusinessCard({ data, distance, isOpen, onPress, videoUrl }: BusinessCar
   const localizedAddress = useLocalizedAddress(data.address, data.latitude, data.longitude);
 
   return (
-    <Pressable style={styles.card} onPress={onPress}>
+    <Pressable style={styles.card} onPress={onPress} testID="locator-result-card">
       <View style={styles.cardRow}>
         {showVideo ? (
           <View style={styles.photoWrap}>
@@ -114,7 +114,7 @@ function EventCard({ data, distance, onPress }: EventCardProps) {
   const businessName = data.business?.name || data.creator?.name || "";
 
   return (
-    <Pressable style={styles.card} onPress={onPress}>
+    <Pressable style={styles.card} onPress={onPress} testID="locator-result-card">
       <View style={styles.cardRow}>
         {showVideo ? (
           <View style={styles.photoWrap}>
@@ -180,7 +180,7 @@ function ActivityCard({ data, distance, onPress }: ActivityCardProps) {
   const dateStr = data.date ? formatDate(data.date) : "";
 
   return (
-    <Pressable style={styles.card} onPress={onPress}>
+    <Pressable style={styles.card} onPress={onPress} testID="locator-result-card">
       <View style={styles.cardRow}>
         {showVideo ? (
           <View style={styles.photoWrap}>
@@ -238,6 +238,9 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.small,
     overflow: "hidden",
   },
+  /** Flat public Gateway variant; Locator itself keeps its original elevation. */
+  flatCard: { shadowOpacity: 0, shadowRadius: 0, shadowOffset: {width:0,height:0}, elevation: 0,
+    ...Platform.select({web:{boxShadow:"none"} as any,default:{}}) },
   cardRow: {
     flexDirection: "row",
     alignItems: "stretch",
@@ -399,3 +402,6 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.medium as any,
   },
 });
+
+/** The public directory uses the same layout without inventing private fields. */
+export const locatorCardStyles = styles;

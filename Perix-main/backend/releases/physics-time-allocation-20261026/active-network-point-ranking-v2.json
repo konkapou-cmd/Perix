@@ -1,0 +1,263 @@
+{
+  "read_only": true,
+  "production_modified": false,
+  "tomtom_requests": 0,
+  "at_utc": "2026-10-26T03:14:10.824472+00:00",
+  "scope": {
+    "region_id": "magdeburg",
+    "network_id": "de-magdeburg-mvb",
+    "version_id": "net_7f0605d2409e"
+  },
+  "service_date": "2026-10-25",
+  "candidate_count": 1702,
+  "ready_generation_count": 113,
+  "historical_profile_records_scanned": 0,
+  "candidate_scheduled_edge_passes": 46130,
+  "scheduled_potential_trip_coverage": 0.572419774501301,
+  "scheduled_trips_covered": 660,
+  "scheduled_trip_count": 1153,
+  "coverage_denominator": "SCHEDULED_BUS_TRIPS",
+  "network_scheduled_trip_count": 2127,
+  "direct_measured_coverage": 0.0,
+  "rotation_decision": "NOT_JUSTIFIED_WITHOUT_REPEATED_MATCHED_OBSERVATIONS",
+  "rotation_min_window_seconds": 3600,
+  "no_random_coordinates": true,
+  "points": [
+    {
+      "region_id": "magdeburg",
+      "network_id": "de-magdeburg-mvb",
+      "version_id": "net_7f0605d2409e",
+      "osm_snapshot_v": 1792950897,
+      "edge_id": "95928571:60607092:12953485292",
+      "direction": "60607092->12953485292",
+      "point": [
+        52.1319805,
+        11.6321925
+      ],
+      "pattern_ids": [
+        "48:4c2b15e978",
+        "73:b5a8a84e8c",
+        "N6:5adeea25eb",
+        "N6:8a325d3cc6",
+        "N8:34b2866d97"
+      ],
+      "lines": [
+        "48",
+        "73",
+        "N6",
+        "N8"
+      ],
+      "scheduled_passes": 143,
+      "road_class": "tertiary",
+      "signal_events": 2,
+      "historical_evidence": false,
+      "generation_ids": [
+        "gen_10a18e326f1e0e2745",
+        "gen_543a539497913a14fd",
+        "gen_670c556ea19773ee39",
+        "gen_750bdab230aa7bfe30",
+        "gen_981ac6d68b17c58da1"
+      ],
+      "point_id": "34f38b792463c279c8c6",
+      "score": 153,
+      "score_basis": "SCHEDULED_PASSES_LINES_SIGNALS_HISTORY_NOT_MEASURED_COVERAGE",
+      "role": "FIXED",
+      "selection_reason": "MARGINAL_SCHEDULED_COVERAGE_WITH_DIVERSITY"
+    },
+    {
+      "region_id": "magdeburg",
+      "network_id": "de-magdeburg-mvb",
+      "version_id": "net_7f0605d2409e",
+      "osm_snapshot_v": 1792950897,
+      "edge_id": "361040981:3780378731:306995315",
+      "direction": "3780378731->306995315",
+      "point": [
+        52.129664,
+        11.631221
+      ],
+      "pattern_ids": [
+        "46:9ae00dc34b",
+        "48:63996081c9",
+        "51:6750bf25fa"
+      ],
+      "lines": [
+        "46",
+        "48",
+        "51"
+      ],
+      "scheduled_passes": 142,
+      "road_class": "tertiary",
+      "signal_events": 1,
+      "historical_evidence": false,
+      "generation_ids": [
+        "gen_2127fa0bd79244cc43",
+        "gen_5392cf7089d4e36c8f",
+        "gen_c2fd3b206544a53a5f"
+      ],
+      "point_id": "a3d8e0d6adde0629a2a7",
+      "score": 149,
+      "score_basis": "SCHEDULED_PASSES_LINES_SIGNALS_HISTORY_NOT_MEASURED_COVERAGE",
+      "role": "FIXED",
+      "selection_reason": "MARGINAL_SCHEDULED_COVERAGE_WITH_DIVERSITY"
+    },
+    {
+      "region_id": "magdeburg",
+      "network_id": "de-magdeburg-mvb",
+      "version_id": "net_7f0605d2409e",
+      "osm_snapshot_v": 1792950897,
+      "edge_id": "144905127:34917090:5502983124",
+      "direction": "34917090->5502983124",
+      "point": [
+        52.139609500000006,
+        11.611585
+      ],
+      "pattern_ids": [
+        "52:ac1e1afb58",
+        "72:52f8c4f1d0",
+        "72:9f5cfb703d",
+        "73:cb9f9b05e9",
+        "N9:539465f813",
+        "N9:e7779475a9"
+      ],
+      "lines": [
+        "52",
+        "72",
+        "73",
+        "N9"
+      ],
+      "scheduled_passes": 109,
+      "road_class": "primary",
+      "signal_events": 2,
+      "historical_evidence": false,
+      "generation_ids": [
+        "gen_139d76c36c3c375b76",
+        "gen_23c73b4bc916302556",
+        "gen_2d6d6c123fec77eaed",
+        "gen_2fe4a6dc045d1ed2dd",
+        "gen_95c60da430affd5843",
+        "gen_e0e889da8a31462056"
+      ],
+      "point_id": "e7e15178585843547633",
+      "score": 119,
+      "score_basis": "SCHEDULED_PASSES_LINES_SIGNALS_HISTORY_NOT_MEASURED_COVERAGE",
+      "role": "FIXED",
+      "selection_reason": "MARGINAL_SCHEDULED_COVERAGE_WITH_DIVERSITY"
+    },
+    {
+      "region_id": "magdeburg",
+      "network_id": "de-magdeburg-mvb",
+      "version_id": "net_7f0605d2409e",
+      "osm_snapshot_v": 1792950897,
+      "edge_id": "626403895:292691431:1851947605",
+      "direction": "292691431->1851947605",
+      "point": [
+        52.1598725,
+        11.6136605
+      ],
+      "pattern_ids": [
+        "52:afd4173e04",
+        "69:905f5980e4",
+        "71:9618ef8f54",
+        "N7:209a4ce39f",
+        "N7:b54f290672"
+      ],
+      "lines": [
+        "52",
+        "69",
+        "71",
+        "N7"
+      ],
+      "scheduled_passes": 95,
+      "road_class": "residential",
+      "signal_events": 1,
+      "historical_evidence": false,
+      "generation_ids": [
+        "gen_1f1d8c23479ed0a9f9",
+        "gen_64b9120baf00a56628",
+        "gen_9ab4938edc6de1faf4",
+        "gen_bb9e38c2968b288f2f",
+        "gen_d0a939e97581d4e563"
+      ],
+      "point_id": "fa39207177e593186562",
+      "score": 104,
+      "score_basis": "SCHEDULED_PASSES_LINES_SIGNALS_HISTORY_NOT_MEASURED_COVERAGE",
+      "role": "FIXED",
+      "selection_reason": "MARGINAL_SCHEDULED_COVERAGE_WITH_DIVERSITY"
+    },
+    {
+      "region_id": "magdeburg",
+      "network_id": "de-magdeburg-mvb",
+      "version_id": "net_7f0605d2409e",
+      "osm_snapshot_v": 1792950897,
+      "edge_id": "507777965:10091757394:12151173308",
+      "direction": "10091757394->12151173308",
+      "point": [
+        52.1535215,
+        11.621554
+      ],
+      "pattern_ids": [
+        "69:3ed39927a8",
+        "71:72d45c0cf4",
+        "N7:2b729df474"
+      ],
+      "lines": [
+        "69",
+        "71",
+        "N7"
+      ],
+      "scheduled_passes": 95,
+      "road_class": "residential",
+      "signal_events": 2,
+      "historical_evidence": false,
+      "generation_ids": [
+        "gen_1372d9a3db435a6d2d",
+        "gen_4e4d2604ee1570ec25",
+        "gen_ee032fa0ed5f260b03"
+      ],
+      "point_id": "705b1a90898d3d57a0ae",
+      "score": 103,
+      "score_basis": "SCHEDULED_PASSES_LINES_SIGNALS_HISTORY_NOT_MEASURED_COVERAGE",
+      "role": "FIXED",
+      "selection_reason": "MARGINAL_SCHEDULED_COVERAGE_WITH_DIVERSITY"
+    },
+    {
+      "region_id": "magdeburg",
+      "network_id": "de-magdeburg-mvb",
+      "version_id": "net_7f0605d2409e",
+      "osm_snapshot_v": 1792887708,
+      "edge_id": "29045716:9373365128:12179882047",
+      "direction": "9373365128->12179882047",
+      "point": [
+        52.090431,
+        11.6108125
+      ],
+      "pattern_ids": [
+        "57:44a8367a78",
+        "57:9498a52c5b",
+        "58:06fc6f1ca7",
+        "N3:71fa413bc9"
+      ],
+      "lines": [
+        "57",
+        "58",
+        "N3"
+      ],
+      "scheduled_passes": 76,
+      "road_class": "residential",
+      "signal_events": 0,
+      "historical_evidence": false,
+      "generation_ids": [
+        "gen_0fb62dfb9e1320bf83",
+        "gen_28f13012ff71b27973",
+        "gen_d45f83c912b6cb0678",
+        "gen_f5a20071fa6a54f617"
+      ],
+      "point_id": "bd9833f023ad87678dea",
+      "score": 82,
+      "score_basis": "SCHEDULED_PASSES_LINES_SIGNALS_HISTORY_NOT_MEASURED_COVERAGE",
+      "role": "FIXED",
+      "selection_reason": "MARGINAL_SCHEDULED_COVERAGE_WITH_DIVERSITY"
+    }
+  ],
+  "selector_source_sha256": "96f424c5e62435504ee7c950209140786396229d4577decf3127a007a094c248"
+}

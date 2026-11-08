@@ -1,0 +1,2077 @@
+{
+  "graph_v": 1792950897,
+  "read_only_offline": true,
+  "source": "ACTUAL_DEPLOYED_PURE_ROUTING_FUNCTIONS",
+  "no_overpass_or_external_requests": true,
+  "pattern_failures": [
+    {
+      "pattern_id": "56:5368b7d9e2",
+      "line": "56",
+      "mode": "bus",
+      "direction": "Randau (M\u00fcllerbreite)",
+      "stored_failure": {
+        "ok": false,
+        "reason": "GEOMETRY_VALIDATION_FAILED",
+        "pattern_id": "56:5368b7d9e2",
+        "validation": {
+          "valid": false,
+          "max_platform_distance_m": 3595.6,
+          "missing_platforms": 3,
+          "projection_ordered": false,
+          "projection_positions_m": [
+            1485.4,
+            1721.8,
+            2303.8,
+            6011.4,
+            6800.5,
+            7230.2,
+            7540.5
+          ]
+        }
+      },
+      "exact_recorded_failure_reproduced": true,
+      "cases": [
+        {
+          "bbox_margin": 0.004,
+          "selected_ways": 274,
+          "graph_nodes": 2248,
+          "missing_pairs": [],
+          "validation": {
+            "valid": false,
+            "max_platform_distance_m": 3595.6,
+            "missing_platforms": 3,
+            "projection_ordered": false,
+            "projection_positions_m": [
+              1485.4,
+              1721.8,
+              2303.8,
+              6011.4,
+              6800.5,
+              7230.2,
+              7540.5
+            ]
+          },
+          "snaps": [
+            {
+              "stop_id": "660379",
+              "name": "Cracau (Pechauer Platz)",
+              "nearest_node_id": 304122130,
+              "nearest_node_distance_m": 3595.5652165752613,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "659655",
+              "name": "Alt Prester",
+              "nearest_node_id": 304122130,
+              "nearest_node_distance_m": 3069.1225783951622,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "38483",
+              "name": "Kalenberger Stra\u00dfe",
+              "nearest_node_id": 304122130,
+              "nearest_node_distance_m": 2726.1908069056626,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "491965",
+              "name": "Luisenthal",
+              "nearest_node_id": 11750611623,
+              "nearest_node_distance_m": 3.9467003930193827,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "251691",
+              "name": "Luisenthal",
+              "nearest_node_id": 454564834,
+              "nearest_node_distance_m": 4.122016129741912,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "912",
+              "name": "Pechau",
+              "nearest_node_id": 8186197172,
+              "nearest_node_distance_m": 1.3343391195261725,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "397151",
+              "name": "An der Elbaue",
+              "nearest_node_id": 33782601,
+              "nearest_node_distance_m": 5.124098660064687,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "343375",
+              "name": "Randau (Schloss)",
+              "nearest_node_id": 454564828,
+              "nearest_node_distance_m": 8.692522706590577,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "199497",
+              "name": "Randau (Ortsmitte)",
+              "nearest_node_id": 454564827,
+              "nearest_node_distance_m": 12.04312871494905,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "41387",
+              "name": "Randau (M\u00fcllerbreite)",
+              "nearest_node_id": 454564825,
+              "nearest_node_distance_m": 7.2871970157868065,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            }
+          ]
+        },
+        {
+          "bbox_margin": 0.02,
+          "selected_ways": 1167,
+          "graph_nodes": 7290,
+          "missing_pairs": [
+            {
+              "a_idx": 2,
+              "b_idx": 3,
+              "from_stop": {
+                "stop_id": "38483",
+                "name": "Kalenberger Stra\u00dfe",
+                "nearest_node_id": 81631125,
+                "nearest_node_distance_m": 2160.6796638423693,
+                "weak_component": 60439851,
+                "component_nodes": 4218
+              },
+              "to_stop": {
+                "stop_id": "491965",
+                "name": "Luisenthal",
+                "nearest_node_id": 11750611623,
+                "nearest_node_distance_m": 3.9467003930193827,
+                "weak_component": 4745057619,
+                "component_nodes": 1491
+              },
+              "same_weak_component": false
+            }
+          ],
+          "validation": null,
+          "snaps": [
+            {
+              "stop_id": "660379",
+              "name": "Cracau (Pechauer Platz)",
+              "nearest_node_id": 382162290,
+              "nearest_node_distance_m": 1329.9250046685424,
+              "weak_component": 60439851,
+              "component_nodes": 4218
+            },
+            {
+              "stop_id": "659655",
+              "name": "Alt Prester",
+              "nearest_node_id": 81631125,
+              "nearest_node_distance_m": 1919.1357981867625,
+              "weak_component": 60439851,
+              "component_nodes": 4218
+            },
+            {
+              "stop_id": "38483",
+              "name": "Kalenberger Stra\u00dfe",
+              "nearest_node_id": 81631125,
+              "nearest_node_distance_m": 2160.6796638423693,
+              "weak_component": 60439851,
+              "component_nodes": 4218
+            },
+            {
+              "stop_id": "491965",
+              "name": "Luisenthal",
+              "nearest_node_id": 11750611623,
+              "nearest_node_distance_m": 3.9467003930193827,
+              "weak_component": 4745057619,
+              "component_nodes": 1491
+            },
+            {
+              "stop_id": "251691",
+              "name": "Luisenthal",
+              "nearest_node_id": 454564834,
+              "nearest_node_distance_m": 4.122016129741912,
+              "weak_component": 4745057619,
+              "component_nodes": 1491
+            },
+            {
+              "stop_id": "912",
+              "name": "Pechau",
+              "nearest_node_id": 8186197172,
+              "nearest_node_distance_m": 1.3343391195261725,
+              "weak_component": 4745057619,
+              "component_nodes": 1491
+            },
+            {
+              "stop_id": "397151",
+              "name": "An der Elbaue",
+              "nearest_node_id": 33782601,
+              "nearest_node_distance_m": 5.124098660064687,
+              "weak_component": 4745057619,
+              "component_nodes": 1491
+            },
+            {
+              "stop_id": "343375",
+              "name": "Randau (Schloss)",
+              "nearest_node_id": 454564828,
+              "nearest_node_distance_m": 8.692522706590577,
+              "weak_component": 4745057619,
+              "component_nodes": 1491
+            },
+            {
+              "stop_id": "199497",
+              "name": "Randau (Ortsmitte)",
+              "nearest_node_id": 454564827,
+              "nearest_node_distance_m": 12.04312871494905,
+              "weak_component": 4745057619,
+              "component_nodes": 1491
+            },
+            {
+              "stop_id": "41387",
+              "name": "Randau (M\u00fcllerbreite)",
+              "nearest_node_id": 454564825,
+              "nearest_node_distance_m": 7.2871970157868065,
+              "weak_component": 4745057619,
+              "component_nodes": 1491
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pattern_id": "56:31ae567775",
+      "line": "56",
+      "mode": "bus",
+      "direction": "Allee - Center",
+      "stored_failure": {
+        "ok": false,
+        "reason": "GEOMETRY_INCOMPLETE",
+        "pattern_id": "56:31ae567775",
+        "missing_pairs": [
+          [
+            7,
+            8
+          ],
+          [
+            13,
+            14
+          ]
+        ],
+        "resolved_pairs": 15
+      },
+      "exact_recorded_failure_reproduced": true,
+      "cases": [
+        {
+          "bbox_margin": 0.004,
+          "selected_ways": 1968,
+          "graph_nodes": 11118,
+          "missing_pairs": [
+            {
+              "a_idx": 7,
+              "b_idx": 8,
+              "from_stop": {
+                "stop_id": "59353",
+                "name": "Luisenthal",
+                "nearest_node_id": 454564834,
+                "nearest_node_distance_m": 3.9342418260220957,
+                "weak_component": 4745057619,
+                "component_nodes": 1454
+              },
+              "to_stop": {
+                "stop_id": "325440",
+                "name": "Kalenberger Stra\u00dfe",
+                "nearest_node_id": 81631125,
+                "nearest_node_distance_m": 2183.469772466228,
+                "weak_component": 1935297260,
+                "component_nodes": 8169
+              },
+              "same_weak_component": false
+            },
+            {
+              "a_idx": 13,
+              "b_idx": 14,
+              "from_stop": {
+                "stop_id": "37198",
+                "name": "Mehringstra\u00dfe",
+                "nearest_node_id": 289956142,
+                "nearest_node_distance_m": 293.6389025884359,
+                "weak_component": 1935297260,
+                "component_nodes": 8169
+              },
+              "to_stop": {
+                "stop_id": "385237",
+                "name": "Am Cracauer Tor",
+                "nearest_node_id": 8880528638,
+                "nearest_node_distance_m": 77.57542214525922,
+                "weak_component": 1935297260,
+                "component_nodes": 8169
+              },
+              "same_weak_component": true
+            }
+          ],
+          "validation": null,
+          "snaps": [
+            {
+              "stop_id": "603713",
+              "name": "Randau (M\u00fcllerbreite)",
+              "nearest_node_id": 454564825,
+              "nearest_node_distance_m": 7.2871970157868065,
+              "weak_component": 4745057619,
+              "component_nodes": 1454
+            },
+            {
+              "stop_id": "253129",
+              "name": "Randau (Ortsmitte)",
+              "nearest_node_id": 454564827,
+              "nearest_node_distance_m": 2.2587914619258225,
+              "weak_component": 4745057619,
+              "component_nodes": 1454
+            },
+            {
+              "stop_id": "327032",
+              "name": "Randau (Schloss)",
+              "nearest_node_id": 454564828,
+              "nearest_node_distance_m": 7.738607388944651,
+              "weak_component": 4745057619,
+              "component_nodes": 1454
+            },
+            {
+              "stop_id": "73738",
+              "name": "An der Elbaue",
+              "nearest_node_id": 33782601,
+              "nearest_node_distance_m": 6.260832968783363,
+              "weak_component": 4745057619,
+              "component_nodes": 1454
+            },
+            {
+              "stop_id": "248697",
+              "name": "Calenberge",
+              "nearest_node_id": 454564831,
+              "nearest_node_distance_m": 13.003856334358904,
+              "weak_component": 4745057619,
+              "component_nodes": 1454
+            },
+            {
+              "stop_id": "251691",
+              "name": "Luisenthal",
+              "nearest_node_id": 454564834,
+              "nearest_node_distance_m": 4.122016129741912,
+              "weak_component": 4745057619,
+              "component_nodes": 1454
+            },
+            {
+              "stop_id": "912",
+              "name": "Pechau",
+              "nearest_node_id": 8186197172,
+              "nearest_node_distance_m": 1.3343391195261725,
+              "weak_component": 4745057619,
+              "component_nodes": 1454
+            },
+            {
+              "stop_id": "59353",
+              "name": "Luisenthal",
+              "nearest_node_id": 454564834,
+              "nearest_node_distance_m": 3.9342418260220957,
+              "weak_component": 4745057619,
+              "component_nodes": 1454
+            },
+            {
+              "stop_id": "325440",
+              "name": "Kalenberger Stra\u00dfe",
+              "nearest_node_id": 81631125,
+              "nearest_node_distance_m": 2183.469772466228,
+              "weak_component": 1935297260,
+              "component_nodes": 8169
+            },
+            {
+              "stop_id": "40419",
+              "name": "Alt Prester",
+              "nearest_node_id": 81631125,
+              "nearest_node_distance_m": 1947.2664487242491,
+              "weak_component": 1935297260,
+              "component_nodes": 8169
+            },
+            {
+              "stop_id": "187472",
+              "name": "Cracau (Pechauer Platz)",
+              "nearest_node_id": 382162290,
+              "nearest_node_distance_m": 1323.8933611650816,
+              "weak_component": 1935297260,
+              "component_nodes": 8169
+            },
+            {
+              "stop_id": "113884",
+              "name": "Pfeiffersche Stiftungen",
+              "nearest_node_id": 33830273,
+              "nearest_node_distance_m": 817.0727466436725,
+              "weak_component": 1935297260,
+              "component_nodes": 8169
+            },
+            {
+              "stop_id": "502604",
+              "name": "Simonstra\u00dfe",
+              "nearest_node_id": 289956142,
+              "nearest_node_distance_m": 570.7383616266624,
+              "weak_component": 1935297260,
+              "component_nodes": 8169
+            },
+            {
+              "stop_id": "37198",
+              "name": "Mehringstra\u00dfe",
+              "nearest_node_id": 289956142,
+              "nearest_node_distance_m": 293.6389025884359,
+              "weak_component": 1935297260,
+              "component_nodes": 8169
+            },
+            {
+              "stop_id": "385237",
+              "name": "Am Cracauer Tor",
+              "nearest_node_id": 8880528638,
+              "nearest_node_distance_m": 77.57542214525922,
+              "weak_component": 1935297260,
+              "component_nodes": 8169
+            },
+            {
+              "stop_id": "366288",
+              "name": "Heumarkt",
+              "nearest_node_id": 11753326670,
+              "nearest_node_distance_m": 7.4328123536322055,
+              "weak_component": 1935297260,
+              "component_nodes": 8169
+            },
+            {
+              "stop_id": "666238",
+              "name": "Zollbr\u00fccke",
+              "nearest_node_id": 3343872370,
+              "nearest_node_distance_m": 28.418968839290265,
+              "weak_component": 1935297260,
+              "component_nodes": 8169
+            },
+            {
+              "stop_id": "354137",
+              "name": "Allee - Center",
+              "nearest_node_id": 1935297096,
+              "nearest_node_distance_m": 4.589243774376749,
+              "weak_component": 1935297260,
+              "component_nodes": 8169
+            }
+          ]
+        },
+        {
+          "bbox_margin": 0.02,
+          "selected_ways": 5543,
+          "graph_nodes": 28585,
+          "missing_pairs": [
+            {
+              "a_idx": 7,
+              "b_idx": 8,
+              "from_stop": {
+                "stop_id": "59353",
+                "name": "Luisenthal",
+                "nearest_node_id": 454564834,
+                "nearest_node_distance_m": 3.9342418260220957,
+                "weak_component": 4745057619,
+                "component_nodes": 1703
+              },
+              "to_stop": {
+                "stop_id": "325440",
+                "name": "Kalenberger Stra\u00dfe",
+                "nearest_node_id": 81631125,
+                "nearest_node_distance_m": 2183.469772466228,
+                "weak_component": 244209350,
+                "component_nodes": 18507
+              },
+              "same_weak_component": false
+            },
+            {
+              "a_idx": 13,
+              "b_idx": 14,
+              "from_stop": {
+                "stop_id": "37198",
+                "name": "Mehringstra\u00dfe",
+                "nearest_node_id": 289956142,
+                "nearest_node_distance_m": 293.6389025884359,
+                "weak_component": 244209350,
+                "component_nodes": 18507
+              },
+              "to_stop": {
+                "stop_id": "385237",
+                "name": "Am Cracauer Tor",
+                "nearest_node_id": 8880528638,
+                "nearest_node_distance_m": 77.57542214525922,
+                "weak_component": 244209350,
+                "component_nodes": 18507
+              },
+              "same_weak_component": true
+            }
+          ],
+          "validation": null,
+          "snaps": [
+            {
+              "stop_id": "603713",
+              "name": "Randau (M\u00fcllerbreite)",
+              "nearest_node_id": 454564825,
+              "nearest_node_distance_m": 7.2871970157868065,
+              "weak_component": 4745057619,
+              "component_nodes": 1703
+            },
+            {
+              "stop_id": "253129",
+              "name": "Randau (Ortsmitte)",
+              "nearest_node_id": 454564827,
+              "nearest_node_distance_m": 2.2587914619258225,
+              "weak_component": 4745057619,
+              "component_nodes": 1703
+            },
+            {
+              "stop_id": "327032",
+              "name": "Randau (Schloss)",
+              "nearest_node_id": 454564828,
+              "nearest_node_distance_m": 7.738607388944651,
+              "weak_component": 4745057619,
+              "component_nodes": 1703
+            },
+            {
+              "stop_id": "73738",
+              "name": "An der Elbaue",
+              "nearest_node_id": 33782601,
+              "nearest_node_distance_m": 6.260832968783363,
+              "weak_component": 4745057619,
+              "component_nodes": 1703
+            },
+            {
+              "stop_id": "248697",
+              "name": "Calenberge",
+              "nearest_node_id": 454564831,
+              "nearest_node_distance_m": 13.003856334358904,
+              "weak_component": 4745057619,
+              "component_nodes": 1703
+            },
+            {
+              "stop_id": "251691",
+              "name": "Luisenthal",
+              "nearest_node_id": 454564834,
+              "nearest_node_distance_m": 4.122016129741912,
+              "weak_component": 4745057619,
+              "component_nodes": 1703
+            },
+            {
+              "stop_id": "912",
+              "name": "Pechau",
+              "nearest_node_id": 8186197172,
+              "nearest_node_distance_m": 1.3343391195261725,
+              "weak_component": 4745057619,
+              "component_nodes": 1703
+            },
+            {
+              "stop_id": "59353",
+              "name": "Luisenthal",
+              "nearest_node_id": 454564834,
+              "nearest_node_distance_m": 3.9342418260220957,
+              "weak_component": 4745057619,
+              "component_nodes": 1703
+            },
+            {
+              "stop_id": "325440",
+              "name": "Kalenberger Stra\u00dfe",
+              "nearest_node_id": 81631125,
+              "nearest_node_distance_m": 2183.469772466228,
+              "weak_component": 244209350,
+              "component_nodes": 18507
+            },
+            {
+              "stop_id": "40419",
+              "name": "Alt Prester",
+              "nearest_node_id": 81631125,
+              "nearest_node_distance_m": 1947.2664487242491,
+              "weak_component": 244209350,
+              "component_nodes": 18507
+            },
+            {
+              "stop_id": "187472",
+              "name": "Cracau (Pechauer Platz)",
+              "nearest_node_id": 382162290,
+              "nearest_node_distance_m": 1323.8933611650816,
+              "weak_component": 244209350,
+              "component_nodes": 18507
+            },
+            {
+              "stop_id": "113884",
+              "name": "Pfeiffersche Stiftungen",
+              "nearest_node_id": 33830273,
+              "nearest_node_distance_m": 817.0727466436725,
+              "weak_component": 244209350,
+              "component_nodes": 18507
+            },
+            {
+              "stop_id": "502604",
+              "name": "Simonstra\u00dfe",
+              "nearest_node_id": 289956142,
+              "nearest_node_distance_m": 570.7383616266624,
+              "weak_component": 244209350,
+              "component_nodes": 18507
+            },
+            {
+              "stop_id": "37198",
+              "name": "Mehringstra\u00dfe",
+              "nearest_node_id": 289956142,
+              "nearest_node_distance_m": 293.6389025884359,
+              "weak_component": 244209350,
+              "component_nodes": 18507
+            },
+            {
+              "stop_id": "385237",
+              "name": "Am Cracauer Tor",
+              "nearest_node_id": 8880528638,
+              "nearest_node_distance_m": 77.57542214525922,
+              "weak_component": 244209350,
+              "component_nodes": 18507
+            },
+            {
+              "stop_id": "366288",
+              "name": "Heumarkt",
+              "nearest_node_id": 11753326670,
+              "nearest_node_distance_m": 7.4328123536322055,
+              "weak_component": 244209350,
+              "component_nodes": 18507
+            },
+            {
+              "stop_id": "666238",
+              "name": "Zollbr\u00fccke",
+              "nearest_node_id": 3343872370,
+              "nearest_node_distance_m": 28.418968839290265,
+              "weak_component": 244209350,
+              "component_nodes": 18507
+            },
+            {
+              "stop_id": "354137",
+              "name": "Allee - Center",
+              "nearest_node_id": 1935297096,
+              "nearest_node_distance_m": 4.589243774376749,
+              "weak_component": 244209350,
+              "component_nodes": 18507
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pattern_id": "56:cf42f1d537",
+      "line": "56",
+      "mode": "bus",
+      "direction": "Cracau (Pechauer Platz)",
+      "stored_failure": {
+        "ok": false,
+        "reason": "GEOMETRY_VALIDATION_FAILED",
+        "pattern_id": "56:cf42f1d537",
+        "validation": {
+          "valid": false,
+          "max_platform_distance_m": 3596.3,
+          "missing_platforms": 3,
+          "projection_ordered": false,
+          "projection_positions_m": [
+            7.7,
+            313.3,
+            767.6,
+            1530.3,
+            4660.1,
+            5242.1,
+            5808.9
+          ]
+        }
+      },
+      "exact_recorded_failure_reproduced": true,
+      "cases": [
+        {
+          "bbox_margin": 0.004,
+          "selected_ways": 274,
+          "graph_nodes": 2248,
+          "missing_pairs": [],
+          "validation": {
+            "valid": false,
+            "max_platform_distance_m": 3596.3,
+            "missing_platforms": 3,
+            "projection_ordered": false,
+            "projection_positions_m": [
+              7.7,
+              313.3,
+              767.6,
+              1530.3,
+              4660.1,
+              5242.1,
+              5808.9
+            ]
+          },
+          "snaps": [
+            {
+              "stop_id": "603713",
+              "name": "Randau (M\u00fcllerbreite)",
+              "nearest_node_id": 454564825,
+              "nearest_node_distance_m": 7.2871970157868065,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "253129",
+              "name": "Randau (Ortsmitte)",
+              "nearest_node_id": 454564827,
+              "nearest_node_distance_m": 2.2587914619258225,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "327032",
+              "name": "Randau (Schloss)",
+              "nearest_node_id": 454564828,
+              "nearest_node_distance_m": 7.738607388944651,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "73738",
+              "name": "An der Elbaue",
+              "nearest_node_id": 33782601,
+              "nearest_node_distance_m": 6.260832968783363,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "251691",
+              "name": "Luisenthal",
+              "nearest_node_id": 454564834,
+              "nearest_node_distance_m": 4.122016129741912,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "912",
+              "name": "Pechau",
+              "nearest_node_id": 8186197172,
+              "nearest_node_distance_m": 1.3343391195261725,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "59353",
+              "name": "Luisenthal",
+              "nearest_node_id": 454564834,
+              "nearest_node_distance_m": 3.9342418260220957,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "325440",
+              "name": "Kalenberger Stra\u00dfe",
+              "nearest_node_id": 304122130,
+              "nearest_node_distance_m": 2686.147226030342,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "40419",
+              "name": "Alt Prester",
+              "nearest_node_id": 304122130,
+              "nearest_node_distance_m": 3042.5899427744366,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "187472",
+              "name": "Cracau (Pechauer Platz)",
+              "nearest_node_id": 304122130,
+              "nearest_node_distance_m": 3596.257251533368,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            }
+          ]
+        },
+        {
+          "bbox_margin": 0.02,
+          "selected_ways": 1167,
+          "graph_nodes": 7284,
+          "missing_pairs": [
+            {
+              "a_idx": 6,
+              "b_idx": 7,
+              "from_stop": {
+                "stop_id": "59353",
+                "name": "Luisenthal",
+                "nearest_node_id": 454564834,
+                "nearest_node_distance_m": 3.9342418260220957,
+                "weak_component": 4745057619,
+                "component_nodes": 1491
+              },
+              "to_stop": {
+                "stop_id": "325440",
+                "name": "Kalenberger Stra\u00dfe",
+                "nearest_node_id": 81631125,
+                "nearest_node_distance_m": 2183.469772466228,
+                "weak_component": 60439851,
+                "component_nodes": 4218
+              },
+              "same_weak_component": false
+            }
+          ],
+          "validation": null,
+          "snaps": [
+            {
+              "stop_id": "603713",
+              "name": "Randau (M\u00fcllerbreite)",
+              "nearest_node_id": 454564825,
+              "nearest_node_distance_m": 7.2871970157868065,
+              "weak_component": 4745057619,
+              "component_nodes": 1491
+            },
+            {
+              "stop_id": "253129",
+              "name": "Randau (Ortsmitte)",
+              "nearest_node_id": 454564827,
+              "nearest_node_distance_m": 2.2587914619258225,
+              "weak_component": 4745057619,
+              "component_nodes": 1491
+            },
+            {
+              "stop_id": "327032",
+              "name": "Randau (Schloss)",
+              "nearest_node_id": 454564828,
+              "nearest_node_distance_m": 7.738607388944651,
+              "weak_component": 4745057619,
+              "component_nodes": 1491
+            },
+            {
+              "stop_id": "73738",
+              "name": "An der Elbaue",
+              "nearest_node_id": 33782601,
+              "nearest_node_distance_m": 6.260832968783363,
+              "weak_component": 4745057619,
+              "component_nodes": 1491
+            },
+            {
+              "stop_id": "251691",
+              "name": "Luisenthal",
+              "nearest_node_id": 454564834,
+              "nearest_node_distance_m": 4.122016129741912,
+              "weak_component": 4745057619,
+              "component_nodes": 1491
+            },
+            {
+              "stop_id": "912",
+              "name": "Pechau",
+              "nearest_node_id": 8186197172,
+              "nearest_node_distance_m": 1.3343391195261725,
+              "weak_component": 4745057619,
+              "component_nodes": 1491
+            },
+            {
+              "stop_id": "59353",
+              "name": "Luisenthal",
+              "nearest_node_id": 454564834,
+              "nearest_node_distance_m": 3.9342418260220957,
+              "weak_component": 4745057619,
+              "component_nodes": 1491
+            },
+            {
+              "stop_id": "325440",
+              "name": "Kalenberger Stra\u00dfe",
+              "nearest_node_id": 81631125,
+              "nearest_node_distance_m": 2183.469772466228,
+              "weak_component": 60439851,
+              "component_nodes": 4218
+            },
+            {
+              "stop_id": "40419",
+              "name": "Alt Prester",
+              "nearest_node_id": 81631125,
+              "nearest_node_distance_m": 1947.2664487242491,
+              "weak_component": 60439851,
+              "component_nodes": 4218
+            },
+            {
+              "stop_id": "187472",
+              "name": "Cracau (Pechauer Platz)",
+              "nearest_node_id": 382162290,
+              "nearest_node_distance_m": 1323.8933611650816,
+              "weak_component": 60439851,
+              "component_nodes": 4218
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pattern_id": "56:31e03e1a20",
+      "line": "56",
+      "mode": "bus",
+      "direction": "Cracau (Pechauer Platz)",
+      "stored_failure": {
+        "ok": false,
+        "reason": "GEOMETRY_VALIDATION_FAILED",
+        "pattern_id": "56:31e03e1a20",
+        "validation": {
+          "valid": false,
+          "max_platform_distance_m": 3596.3,
+          "missing_platforms": 3,
+          "projection_ordered": false,
+          "projection_positions_m": [
+            7.7,
+            313.3,
+            767.6,
+            1530.3
+          ]
+        }
+      },
+      "exact_recorded_failure_reproduced": true,
+      "cases": [
+        {
+          "bbox_margin": 0.004,
+          "selected_ways": 274,
+          "graph_nodes": 2248,
+          "missing_pairs": [],
+          "validation": {
+            "valid": false,
+            "max_platform_distance_m": 3596.3,
+            "missing_platforms": 3,
+            "projection_ordered": false,
+            "projection_positions_m": [
+              7.7,
+              313.3,
+              767.6,
+              1530.3
+            ]
+          },
+          "snaps": [
+            {
+              "stop_id": "603713",
+              "name": "Randau (M\u00fcllerbreite)",
+              "nearest_node_id": 454564825,
+              "nearest_node_distance_m": 7.2871970157868065,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "253129",
+              "name": "Randau (Ortsmitte)",
+              "nearest_node_id": 454564827,
+              "nearest_node_distance_m": 2.2587914619258225,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "327032",
+              "name": "Randau (Schloss)",
+              "nearest_node_id": 454564828,
+              "nearest_node_distance_m": 7.738607388944651,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "73738",
+              "name": "An der Elbaue",
+              "nearest_node_id": 33782601,
+              "nearest_node_distance_m": 6.260832968783363,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "325440",
+              "name": "Kalenberger Stra\u00dfe",
+              "nearest_node_id": 304122130,
+              "nearest_node_distance_m": 2686.147226030342,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "40419",
+              "name": "Alt Prester",
+              "nearest_node_id": 304122130,
+              "nearest_node_distance_m": 3042.5899427744366,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            },
+            {
+              "stop_id": "187472",
+              "name": "Cracau (Pechauer Platz)",
+              "nearest_node_id": 304122130,
+              "nearest_node_distance_m": 3596.257251533368,
+              "weak_component": 4745057619,
+              "component_nodes": 1318
+            }
+          ]
+        },
+        {
+          "bbox_margin": 0.02,
+          "selected_ways": 1167,
+          "graph_nodes": 7284,
+          "missing_pairs": [
+            {
+              "a_idx": 3,
+              "b_idx": 4,
+              "from_stop": {
+                "stop_id": "73738",
+                "name": "An der Elbaue",
+                "nearest_node_id": 33782601,
+                "nearest_node_distance_m": 6.260832968783363,
+                "weak_component": 4745057619,
+                "component_nodes": 1491
+              },
+              "to_stop": {
+                "stop_id": "325440",
+                "name": "Kalenberger Stra\u00dfe",
+                "nearest_node_id": 81631125,
+                "nearest_node_distance_m": 2183.469772466228,
+                "weak_component": 60439851,
+                "component_nodes": 4218
+              },
+              "same_weak_component": false
+            }
+          ],
+          "validation": null,
+          "snaps": [
+            {
+              "stop_id": "603713",
+              "name": "Randau (M\u00fcllerbreite)",
+              "nearest_node_id": 454564825,
+              "nearest_node_distance_m": 7.2871970157868065,
+              "weak_component": 4745057619,
+              "component_nodes": 1491
+            },
+            {
+              "stop_id": "253129",
+              "name": "Randau (Ortsmitte)",
+              "nearest_node_id": 454564827,
+              "nearest_node_distance_m": 2.2587914619258225,
+              "weak_component": 4745057619,
+              "component_nodes": 1491
+            },
+            {
+              "stop_id": "327032",
+              "name": "Randau (Schloss)",
+              "nearest_node_id": 454564828,
+              "nearest_node_distance_m": 7.738607388944651,
+              "weak_component": 4745057619,
+              "component_nodes": 1491
+            },
+            {
+              "stop_id": "73738",
+              "name": "An der Elbaue",
+              "nearest_node_id": 33782601,
+              "nearest_node_distance_m": 6.260832968783363,
+              "weak_component": 4745057619,
+              "component_nodes": 1491
+            },
+            {
+              "stop_id": "325440",
+              "name": "Kalenberger Stra\u00dfe",
+              "nearest_node_id": 81631125,
+              "nearest_node_distance_m": 2183.469772466228,
+              "weak_component": 60439851,
+              "component_nodes": 4218
+            },
+            {
+              "stop_id": "40419",
+              "name": "Alt Prester",
+              "nearest_node_id": 81631125,
+              "nearest_node_distance_m": 1947.2664487242491,
+              "weak_component": 60439851,
+              "component_nodes": 4218
+            },
+            {
+              "stop_id": "187472",
+              "name": "Cracau (Pechauer Platz)",
+              "nearest_node_id": 382162290,
+              "nearest_node_distance_m": 1323.8933611650816,
+              "weak_component": 60439851,
+              "component_nodes": 4218
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pattern_id": "57:85ade62306",
+      "line": "57",
+      "mode": "bus",
+      "direction": "Magdeburg, Braunlager Str.",
+      "stored_failure": {
+        "ok": false,
+        "reason": "GEOMETRY_VALIDATION_FAILED",
+        "pattern_id": "57:85ade62306",
+        "validation": {
+          "valid": false,
+          "max_platform_distance_m": 1061.3,
+          "missing_platforms": 3,
+          "projection_ordered": false,
+          "projection_positions_m": [
+            181.7,
+            581.9,
+            708.8,
+            1302.2,
+            1877.7,
+            2738.9,
+            3335.5,
+            3869.0
+          ]
+        }
+      },
+      "exact_recorded_failure_reproduced": true,
+      "cases": [
+        {
+          "bbox_margin": 0.004,
+          "selected_ways": 1839,
+          "graph_nodes": 8131,
+          "missing_pairs": [],
+          "validation": {
+            "valid": false,
+            "max_platform_distance_m": 1061.3,
+            "missing_platforms": 3,
+            "projection_ordered": false,
+            "projection_positions_m": [
+              181.7,
+              581.9,
+              708.8,
+              1302.2,
+              1877.7,
+              2738.9,
+              3335.5,
+              3869.0
+            ]
+          },
+          "snaps": [
+            {
+              "stop_id": "635194",
+              "name": "Buckau (Wasserwerk) Wendeschl.",
+              "nearest_node_id": 10140391741,
+              "nearest_node_distance_m": 1061.2985987794682,
+              "weak_component": 278012922,
+              "component_nodes": 7702
+            },
+            {
+              "stop_id": "355836",
+              "name": "Hettstedter Stra\u00dfe",
+              "nearest_node_id": 10140391741,
+              "nearest_node_distance_m": 1019.096325025268,
+              "weak_component": 278012922,
+              "component_nodes": 7702
+            },
+            {
+              "stop_id": "403001",
+              "name": "S-Bahnhof SKET Industriepark",
+              "nearest_node_id": 10140391741,
+              "nearest_node_distance_m": 384.5322614762659,
+              "weak_component": 278012922,
+              "component_nodes": 7702
+            },
+            {
+              "stop_id": "380371",
+              "name": "Hopfenbreite",
+              "nearest_node_id": 1802626693,
+              "nearest_node_distance_m": 12.59766510206511,
+              "weak_component": 278012922,
+              "component_nodes": 7702
+            },
+            {
+              "stop_id": "358519",
+              "name": "Schilfbreite",
+              "nearest_node_id": 307983984,
+              "nearest_node_distance_m": 5.205001121838652,
+              "weak_component": 278012922,
+              "component_nodes": 7702
+            },
+            {
+              "stop_id": "208829",
+              "name": "Freibad S\u00fcd",
+              "nearest_node_id": 2670452148,
+              "nearest_node_distance_m": 4.042397033359554,
+              "weak_component": 278012922,
+              "component_nodes": 7702
+            },
+            {
+              "stop_id": "384583",
+              "name": "Brenneckestra\u00dfe / Ersatzh.",
+              "nearest_node_id": 3701160065,
+              "nearest_node_distance_m": 12.000857875663563,
+              "weak_component": 278012922,
+              "component_nodes": 7702
+            },
+            {
+              "stop_id": "68023",
+              "name": "Nelkenweg",
+              "nearest_node_id": 4670218260,
+              "nearest_node_distance_m": 7.540110928269541,
+              "weak_component": 278012922,
+              "component_nodes": 7702
+            },
+            {
+              "stop_id": "306762",
+              "name": "Blankenburger Str. / Ersatzh.",
+              "nearest_node_id": 3202973726,
+              "nearest_node_distance_m": 12.502311049065902,
+              "weak_component": 278012922,
+              "component_nodes": 7702
+            },
+            {
+              "stop_id": "537561",
+              "name": "Hansa-Park",
+              "nearest_node_id": 3202965266,
+              "nearest_node_distance_m": 3.4351802503177313,
+              "weak_component": 278012922,
+              "component_nodes": 7702
+            },
+            {
+              "stop_id": "229233",
+              "name": "Magdeburg, Braunlager Str.",
+              "nearest_node_id": 462652526,
+              "nearest_node_distance_m": 7.803531195619678,
+              "weak_component": 278012922,
+              "component_nodes": 7702
+            }
+          ]
+        },
+        {
+          "bbox_margin": 0.02,
+          "selected_ways": 5517,
+          "graph_nodes": 24354,
+          "missing_pairs": [],
+          "validation": {
+            "valid": false,
+            "max_platform_distance_m": 1061.3,
+            "missing_platforms": 3,
+            "projection_ordered": false,
+            "projection_positions_m": [
+              181.7,
+              581.9,
+              708.8,
+              1302.2,
+              1877.7,
+              2738.9,
+              3335.5,
+              3869.0
+            ]
+          },
+          "snaps": [
+            {
+              "stop_id": "635194",
+              "name": "Buckau (Wasserwerk) Wendeschl.",
+              "nearest_node_id": 10140391741,
+              "nearest_node_distance_m": 1061.2985987794682,
+              "weak_component": 244209350,
+              "component_nodes": 20829
+            },
+            {
+              "stop_id": "355836",
+              "name": "Hettstedter Stra\u00dfe",
+              "nearest_node_id": 10140391741,
+              "nearest_node_distance_m": 1019.096325025268,
+              "weak_component": 244209350,
+              "component_nodes": 20829
+            },
+            {
+              "stop_id": "403001",
+              "name": "S-Bahnhof SKET Industriepark",
+              "nearest_node_id": 10140391741,
+              "nearest_node_distance_m": 384.5322614762659,
+              "weak_component": 244209350,
+              "component_nodes": 20829
+            },
+            {
+              "stop_id": "380371",
+              "name": "Hopfenbreite",
+              "nearest_node_id": 1802626693,
+              "nearest_node_distance_m": 12.59766510206511,
+              "weak_component": 244209350,
+              "component_nodes": 20829
+            },
+            {
+              "stop_id": "358519",
+              "name": "Schilfbreite",
+              "nearest_node_id": 307983984,
+              "nearest_node_distance_m": 5.205001121838652,
+              "weak_component": 244209350,
+              "component_nodes": 20829
+            },
+            {
+              "stop_id": "208829",
+              "name": "Freibad S\u00fcd",
+              "nearest_node_id": 2670452148,
+              "nearest_node_distance_m": 4.042397033359554,
+              "weak_component": 244209350,
+              "component_nodes": 20829
+            },
+            {
+              "stop_id": "384583",
+              "name": "Brenneckestra\u00dfe / Ersatzh.",
+              "nearest_node_id": 3701160065,
+              "nearest_node_distance_m": 12.000857875663563,
+              "weak_component": 244209350,
+              "component_nodes": 20829
+            },
+            {
+              "stop_id": "68023",
+              "name": "Nelkenweg",
+              "nearest_node_id": 4670218260,
+              "nearest_node_distance_m": 7.540110928269541,
+              "weak_component": 244209350,
+              "component_nodes": 20829
+            },
+            {
+              "stop_id": "306762",
+              "name": "Blankenburger Str. / Ersatzh.",
+              "nearest_node_id": 3202973726,
+              "nearest_node_distance_m": 12.502311049065902,
+              "weak_component": 244209350,
+              "component_nodes": 20829
+            },
+            {
+              "stop_id": "537561",
+              "name": "Hansa-Park",
+              "nearest_node_id": 3202965266,
+              "nearest_node_distance_m": 3.4351802503177313,
+              "weak_component": 244209350,
+              "component_nodes": 20829
+            },
+            {
+              "stop_id": "229233",
+              "name": "Magdeburg, Braunlager Str.",
+              "nearest_node_id": 462652526,
+              "nearest_node_distance_m": 7.803531195619678,
+              "weak_component": 244209350,
+              "component_nodes": 20829
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pattern_id": "57:eaa2f964fd",
+      "line": "57",
+      "mode": "bus",
+      "direction": "Buckau (Wasserwerk)",
+      "stored_failure": {
+        "ok": false,
+        "reason": "GEOMETRY_VALIDATION_FAILED",
+        "pattern_id": "57:eaa2f964fd",
+        "validation": {
+          "valid": false,
+          "max_platform_distance_m": 1097.5,
+          "missing_platforms": 3,
+          "projection_ordered": false,
+          "projection_positions_m": [
+            0.0,
+            444.6,
+            958.6,
+            1772.6,
+            2500.1,
+            3025.1
+          ]
+        }
+      },
+      "exact_recorded_failure_reproduced": true,
+      "cases": [
+        {
+          "bbox_margin": 0.004,
+          "selected_ways": 1795,
+          "graph_nodes": 7785,
+          "missing_pairs": [],
+          "validation": {
+            "valid": false,
+            "max_platform_distance_m": 1097.5,
+            "missing_platforms": 3,
+            "projection_ordered": false,
+            "projection_positions_m": [
+              0.0,
+              444.6,
+              958.6,
+              1772.6,
+              2500.1,
+              3025.1
+            ]
+          },
+          "snaps": [
+            {
+              "stop_id": "311738",
+              "name": "Braunlager Stra\u00dfe",
+              "nearest_node_id": 462652532,
+              "nearest_node_distance_m": 5.085625306872182,
+              "weak_component": 278012922,
+              "component_nodes": 7344
+            },
+            {
+              "stop_id": "264142",
+              "name": "Hansa-Park",
+              "nearest_node_id": 3202965265,
+              "nearest_node_distance_m": 5.601631178980118,
+              "weak_component": 278012922,
+              "component_nodes": 7344
+            },
+            {
+              "stop_id": "646098",
+              "name": "Blankenburger Str. / Ersatzh.",
+              "nearest_node_id": 3202973726,
+              "nearest_node_distance_m": 13.229897837569935,
+              "weak_component": 278012922,
+              "component_nodes": 7344
+            },
+            {
+              "stop_id": "227510",
+              "name": "Nelkenweg",
+              "nearest_node_id": 3701160071,
+              "nearest_node_distance_m": 6.693021957772991,
+              "weak_component": 278012922,
+              "component_nodes": 7344
+            },
+            {
+              "stop_id": "341465",
+              "name": "Brenneckestra\u00dfe / Ersatzh.",
+              "nearest_node_id": 1878345798,
+              "nearest_node_distance_m": 5.25997834896425,
+              "weak_component": 278012922,
+              "component_nodes": 7344
+            },
+            {
+              "stop_id": "554974",
+              "name": "Hopfenbreite / Ersatzh.",
+              "nearest_node_id": 43226834,
+              "nearest_node_distance_m": 33.161175633616736,
+              "weak_component": 278012922,
+              "component_nodes": 7344
+            },
+            {
+              "stop_id": "195740",
+              "name": "S-Bahnhof SKET Industriepark",
+              "nearest_node_id": 10140391741,
+              "nearest_node_distance_m": 349.2743238140231,
+              "weak_component": 278012922,
+              "component_nodes": 7344
+            },
+            {
+              "stop_id": "35647",
+              "name": "Hettstedter Stra\u00dfe",
+              "nearest_node_id": 10140391741,
+              "nearest_node_distance_m": 1045.6840263720603,
+              "weak_component": 278012922,
+              "component_nodes": 7344
+            },
+            {
+              "stop_id": "398157",
+              "name": "Buckau (Wasserwerk)",
+              "nearest_node_id": 10140391741,
+              "nearest_node_distance_m": 1097.5227634019805,
+              "weak_component": 278012922,
+              "component_nodes": 7344
+            }
+          ]
+        },
+        {
+          "bbox_margin": 0.02,
+          "selected_ways": 5517,
+          "graph_nodes": 24418,
+          "missing_pairs": [],
+          "validation": {
+            "valid": false,
+            "max_platform_distance_m": 1097.5,
+            "missing_platforms": 3,
+            "projection_ordered": false,
+            "projection_positions_m": [
+              0.0,
+              444.6,
+              958.6,
+              1772.6,
+              2500.1,
+              3025.1
+            ]
+          },
+          "snaps": [
+            {
+              "stop_id": "311738",
+              "name": "Braunlager Stra\u00dfe",
+              "nearest_node_id": 462652532,
+              "nearest_node_distance_m": 5.085625306872182,
+              "weak_component": 244209350,
+              "component_nodes": 20856
+            },
+            {
+              "stop_id": "264142",
+              "name": "Hansa-Park",
+              "nearest_node_id": 3202965265,
+              "nearest_node_distance_m": 5.601631178980118,
+              "weak_component": 244209350,
+              "component_nodes": 20856
+            },
+            {
+              "stop_id": "646098",
+              "name": "Blankenburger Str. / Ersatzh.",
+              "nearest_node_id": 3202973726,
+              "nearest_node_distance_m": 13.229897837569935,
+              "weak_component": 244209350,
+              "component_nodes": 20856
+            },
+            {
+              "stop_id": "227510",
+              "name": "Nelkenweg",
+              "nearest_node_id": 3701160071,
+              "nearest_node_distance_m": 6.693021957772991,
+              "weak_component": 244209350,
+              "component_nodes": 20856
+            },
+            {
+              "stop_id": "341465",
+              "name": "Brenneckestra\u00dfe / Ersatzh.",
+              "nearest_node_id": 1878345798,
+              "nearest_node_distance_m": 5.25997834896425,
+              "weak_component": 244209350,
+              "component_nodes": 20856
+            },
+            {
+              "stop_id": "554974",
+              "name": "Hopfenbreite / Ersatzh.",
+              "nearest_node_id": 43226834,
+              "nearest_node_distance_m": 33.161175633616736,
+              "weak_component": 244209350,
+              "component_nodes": 20856
+            },
+            {
+              "stop_id": "195740",
+              "name": "S-Bahnhof SKET Industriepark",
+              "nearest_node_id": 10140391741,
+              "nearest_node_distance_m": 349.2743238140231,
+              "weak_component": 244209350,
+              "component_nodes": 20856
+            },
+            {
+              "stop_id": "35647",
+              "name": "Hettstedter Stra\u00dfe",
+              "nearest_node_id": 10140391741,
+              "nearest_node_distance_m": 1045.6840263720603,
+              "weak_component": 244209350,
+              "component_nodes": 20856
+            },
+            {
+              "stop_id": "398157",
+              "name": "Buckau (Wasserwerk)",
+              "nearest_node_id": 10140391741,
+              "nearest_node_distance_m": 1097.5227634019805,
+              "weak_component": 244209350,
+              "component_nodes": 20856
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pattern_id": "59:aa7727a8ad",
+      "line": "59",
+      "mode": "bus",
+      "direction": "Stadthalle",
+      "stored_failure": {
+        "ok": false,
+        "reason": "GEOMETRY_INCOMPLETE",
+        "pattern_id": "59:aa7727a8ad",
+        "missing_pairs": [
+          [
+            0,
+            1
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            5,
+            6
+          ]
+        ],
+        "resolved_pairs": 3
+      },
+      "exact_recorded_failure_reproduced": true,
+      "cases": [
+        {
+          "bbox_margin": 0.004,
+          "selected_ways": 329,
+          "graph_nodes": 1588,
+          "missing_pairs": [
+            {
+              "a_idx": 0,
+              "b_idx": 1,
+              "from_stop": {
+                "stop_id": "212322",
+                "name": "Porsestra\u00dfe",
+                "nearest_node_id": 36709754,
+                "nearest_node_distance_m": 302.90513588494935,
+                "weak_component": 240722677,
+                "component_nodes": 148
+              },
+              "to_stop": {
+                "stop_id": "353239",
+                "name": "AMO/Gruson-Gew\u00e4chsh\u00e4user",
+                "nearest_node_id": 36312561,
+                "nearest_node_distance_m": 242.0991642029507,
+                "weak_component": 292912543,
+                "component_nodes": 417
+              },
+              "same_weak_component": false
+            },
+            {
+              "a_idx": 2,
+              "b_idx": 3,
+              "from_stop": {
+                "stop_id": "558088",
+                "name": "Planckstra\u00dfe",
+                "nearest_node_id": 36312561,
+                "nearest_node_distance_m": 122.54749084577627,
+                "weak_component": 292912543,
+                "component_nodes": 417
+              },
+              "to_stop": {
+                "stop_id": "623151",
+                "name": "Hasselbachplatz",
+                "nearest_node_id": 3701936501,
+                "nearest_node_distance_m": 156.0777741599532,
+                "weak_component": 292912543,
+                "component_nodes": 417
+              },
+              "same_weak_component": true
+            },
+            {
+              "a_idx": 5,
+              "b_idx": 6,
+              "from_stop": {
+                "stop_id": "327630",
+                "name": "Hammersteinweg",
+                "nearest_node_id": 36312561,
+                "nearest_node_distance_m": 414.5337697004784,
+                "weak_component": 292912543,
+                "component_nodes": 417
+              },
+              "to_stop": {
+                "stop_id": "110259",
+                "name": "Stadthalle",
+                "nearest_node_id": 316065735,
+                "nearest_node_distance_m": 861.4285303113026,
+                "weak_component": 11862244364,
+                "component_nodes": 65
+              },
+              "same_weak_component": false
+            }
+          ],
+          "validation": null,
+          "snaps": [
+            {
+              "stop_id": "212322",
+              "name": "Porsestra\u00dfe",
+              "nearest_node_id": 36709754,
+              "nearest_node_distance_m": 302.90513588494935,
+              "weak_component": 240722677,
+              "component_nodes": 148
+            },
+            {
+              "stop_id": "353239",
+              "name": "AMO/Gruson-Gew\u00e4chsh\u00e4user",
+              "nearest_node_id": 36312561,
+              "nearest_node_distance_m": 242.0991642029507,
+              "weak_component": 292912543,
+              "component_nodes": 417
+            },
+            {
+              "stop_id": "558088",
+              "name": "Planckstra\u00dfe",
+              "nearest_node_id": 36312561,
+              "nearest_node_distance_m": 122.54749084577627,
+              "weak_component": 292912543,
+              "component_nodes": 417
+            },
+            {
+              "stop_id": "623151",
+              "name": "Hasselbachplatz",
+              "nearest_node_id": 3701936501,
+              "nearest_node_distance_m": 156.0777741599532,
+              "weak_component": 292912543,
+              "component_nodes": 417
+            },
+            {
+              "stop_id": "237329",
+              "name": "Planckstra\u00dfe",
+              "nearest_node_id": 36312561,
+              "nearest_node_distance_m": 123.05648403882502,
+              "weak_component": 292912543,
+              "component_nodes": 417
+            },
+            {
+              "stop_id": "327630",
+              "name": "Hammersteinweg",
+              "nearest_node_id": 36312561,
+              "nearest_node_distance_m": 414.5337697004784,
+              "weak_component": 292912543,
+              "component_nodes": 417
+            },
+            {
+              "stop_id": "110259",
+              "name": "Stadthalle",
+              "nearest_node_id": 316065735,
+              "nearest_node_distance_m": 861.4285303113026,
+              "weak_component": 11862244364,
+              "component_nodes": 65
+            }
+          ]
+        },
+        {
+          "bbox_margin": 0.02,
+          "selected_ways": 4593,
+          "graph_nodes": 20525,
+          "missing_pairs": [
+            {
+              "a_idx": 2,
+              "b_idx": 3,
+              "from_stop": {
+                "stop_id": "558088",
+                "name": "Planckstra\u00dfe",
+                "nearest_node_id": 36312561,
+                "nearest_node_distance_m": 122.54749084577627,
+                "weak_component": 244209350,
+                "component_nodes": 19645
+              },
+              "to_stop": {
+                "stop_id": "623151",
+                "name": "Hasselbachplatz",
+                "nearest_node_id": 3701936501,
+                "nearest_node_distance_m": 156.0777741599532,
+                "weak_component": 244209350,
+                "component_nodes": 19645
+              },
+              "same_weak_component": true
+            }
+          ],
+          "validation": null,
+          "snaps": [
+            {
+              "stop_id": "212322",
+              "name": "Porsestra\u00dfe",
+              "nearest_node_id": 36709754,
+              "nearest_node_distance_m": 302.90513588494935,
+              "weak_component": 244209350,
+              "component_nodes": 19645
+            },
+            {
+              "stop_id": "353239",
+              "name": "AMO/Gruson-Gew\u00e4chsh\u00e4user",
+              "nearest_node_id": 36312561,
+              "nearest_node_distance_m": 242.0991642029507,
+              "weak_component": 244209350,
+              "component_nodes": 19645
+            },
+            {
+              "stop_id": "558088",
+              "name": "Planckstra\u00dfe",
+              "nearest_node_id": 36312561,
+              "nearest_node_distance_m": 122.54749084577627,
+              "weak_component": 244209350,
+              "component_nodes": 19645
+            },
+            {
+              "stop_id": "623151",
+              "name": "Hasselbachplatz",
+              "nearest_node_id": 3701936501,
+              "nearest_node_distance_m": 156.0777741599532,
+              "weak_component": 244209350,
+              "component_nodes": 19645
+            },
+            {
+              "stop_id": "237329",
+              "name": "Planckstra\u00dfe",
+              "nearest_node_id": 36312561,
+              "nearest_node_distance_m": 123.05648403882502,
+              "weak_component": 244209350,
+              "component_nodes": 19645
+            },
+            {
+              "stop_id": "327630",
+              "name": "Hammersteinweg",
+              "nearest_node_id": 36312561,
+              "nearest_node_distance_m": 414.5337697004784,
+              "weak_component": 244209350,
+              "component_nodes": 19645
+            },
+            {
+              "stop_id": "110259",
+              "name": "Stadthalle",
+              "nearest_node_id": 316065735,
+              "nearest_node_distance_m": 861.4285303113026,
+              "weak_component": 244209350,
+              "component_nodes": 19645
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pattern_id": "59:2b12646995",
+      "line": "59",
+      "mode": "bus",
+      "direction": "Porsestra\u00dfe",
+      "stored_failure": {
+        "ok": false,
+        "reason": "GEOMETRY_INCOMPLETE",
+        "pattern_id": "59:2b12646995",
+        "missing_pairs": [
+          [
+            0,
+            1
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            5,
+            6
+          ]
+        ],
+        "resolved_pairs": 4
+      },
+      "exact_recorded_failure_reproduced": true,
+      "cases": [
+        {
+          "bbox_margin": 0.004,
+          "selected_ways": 332,
+          "graph_nodes": 1597,
+          "missing_pairs": [
+            {
+              "a_idx": 0,
+              "b_idx": 1,
+              "from_stop": {
+                "stop_id": "110259",
+                "name": "Stadthalle",
+                "nearest_node_id": 316065735,
+                "nearest_node_distance_m": 861.4285303113026,
+                "weak_component": 11862244364,
+                "component_nodes": 65
+              },
+              "to_stop": {
+                "stop_id": "615270",
+                "name": "Hammersteinweg",
+                "nearest_node_id": 36312561,
+                "nearest_node_distance_m": 407.73036313432794,
+                "weak_component": 292912543,
+                "component_nodes": 417
+              },
+              "same_weak_component": false
+            },
+            {
+              "a_idx": 2,
+              "b_idx": 3,
+              "from_stop": {
+                "stop_id": "558088",
+                "name": "Planckstra\u00dfe",
+                "nearest_node_id": 36312561,
+                "nearest_node_distance_m": 122.54749084577627,
+                "weak_component": 292912543,
+                "component_nodes": 417
+              },
+              "to_stop": {
+                "stop_id": "623151",
+                "name": "Hasselbachplatz",
+                "nearest_node_id": 3701936501,
+                "nearest_node_distance_m": 156.0777741599532,
+                "weak_component": 292912543,
+                "component_nodes": 417
+              },
+              "same_weak_component": true
+            },
+            {
+              "a_idx": 5,
+              "b_idx": 6,
+              "from_stop": {
+                "stop_id": "366390",
+                "name": "AMO/Gruson-Gew\u00e4chsh\u00e4user",
+                "nearest_node_id": 36312561,
+                "nearest_node_distance_m": 279.8917679776084,
+                "weak_component": 292912543,
+                "component_nodes": 417
+              },
+              "to_stop": {
+                "stop_id": "104965",
+                "name": "Benediktinerstr./Ges.-Haus",
+                "nearest_node_id": 36709754,
+                "nearest_node_distance_m": 372.2043227143321,
+                "weak_component": 240722677,
+                "component_nodes": 148
+              },
+              "same_weak_component": false
+            }
+          ],
+          "validation": null,
+          "snaps": [
+            {
+              "stop_id": "110259",
+              "name": "Stadthalle",
+              "nearest_node_id": 316065735,
+              "nearest_node_distance_m": 861.4285303113026,
+              "weak_component": 11862244364,
+              "component_nodes": 65
+            },
+            {
+              "stop_id": "615270",
+              "name": "Hammersteinweg",
+              "nearest_node_id": 36312561,
+              "nearest_node_distance_m": 407.73036313432794,
+              "weak_component": 292912543,
+              "component_nodes": 417
+            },
+            {
+              "stop_id": "558088",
+              "name": "Planckstra\u00dfe",
+              "nearest_node_id": 36312561,
+              "nearest_node_distance_m": 122.54749084577627,
+              "weak_component": 292912543,
+              "component_nodes": 417
+            },
+            {
+              "stop_id": "623151",
+              "name": "Hasselbachplatz",
+              "nearest_node_id": 3701936501,
+              "nearest_node_distance_m": 156.0777741599532,
+              "weak_component": 292912543,
+              "component_nodes": 417
+            },
+            {
+              "stop_id": "237329",
+              "name": "Planckstra\u00dfe",
+              "nearest_node_id": 36312561,
+              "nearest_node_distance_m": 123.05648403882502,
+              "weak_component": 292912543,
+              "component_nodes": 417
+            },
+            {
+              "stop_id": "366390",
+              "name": "AMO/Gruson-Gew\u00e4chsh\u00e4user",
+              "nearest_node_id": 36312561,
+              "nearest_node_distance_m": 279.8917679776084,
+              "weak_component": 292912543,
+              "component_nodes": 417
+            },
+            {
+              "stop_id": "104965",
+              "name": "Benediktinerstr./Ges.-Haus",
+              "nearest_node_id": 36709754,
+              "nearest_node_distance_m": 372.2043227143321,
+              "weak_component": 240722677,
+              "component_nodes": 148
+            },
+            {
+              "stop_id": "8266",
+              "name": "Porsestra\u00dfe",
+              "nearest_node_id": 36709754,
+              "nearest_node_distance_m": 287.447455447113,
+              "weak_component": 240722677,
+              "component_nodes": 148
+            }
+          ]
+        },
+        {
+          "bbox_margin": 0.02,
+          "selected_ways": 4607,
+          "graph_nodes": 20623,
+          "missing_pairs": [
+            {
+              "a_idx": 2,
+              "b_idx": 3,
+              "from_stop": {
+                "stop_id": "558088",
+                "name": "Planckstra\u00dfe",
+                "nearest_node_id": 36312561,
+                "nearest_node_distance_m": 122.54749084577627,
+                "weak_component": 244209350,
+                "component_nodes": 19794
+              },
+              "to_stop": {
+                "stop_id": "623151",
+                "name": "Hasselbachplatz",
+                "nearest_node_id": 3701936501,
+                "nearest_node_distance_m": 156.0777741599532,
+                "weak_component": 244209350,
+                "component_nodes": 19794
+              },
+              "same_weak_component": true
+            }
+          ],
+          "validation": null,
+          "snaps": [
+            {
+              "stop_id": "110259",
+              "name": "Stadthalle",
+              "nearest_node_id": 316065735,
+              "nearest_node_distance_m": 861.4285303113026,
+              "weak_component": 244209350,
+              "component_nodes": 19794
+            },
+            {
+              "stop_id": "615270",
+              "name": "Hammersteinweg",
+              "nearest_node_id": 36312561,
+              "nearest_node_distance_m": 407.73036313432794,
+              "weak_component": 244209350,
+              "component_nodes": 19794
+            },
+            {
+              "stop_id": "558088",
+              "name": "Planckstra\u00dfe",
+              "nearest_node_id": 36312561,
+              "nearest_node_distance_m": 122.54749084577627,
+              "weak_component": 244209350,
+              "component_nodes": 19794
+            },
+            {
+              "stop_id": "623151",
+              "name": "Hasselbachplatz",
+              "nearest_node_id": 3701936501,
+              "nearest_node_distance_m": 156.0777741599532,
+              "weak_component": 244209350,
+              "component_nodes": 19794
+            },
+            {
+              "stop_id": "237329",
+              "name": "Planckstra\u00dfe",
+              "nearest_node_id": 36312561,
+              "nearest_node_distance_m": 123.05648403882502,
+              "weak_component": 244209350,
+              "component_nodes": 19794
+            },
+            {
+              "stop_id": "366390",
+              "name": "AMO/Gruson-Gew\u00e4chsh\u00e4user",
+              "nearest_node_id": 36312561,
+              "nearest_node_distance_m": 279.8917679776084,
+              "weak_component": 244209350,
+              "component_nodes": 19794
+            },
+            {
+              "stop_id": "104965",
+              "name": "Benediktinerstr./Ges.-Haus",
+              "nearest_node_id": 36709754,
+              "nearest_node_distance_m": 372.2043227143321,
+              "weak_component": 244209350,
+              "component_nodes": 19794
+            },
+            {
+              "stop_id": "8266",
+              "name": "Porsestra\u00dfe",
+              "nearest_node_id": 36709754,
+              "nearest_node_distance_m": 287.447455447113,
+              "weak_component": 244209350,
+              "component_nodes": 19794
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "all_recorded_failures_reproduced": true
+}

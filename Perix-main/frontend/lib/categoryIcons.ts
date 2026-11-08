@@ -54,8 +54,8 @@ export const CATEGORY_COLORS: Record<string, string> = {
   fashion: "#E8C15A",
   "beauty-care": "#FF69B4", // rose
   beauty: "#FF69B4",
-  "entertainment-events": "#FF8C42", // orange
-  entertainment: "#FF8C42",
+  "entertainment-events": "#F15A35", // orange-red blend
+  entertainment: "#F15A35",
   "nightlife-social": "#7B2CBF", // purple
   nightlife: "#7B2CBF",
   "food-dining": "#FFC93C", // yellow

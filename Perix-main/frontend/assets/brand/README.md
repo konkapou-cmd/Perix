@@ -19,6 +19,11 @@ whitespace was cropped. The same logo component reads the **existing global
 i18next language**: Greek gets Πέριξ, all other app languages get Perix. Its
 display slot stays constant, without distorting either image.
 
+`perix-wordmark-english-3d.png` is the user's transparent English 3D wordmark
+for the Locator, `/app`, and `/home` headers. Source:
+`C:\Users\PC\Downloads\PERIX_English_Logo_Transparent.png` (1180 × 425).
+It is used as supplied; the headers add only a subtle right-side dark-blue shadow.
+
 ## Language flags
 
 The small PNGs in `flags/` are bundled local assets. There are **no runtime CDN

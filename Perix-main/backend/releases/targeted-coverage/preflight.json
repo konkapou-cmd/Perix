@@ -1,0 +1,10 @@
+{
+  "rollback_deployment": "6af7f55d-f6bf-4f04-9ba6-fed9d9dcd4ba",
+  "rollback_files_verified": 264,
+  "rollback_command": "railway up \"C:\\Users\\PC\\AppData\\Local\\Temp\\opencode\\perix-targeted-coverage-release\\rollback-context\" --path-as-root --project 99643a3b-bf65-467a-8f2f-50640f519b2b --environment a2b06de5-a5a6-4365-ae67-9ee519a3f7b6 --service 94882f6a-8179-43bc-bdf5-73eb1de4a059 --detach",
+  "source_delta_verified": [
+    "app/(tabs)/locator.tsx",
+    "tests/mobility-service-warnings.test.cjs",
+    "components/shared/MobilityServiceWarnings.tsx"
+  ]
+}

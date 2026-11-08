@@ -1,0 +1,16 @@
+--- a/google-mobility-map.html
++++ b/google-mobility-map.html
+@@ -350,7 +350,12 @@
+     var holding = rec.positionState === "STOP_ANCHOR" || rec.positionState === "TURNAROUND_ANCHOR"
+       || ["DWELL", "AT_STOP", "SIGNAL_HOLD", "TURNAROUND", "PARKED"].indexOf(rec.motionState) >= 0
+       || rec.speed === 0;
+-    if (holding) {
++    // Estimated samples already share the server's effective ETA clock. Do not
++    // add another polling interval of visual delay or extrapolate past them.
++    var authoritativeEstimate = rec.estimated && Number.isFinite(targetProgressM)
++      && (rec.type === "bus" || rec.type === "tram")
++      && (rec.progNow == null || targetProgressM >= rec.progNow);
++    if (holding || authoritativeEstimate) {
+       rec.animStart = null;
+       rec.lastTs = nowTs;
+       if (Number.isFinite(targetProgressM)) rec.progNow = rec.progFrom = targetProgressM;

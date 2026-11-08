@@ -1,0 +1,46 @@
+{
+  "read_only": true,
+  "fleet_count": 47,
+  "timing_basis_counts": {
+    "SCHEDULE": 2,
+    "BETWEEN_STOP_UPDATES": 12,
+    "UNAVAILABLE_ANCHOR": 6,
+    "PROPAGATED_STOP_DEPARTURE": 27
+  },
+  "motion_quality_counts": {
+    "PHYSICS_BASELINE": 41,
+    "UNAVAILABLE_ANCHOR": 6
+  },
+  "between_sample": {
+    "vehicle_id": "est_magdeburg:de-magdeburg-mvb:net_c90c160d4ce6:2026-10-25:51:860835",
+    "trip_id": "860835",
+    "service_date": "2026-10-25",
+    "network_version_id": "net_c90c160d4ce6",
+    "timing_evidence": {
+      "timing_basis": "BETWEEN_STOP_UPDATES",
+      "departure_timing_basis": "BETWEEN_STOP_UPDATES",
+      "timing_anchor_stop_id": "499364",
+      "timing_anchor_sequence": 0,
+      "timing_anchor_delay_seconds": 0,
+      "provider_predicted_arrival_s": null,
+      "provider_predicted_departure_s": null,
+      "ambiguous_stop_update": false,
+      "timing_order_adjusted": false,
+      "stop_sequence": 7,
+      "timing_next_anchor_stop_id": "580207",
+      "timing_next_anchor_sequence": 8,
+      "timing_previous_departure_s": 81600,
+      "timing_next_arrival_s": 82200,
+      "timing_neighbor_constraint": "DOWNSTREAM_TIME_BOUND",
+      "anchor_stop_name": "Biederitz, Weidenring",
+      "next_anchor_stop_name": "Arenen",
+      "source_status": "TRIP_CLOCK_UNKNOWN",
+      "trip_update_timestamp": null,
+      "feed_timestamp": 1792964935,
+      "received_at": "2026-10-25T22:49:05.735257+01:00",
+      "position_assurance": "MODEL_ESTIMATE",
+      "source_correction": null
+    }
+  },
+  "synthetic_live_updates_inserted": false
+}

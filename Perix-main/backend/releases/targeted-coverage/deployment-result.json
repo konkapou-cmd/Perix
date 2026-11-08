@@ -1,0 +1,18 @@
+{
+  "url": "https://app.perix.eu",
+  "deployment": "0adc9837-d717-4694-a10d-686b052ad4d3",
+  "status": "SUCCESS",
+  "active": true,
+  "staging_deployment": "d3e38222-c0d2-4932-8860-2ba571b37279",
+  "rollback_deployment": "6af7f55d-f6bf-4f04-9ba6-fed9d9dcd4ba",
+  "project": "99643a3b-bf65-467a-8f2f-50640f519b2b",
+  "environment": "a2b06de5-a5a6-4365-ae67-9ee519a3f7b6",
+  "service": "94882f6a-8179-43bc-bdf5-73eb1de4a059",
+  "database_or_environment_changes": false,
+  "paid_routes_enabled": false,
+  "dirty_checkout_deployed": false,
+  "route13_detour_geometry_corrected": false,
+  "operator_timetable_conflict_warning_live": true,
+  "physical_gps_manufactured": false,
+  "committed_or_pushed": false
+}

@@ -1,0 +1,119 @@
+{
+  "trip_id": "1221147",
+  "service_date": "2026-10-25",
+  "version_id": "net_7f0605d2409e",
+  "canonical_generation": "gen_e8ae6f0991d921fcc2",
+  "canonical_points": 465,
+  "geometry_sha256": "0c91f420264d1284c17a5e77d4451d7b188f468b184a8327bad6a5162b280a26",
+  "rows": [
+    {
+      "service_s": 65130,
+      "progress_m": 5303.56,
+      "am_fuchsberg_progress_m": 5855.39,
+      "next_timeline_index": 14,
+      "next_stop_id": "639170",
+      "eta_seconds": 117,
+      "source_am_arrival_s": 65247,
+      "effective_am_arrival_s": 65247,
+      "motion_model": "TRAM_PHYSICS_V1"
+    },
+    {
+      "service_s": 65160,
+      "progress_m": 5366.37,
+      "am_fuchsberg_progress_m": 5855.39,
+      "next_timeline_index": 14,
+      "next_stop_id": "639170",
+      "eta_seconds": 87,
+      "source_am_arrival_s": 65247,
+      "effective_am_arrival_s": 65247,
+      "motion_model": "TRAM_PHYSICS_V1"
+    },
+    {
+      "service_s": 65190,
+      "progress_m": 5519.67,
+      "am_fuchsberg_progress_m": 5855.39,
+      "next_timeline_index": 14,
+      "next_stop_id": "639170",
+      "eta_seconds": 57,
+      "source_am_arrival_s": 65247,
+      "effective_am_arrival_s": 65247,
+      "motion_model": "TRAM_PHYSICS_V1"
+    },
+    {
+      "service_s": 65220,
+      "progress_m": 5738.67,
+      "am_fuchsberg_progress_m": 5855.39,
+      "next_timeline_index": 14,
+      "next_stop_id": "639170",
+      "eta_seconds": 27,
+      "source_am_arrival_s": 65247,
+      "effective_am_arrival_s": 65247,
+      "motion_model": "TRAM_PHYSICS_V1"
+    },
+    {
+      "service_s": 65247,
+      "progress_m": 5855.39,
+      "am_fuchsberg_progress_m": 5855.39,
+      "next_timeline_index": 14,
+      "next_stop_id": "639170",
+      "eta_seconds": 0,
+      "source_am_arrival_s": 65247,
+      "effective_am_arrival_s": 65247,
+      "motion_model": "TRAM_PHYSICS_V1"
+    },
+    {
+      "service_s": 65280,
+      "progress_m": 6019.56,
+      "am_fuchsberg_progress_m": 5855.39,
+      "next_timeline_index": 15,
+      "next_stop_id": "89420",
+      "eta_seconds": 27,
+      "source_am_arrival_s": 65247,
+      "effective_am_arrival_s": 65247,
+      "motion_model": "TRAM_PHYSICS_V1"
+    }
+  ],
+  "fallback_rows": [
+    {
+      "service_s": 65160,
+      "progress_m": 5415.67,
+      "next_stop_id": "639170",
+      "eta_seconds": 87,
+      "elapsed_ms": 9.33
+    },
+    {
+      "service_s": 65190,
+      "progress_m": 5589.76,
+      "next_stop_id": "639170",
+      "eta_seconds": 57,
+      "elapsed_ms": 6.45
+    },
+    {
+      "service_s": 65220,
+      "progress_m": 5763.84,
+      "next_stop_id": "639170",
+      "eta_seconds": 27,
+      "elapsed_ms": 2.31
+    }
+  ],
+  "cold_ms": {
+    "median": 38.37,
+    "max": 43.28
+  },
+  "warm_ms": {
+    "median": 0.65,
+    "max": 2.46
+  },
+  "controlled_revision": {
+    "not_an_actual_provider_capture": true,
+    "before_m": 6019.564923853842,
+    "after_m": 5506.5351487136895,
+    "reason": {
+      "reason": "REVISED_SOURCE_ARRIVAL_AHEAD",
+      "anchor_index": 14
+    }
+  },
+  "provider_records_unchanged": true,
+  "database_writes": false,
+  "gps_proof": false
+}

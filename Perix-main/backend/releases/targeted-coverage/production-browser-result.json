@@ -1,0 +1,83 @@
+{
+  "at": "2026-10-24T16:47:42.259Z",
+  "origin": "https://app.perix.eu",
+  "notices": [
+    {
+      "route_number": "N3",
+      "mode": "bus",
+      "direction": "Reform, W.-Seelenbinder-Str.",
+      "status": "OPERATOR_DIVERSION_NOT_IN_TIMETABLE",
+      "notice_id": "mvb-halberstaedter-bridge-2026-10-08",
+      "source_url": "https://www.mvbnet.de/brueckensperrung-in-der-halberstaedter-strasse-linien-13-n3-und-n5-fahren-veraendert/",
+      "reviewed_at": "2026-10-24T16:12:00Z",
+      "source_kind": "OPERATOR_PUBLIC_NOTICE",
+      "message": "MVB: Umleitung über Hertzstraße, Raiffeisenstraße und Am Fuchsberg; Jordanstraße entfällt. Seit 17.10. nicht im Fahrplan enthalten. Fahrzeit etwa fünf Minuten länger. Kartenposition ist keine bestätigte Fahrzeugortung.",
+      "position_verified": false,
+      "review_required": false
+    },
+    {
+      "route_number": "N5",
+      "mode": "bus",
+      "direction": "Diesdorf",
+      "status": "OPERATOR_DIVERSION_NOT_IN_TIMETABLE",
+      "notice_id": "mvb-halberstaedter-bridge-2026-10-08",
+      "source_url": "https://www.mvbnet.de/brueckensperrung-in-der-halberstaedter-strasse-linien-13-n3-und-n5-fahren-veraendert/",
+      "reviewed_at": "2026-10-24T16:12:00Z",
+      "source_kind": "OPERATOR_PUBLIC_NOTICE",
+      "message": "MVB: Umleitung über Hertzstraße, Raiffeisenstraße und Am Fuchsberg; Jordanstraße entfällt. Seit 17.10. nicht im Fahrplan enthalten. Fahrzeit etwa fünf Minuten länger. Kartenposition ist keine bestätigte Fahrzeugortung.",
+      "position_verified": false,
+      "review_required": false
+    },
+    {
+      "route_number": "13",
+      "mode": "tram",
+      "direction": "Hbf / Willy-Brandt-Platz",
+      "status": "OPERATOR_DIVERSION_NOT_IN_TIMETABLE",
+      "notice_id": "mvb-halberstaedter-bridge-2026-10-08",
+      "source_url": "https://www.mvbnet.de/brueckensperrung-in-der-halberstaedter-strasse-linien-13-n3-und-n5-fahren-veraendert/",
+      "reviewed_at": "2026-10-24T16:12:00Z",
+      "source_kind": "OPERATOR_PUBLIC_NOTICE",
+      "message": "MVB: Umleitung über Hertzstraße, Raiffeisenstraße und Am Fuchsberg; Jordanstraße entfällt. Seit 17.10. nicht im Fahrplan enthalten. Fahrzeit etwa fünf Minuten länger. Kartenposition ist keine bestätigte Fahrzeugortung.",
+      "position_verified": false,
+      "review_required": false
+    },
+    {
+      "route_number": "13",
+      "mode": "tram",
+      "direction": "Sudenburg (Kroatenweg)",
+      "status": "OPERATOR_DIVERSION_NOT_IN_TIMETABLE",
+      "notice_id": "mvb-halberstaedter-bridge-2026-10-08",
+      "source_url": "https://www.mvbnet.de/brueckensperrung-in-der-halberstaedter-strasse-linien-13-n3-und-n5-fahren-veraendert/",
+      "reviewed_at": "2026-10-24T16:12:00Z",
+      "source_kind": "OPERATOR_PUBLIC_NOTICE",
+      "message": "MVB: Umleitung über Hertzstraße, Raiffeisenstraße und Am Fuchsberg; Jordanstraße entfällt. Seit 17.10. nicht im Fahrplan enthalten. Fahrzeit etwa fünf Minuten länger. Kartenposition ist keine bestätigte Fahrzeugortung.",
+      "position_verified": false,
+      "review_required": false
+    },
+    {
+      "route_number": "13",
+      "mode": "tram",
+      "direction": "Sudenburg (Kroatenweg)",
+      "status": "OPERATOR_DIVERSION_NOT_IN_TIMETABLE",
+      "notice_id": "mvb-halberstaedter-bridge-2026-10-08",
+      "source_url": "https://www.mvbnet.de/brueckensperrung-in-der-halberstaedter-strasse-linien-13-n3-und-n5-fahren-veraendert/",
+      "reviewed_at": "2026-10-24T16:12:00Z",
+      "source_kind": "OPERATOR_PUBLIC_NOTICE",
+      "message": "MVB: Umleitung über Hertzstraße, Raiffeisenstraße und Am Fuchsberg; Jordanstraße entfällt. Seit 17.10. nicht im Fahrplan enthalten. Fahrzeit etwa fünf Minuten länger. Kartenposition ist keine bestätigte Fahrzeugortung.",
+      "position_verified": false,
+      "review_required": false
+    }
+  ],
+  "apiCount": 56,
+  "renderedCount": 56,
+  "selected": {
+    "vehicle": "est_magdeburg:de-magdeburg-mvb:net_c8ed3e13bf8f:2026-10-24:13:1632138",
+    "trip": "1632138",
+    "source_position_warning": "OPERATOR_DIVERSION_NOT_IN_TIMETABLE"
+  },
+  "errors": [],
+  "apiOrigins": [
+    "https://app.perix.eu"
+  ],
+  "caveat": "No vehicle GPS or detour geometry invented; actual official timetable conflict remains explicitly warned."
+}

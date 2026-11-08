@@ -1,0 +1,214 @@
+--- a/Perix-main/backend/mobility/motion/bus_time_evidence.py
++++ b/Perix-main/backend/mobility/motion/bus_time_evidence.py
+@@ -4,6 +4,7 @@
+ a real bus, rewrite its handover or infer a real queue/red phase.
+ """
+ import os
++import json
+ from mobility.motion.common import sample_trajectory, trajectory_time_at_progress
+ from mobility.tomtom_temporal import projected_speed
+ 
+@@ -13,7 +14,40 @@
+ 
+ 
+ def compare(baseline, fitted, builder, target, *, infra, start_m, end_m,
+-            evidence, initial_speed_kmh=0., elapsed_s=None, physics_config=None):
++            evidence, initial_speed_kmh=0., elapsed_s=None, physics_config=None, memoize=True):
++    # Builders are pure within this synchronous comparison: canonical geometry,
++    # initial conditions/config and accepted evidence are fixed by the caller.
++    # Reuse EXACT input pairs only; do not round states, merge directions or
++    # retain a provider-derived cache beyond this call. Unsupported metadata
++    # bypasses the memo rather than inventing a hash/equivalence.
++    raw_builder=builder
++    memo={}
++    retained_segments=0
++    computation={'rebuild_requests':0,'rebuild_executed':0,'memo_hits':0,'retained_phase_limit':4096}
++    def builder(scenario,values):
++        nonlocal retained_segments
++        computation['rebuild_requests']+=1
++        key=None
++        # Bisection root trials are unique: retaining all of them would trade
++        # CPU for needless memory. Cache only reusable baseline/tail requests.
++        root_trial='speed_factor' in scenario and 'candidate_start_m' not in scenario
++        if memoize and not root_trial:
++            try:
++                key=json.dumps([scenario,values],sort_keys=True,separators=(',',':'),allow_nan=False)
++                if len(key)>32768:
++                    key=None
++            except (TypeError,ValueError):
++                pass
++        if key is not None and key in memo:
++            computation['memo_hits']+=1
++            return memo[key]
++        computation['rebuild_executed']+=1
++        result=raw_builder(scenario,values)
++        phases=len(result.get('segments',[]))
++        if key is not None and len(memo)<128 and retained_segments+phases<=4096:
++            memo[key]=result
++            retained_segments+=phases
++        return result
+     edges=infra.get('edges') or []
+     usable={str(e['edge_id']):e for e in edges if e.get('from_m',-1)>=start_m
+         and e.get('to_m',end_m+1)<=end_m and e['to_m']>e['from_m']}
+@@ -23,6 +57,7 @@
+     report={'shadow_only':True,'model':'BUS_SPATIAL_REMAINING_TIME_V1','available':False,
+             'source':'ROAD_CONDITIONS_NOT_VEHICLE_GPS','evidence_edge_ids':sorted(direct),
+             'reason':None,'queries':[],
++            'computation':computation,
+             'uncertainty_status':'NOT_IDENTIFIABLE_AS_A_UNIQUE_OBSERVED_POSITION',
+             'range_is_evaluated_scenarios_not_confidence_interval':True}
+     if not direct:
+--- a/.github/workflows/mobility-physics-research.yml
++++ b/.github/workflows/mobility-physics-research.yml
+@@ -9,7 +9,9 @@
+       - 'Perix-main/backend/tests/test_tomtom_*.py'
+       - 'Perix-main/backend/tests/test_adaptive_traffic_sampling.py'
+       - 'Perix-main/backend/tests/test_bus_temporal_position.py'
++      - 'Perix-main/backend/tests/test_shadow_rebuild_cache.py'
+       - 'Perix-main/backend/tools/benchmark_adaptive_traffic.py'
++      - 'Perix-main/backend/tools/benchmark_shadow_rebuild_cache.py'
+       - '.github/workflows/mobility-physics-research.yml'
+   workflow_dispatch:
+ permissions:
+@@ -50,10 +52,12 @@
+       - name: New adaptive unit tests first — synthetic evidence, no API key
+         run: >-
+           python -m pytest -q --junitxml=adaptive-unit-results.xml
++          tests/test_shadow_rebuild_cache.py
+           tests/test_adaptive_traffic_sampling.py tests/test_bus_temporal_position.py
+       - name: Explicit suites only — never the destructive test_db fixture
+         run: >-
+           python -m pytest -q --junitxml=mobility-research-results.xml
++          tests/test_shadow_rebuild_cache.py
+           tests/test_adaptive_traffic_sampling.py tests/test_bus_temporal_position.py
+           tests/test_mobility_time_allocation.py tests/test_tomtom_evidence.py
+           tests/test_tomtom_sampling_control.py tests/test_mobility_motion_common.py
+--- /dev/null
++++ b/Perix-main/backend/tests/test_shadow_rebuild_cache.py
+@@ -0,0 +1,68 @@
++"""Exact per-call computation reuse, not another traffic/history cache."""
++from copy import deepcopy
++from unittest.mock import Mock
++import importlib.util
++from pathlib import Path
++
++import pytest
++
++from mobility.motion.bus_time_evidence import compare
++from test_bus_temporal_position import model
++
++
++def without_counts(report):
++    result=deepcopy(report);result.pop('computation',None)
++    return result
++
++
++@pytest.mark.parametrize('trend', [False,True])
++def test_memo_and_reference_return_identical_states_residuals_and_fallbacks(trend):
++    config,infra,builder,baseline,direct=model()
++    if trend:
++        direct['jam']['temporal_change']={'supported':True,'modeled_rate_kmh_per_second':-.01}
++    args=dict(infra=infra,start_m=0.,end_m=1000.,evidence=direct,elapsed_s=100.,physics_config=config)
++    reference=compare(baseline,baseline,builder,300.,**args,memoize=False)
++    spy=Mock(side_effect=builder)
++    cached=compare(baseline,baseline,spy,300.,**args)
++    assert without_counts(cached)==without_counts(reference)
++    assert cached['computation']['memo_hits']>0
++    assert cached['computation']['rebuild_executed']==spy.call_count
++    assert cached['computation']['rebuild_executed']<reference['computation']['rebuild_executed']
++    assert cached['construction_checks']['physics_violations']==0
++
++
++def test_memo_does_not_cross_comparisons_observations_or_targets():
++    config,infra,builder,baseline,direct=model()
++    spy=Mock(side_effect=builder)
++    args=dict(infra=infra,start_m=0.,end_m=1000.,evidence=direct,physics_config=config)
++    first=compare(baseline,baseline,spy,300.,**args)
++    original_calls=spy.call_count
++    again=compare(baseline,baseline,spy,300.,**args)
++    assert spy.call_count==2*original_calls
++    assert first==again
++    direct['jam']['expected_speed_kmh']=4.
++    changed=compare(baseline,baseline,spy,300.,**args)
++    plain=compare(baseline,baseline,builder,300.,**args,memoize=False)
++    assert without_counts(changed)==without_counts(plain)
++    assert changed['reason']!=first['reason']
++
++
++def test_non_json_metadata_bypasses_memo_without_affecting_physics():
++    config,infra,builder,baseline,direct=model()
++    direct['jam']['opaque_metadata']=object()
++    args=dict(infra=infra,start_m=0.,end_m=1000.,evidence=direct,physics_config=config)
++    cached=compare(baseline,baseline,builder,300.,**args)
++    reference=compare(baseline,baseline,builder,300.,**args,memoize=False)
++    assert without_counts(cached)==without_counts(reference)
++
++
++def test_matches_recorded_pre_hardening_implementation():
++    root=Path(r'C:\Users\PC\AppData\Local\Temp\opencode\perix-shadow-cache-baseline-20261026')
++    path=root/'Perix-main/backend/mobility/motion/bus_time_evidence.py'
++    if not path.exists():
++        pytest.skip('local pre-hardening snapshot unavailable')
++    spec=importlib.util.spec_from_file_location('pre_memo_bus_time_evidence',path)
++    old=importlib.util.module_from_spec(spec);spec.loader.exec_module(old)
++    config,infra,builder,baseline,direct=model()
++    args=dict(infra=infra,start_m=0.,end_m=1000.,evidence=direct,elapsed_s=100.,physics_config=config)
++    assert without_counts(compare(baseline,baseline,builder,300.,**args))==old.compare(baseline,baseline,builder,300.,**args)
+--- /dev/null
++++ b/Perix-main/backend/tools/benchmark_shadow_rebuild_cache.py
+@@ -0,0 +1,55 @@
++"""Paired synthetic CPU benchmark; exact outputs, no API/key/provider access."""
++from pathlib import Path
++import argparse,json,statistics,sys,time
++
++sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
++from mobility.motion import bus,engine,bus_time_evidence
++from mobility.motion.config import motion_config_for
++
++
++def run(iterations=40):
++    config=motion_config_for('bus')
++    edges=[dict(edge_id='free',from_node=1,to_node=2,from_m=0.,to_m=700.,from_point=[52.,11.],to_point=[52.,11.0102],
++        way={'highway':'primary','maxspeed_kmh':50.}),dict(edge_id='jam',from_node=2,to_node=3,from_m=700.,to_m=1000.,
++        from_point=[52.,11.0102],to_point=[52.,11.0146],way={'highway':'primary','maxspeed_kmh':50.})]
++    args=dict(edges=edges,signals=[],end_m=1000.,departure_service_s=0.,config=config)
++    def builder(scenario,evidence):
++        return bus.build_bus_leg(**args,traffic_by_edge=evidence,start_m=scenario.get('candidate_start_m',0.),
++            initial_speed_kmh=scenario.get('candidate_initial_speed_kmh',0.),scenario=scenario,
++            recovery_ratio=scenario.get('candidate_recovery_ratio',0.))
++    baseline=engine._fit_leg(lambda r:bus.build_bus_leg(**args,traffic_by_edge={},start_m=0.,recovery_ratio=r),300.,10)
++    timings={False:[],True:[]};counts={False:[],True:[]};hits=[]
++    for index in range(iterations+2):
++        evidence={'jam':{'provider':'TOMTOM_FLOW','expected_speed_kmh':6.,'free_flow_speed_kmh':50.,'direction_binding_id':'SYNTHETIC_ONLY'}}
++        if index%2:
++            evidence['jam']['temporal_change']={'supported':True,'modeled_rate_kmh_per_second':-.01}
++        pair={}
++        for memo in ([False,True] if index%2 else [True,False]):
++            start=time.perf_counter()
++            report=bus_time_evidence.compare(baseline,baseline,builder,300.,infra={'edges':edges,'signals':[]},
++                start_m=0.,end_m=1000.,evidence=evidence,elapsed_s=100.,physics_config=config,memoize=memo)
++            elapsed=(time.perf_counter()-start)*1000
++            computation=report.pop('computation');pair[memo]=report
++            if index>=2:
++                timings[memo].append(elapsed);counts[memo].append(computation['rebuild_executed'])
++                if memo:hits.append(computation['memo_hits'])
++        assert pair[False]==pair[True], 'memo changed model output'
++    def summary(values):
++        return {'p50':statistics.median(values),'p95':sorted(values)[int(.95*(len(values)-1))]}
++    reference=summary(timings[False]);optimized=summary(timings[True])
++    return {'type':'PAIRED_SYNTHETIC_CPU_NOT_API_LATENCY_OR_ACCURACY','paired_cases':iterations,
++        'reference_cpu_ms':reference,'memo_cpu_ms':optimized,
++        'reference_mean_rebuilds':statistics.mean(counts[False]),'memo_mean_rebuilds':statistics.mean(counts[True]),
++        'mean_exact_memo_hits':statistics.mean(hits),'all_model_outputs_identical':True,
++        'retained_phase_limit':4096,'memo_lifetime':'ONE_SYNCHRONOUS_COMPARISON_ONLY',
++        'provider_requests':0,'independent_accuracy':None,'actual_api_latency':None,
++        'p50_reduction_percent':100*(1-optimized['p50']/reference['p50']),
++        'p95_reduction_percent':100*(1-optimized['p95']/reference['p95'])}
++
++
++if __name__=='__main__':
++    parser=argparse.ArgumentParser();parser.add_argument('--output',required=True);args=parser.parse_args()
++    out=Path(args.output)
++    if out.exists():raise ValueError('refusing overwrite')
++    result=run();out.parent.mkdir(parents=True,exist_ok=True);out.write_text(json.dumps(result,indent=2))
++    print(json.dumps(result,indent=2))

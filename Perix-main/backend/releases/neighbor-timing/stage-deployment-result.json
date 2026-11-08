@@ -1,0 +1,16 @@
+{
+  "project": "99643a3b-bf65-467a-8f2f-50640f519b2b",
+  "service": "509e0b41-9c7a-41e1-9e95-3124c958fff9",
+  "environment": "staging",
+  "deployment": "41bc15ee-d2e2-4c1c-9a99-e390b5add33e",
+  "status": "SUCCESS",
+  "parent_staging": "1e740d85-ca19-4d51-a913-62dd20fc4e6c",
+  "package_files": 277,
+  "runtime_hashes_verified": 274,
+  "runtime_mismatches": [],
+  "served_entry_hash_verified": true,
+  "served_map_html_hash_verified": true,
+  "paid_routes": false,
+  "production_changed": false,
+  "production_baseline": "92095c5c-033d-45b8-b358-3bd2fd4abcac"
+}

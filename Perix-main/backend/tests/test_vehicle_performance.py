@@ -36,7 +36,7 @@ def clean_caches():
 async def test_shared_path_no_network_read_and_generation_invalidates(monkeypatch):
     net = network_fixture(2)
     route = net["routes"][0]
-    pid = domain._pattern_id("1", "shape")
+    pid = domain._pattern_id("1", domain._pattern_key(route['trips'][0]))
     points = [[52.1, 11.6], [52.105, 11.605], [52.11, 11.61]]
     geometry_cache.set_cached(pid, points, version_id="perf-v1", generation_id="g1")
     get_network = AsyncMock(side_effect=AssertionError("unexpected full network read"))

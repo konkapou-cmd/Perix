@@ -1,0 +1,17 @@
+{
+  "services": [
+    {
+      "environment": "staging",
+      "service": "backend-staging",
+      "deployment": "2c4a3dc0-6a5f-4c96-9856-19810774491b",
+      "status": "SUCCESS"
+    },
+    {
+      "environment": "production",
+      "service": "backend",
+      "deployment": "b701b1f8-c50c-4fef-a97d-0fc5f710c58d",
+      "status": "SUCCESS"
+    }
+  ],
+  "production_deployment_unchanged": true
+}

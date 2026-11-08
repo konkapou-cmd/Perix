@@ -1,0 +1,19 @@
+{
+  "status": "ACTIVATED",
+  "run_id": "daily-online-20261026-38d340adc657",
+  "service_date": "2026-10-26",
+  "version_id": "net_a17a9612acba",
+  "graph_v": 1793043763,
+  "source_sha256": "56696f84d5ead71fad7cdf27d54c3e4706cfe4dbba00f31587eaeb8683d2acac",
+  "routes": 34,
+  "trips": 3776,
+  "expected": 159,
+  "ready": 159,
+  "reused": 92,
+  "rebuilt": 67,
+  "bus_trips": 1805,
+  "tram_trips": 1971,
+  "native_enabled": false,
+  "traffic_enabled": false,
+  "forced_activation": false
+}

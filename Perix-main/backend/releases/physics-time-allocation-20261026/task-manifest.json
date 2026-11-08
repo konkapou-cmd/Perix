@@ -1,0 +1,139 @@
+{
+  "base": "pre-existing local WIP, not clean HEAD or production source",
+  "modified_existing_files": [
+    "mobility/motion/common.py",
+    "mobility/motion/bus.py",
+    "mobility/motion/tram.py",
+    "mobility/motion/engine.py",
+    "mobility/motion/traffic.py",
+    "mobility/motion/diagnostics.py",
+    "mobility/motion/explain.py",
+    "mobility/v2.py",
+    "mobility/traffic_profiles.py",
+    "utils/mobility_workers.py"
+  ],
+  "added_backend_files": [
+    "mobility/motion/time_allocation.py",
+    "mobility/tomtom_traffic.py",
+    "mobility/tomtom_control.py",
+    "mobility/tomtom_sampling.py",
+    "mobility/tomtom_scheduler.py",
+    "tests/test_mobility_time_allocation.py",
+    "tests/test_tomtom_evidence.py",
+    "tests/test_tomtom_sampling_control.py",
+    "tools/mobility_physics_research.py",
+    "tools/benchmark_time_allocation.py",
+    "MOBILITY_PHYSICS_TOMTOM_AUDIT_2026-10-26.md",
+    "MOBILITY_PHYSICS_TOMTOM.md"
+  ],
+  "added_workflow": ".github/workflows/mobility-physics-research.yml",
+  "changes": {
+    "Perix-main/backend/mobility/motion/common.py": {
+      "before": "7b17f2cc3dfdd5a83b318a740f359f1e35c7faada8e8e0a4a609b619b5632d84",
+      "after": "b44b03f383178c0600766f226646edbf12a6c9d27e23b3a1b0a24d21137f15f1"
+    },
+    "Perix-main/backend/mobility/motion/bus.py": {
+      "before": "e4ff87896dd061b3d0efa3437ad2876e5631dd254fe2aab35286d4ebb1818af1",
+      "after": "263426d40a06e7bdb72c2bc6a3125e1b80aa1560186befc0a04673f0260b2de5"
+    },
+    "Perix-main/backend/mobility/motion/tram.py": {
+      "before": "837c177186b2343671d1f54f4ada1f56790f839f3b93866ac68cac94c74f14c7",
+      "after": "f615c74b88b8c590a7bf6ca48a5c65ce67e74f047cce15a20fa51989286e43df"
+    },
+    "Perix-main/backend/mobility/motion/engine.py": {
+      "before": "7d9b36b69b98696f51c0cf616621aaeeabec2e842b823db3f70233adcc0796d0",
+      "after": "77cc8c80747790eb22b81163b98bfc1470acdc0d4c20a02fc5a1a6c110d42df8"
+    },
+    "Perix-main/backend/mobility/motion/traffic.py": {
+      "before": "41c8ee96390362e422c65896ebd99a76c54bf2aec22a4481dcd3ea1d82229d7f",
+      "after": "d58506263331200c9f38e36cfa3795d12bb31cb5849466feff3756af8f1ff1cb"
+    },
+    "Perix-main/backend/mobility/motion/diagnostics.py": {
+      "before": "34499614970587b4252d04d17d94b9fca718755a0c671f9ee51b78973c23b028",
+      "after": "5f852e3d83ccecaad958388fafe3d4f34fcbf74ce38d65c0f6a9f4d791fb108c"
+    },
+    "Perix-main/backend/mobility/motion/explain.py": {
+      "before": "6a4c01bcedb2f2e4a780b705c6f6fe920e50ba7266fe49553fe489902b9ddeb4",
+      "after": "5ace5754ab476224874e133cbe4580c00e1aeeeb31eef0e150e538c2c903e581"
+    },
+    "Perix-main/backend/mobility/v2.py": {
+      "before": "f43aa4e7f48908fa4c62973b6ec66765a2d6d7f119bc07b22c08c4ee4ac8720a",
+      "after": "1293149327c94ee2d57e26ae4848d47190bc781ea0c143eb0a2570e2b854ff5a"
+    },
+    "Perix-main/backend/mobility/traffic_profiles.py": {
+      "before": "0bb0057f07cccd47143e83d36cbc8b87d6e4cfcb57435474ccfa76897029b18d",
+      "after": "9f211c7b72d61129aa230f019bc471e84b8924e2da77f2ff0024e263fc0a6c2c"
+    },
+    "Perix-main/backend/utils/mobility_workers.py": {
+      "before": "6d514cffe1acca4d429b9fa1c6b0de0c1706862f5ee563af1c7c569c53db79ce",
+      "after": "33dab57c9b5b61f84e49a0e451752dd93564325096a9c330ed3f0b4a2a1bad0c"
+    },
+    "Perix-main/backend/mobility/motion/time_allocation.py": {
+      "before": null,
+      "after": "a6a43bb3bc75ff34daaee3be248267df77cd1be083256e4ffc1cfddcf8011d63"
+    },
+    "Perix-main/backend/mobility/tomtom_traffic.py": {
+      "before": null,
+      "after": "f5371cf7f53bab4acc99c8534c9095d287268fa75cef74a605b65bdd2bbb162b"
+    },
+    "Perix-main/backend/mobility/tomtom_control.py": {
+      "before": null,
+      "after": "111dceaa58167b9eb75250324ff3e23f03326cfd59aba16db677f1902a381e16"
+    },
+    "Perix-main/backend/mobility/tomtom_sampling.py": {
+      "before": null,
+      "after": "c3dc374f53f1a29b97829fa48f5cf71bb7d7c92ab64b94d50bedd4df7627af8c"
+    },
+    "Perix-main/backend/mobility/tomtom_scheduler.py": {
+      "before": null,
+      "after": "097509348adb56644d7f16a2692fa764f132ff619f2aaa42cd56b3b27dff52a2"
+    },
+    "Perix-main/backend/tests/test_mobility_time_allocation.py": {
+      "before": null,
+      "after": "86df27997ac7793a49f9c7bb423e070939b721bb51cef957de12a3bfc2960c7b"
+    },
+    "Perix-main/backend/tests/test_tomtom_evidence.py": {
+      "before": null,
+      "after": "635fb2e543d4a24c65a31f8bbbfd987b37ef229cd324f504d4522d2990c77a83"
+    },
+    "Perix-main/backend/tests/test_tomtom_sampling_control.py": {
+      "before": null,
+      "after": "d08b425314c0fb7996a37901d1023b09ec5f6f0b090da92238a4fd3238eca7aa"
+    },
+    "Perix-main/backend/tools/mobility_physics_research.py": {
+      "before": null,
+      "after": "5823043b568972f0e9cf0b1c9147b7566cbac7808cd50876c114668686031809"
+    },
+    "Perix-main/backend/tools/benchmark_time_allocation.py": {
+      "before": null,
+      "after": "afe6a973734f64b8da2abc4fdebdce156ee0b0f2c2d5c1c2647aedfc1ce92251"
+    },
+    "Perix-main/backend/MOBILITY_PHYSICS_TOMTOM_AUDIT_2026-10-26.md": {
+      "before": null,
+      "after": "7cdf69ace2434c07ccbe6cff5d0f0f9f8abd434697017655119b3ff03efa02a2"
+    },
+    "Perix-main/backend/MOBILITY_PHYSICS_TOMTOM.md": {
+      "before": null,
+      "after": "ea4ee2ece2d888dd7c2e3f066c8398d961789f902ad7313e0eab29d4eefb96f2"
+    },
+    ".github/workflows/mobility-physics-research.yml": {
+      "before": null,
+      "after": "541e323a9efdd3071a03264482e4282d12b5cb5b7ada5ae9e6206fcb26ccb486"
+    }
+  },
+  "patch_sha256": "23f991765a106060c7a2dd4de7909d46a19a18bebfde8b906f613d9464c8cbe7",
+  "git_apply_check": true,
+  "byte_exact_reconstructed_files": 23,
+  "protected_modules_unchanged": [
+    "mobility/motion/config.py",
+    "mobility/signal_semantics.py",
+    "mobility/infrastructure.py",
+    "mobility/generations.py",
+    "mobility/regions.py",
+    "utils/gtfs.py",
+    "mobility/traffic_counts.py"
+  ],
+  "production_modified": false,
+  "tomtom_http_requests": 0,
+  "flags_activated": false
+}

@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock, mock_open
+from unittest.mock import AsyncMock, Mock
 from zoneinfo import ZoneInfo
 import zipfile
 
@@ -121,10 +121,12 @@ def test_parser_default_uses_civil_friday_calendar_and_exceptions(monkeypatch):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("active_day,expected_imports", [("2026-10-22", 1), ("2026-10-23", 0)])
-async def test_worker_unchanged_hash_still_imports_current_civil_date(monkeypatch, active_day, expected_imports):
+@pytest.mark.parametrize("active_day,expected_imports,has_catalogue,reuse", [
+    ("2026-10-22", 1, True, False), ("2026-10-23", 0, True, False),
+    ("2026-10-23", 1, False, False), ("2026-10-23", 1, False, True)])
+async def test_worker_unchanged_hash_still_imports_current_civil_date(monkeypatch, active_day, expected_imports, has_catalogue, reuse):
     import hashlib
-    from mobility import service_clock, schedule_revision, generations
+    from mobility import service_clock, schedule_revision, generations, daily_recovery
     from contextlib import asynccontextmanager
 
     @asynccontextmanager
@@ -138,13 +140,23 @@ async def test_worker_unchanged_hash_still_imports_current_civil_date(monkeypatc
         yield SimpleNamespace(raise_for_status=lambda: None, aiter_bytes=chunks)
 
     active = network(active_day)
+    catalogue = [{**s, 'modes': ['bus']} for s in active['routes'][0]['stops']]
+    if has_catalogue:
+        active['stop_catalogue'] = catalogue
+        active['routes'][0]['trips'][0]['source_time_seconds_preserved'] = True
     active["routes"][0]["stops"][0]["location_type"] = 0
     state = {"value": hashlib.sha256(b"safe-test-feed").hexdigest(), "schema_v": workers.STATIC_SCHEMA_V}
     sync = SimpleNamespace(find_one=AsyncMock(return_value=state), replace_one=AsyncMock())
     audits = SimpleNamespace(replace_one=AsyncMock())
-    monkeypatch.setattr(workers, "db", SimpleNamespace(mobility_sync_state=sync, mobility_schedule_audits=audits))
+    attached = AsyncMock(return_value=SimpleNamespace(matched_count=1))
+    monkeypatch.setattr(workers, "db", SimpleNamespace(mobility_sync_state=sync, mobility_schedule_audits=audits,
+        bus_network_versions=SimpleNamespace(update_one=attached,
+            find_one=AsyncMock(return_value={'routes':[{'trips':[{'source_time_seconds_preserved':True}]}]}))))
+    monkeypatch.setattr(daily_recovery,'enabled',lambda:reuse)
+    if reuse:
+        monkeypatch.setattr(workers,'_daily_recovery_control',lambda:SimpleNamespace(candidate_for=AsyncMock(return_value='retained-candidate')))
+        monkeypatch.setattr(workers,'_managed_daily_candidate',AsyncMock(return_value={'state':'ACTIVATED'}))
     monkeypatch.setattr(workers.httpx, "AsyncClient", client)
-    monkeypatch.setattr("builtins.open", mock_open())
     monkeypatch.setattr(service_clock, "_static_service_date", lambda now, timezone: "2026-10-23")
     monkeypatch.setattr(workers, "_has_occurrence_timing", lambda net: True)
     monkeypatch.setattr(workers, "STATIC_GTFS_URL", "https://example.invalid/test.zip")
@@ -155,7 +167,10 @@ async def test_worker_unchanged_hash_still_imports_current_civil_date(monkeypatc
     monkeypatch.setattr(workers, "request_precompute", lambda *args, **kwargs: None)
     monkeypatch.setattr(generations, "atomic_generations_enabled", lambda: False)
     monkeypatch.setattr(routes, "_get_active_network", AsyncMock(return_value=active))
-    parse = Mock(return_value=network("2026-10-23"))
+    parsed = network("2026-10-23")
+    parsed['stop_catalogue'] = catalogue
+    parsed['routes'][0]['trips'][0]['source_time_seconds_preserved'] = True
+    parse = Mock(return_value=parsed)
     monkeypatch.setattr(gtfs, "parse_gtfs_zip_path", parse)
     create = AsyncMock(return_value={"version_id": "new", "diff": {}})
     activate = AsyncMock()
@@ -167,12 +182,19 @@ async def test_worker_unchanged_hash_still_imports_current_civil_date(monkeypatc
     monkeypatch.setattr(workers.asyncio, "sleep", AsyncMock(side_effect=asyncio.CancelledError))
     with pytest.raises(asyncio.CancelledError):
         await workers._static_worker()
-    assert parse.call_count == create.await_count == expected_imports
+    assert parse.call_count == expected_imports
+    assert create.await_count == (0 if reuse else expected_imports)
+    if reuse:
+        assert attached.call_args.args[0]['static_input.sha256'] == state['value']
+        assert attached.call_args.args[1] == {'$set': {'stop_catalogue': catalogue}}
+    elif expected_imports:
+        assert create.call_args.kwargs['stop_catalogue'] == catalogue
     # Legacy force=True automatic promotion is intentionally no longer allowed.
     # Calendar import must still happen, but only atomic-ready versions activate.
     activate.assert_not_awaited()
-    sync.replace_one.assert_not_awaited()
-    if expected_imports:
+    if not reuse:
+        sync.replace_one.assert_not_awaited()
+    if expected_imports and not reuse:
         assert parse.call_args.kwargs["service_date"] == "2026-10-23"
         assert create.await_args.kwargs["service_date"] == "2026-10-23"
 

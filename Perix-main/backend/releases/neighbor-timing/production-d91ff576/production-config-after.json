@@ -1,0 +1,10 @@
+{
+  "region_id": "magdeburg",
+  "network_id": "de-magdeburg-mvb",
+  "python": "3.11.17",
+  "mongo_version": "8.0.34",
+  "motion_enabled": true,
+  "atomic_generations": true,
+  "plan_handover": true,
+  "paid_routes": false
+}
