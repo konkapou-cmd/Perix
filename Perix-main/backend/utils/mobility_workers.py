@@ -702,6 +702,10 @@ async def _static_worker():
                     if managed is not None:
                         activation_succeeded = managed.get('state') == 'ACTIVATED'
                     elif atomic_generations_enabled():
+                        force_without_generations = (
+                            os.getenv("MOBILITY_ACTIVATE_WITHOUT_GENERATIONS", "false").strip().lower()
+                            == "true"
+                        )
                         _event, lock, _queue = _precompute_primitives()
                         async with lock:
                             preparation = await prepare_network_version(
@@ -723,6 +727,22 @@ async def _static_worker():
                                 f"{preparation.get('expected')} "
                                 f"reused={preparation.get('reused')} "
                                 f"rebuilt={preparation.get('rebuilt')}"
+                            )
+                        elif force_without_generations:
+                            # Explicit degraded-mode gate (e.g. OSM snapshot still
+                            # importing): activate the schedule now; the motion
+                            # generations refresh automatically once OSM lands.
+                            if _static_service_date(datetime.now(ZoneInfo(_ACTIVE_REGION.timezone)), _ACTIVE_REGION.timezone) != today:
+                                raise RuntimeError("civil date changed during preparation; retry without activating stale day")
+                            await _activate_network_version(
+                                str(result["version_id"]),
+                                require_ready=False,
+                                force=True,
+                            )
+                            activation_succeeded = True
+                            _log(
+                                "static: force-activated without generations "
+                                f"{result['version_id']} state={preparation.get('state')}"
                             )
                         else:
                             _log(
