@@ -193,9 +193,26 @@ async def _realtime_worker():
                     os.getenv("MOBILITY_ACTIVATE_WITHOUT_GENERATIONS", "false").strip().lower()
                     == "true"
                 )
+                # The import-time audit is version-bound (region/network/
+                # service_date/source sha). Split large networks assemble
+                # LIGHT here (no per-trip timing), so the live audit cannot
+                # recompute; read the stored record instead. Single-doc
+                # versions fall back to the live computation when no stored
+                # record exists (pre-audit Magdeburg bridge).
+                stored_audit = await db.mobility_schedule_audits.find_one({
+                    "region_id": network.get("region_id"),
+                    "network_id": network.get("network_id"),
+                    "service_date": day,
+                    "source_sha256": (network.get("static_input") or {}).get("sha256") or "",
+                })
+                audit_ok = (
+                    stored_audit.get("ready_to_import") is True
+                    if stored_audit is not None
+                    else audit_schedule({**network, "service_date": day})["ready_to_import"]
+                )
                 if (not network.get("activated_at") or not network.get("version_id")
                         or (atomic_generations_enabled() and not ready and not degraded_realtime)
-                        or not audit_schedule({**network, "service_date": day})["ready_to_import"]):
+                        or not audit_ok):
                     continue
                 if day in dated_indexes:
                     raise RuntimeError("Ambiguous dated realtime network")
