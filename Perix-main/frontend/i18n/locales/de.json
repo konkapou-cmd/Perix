@@ -100,7 +100,12 @@
     "contact": "Anbieter kontaktieren",
     "loginToContact": "Bitte melde dich an, um den Anbieter zu kontaktieren.",
     "logout": "Abmelden",
-    "noTransactions": "Perix ist an keinerlei Transaktionen zwischen Nutzern oder Unternehmen beteiligt. Alle Vereinbarungen und Zahlungen erfolgen direkt zwischen den Parteien."
+    "noTransactions": "Perix ist an keinerlei Transaktionen zwischen Nutzern oder Unternehmen beteiligt. Alle Vereinbarungen und Zahlungen erfolgen direkt zwischen den Parteien.",
+    "section": "Bereich",
+    "category": "Kategorie",
+    "results": "Ergebnisse",
+    "noResults": "Keine Ergebnisse gefunden",
+    "showMore": "Mehr anzeigen"
   },
   "dashboard": {
     "analyticsOverview": "Statistikübersicht",
@@ -624,7 +629,9 @@
     "personalizeHome": "Passe deinen Home-Feed an",
     "searchHotels": "Hotels suchen...",
     "allCategories": "Alle",
-    "filterByCategory": "Kategorie"
+    "filterByCategory": "Kategorie",
+    "services": "Dienstleistungen",
+    "products": "Produkte"
   },
   "brand": {
     "title": "Perix",
@@ -780,6 +787,8 @@
       "directions": "Route"
     },
     "completeYourProfile": "Profil vervollständigen",
+    "trustTip": "Ihr müsst nicht gut aussehen — aber Menschen des Vertrauens sein.",
+    "completeProfileDeadline": "Vervollständige dein Profil bis",
     "viewProfile": "Profil ansehen",
     "showMore": "Mehr anzeigen",
     "showLess": "Weniger anzeigen",
@@ -2907,7 +2916,11 @@
       "other": "Sonstiges",
       "petSupplies": "Tierbedarf",
       "sportsOutdoor": "Sport & Outdoor",
-      "toysGames": "Spielzeug & Games"
+      "toysGames": "Spielzeug & Games",
+      "foodBeverages": "Lebensmittel & Getränke",
+      "flowersGifts": "Blumen & Geschenke",
+      "vehiclesParts": "Fahrzeuge & Teile",
+      "healthMedicalSupplies": "Gesundheit & Medizinbedarf"
     },
     "sub": {
       "agriculture": "Landwirtschaft",
@@ -3031,7 +3044,49 @@
       "winterSports": "Wintersport",
       "womensClothing": "Damenbekleidung",
       "workshopEquipment": "Werkstattausstattung",
-      "workwear": "Arbeitskleidung"
+      "workwear": "Arbeitskleidung",
+      "coffeeTea": "Kaffee & Tee",
+      "bakery": "Backwaren",
+      "sweetsSnacks": "Süßes & Snacks",
+      "pantry": "Vorratskammer",
+      "oilsSpices": "Öle & Gewürze",
+      "freshProduce": "Frische Produkte",
+      "dairyChilled": "Milchprodukte & Gekühltes",
+      "softDrinks": "Erfrischungsgetränke",
+      "foodGiftSets": "Geschenksets mit Lebensmitteln",
+      "bouquets": "Blumensträuße",
+      "cutFlowers": "Schnittblumen",
+      "pottedPlants": "Topfpflanzen",
+      "giftItems": "Geschenkartikel",
+      "souvenirs": "Souvenirs",
+      "personalizedGifts": "Personalisierte Geschenke",
+      "seasonalItems": "Saisonartikel",
+      "giftCardsPackaging": "Geschenkkarten & Verpackung",
+      "passengerCars": "Pkw",
+      "commercialVehicles": "Nutzfahrzeuge",
+      "motorcycles": "Motorräder",
+      "carParts": "Autoteile",
+      "motorcycleParts": "Motorradteile",
+      "tiresWheels": "Reifen & Felgen",
+      "carAccessories": "Autozubehör",
+      "motorcycleAccessories": "Motorradzubehör",
+      "riderGear": "Fahrerausrüstung",
+      "vehicleCare": "Fahrzeugpflege",
+      "vehicleTools": "Fahrzeugwerkzeuge",
+      "firstAid": "Erste Hilfe",
+      "homeMedicalDevices": "Medizinische Haushaltsgeräte",
+      "orthopedicSupport": "Orthopädische Hilfsmittel",
+      "hygieneConsumables": "Hygieneartikel",
+      "oralCare": "Mundpflege",
+      "homeCareAids": "Pflegehilfen für Zuhause",
+      "prescriptionGlasses": "Korrektionsbrillen",
+      "sunglasses": "Sonnenbrillen",
+      "eyeglassFrames": "Brillengestelle",
+      "prescriptionLenses": "Korrektionsgläser",
+      "contactLensesSolutions": "Kontaktlinsen & Lösungen",
+      "lensWipesCleaners": "Reinigungstücher für Gläser",
+      "eyewearCasesCloths": "Brillenetuis & Tücher",
+      "eyewearAccessories": "Brillenzubehör"
     },
     "invalidAvailabilityWindow": "Das Verfügbar-bis-Datum muss nach dem Verfügbar-ab-Datum liegen.",
     "draftSavedMessage": "Dein Eintrag wurde als Entwurf gespeichert."
@@ -3119,7 +3174,23 @@
     "homeRental": "Unterkunft einstellen",
     "homeRentalSubtitle": "Biete eine Wohnung, ein Haus, Studio oder Zimmer zur Miete an",
     "product": "Artikel verkaufen",
-    "productSubtitle": "Veröffentliche ein Produkt im Community-Marktplatz"
+    "productSubtitle": "Veröffentliche ein Produkt im Community-Marktplatz",
+    "upgrade": "Upgraden",
+    "viewPlans": "Pläne ansehen",
+    "classifiedAd": "Kleinanzeige",
+    "classifiedAdSubtitle": "Biete etwas mit Foto und Beschreibung an — bis zu 3 aktive Anzeigen für 30 Tage",
+    "personalProduct": "Persönliche Produkte verkaufen",
+    "personalProductSubtitle": "Bis zu 10 aktive persönliche Produkte",
+    "businessServiceSubtitle": "Professionelle Dienstleistungen anbieten",
+    "businessEventSubtitle": "Events für dein Unternehmen veröffentlichen",
+    "businessJobSubtitle": "Jobs veröffentlichen und Bewerbungen prüfen",
+    "businessProductSubtitle": "Produkte über dein Unternehmensprofil verkaufen",
+    "seeAllSubtitle": "Alle Optionen — was ein Upgrade braucht, führt zu den Plänen",
+    "section": {
+      "personal": "Als Nutzer",
+      "premium": "Premium",
+      "business": "Unternehmen"
+    }
   },
   "map": {
     "itemsAtLocation": "{{count}} Einträge an diesem Ort",
@@ -3138,8 +3209,13 @@
     "dragPinHint": "Ziehe den Pin an deinen genauen Standort"
   },
   "mobility": {
+    "all": "Alle",
     "bus": "Bus",
     "tram": "Tram",
+    "subway": "U-Bahn",
+    "s-bahn": "S-Bahn",
+    "rail": "Regionalbahn",
+    "ferry": "Fähre",
     "taxi": "Taxi",
     "estimated": "Geschätzt",
     "noVehicles": "Gerade keine Live-Fahrzeuge",

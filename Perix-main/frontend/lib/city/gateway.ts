@@ -7,7 +7,7 @@ import { getLiveVehicles, getTransitStops } from "../api/mobility";
 
 export type EntityKind = "business" | "event" | "activity" | "service" | "job" | "rental" | "product" | "home" | "post" | "artist" | "user";
 export type DirectoryEntity = {
-  id: string; type: EntityKind | "public_service" | "bus" | "tram" | "taxi" | "stop";
+  id: string; type: EntityKind | "public_service" | "bus" | "tram" | "subway" | "s-bahn" | "rail" | "ferry" | "taxi" | "stop";
   title: string; description?: string | null; address?: string | null;
   latitude?: number | null; longitude?: number | null; cover_image?: string | null;
   images?: string[]; videos?: string[]; phone?: string | null; website?: string | null;
@@ -16,7 +16,7 @@ export type DirectoryEntity = {
   publicService?: PublicService;
 };
 export type GatewayQuery = { kinds: EntityKind[]; root?: string; subcategories?: string[]; themes?: string[]; property_type?: string; job_type?: string; service_type?: string; publicCategory?: string; mobilityMode?: string; publicOnly?: boolean; mobilityOnly?: boolean };
-export type GatewayNode = { id: string; label: string; icon: string; hint?: string; query: GatewayQuery; children?: GatewayNode[]; action?: "login" };
+export type GatewayNode = { id: string; label: string; icon: string; hint?: string; query: GatewayQuery; children?: GatewayNode[]; action?: "login"; hidden?: boolean };
 
 const query = (...kinds: EntityKind[]): GatewayQuery => ({ kinds });
 const businessChildren = (tree: CategoryGroup[], label: (slug: string) => string): GatewayNode[] => tree.map(root => ({
@@ -28,7 +28,7 @@ const businessChildren = (tree: CategoryGroup[], label: (slug: string) => string
 
 function publicNode(node: PublicServiceCategory, language: string): GatewayNode {
   const label = language === "el" ? node.label_el : language === "en" ? node.label_en || node.label_de : node.label_de;
-  return { id: node.id, label, icon: node.icon || "business-outline", query: { kinds: [], publicOnly: true, publicCategory: node.id }, children: node.children?.map(child => publicNode(child, language)) };
+  return { id: node.id, label, icon: node.icon || "business-outline", hidden: node.hidden === true, query: { kinds: [], publicOnly: true, publicCategory: node.id }, children: node.children?.map(child => publicNode(child, language)) };
 }
 
 export function gatewayCategories(tree: CategoryGroup[], services: PublicServiceCategory | null, label: (slug: string) => string, language = "el"): GatewayNode[] {
@@ -62,7 +62,10 @@ export const getDirectoryDetail = (kind: EntityKind, id: string) => {
   return apiRequest<DirectoryEntity>(`/public-directory/${kind}/${encodeURIComponent(id)}`, "GET");
 };
 
-export async function fetchGatewayPage(filter: GatewayQuery, bounds: CityBounds, search: string, cursors: Record<string, string | null> = {}, includeMobility = true) {
+export type DirectoryCity = { countryCode: string; cityId: string };
+const HOME_CITIES: DirectoryCity[] = [{ countryCode: "DE", cityId: "de-magdeburg" }];
+
+export async function fetchGatewayPage(filter: GatewayQuery, bounds: CityBounds, search: string, cursors: Record<string, string | null> = {}, includeMobility = true, cities: DirectoryCity[] = HOME_CITIES) {
   const root = filter === ALL_QUERY || (!filter.publicOnly && !filter.mobilityOnly && filter.kinds.length > 1 && filter.kinds.length === ALL_QUERY.kinds.length);
   const requests: Promise<{ key: string; items: DirectoryEntity[]; cursor: string | null }>[] = filter.kinds.filter(kind => !(kind in cursors) || cursors[kind] !== null).map(async kind => {
     const params = new URLSearchParams({ min_lat: String(bounds.minLat), max_lat: String(bounds.maxLat), min_lng: String(bounds.minLng), max_lng: String(bounds.maxLng), limit: "30" });
@@ -74,10 +77,18 @@ export async function fetchGatewayPage(filter: GatewayQuery, bounds: CityBounds,
     const page = await apiRequest<{ items: DirectoryEntity[]; next_cursor: string | null }>(`/public-directory/${kind}?${params}`, "GET");
     return { key: kind, items: page.items, cursor: page.next_cursor };
   });
-  if ((root || filter.publicOnly) && (!("public_service" in cursors) || cursors.public_service !== null)) requests.push((async () => {
-    const page = await getPublicServices({ countryCode: "DE", cityId: "de-magdeburg", categoryId: filter.publicCategory, bounds, q: search, cursor: cursors.public_service || undefined });
-    return { key: "public_service", cursor: page.next_cursor, items: page.items.map(publicService => ({ id: publicService.service_id, type: "public_service" as const, title: publicService.name, address: publicService.address, latitude: publicService.latitude, longitude: publicService.longitude, description: publicService.description_el, publicService })) };
-  })());
+  if ((root || filter.publicOnly)) {
+    // One map, every area: fan the directory out to each city in scope.
+    // Cursor keys stay namespaced per city so pagination never mixes scopes.
+    for (const city of cities) {
+      const key = cities.length > 1 ? `public_service:${city.cityId}` : "public_service";
+      if (key in cursors && cursors[key] === null) continue;
+      requests.push((async () => {
+        const page = await getPublicServices({ countryCode: city.countryCode, cityId: city.cityId, categoryId: filter.publicCategory, bounds, q: search, cursor: cursors[key] || undefined });
+        return { key, cursor: page.next_cursor, items: page.items.map(publicService => ({ id: publicService.service_id, type: "public_service" as const, title: publicService.name, address: publicService.address, latitude: publicService.latitude, longitude: publicService.longitude, description: publicService.description_el, publicService })) };
+      })());
+    }
+  }
   if (includeMobility && (root || filter.mobilityOnly) && !("mobility" in cursors)) requests.push((async () => {
     const [vehicles, stops] = await Promise.all([getLiveVehicles(null), getTransitStops(null)]);
     const items: DirectoryEntity[] = [...vehicles.map(v => ({ id: `mobility:${v.vehicle_id}`, type: v.mode, title: `${v.mode} ${v.display_route_number || v.route_number || v.name}`, latitude: v.latitude, longitude: v.longitude,

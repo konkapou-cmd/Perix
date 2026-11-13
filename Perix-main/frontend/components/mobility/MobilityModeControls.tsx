@@ -8,7 +8,7 @@ import type { MobilityMode } from "../../lib/city/mobilityControls";
 export default function MobilityModeControls({ value, onChange }: { value: MobilityMode; onChange: (mode: MobilityMode) => void }) {
   const { t } = useTranslation();
   return <View style={styles.row} testID="mobility-mode-controls">
-    {([['all', 'apps', 'All'], ['bus', 'bus', 'Bus'], ['tram', 'train', 'Tram'], ['taxi', 'car', 'Taxi']] as const).map(([mode, icon, fallback]) => {
+    {([['all', 'apps', 'All'], ['bus', 'bus', 'Bus'], ['tram', 'train', 'Tram'], ['subway', 'subway', 'U-Bahn'], ['s-bahn', 'train', 'S-Bahn'], ['rail', 'train', 'Regional'], ['ferry', 'boat', 'Ferry'], ['taxi', 'car', 'Taxi']] as const).map(([mode, icon, fallback]) => {
       const active = value === mode;
       return <Pressable key={mode} accessibilityRole="button" accessibilityState={{ selected: active }}
         onPress={() => onChange(mode)} style={[styles.option, active && styles.active]}>

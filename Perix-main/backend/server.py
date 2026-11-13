@@ -197,6 +197,11 @@ async def impressum_page(lang: str = "en"):
 
 
 # --- Web app static hosting (SPA) ---
+# The deployed frontend ships WebP image assets. Some slim base images lack a
+# full /etc/mime.types, so Python's mimetypes guesses "text/plain" for .webp
+# and browsers/proxies would stop treating them as images. Register explicitly.
+import mimetypes as _mimetypes
+_mimetypes.add_type("image/webp", ".webp")
 WEB_DIST = Path(__file__).parent / "webdist"
 WEB_DIST_ZIP = Path(__file__).parent / "webdist.dat"
 # Allow deploying the frontend as a single zip (avoids upload timeouts with

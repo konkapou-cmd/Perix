@@ -1,0 +1,4244 @@
+{
+  "sourceZip": "syros_mykonos_complete_222.zip",
+  "sourceZipSha256": "ee49162ea49ae575ba3cedff72a0081895581719be69494b7229c68b543f5cf8",
+  "locationsSha256": "4149a3cf3c31f0d0a2115a822c7c46203696b60882253b08f99ec5231565d5ae",
+  "sheets": [
+    {
+      "file": "syros_mykonos_70_scenes.png",
+      "sha256": "0ead6b0bedc21a3c5e5de0a7a78cc3fd139a88536361889712539f48cf0cda92"
+    },
+    {
+      "file": "syros_mykonos_set2_70_scenes.png",
+      "sha256": "a61114a7a5b3146da5e516bfddde280526cf1333e4370f0da572bcbfc6c8e2cc"
+    },
+    {
+      "file": "syros_mykonos_set3_70_scenes.png",
+      "sha256": "28a79ec11a2ac58ed0da9d025ea2494e462eec44cad63ca50d2188ab100df58b"
+    },
+    {
+      "file": "syros_mykonos_set4_12_scenes.png",
+      "sha256": "b652765ffe729a333ec1d68cd93b6f47dc199d429bf3d46de766df1df3b86343"
+    }
+  ],
+  "icons": [
+    {
+      "id": "GR-SYROS-001",
+      "iconId": 1,
+      "imageFile": "gr-syros-001.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        0,
+        39,
+        164,
+        178
+      ],
+      "opaquePixels": 14282,
+      "restoredOutsideCell": 0,
+      "size": [
+        180,
+        155
+      ],
+      "sha256": "d51e1db49065049c950a2863fc03139dfaa660ee2bdacd267e902c72282d1939"
+    },
+    {
+      "id": "GR-SYROS-002",
+      "iconId": 2,
+      "imageFile": "gr-syros-002.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        159,
+        39,
+        309,
+        176
+      ],
+      "opaquePixels": 13195,
+      "restoredOutsideCell": 0,
+      "size": [
+        166,
+        153
+      ],
+      "sha256": "dcba531831d8ab0d5fa46d04474488d797337b48e6cd2727f247732a72e15ea0"
+    },
+    {
+      "id": "GR-SYROS-003",
+      "iconId": 3,
+      "imageFile": "gr-syros-003.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        298,
+        45,
+        450,
+        176
+      ],
+      "opaquePixels": 13380,
+      "restoredOutsideCell": 0,
+      "size": [
+        168,
+        147
+      ],
+      "sha256": "c45787109b238089967d98614ed5a12a7a0dc46a93f3e44375626a6c39d66f38"
+    },
+    {
+      "id": "GR-SYROS-004",
+      "iconId": 4,
+      "imageFile": "gr-syros-004.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        442,
+        43,
+        593,
+        178
+      ],
+      "opaquePixels": 13245,
+      "restoredOutsideCell": 0,
+      "size": [
+        167,
+        151
+      ],
+      "sha256": "0ff3fcf7daf39a1292818bba33938d058bb6e1b15a32debb08f8cb9e7cd7049d"
+    },
+    {
+      "id": "GR-SYROS-005",
+      "iconId": 5,
+      "imageFile": "gr-syros-005.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        584,
+        45,
+        730,
+        176
+      ],
+      "opaquePixels": 12609,
+      "restoredOutsideCell": 0,
+      "size": [
+        162,
+        147
+      ],
+      "sha256": "78700c51ec7ca41ee53013a2f21ac9be5d8a2f595450bacc6e755db5e4b1d897"
+    },
+    {
+      "id": "GR-SYROS-006",
+      "iconId": 6,
+      "imageFile": "gr-syros-006.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        725,
+        48,
+        874,
+        176
+      ],
+      "opaquePixels": 13667,
+      "restoredOutsideCell": 0,
+      "size": [
+        165,
+        144
+      ],
+      "sha256": "46cb47c4ef921d4ce5b656e4737d388a934de559d89434c705b94d6ed272339e"
+    },
+    {
+      "id": "GR-SYROS-007",
+      "iconId": 7,
+      "imageFile": "gr-syros-007.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        869,
+        45,
+        1019,
+        176
+      ],
+      "opaquePixels": 13161,
+      "restoredOutsideCell": 0,
+      "size": [
+        166,
+        147
+      ],
+      "sha256": "c64e340374f3e82bc70d90fafe4bbd4b9af28aa6baca4335767ba4d779833d3d"
+    },
+    {
+      "id": "GR-SYROS-008",
+      "iconId": 8,
+      "imageFile": "gr-syros-008.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        3,
+        200,
+        161,
+        338
+      ],
+      "opaquePixels": 12378,
+      "restoredOutsideCell": 0,
+      "size": [
+        174,
+        154
+      ],
+      "sha256": "b8244c4e6e7a54fb8f48dc5f044bfc46063341c90202108763b58243aeea9a48"
+    },
+    {
+      "id": "GR-SYROS-009",
+      "iconId": 9,
+      "imageFile": "gr-syros-009.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        155,
+        210,
+        303,
+        337
+      ],
+      "opaquePixels": 11300,
+      "restoredOutsideCell": 0,
+      "size": [
+        164,
+        143
+      ],
+      "sha256": "55ed2fb49247e6966507d0b3e21cab6e66dfa3a5066d2769f7160dfd5d97cb47"
+    },
+    {
+      "id": "GR-SYROS-010",
+      "iconId": 10,
+      "imageFile": "gr-syros-010.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        291,
+        201,
+        447,
+        337
+      ],
+      "opaquePixels": 14636,
+      "restoredOutsideCell": 0,
+      "size": [
+        172,
+        152
+      ],
+      "sha256": "00e20984c861ead4f72c351643fbaf1f4464dff5cd507f07ec93035ce1baf543"
+    },
+    {
+      "id": "GR-SYROS-011",
+      "iconId": 11,
+      "imageFile": "gr-syros-011.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        440,
+        204,
+        594,
+        337
+      ],
+      "opaquePixels": 13809,
+      "restoredOutsideCell": 0,
+      "size": [
+        170,
+        149
+      ],
+      "sha256": "c58e8ae2625bfd4d17e4851a66b10adb19086fd0f624b58546bb1338387ac3d2"
+    },
+    {
+      "id": "GR-SYROS-012",
+      "iconId": 12,
+      "imageFile": "gr-syros-012.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        583,
+        205,
+        732,
+        336
+      ],
+      "opaquePixels": 13315,
+      "restoredOutsideCell": 0,
+      "size": [
+        165,
+        147
+      ],
+      "sha256": "1b08a898f4235ba9c1a265e33b72447ba80965f1c92918af5d81661594e30599"
+    },
+    {
+      "id": "GR-SYROS-013",
+      "iconId": 13,
+      "imageFile": "gr-syros-013.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        725,
+        205,
+        875,
+        338
+      ],
+      "opaquePixels": 13094,
+      "restoredOutsideCell": 0,
+      "size": [
+        166,
+        149
+      ],
+      "sha256": "ed5683534c81ae272141c37bdcf730c3bb614fd7be66f45360ef717b2cc9903b"
+    },
+    {
+      "id": "GR-SYROS-014",
+      "iconId": 14,
+      "imageFile": "gr-syros-014.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        867,
+        197,
+        1020,
+        335
+      ],
+      "opaquePixels": 13916,
+      "restoredOutsideCell": 0,
+      "size": [
+        169,
+        154
+      ],
+      "sha256": "24e9f28dd4a5e0d4b6b3e934782fef7a9fc23e601815042f978f2d4950ba9e15"
+    },
+    {
+      "id": "GR-SYROS-015",
+      "iconId": 15,
+      "imageFile": "gr-syros-015.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        0,
+        362,
+        162,
+        508
+      ],
+      "opaquePixels": 13781,
+      "restoredOutsideCell": 0,
+      "size": [
+        178,
+        162
+      ],
+      "sha256": "4515aa0d5f27ac4e514e12f2c220163a18cbbeba1d6f3522b8017764f18c6a0f"
+    },
+    {
+      "id": "GR-SYROS-016",
+      "iconId": 16,
+      "imageFile": "gr-syros-016.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        155,
+        368,
+        305,
+        510
+      ],
+      "opaquePixels": 12170,
+      "restoredOutsideCell": 0,
+      "size": [
+        166,
+        158
+      ],
+      "sha256": "f030a1848ff4e01c9b3d66a4cb209ea16f7125baa710a3776eafbd268d809508"
+    },
+    {
+      "id": "GR-SYROS-017",
+      "iconId": 17,
+      "imageFile": "gr-syros-017.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        299,
+        374,
+        446,
+        505
+      ],
+      "opaquePixels": 13223,
+      "restoredOutsideCell": 0,
+      "size": [
+        163,
+        147
+      ],
+      "sha256": "0226a58fa66c129a524fa040e44de49c25682a50e8a7b63328daeca0f8e3b19b"
+    },
+    {
+      "id": "GR-SYROS-018",
+      "iconId": 18,
+      "imageFile": "gr-syros-018.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        441,
+        368,
+        589,
+        505
+      ],
+      "opaquePixels": 12308,
+      "restoredOutsideCell": 0,
+      "size": [
+        164,
+        153
+      ],
+      "sha256": "c9fe0379982cbf4814fc93373d0fbf420db1f5462b25cb2d339a9ea2766190e4"
+    },
+    {
+      "id": "GR-SYROS-019",
+      "iconId": 19,
+      "imageFile": "gr-syros-019.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        582,
+        377,
+        733,
+        505
+      ],
+      "opaquePixels": 12862,
+      "restoredOutsideCell": 0,
+      "size": [
+        167,
+        144
+      ],
+      "sha256": "f1c581485f1b1c5712a7bbf062eebdc6406a675a65e3e10e00c4cb1a2a2cb15d"
+    },
+    {
+      "id": "GR-SYROS-020",
+      "iconId": 20,
+      "imageFile": "gr-syros-020.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        728,
+        366,
+        876,
+        505
+      ],
+      "opaquePixels": 12233,
+      "restoredOutsideCell": 0,
+      "size": [
+        164,
+        155
+      ],
+      "sha256": "4f7c0cd9efe834264e2576ffbfcd5bd1da5fdd9991a1cc076275f1565860efaa"
+    },
+    {
+      "id": "GR-SYROS-021",
+      "iconId": 21,
+      "imageFile": "gr-syros-021.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        870,
+        367,
+        1017,
+        506
+      ],
+      "opaquePixels": 12851,
+      "restoredOutsideCell": 0,
+      "size": [
+        163,
+        155
+      ],
+      "sha256": "de60aeca861609c28828432d67e1867b6155a6fd0c9730c455468116006f7a82"
+    },
+    {
+      "id": "GR-SYROS-022",
+      "iconId": 22,
+      "imageFile": "gr-syros-022.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        6,
+        541,
+        160,
+        673
+      ],
+      "opaquePixels": 14308,
+      "restoredOutsideCell": 0,
+      "size": [
+        170,
+        148
+      ],
+      "sha256": "9867d9f76c5063255cf71361bdc9bc8af9c54500c4447e3a900e812655aba69c"
+    },
+    {
+      "id": "GR-SYROS-023",
+      "iconId": 23,
+      "imageFile": "gr-syros-023.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        155,
+        529,
+        303,
+        668
+      ],
+      "opaquePixels": 13649,
+      "restoredOutsideCell": 0,
+      "size": [
+        164,
+        155
+      ],
+      "sha256": "bd47cbabad60d6d395ca22f4213b45805df0af8b03ef8ffb2803cbe7579dbcee"
+    },
+    {
+      "id": "GR-SYROS-024",
+      "iconId": 24,
+      "imageFile": "gr-syros-024.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        298,
+        543,
+        448,
+        670
+      ],
+      "opaquePixels": 12638,
+      "restoredOutsideCell": 0,
+      "size": [
+        166,
+        143
+      ],
+      "sha256": "9c20aea14b87d69b7eb1a6686aff6f1a1e1dbe1bfe9cec123e2a8a7f5f4264d4"
+    },
+    {
+      "id": "GR-SYROS-025",
+      "iconId": 25,
+      "imageFile": "gr-syros-025.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        444,
+        536,
+        589,
+        672
+      ],
+      "opaquePixels": 13175,
+      "restoredOutsideCell": 0,
+      "size": [
+        161,
+        152
+      ],
+      "sha256": "79f98f38c0d2f9eacc7f236dfc612799ea7dd04b40bc3ab6bbb6b5b44827663f"
+    },
+    {
+      "id": "GR-SYROS-026",
+      "iconId": 26,
+      "imageFile": "gr-syros-026.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        583,
+        544,
+        733,
+        672
+      ],
+      "opaquePixels": 13037,
+      "restoredOutsideCell": 0,
+      "size": [
+        166,
+        144
+      ],
+      "sha256": "fd653c0b98b90713a3e98d1eed3039334254ed2d9a94e0f710d00247504625c1"
+    },
+    {
+      "id": "GR-SYROS-027",
+      "iconId": 27,
+      "imageFile": "gr-syros-027.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        727,
+        537,
+        877,
+        672
+      ],
+      "opaquePixels": 13661,
+      "restoredOutsideCell": 0,
+      "size": [
+        166,
+        151
+      ],
+      "sha256": "6033d47060762f9b4baca6411ce0031cd12f863bd9b075aaede481dec1b88615"
+    },
+    {
+      "id": "GR-SYROS-028",
+      "iconId": 28,
+      "imageFile": "gr-syros-028.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        870,
+        540,
+        1024,
+        668
+      ],
+      "opaquePixels": 13945,
+      "restoredOutsideCell": 0,
+      "size": [
+        170,
+        144
+      ],
+      "sha256": "2c39703d8d6f6a9c7ca3f360f6dfc557276e09628c4e66fcd8abff4329d6cd73"
+    },
+    {
+      "id": "GR-SYROS-029",
+      "iconId": 29,
+      "imageFile": "gr-syros-029.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        6,
+        689,
+        161,
+        818
+      ],
+      "opaquePixels": 13588,
+      "restoredOutsideCell": 0,
+      "size": [
+        171,
+        145
+      ],
+      "sha256": "5ed59c2c88cb16491fbf00011506fb1c8739bae295b9973617977323a708782b"
+    },
+    {
+      "id": "GR-SYROS-030",
+      "iconId": 30,
+      "imageFile": "gr-syros-030.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        155,
+        690,
+        307,
+        816
+      ],
+      "opaquePixels": 12519,
+      "restoredOutsideCell": 0,
+      "size": [
+        168,
+        142
+      ],
+      "sha256": "e6d354fc38b951123664ade389434cbab5d14f6d6dd0f805c0ab0872e36bd8fb"
+    },
+    {
+      "id": "GR-SYROS-031",
+      "iconId": 31,
+      "imageFile": "gr-syros-031.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        298,
+        688,
+        450,
+        818
+      ],
+      "opaquePixels": 12777,
+      "restoredOutsideCell": 0,
+      "size": [
+        168,
+        146
+      ],
+      "sha256": "50ceabc3a938abf0a6d85d0d74f0500e0d371ab65b4a063d99a082342119bffb"
+    },
+    {
+      "id": "GR-SYROS-032",
+      "iconId": 32,
+      "imageFile": "gr-syros-032.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        443,
+        693,
+        590,
+        817
+      ],
+      "opaquePixels": 12116,
+      "restoredOutsideCell": 0,
+      "size": [
+        163,
+        140
+      ],
+      "sha256": "d135e7a40a79db0654c6af91b80bff5ea79335a8b73c5423ef8bb664a3a438bd"
+    },
+    {
+      "id": "GR-SYROS-033",
+      "iconId": 33,
+      "imageFile": "gr-syros-033.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        586,
+        687,
+        734,
+        817
+      ],
+      "opaquePixels": 12697,
+      "restoredOutsideCell": 0,
+      "size": [
+        164,
+        146
+      ],
+      "sha256": "092b5f3e4fcb76da1224d0971e5a02c8199545b915d3f75f3d47700bdf7473ef"
+    },
+    {
+      "id": "GR-SYROS-034",
+      "iconId": 34,
+      "imageFile": "gr-syros-034.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        727,
+        688,
+        878,
+        817
+      ],
+      "opaquePixels": 13174,
+      "restoredOutsideCell": 0,
+      "size": [
+        167,
+        145
+      ],
+      "sha256": "d8cc2ae9ecd0789b2eb9b4b4ac710de6271439bd14daa92253cee32c1893d143"
+    },
+    {
+      "id": "GR-SYROS-035",
+      "iconId": 35,
+      "imageFile": "gr-syros-035.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        870,
+        696,
+        1018,
+        816
+      ],
+      "opaquePixels": 12727,
+      "restoredOutsideCell": 0,
+      "size": [
+        164,
+        136
+      ],
+      "sha256": "3c106ab69ddf41a054f2db4fd7e7ef816c7c9911006d15f302b506647fdcdba9"
+    },
+    {
+      "id": "GR-MYKONOS-036",
+      "iconId": 36,
+      "imageFile": "gr-mykonos-036.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        0,
+        840,
+        158,
+        964
+      ],
+      "opaquePixels": 13071,
+      "restoredOutsideCell": 0,
+      "size": [
+        174,
+        140
+      ],
+      "sha256": "8e94573301b9553b664130f1295c827196199b2e2d23cf83c75544b387c16eb5"
+    },
+    {
+      "id": "GR-MYKONOS-037",
+      "iconId": 37,
+      "imageFile": "gr-mykonos-037.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        152,
+        855,
+        304,
+        964
+      ],
+      "opaquePixels": 10987,
+      "restoredOutsideCell": 0,
+      "size": [
+        168,
+        125
+      ],
+      "sha256": "abe2a6b62f209264a5919961d674d0c8179e8db383d056c8c19325cb294c31a0"
+    },
+    {
+      "id": "GR-MYKONOS-038",
+      "iconId": 38,
+      "imageFile": "gr-mykonos-038.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        296,
+        849,
+        450,
+        965
+      ],
+      "opaquePixels": 11280,
+      "restoredOutsideCell": 0,
+      "size": [
+        170,
+        132
+      ],
+      "sha256": "04a70eb96d13158feb51c4688c5903c5e04b19bd430428657caa3f66dd590c5b"
+    },
+    {
+      "id": "GR-MYKONOS-039",
+      "iconId": 39,
+      "imageFile": "gr-mykonos-039.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        441,
+        860,
+        588,
+        964
+      ],
+      "opaquePixels": 10517,
+      "restoredOutsideCell": 0,
+      "size": [
+        163,
+        120
+      ],
+      "sha256": "57b53da055532bbd5a3bd909f5a6242888d690cc5407f03455dfa7e474ebce85"
+    },
+    {
+      "id": "GR-MYKONOS-040",
+      "iconId": 40,
+      "imageFile": "gr-mykonos-040.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        583,
+        853,
+        732,
+        964
+      ],
+      "opaquePixels": 10929,
+      "restoredOutsideCell": 0,
+      "size": [
+        165,
+        127
+      ],
+      "sha256": "53028b80bbde760ac0c415a6eab1839fe1643c571af42b86a3ab715bddb5771f"
+    },
+    {
+      "id": "GR-MYKONOS-041",
+      "iconId": 41,
+      "imageFile": "gr-mykonos-041.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        725,
+        835,
+        871,
+        963
+      ],
+      "opaquePixels": 11209,
+      "restoredOutsideCell": 0,
+      "size": [
+        162,
+        144
+      ],
+      "sha256": "38c5834fe67d3617d9114212b689cdf8ae167d5e142f3d2f29eaf42ef4de9a01"
+    },
+    {
+      "id": "GR-MYKONOS-042",
+      "iconId": 42,
+      "imageFile": "gr-mykonos-042.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        876,
+        836,
+        1017,
+        962
+      ],
+      "opaquePixels": 10228,
+      "restoredOutsideCell": 0,
+      "size": [
+        157,
+        142
+      ],
+      "sha256": "b646cff2afcfda0f377ffdb60d37164ac905d7651adb612695cd3dc94dbe5ff1"
+    },
+    {
+      "id": "GR-MYKONOS-043",
+      "iconId": 43,
+      "imageFile": "gr-mykonos-043.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        0,
+        977,
+        160,
+        1105
+      ],
+      "opaquePixels": 10265,
+      "restoredOutsideCell": 0,
+      "size": [
+        176,
+        144
+      ],
+      "sha256": "15315ea904a51860e3d905489b19743578b14a0d5cffe03dc1dd072934126bd8"
+    },
+    {
+      "id": "GR-MYKONOS-044",
+      "iconId": 44,
+      "imageFile": "gr-mykonos-044.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        155,
+        978,
+        302,
+        1105
+      ],
+      "opaquePixels": 9791,
+      "restoredOutsideCell": 0,
+      "size": [
+        163,
+        143
+      ],
+      "sha256": "ef1cde89df266f271b0229d3ba068c789129c23181f7c4187486ead5c4816c1b"
+    },
+    {
+      "id": "GR-MYKONOS-045",
+      "iconId": 45,
+      "imageFile": "gr-mykonos-045.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        297,
+        1005,
+        450,
+        1104
+      ],
+      "opaquePixels": 8960,
+      "restoredOutsideCell": 0,
+      "size": [
+        169,
+        115
+      ],
+      "sha256": "53341fe2805a79fbe0fefbae8453836af8f58512fcbe5abadd563ebf37090431"
+    },
+    {
+      "id": "GR-MYKONOS-046",
+      "iconId": 46,
+      "imageFile": "gr-mykonos-046.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        445,
+        984,
+        589,
+        1102
+      ],
+      "opaquePixels": 8963,
+      "restoredOutsideCell": 0,
+      "size": [
+        160,
+        134
+      ],
+      "sha256": "ad3250bda1df954ab50ee7e191a7c8594f54ce1efc1ccbae9e9144469014bb03"
+    },
+    {
+      "id": "GR-MYKONOS-047",
+      "iconId": 47,
+      "imageFile": "gr-mykonos-047.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        583,
+        982,
+        726,
+        1104
+      ],
+      "opaquePixels": 9757,
+      "restoredOutsideCell": 0,
+      "size": [
+        159,
+        138
+      ],
+      "sha256": "6c36973b8539e2ad5eb98be9a104ba8758b582ad0ac63987d33b9aa3997adab0"
+    },
+    {
+      "id": "GR-MYKONOS-048",
+      "iconId": 48,
+      "imageFile": "gr-mykonos-048.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        733,
+        987,
+        874,
+        1103
+      ],
+      "opaquePixels": 8931,
+      "restoredOutsideCell": 0,
+      "size": [
+        157,
+        132
+      ],
+      "sha256": "1f12419a6ce7494bcc0f050614a8afb9209d7c79aa07a16f9f605d16c79e804d"
+    },
+    {
+      "id": "GR-MYKONOS-049",
+      "iconId": 49,
+      "imageFile": "gr-mykonos-049.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        869,
+        991,
+        1020,
+        1104
+      ],
+      "opaquePixels": 9047,
+      "restoredOutsideCell": 0,
+      "size": [
+        167,
+        129
+      ],
+      "sha256": "f727c0c63d2c6c33d7ba5950f91a8b00a47fcb685792e18e5d379a9b27ba8e4b"
+    },
+    {
+      "id": "GR-MYKONOS-050",
+      "iconId": 50,
+      "imageFile": "gr-mykonos-050.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        0,
+        1133,
+        158,
+        1232
+      ],
+      "opaquePixels": 11259,
+      "restoredOutsideCell": 0,
+      "size": [
+        174,
+        115
+      ],
+      "sha256": "3c62daaf25522ff609ab5f104faca2ea1d6c8328b5c26a56a329b5a335681bcf"
+    },
+    {
+      "id": "GR-MYKONOS-051",
+      "iconId": 51,
+      "imageFile": "gr-mykonos-051.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        154,
+        1128,
+        302,
+        1234
+      ],
+      "opaquePixels": 10593,
+      "restoredOutsideCell": 0,
+      "size": [
+        164,
+        122
+      ],
+      "sha256": "381f44518bd3123b72c6526e92c83a6f79484559858a583efa651bef599b5a65"
+    },
+    {
+      "id": "GR-MYKONOS-052",
+      "iconId": 52,
+      "imageFile": "gr-mykonos-052.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        298,
+        1127,
+        448,
+        1232
+      ],
+      "opaquePixels": 10786,
+      "restoredOutsideCell": 0,
+      "size": [
+        166,
+        121
+      ],
+      "sha256": "c52b9d042528e1bb430006c2a1b219e53301b98f41c578c10913103cfb94311c"
+    },
+    {
+      "id": "GR-MYKONOS-053",
+      "iconId": 53,
+      "imageFile": "gr-mykonos-053.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        442,
+        1130,
+        590,
+        1233
+      ],
+      "opaquePixels": 9774,
+      "restoredOutsideCell": 0,
+      "size": [
+        164,
+        119
+      ],
+      "sha256": "506e7f586bcbbd321479abba5bb43189f0f76e5c8b4cd388e62423336822b294"
+    },
+    {
+      "id": "GR-MYKONOS-054",
+      "iconId": 54,
+      "imageFile": "gr-mykonos-054.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        583,
+        1123,
+        728,
+        1232
+      ],
+      "opaquePixels": 10269,
+      "restoredOutsideCell": 0,
+      "size": [
+        161,
+        125
+      ],
+      "sha256": "14f34aceb6dd72b389594e35c8fbfea74338a137a1a9b135d16ceacecf64b15f"
+    },
+    {
+      "id": "GR-MYKONOS-055",
+      "iconId": 55,
+      "imageFile": "gr-mykonos-055.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        728,
+        1132,
+        875,
+        1233
+      ],
+      "opaquePixels": 10454,
+      "restoredOutsideCell": 0,
+      "size": [
+        163,
+        117
+      ],
+      "sha256": "34833edd649235db0321de103fbfc42387137a19b6874fd25e66a5bf2b1cc8fa"
+    },
+    {
+      "id": "GR-MYKONOS-056",
+      "iconId": 56,
+      "imageFile": "gr-mykonos-056.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        870,
+        1134,
+        1017,
+        1233
+      ],
+      "opaquePixels": 10402,
+      "restoredOutsideCell": 0,
+      "size": [
+        163,
+        115
+      ],
+      "sha256": "798c2ed1f1583b1337be395f479a97d430f26359e721d374a33c252e53849268"
+    },
+    {
+      "id": "GR-MYKONOS-057",
+      "iconId": 57,
+      "imageFile": "gr-mykonos-057.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        8,
+        1256,
+        158,
+        1361
+      ],
+      "opaquePixels": 11076,
+      "restoredOutsideCell": 0,
+      "size": [
+        166,
+        121
+      ],
+      "sha256": "9cceb59b23c589c5f3fa10f5356a86925c7a280717e6333a4d85f87981581be4"
+    },
+    {
+      "id": "GR-MYKONOS-058",
+      "iconId": 58,
+      "imageFile": "gr-mykonos-058.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        154,
+        1255,
+        304,
+        1360
+      ],
+      "opaquePixels": 10582,
+      "restoredOutsideCell": 0,
+      "size": [
+        166,
+        121
+      ],
+      "sha256": "ab2c44de84da4b746f517134f160bf405b0df0fe3f0336cf49637e5f926ecd50"
+    },
+    {
+      "id": "GR-MYKONOS-059",
+      "iconId": 59,
+      "imageFile": "gr-mykonos-059.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        298,
+        1254,
+        447,
+        1359
+      ],
+      "opaquePixels": 10670,
+      "restoredOutsideCell": 0,
+      "size": [
+        165,
+        121
+      ],
+      "sha256": "0a9ea6ad24073836a17fa417da9effddf13a5dedc42357838c031fa52a608bf9"
+    },
+    {
+      "id": "GR-MYKONOS-060",
+      "iconId": 60,
+      "imageFile": "gr-mykonos-060.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        443,
+        1253,
+        583,
+        1360
+      ],
+      "opaquePixels": 10587,
+      "restoredOutsideCell": 0,
+      "size": [
+        156,
+        123
+      ],
+      "sha256": "386ce5987cdce36292039e432d34354a55e1e1780880f03dcaba9b262888fb3c"
+    },
+    {
+      "id": "GR-MYKONOS-061",
+      "iconId": 61,
+      "imageFile": "gr-mykonos-061.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        588,
+        1249,
+        731,
+        1359
+      ],
+      "opaquePixels": 10663,
+      "restoredOutsideCell": 0,
+      "size": [
+        159,
+        126
+      ],
+      "sha256": "128713d7b1b67c5a4f1b6ac17d8b566c7c864c541da0702769d115e13295e9b1"
+    },
+    {
+      "id": "GR-MYKONOS-062",
+      "iconId": 62,
+      "imageFile": "gr-mykonos-062.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        727,
+        1254,
+        875,
+        1360
+      ],
+      "opaquePixels": 10479,
+      "restoredOutsideCell": 0,
+      "size": [
+        164,
+        122
+      ],
+      "sha256": "836d034b2d08c40b019d069ff4d2d9ff84b0ed61a4f81516e899909480607b97"
+    },
+    {
+      "id": "GR-MYKONOS-063",
+      "iconId": 63,
+      "imageFile": "gr-mykonos-063.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        870,
+        1256,
+        1017,
+        1360
+      ],
+      "opaquePixels": 11107,
+      "restoredOutsideCell": 0,
+      "size": [
+        163,
+        120
+      ],
+      "sha256": "2fa667e815ec07fb987be3affb1d96eecf840746c07f02757f9ce19bbf259a12"
+    },
+    {
+      "id": "GR-MYKONOS-064",
+      "iconId": 64,
+      "imageFile": "gr-mykonos-064.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        8,
+        1390,
+        156,
+        1504
+      ],
+      "opaquePixels": 11980,
+      "restoredOutsideCell": 0,
+      "size": [
+        164,
+        130
+      ],
+      "sha256": "6d1dae1300d8adaa85da0ab258ffbe57f20f06275cb4c5cfdb32641154f67621"
+    },
+    {
+      "id": "GR-MYKONOS-065",
+      "iconId": 65,
+      "imageFile": "gr-mykonos-065.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        151,
+        1392,
+        302,
+        1504
+      ],
+      "opaquePixels": 11841,
+      "restoredOutsideCell": 0,
+      "size": [
+        167,
+        128
+      ],
+      "sha256": "aae170c1280698820f40f5cb6d7572c25f079e7f8da16401a544a5b6b3b4f977"
+    },
+    {
+      "id": "GR-MYKONOS-066",
+      "iconId": 66,
+      "imageFile": "gr-mykonos-066.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        298,
+        1391,
+        445,
+        1503
+      ],
+      "opaquePixels": 11519,
+      "restoredOutsideCell": 0,
+      "size": [
+        163,
+        128
+      ],
+      "sha256": "036aefd81275a46a29e8af959692c691fa2171dcd889fb23f69eec6fda9c3205"
+    },
+    {
+      "id": "GR-MYKONOS-067",
+      "iconId": 67,
+      "imageFile": "gr-mykonos-067.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        441,
+        1386,
+        583,
+        1504
+      ],
+      "opaquePixels": 11960,
+      "restoredOutsideCell": 0,
+      "size": [
+        158,
+        134
+      ],
+      "sha256": "d522e8161965c2598c113e8c508cf269713fa6e6dff886e0b9a469d6a1d5210d"
+    },
+    {
+      "id": "GR-MYKONOS-068",
+      "iconId": 68,
+      "imageFile": "gr-mykonos-068.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        583,
+        1390,
+        733,
+        1505
+      ],
+      "opaquePixels": 12049,
+      "restoredOutsideCell": 0,
+      "size": [
+        166,
+        131
+      ],
+      "sha256": "3147589e2a93189b47f55644b3f88be94460cebec1cff15a4f89b7b4f267a978"
+    },
+    {
+      "id": "GR-MYKONOS-069",
+      "iconId": 69,
+      "imageFile": "gr-mykonos-069.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        729,
+        1392,
+        872,
+        1505
+      ],
+      "opaquePixels": 11456,
+      "restoredOutsideCell": 0,
+      "size": [
+        159,
+        129
+      ],
+      "sha256": "4782899953aa4fee548fb31cfe2a9aab6bdf67a644d24de84affe994041c4f54"
+    },
+    {
+      "id": "GR-MYKONOS-070",
+      "iconId": 70,
+      "imageFile": "gr-mykonos-070.webp",
+      "sourceFile": "syros_mykonos_70_scenes.png",
+      "sourceBox": [
+        876,
+        1391,
+        1016,
+        1501
+      ],
+      "opaquePixels": 11652,
+      "restoredOutsideCell": 0,
+      "size": [
+        156,
+        126
+      ],
+      "sha256": "7a8e5ea216736084c7cd178da3556a30abdc6985d273230ed34c59a6159cd63d"
+    },
+    {
+      "id": "GR-SYROS-071",
+      "iconId": 71,
+      "imageFile": "gr-syros-071.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        5,
+        48,
+        160,
+        168
+      ],
+      "opaquePixels": 13464,
+      "restoredOutsideCell": 17,
+      "size": [
+        171,
+        136
+      ],
+      "sha256": "5493c36bde0088201f29a2350321e517b2e47be4f81230b7eca5a2531f57ba3d"
+    },
+    {
+      "id": "GR-SYROS-072",
+      "iconId": 72,
+      "imageFile": "gr-syros-072.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        157,
+        40,
+        303,
+        167
+      ],
+      "opaquePixels": 10322,
+      "restoredOutsideCell": 16,
+      "size": [
+        162,
+        143
+      ],
+      "sha256": "c8cf539246dbf8cb962290522213513d82c292a1a1566cc5584d5f44686f6f6d"
+    },
+    {
+      "id": "GR-SYROS-073",
+      "iconId": 73,
+      "imageFile": "gr-syros-073.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        298,
+        70,
+        440,
+        169
+      ],
+      "opaquePixels": 9236,
+      "restoredOutsideCell": 0,
+      "size": [
+        158,
+        115
+      ],
+      "sha256": "9328522f71610ff5207f570f69714b3c92fec7912ab740239cfa098d90871aa4"
+    },
+    {
+      "id": "GR-SYROS-074",
+      "iconId": 74,
+      "imageFile": "gr-syros-074.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        444,
+        48,
+        583,
+        171
+      ],
+      "opaquePixels": 12402,
+      "restoredOutsideCell": 0,
+      "size": [
+        155,
+        139
+      ],
+      "sha256": "13a534ab822fdc738deed0f3a7a5548cf6d50b51b7fe9970d01e18b3956f0290"
+    },
+    {
+      "id": "GR-SYROS-075",
+      "iconId": 75,
+      "imageFile": "gr-syros-075.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        584,
+        54,
+        723,
+        169
+      ],
+      "opaquePixels": 11354,
+      "restoredOutsideCell": 0,
+      "size": [
+        155,
+        131
+      ],
+      "sha256": "fe581b8d596780565722a0be4c56075bd9411edd4d7e61f038bf5c3b9ab19f65"
+    },
+    {
+      "id": "GR-SYROS-076",
+      "iconId": 76,
+      "imageFile": "gr-syros-076.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        726,
+        67,
+        871,
+        165
+      ],
+      "opaquePixels": 10449,
+      "restoredOutsideCell": 0,
+      "size": [
+        161,
+        114
+      ],
+      "sha256": "386f8294a7f529a8a3fe3ccaf1c102fc5bf5eb6b4cc7bdb053f28258d4ce2faf"
+    },
+    {
+      "id": "GR-SYROS-077",
+      "iconId": 77,
+      "imageFile": "gr-syros-077.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        874,
+        47,
+        1019,
+        174
+      ],
+      "opaquePixels": 13356,
+      "restoredOutsideCell": 0,
+      "size": [
+        161,
+        143
+      ],
+      "sha256": "c80bf68d5e9421ce89ce71decda842545df60d89a7df1c7219e3dce2b3059f7e"
+    },
+    {
+      "id": "GR-SYROS-078",
+      "iconId": 78,
+      "imageFile": "gr-syros-078.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        7,
+        184,
+        149,
+        335
+      ],
+      "opaquePixels": 11325,
+      "restoredOutsideCell": 0,
+      "size": [
+        158,
+        167
+      ],
+      "sha256": "92dd68f8801da11220e5194d0ad94c46a4475f5ffa668a4850765b33f786352a"
+    },
+    {
+      "id": "GR-SYROS-079",
+      "iconId": 79,
+      "imageFile": "gr-syros-079.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        154,
+        217,
+        303,
+        337
+      ],
+      "opaquePixels": 11102,
+      "restoredOutsideCell": 1,
+      "size": [
+        165,
+        136
+      ],
+      "sha256": "f33c70923f4a1d7d4237f5d2f3225117b491ec49caa6e14367d25bc97ea71902"
+    },
+    {
+      "id": "GR-SYROS-080",
+      "iconId": 80,
+      "imageFile": "gr-syros-080.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        299,
+        213,
+        438,
+        333
+      ],
+      "opaquePixels": 9308,
+      "restoredOutsideCell": 0,
+      "size": [
+        155,
+        136
+      ],
+      "sha256": "f498f3bd4ed701738464acebc5752224276a77bcf0a6a8c367edce6573033064"
+    },
+    {
+      "id": "GR-SYROS-081",
+      "iconId": 81,
+      "imageFile": "gr-syros-081.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        440,
+        201,
+        586,
+        334
+      ],
+      "opaquePixels": 13325,
+      "restoredOutsideCell": 0,
+      "size": [
+        162,
+        149
+      ],
+      "sha256": "5c20b44bdc4cc42e578c89e9914f9e66c77c975f969dc2a454117e023211ff08"
+    },
+    {
+      "id": "GR-SYROS-082",
+      "iconId": 82,
+      "imageFile": "gr-syros-082.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        583,
+        217,
+        724,
+        331
+      ],
+      "opaquePixels": 10227,
+      "restoredOutsideCell": 0,
+      "size": [
+        157,
+        130
+      ],
+      "sha256": "59222bb60a0075a25e0a41cee93150c9b7a835c882ab75ac4e9f25b4d04365f7"
+    },
+    {
+      "id": "GR-SYROS-083",
+      "iconId": 83,
+      "imageFile": "gr-syros-083.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        725,
+        203,
+        872,
+        333
+      ],
+      "opaquePixels": 13138,
+      "restoredOutsideCell": 0,
+      "size": [
+        163,
+        146
+      ],
+      "sha256": "70ac9221f72b7327ff7c695a9591d63c84c94d3d1117b3a69b8608fbe7dc4d6c"
+    },
+    {
+      "id": "GR-SYROS-084",
+      "iconId": 84,
+      "imageFile": "gr-syros-084.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        874,
+        212,
+        1022,
+        332
+      ],
+      "opaquePixels": 9895,
+      "restoredOutsideCell": 0,
+      "size": [
+        164,
+        136
+      ],
+      "sha256": "d843ee533e9dfbb00a3661ebc9ba686fc27973ae953feaa21fd32785df464782"
+    },
+    {
+      "id": "GR-SYROS-085",
+      "iconId": 85,
+      "imageFile": "gr-syros-085.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        6,
+        373,
+        152,
+        494
+      ],
+      "opaquePixels": 13401,
+      "restoredOutsideCell": 0,
+      "size": [
+        162,
+        137
+      ],
+      "sha256": "7ed289802a8f7bcb2f95b4e4cdcb64e67a75b59e9a48185f49939e71113fc162"
+    },
+    {
+      "id": "GR-SYROS-086",
+      "iconId": 86,
+      "imageFile": "gr-syros-086.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        156,
+        370,
+        302,
+        493
+      ],
+      "opaquePixels": 12982,
+      "restoredOutsideCell": 0,
+      "size": [
+        162,
+        139
+      ],
+      "sha256": "2158797dd2acbe86ef516442e74cf5d205072589810063115ad652c6fbf2f079"
+    },
+    {
+      "id": "GR-SYROS-087",
+      "iconId": 87,
+      "imageFile": "gr-syros-087.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        297,
+        368,
+        439,
+        494
+      ],
+      "opaquePixels": 13125,
+      "restoredOutsideCell": 0,
+      "size": [
+        158,
+        142
+      ],
+      "sha256": "8dcf19a2bbedc2b880b46460263060c50e8bf0dbc94ab5d50e9bd8c56add6ad6"
+    },
+    {
+      "id": "GR-SYROS-088",
+      "iconId": 88,
+      "imageFile": "gr-syros-088.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        439,
+        385,
+        587,
+        486
+      ],
+      "opaquePixels": 11030,
+      "restoredOutsideCell": 0,
+      "size": [
+        164,
+        117
+      ],
+      "sha256": "295913ea005499216e8488c8e4316669d1725bb33170f43303533b6b89bf53c8"
+    },
+    {
+      "id": "GR-SYROS-089",
+      "iconId": 89,
+      "imageFile": "gr-syros-089.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        583,
+        376,
+        726,
+        487
+      ],
+      "opaquePixels": 11490,
+      "restoredOutsideCell": 0,
+      "size": [
+        159,
+        127
+      ],
+      "sha256": "49613c57d8ca683ff9e498718fe8e37523ade5ba77f716443d5e0ea589c9a567"
+    },
+    {
+      "id": "GR-SYROS-090",
+      "iconId": 90,
+      "imageFile": "gr-syros-090.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        726,
+        365,
+        872,
+        492
+      ],
+      "opaquePixels": 13408,
+      "restoredOutsideCell": 0,
+      "size": [
+        162,
+        143
+      ],
+      "sha256": "9a70a8b089fc23421e19607ff3ab1ded954748d9b742de4e7070708141e45126"
+    },
+    {
+      "id": "GR-SYROS-091",
+      "iconId": 91,
+      "imageFile": "gr-syros-091.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        876,
+        377,
+        1019,
+        492
+      ],
+      "opaquePixels": 12159,
+      "restoredOutsideCell": 0,
+      "size": [
+        159,
+        131
+      ],
+      "sha256": "96d6fa6d50a491959db4548196d8231c82cbc6535b38f819289fe282248c042f"
+    },
+    {
+      "id": "GR-SYROS-092",
+      "iconId": 92,
+      "imageFile": "gr-syros-092.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        4,
+        539,
+        157,
+        651
+      ],
+      "opaquePixels": 13127,
+      "restoredOutsideCell": 0,
+      "size": [
+        169,
+        128
+      ],
+      "sha256": "7ad1cd79a3d15edc7f7741318318da28e8e4d338b23e3d65d6b8778e44893396"
+    },
+    {
+      "id": "GR-SYROS-093",
+      "iconId": 93,
+      "imageFile": "gr-syros-093.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        152,
+        542,
+        302,
+        654
+      ],
+      "opaquePixels": 12008,
+      "restoredOutsideCell": 0,
+      "size": [
+        166,
+        128
+      ],
+      "sha256": "6f05ba5fe66168f0051933bf7aaa349010c3bca168859ca34493595b08f76eb4"
+    },
+    {
+      "id": "GR-SYROS-094",
+      "iconId": 94,
+      "imageFile": "gr-syros-094.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        296,
+        541,
+        439,
+        653
+      ],
+      "opaquePixels": 11891,
+      "restoredOutsideCell": 0,
+      "size": [
+        159,
+        128
+      ],
+      "sha256": "9dbc27f7a3e32047e906973f93d704fe7b55a758b6c77628e13ac87f02991346"
+    },
+    {
+      "id": "GR-SYROS-095",
+      "iconId": 95,
+      "imageFile": "gr-syros-095.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        439,
+        543,
+        584,
+        648
+      ],
+      "opaquePixels": 11074,
+      "restoredOutsideCell": 0,
+      "size": [
+        161,
+        121
+      ],
+      "sha256": "d7b0f6ddc12895152a16ecefb6336eba9f35bcab954795b33657936315c7ec28"
+    },
+    {
+      "id": "GR-SYROS-096",
+      "iconId": 96,
+      "imageFile": "gr-syros-096.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        583,
+        544,
+        728,
+        654
+      ],
+      "opaquePixels": 11545,
+      "restoredOutsideCell": 0,
+      "size": [
+        161,
+        126
+      ],
+      "sha256": "0d2e283ae4037fd168cf1a96de0fae2793ade37561af2588583c1a31ff9b6418"
+    },
+    {
+      "id": "GR-SYROS-097",
+      "iconId": 97,
+      "imageFile": "gr-syros-097.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        730,
+        530,
+        876,
+        654
+      ],
+      "opaquePixels": 11155,
+      "restoredOutsideCell": 2,
+      "size": [
+        162,
+        140
+      ],
+      "sha256": "837389d33b5babecd2542bf319145df094657f6f37ddca83fbb66b8e5e20d6fb"
+    },
+    {
+      "id": "GR-SYROS-098",
+      "iconId": 98,
+      "imageFile": "gr-syros-098.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        878,
+        532,
+        1016,
+        654
+      ],
+      "opaquePixels": 10185,
+      "restoredOutsideCell": 0,
+      "size": [
+        154,
+        138
+      ],
+      "sha256": "b1f2db9a1b8c012f2d2771a7d5d8763670101525ea98c7e69e2ab122526cd92c"
+    },
+    {
+      "id": "GR-SYROS-099",
+      "iconId": 99,
+      "imageFile": "gr-syros-099.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        5,
+        693,
+        155,
+        803
+      ],
+      "opaquePixels": 12129,
+      "restoredOutsideCell": 0,
+      "size": [
+        166,
+        126
+      ],
+      "sha256": "7888dadde680f2b56a3c3f08fc6b4179d39df930cc42980914d4ef90a8820ba4"
+    },
+    {
+      "id": "GR-SYROS-100",
+      "iconId": 100,
+      "imageFile": "gr-syros-100.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        151,
+        693,
+        295,
+        807
+      ],
+      "opaquePixels": 11226,
+      "restoredOutsideCell": 0,
+      "size": [
+        160,
+        130
+      ],
+      "sha256": "9d41b2c11b35fe8d9b2c6f2f19e44faf407c090f8c40e579c25409d686764a81"
+    },
+    {
+      "id": "GR-SYROS-101",
+      "iconId": 101,
+      "imageFile": "gr-syros-101.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        299,
+        697,
+        439,
+        805
+      ],
+      "opaquePixels": 11734,
+      "restoredOutsideCell": 0,
+      "size": [
+        156,
+        124
+      ],
+      "sha256": "792debc59d13847c1528a6268714c029a81f3cdf39b244d257babb9be63867e1"
+    },
+    {
+      "id": "GR-SYROS-102",
+      "iconId": 102,
+      "imageFile": "gr-syros-102.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        442,
+        689,
+        583,
+        806
+      ],
+      "opaquePixels": 12189,
+      "restoredOutsideCell": 0,
+      "size": [
+        157,
+        133
+      ],
+      "sha256": "d824017e9e40f3dbc4758aae4379582fc7c2021c6d30354ae8e54fb4b5118d12"
+    },
+    {
+      "id": "GR-SYROS-103",
+      "iconId": 103,
+      "imageFile": "gr-syros-103.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        587,
+        693,
+        726,
+        806
+      ],
+      "opaquePixels": 11840,
+      "restoredOutsideCell": 0,
+      "size": [
+        155,
+        129
+      ],
+      "sha256": "b1d27638c910bcbf0620b8ecc43fe634642ac14dee6f8abba4e3738bfb0c1219"
+    },
+    {
+      "id": "GR-SYROS-104",
+      "iconId": 104,
+      "imageFile": "gr-syros-104.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        730,
+        695,
+        871,
+        805
+      ],
+      "opaquePixels": 11408,
+      "restoredOutsideCell": 0,
+      "size": [
+        157,
+        126
+      ],
+      "sha256": "a7fa36b12ca04a4287756ee2bd69cca53cccbbed23e382843c808a11e0f110c0"
+    },
+    {
+      "id": "GR-SYROS-105",
+      "iconId": 105,
+      "imageFile": "gr-syros-105.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        875,
+        694,
+        1021,
+        806
+      ],
+      "opaquePixels": 12302,
+      "restoredOutsideCell": 0,
+      "size": [
+        162,
+        128
+      ],
+      "sha256": "052935221318cdc612c2b20bcd8a7a81b86406ca38af6da48e422da728ccc55e"
+    },
+    {
+      "id": "GR-MYKONOS-106",
+      "iconId": 106,
+      "imageFile": "gr-mykonos-106.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        6,
+        841,
+        151,
+        953
+      ],
+      "opaquePixels": 12098,
+      "restoredOutsideCell": 0,
+      "size": [
+        161,
+        128
+      ],
+      "sha256": "0fea399d0066e252b7b4aa9a6548b3f87b285af3a233b98d8e11f136a318e04b"
+    },
+    {
+      "id": "GR-MYKONOS-107",
+      "iconId": 107,
+      "imageFile": "gr-mykonos-107.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        156,
+        841,
+        296,
+        951
+      ],
+      "opaquePixels": 11612,
+      "restoredOutsideCell": 0,
+      "size": [
+        156,
+        126
+      ],
+      "sha256": "5d93abf4f56e0a4255c8a805c6f78326a49337c145a6b38cfe9b66e89dc9f8b2"
+    },
+    {
+      "id": "GR-MYKONOS-108",
+      "iconId": 108,
+      "imageFile": "gr-mykonos-108.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        297,
+        840,
+        440,
+        955
+      ],
+      "opaquePixels": 12046,
+      "restoredOutsideCell": 0,
+      "size": [
+        159,
+        131
+      ],
+      "sha256": "3ecbf9cd2a47a59b7e7f7641d2282615edc2cec6451d1ef086d534f7064f9ccc"
+    },
+    {
+      "id": "GR-MYKONOS-109",
+      "iconId": 109,
+      "imageFile": "gr-mykonos-109.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        440,
+        843,
+        582,
+        954
+      ],
+      "opaquePixels": 11172,
+      "restoredOutsideCell": 0,
+      "size": [
+        158,
+        127
+      ],
+      "sha256": "52cecba5293a85eecc12ac6933b3ec55df0f4383c8695eccf09151441b48bd5a"
+    },
+    {
+      "id": "GR-MYKONOS-110",
+      "iconId": 110,
+      "imageFile": "gr-mykonos-110.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        585,
+        847,
+        725,
+        957
+      ],
+      "opaquePixels": 11141,
+      "restoredOutsideCell": 0,
+      "size": [
+        156,
+        126
+      ],
+      "sha256": "26ee084b3f4bd93e110df2c1589643b06295be175e166b3439274882c21573db"
+    },
+    {
+      "id": "GR-MYKONOS-111",
+      "iconId": 111,
+      "imageFile": "gr-mykonos-111.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        729,
+        840,
+        871,
+        957
+      ],
+      "opaquePixels": 11564,
+      "restoredOutsideCell": 0,
+      "size": [
+        158,
+        133
+      ],
+      "sha256": "02d5b404a17f4c317554c5dbd79423b4c44e4633af98032bd48c6699549904ec"
+    },
+    {
+      "id": "GR-MYKONOS-112",
+      "iconId": 112,
+      "imageFile": "gr-mykonos-112.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        875,
+        842,
+        1024,
+        952
+      ],
+      "opaquePixels": 11486,
+      "restoredOutsideCell": 0,
+      "size": [
+        165,
+        126
+      ],
+      "sha256": "1888a6e7ca085cf9739c5c8babde47bdae1cb5dce8f5b2f5e2a32cfba69e5a60"
+    },
+    {
+      "id": "GR-MYKONOS-113",
+      "iconId": 113,
+      "imageFile": "gr-mykonos-113.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        6,
+        987,
+        151,
+        1093
+      ],
+      "opaquePixels": 11131,
+      "restoredOutsideCell": 0,
+      "size": [
+        161,
+        122
+      ],
+      "sha256": "c9691971772b0bcb96d7f0e897476317894bf04dc37c5985b52822f76a3bada5"
+    },
+    {
+      "id": "GR-MYKONOS-114",
+      "iconId": 114,
+      "imageFile": "gr-mykonos-114.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        156,
+        991,
+        296,
+        1123
+      ],
+      "opaquePixels": 10742,
+      "restoredOutsideCell": 10,
+      "size": [
+        156,
+        148
+      ],
+      "sha256": "249489768ef446ce8595fee1da6889579cd95b65b616daf36faaef9c709304ca"
+    },
+    {
+      "id": "GR-MYKONOS-115",
+      "iconId": 115,
+      "imageFile": "gr-mykonos-115.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        299,
+        990,
+        439,
+        1091
+      ],
+      "opaquePixels": 10659,
+      "restoredOutsideCell": 0,
+      "size": [
+        156,
+        117
+      ],
+      "sha256": "e7119179a0582fb95a78b6fc41b0ff84cdfb40f66b30526d138b3993d9d153a1"
+    },
+    {
+      "id": "GR-MYKONOS-116",
+      "iconId": 116,
+      "imageFile": "gr-mykonos-116.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        443,
+        992,
+        583,
+        1092
+      ],
+      "opaquePixels": 11010,
+      "restoredOutsideCell": 0,
+      "size": [
+        156,
+        116
+      ],
+      "sha256": "51c65bbfb5fc3951fee8265c1a48fe81a2e2071d355348fec3d435bc8b06c830"
+    },
+    {
+      "id": "GR-MYKONOS-117",
+      "iconId": 117,
+      "imageFile": "gr-mykonos-117.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        585,
+        992,
+        725,
+        1093
+      ],
+      "opaquePixels": 11133,
+      "restoredOutsideCell": 0,
+      "size": [
+        156,
+        117
+      ],
+      "sha256": "3a1bc90b71358bdc34bf81e9090b0cd86bc7d1dd7cbfb591b59abf5953c9b8fe"
+    },
+    {
+      "id": "GR-MYKONOS-118",
+      "iconId": 118,
+      "imageFile": "gr-mykonos-118.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        731,
+        991,
+        871,
+        1093
+      ],
+      "opaquePixels": 10751,
+      "restoredOutsideCell": 0,
+      "size": [
+        156,
+        118
+      ],
+      "sha256": "2c781e8afd74f8df547cf420594a4e9ee9d11fbf2b5c5eeb2fc34eceb37f130e"
+    },
+    {
+      "id": "GR-MYKONOS-119",
+      "iconId": 119,
+      "imageFile": "gr-mykonos-119.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        875,
+        991,
+        1022,
+        1094
+      ],
+      "opaquePixels": 11099,
+      "restoredOutsideCell": 0,
+      "size": [
+        163,
+        119
+      ],
+      "sha256": "d125311abe1e01e7f85c5265f65f5894853a1c14b778af35c51e7942ee11efdb"
+    },
+    {
+      "id": "GR-MYKONOS-120",
+      "iconId": 120,
+      "imageFile": "gr-mykonos-120.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        5,
+        1132,
+        152,
+        1236
+      ],
+      "opaquePixels": 7646,
+      "restoredOutsideCell": 0,
+      "size": [
+        163,
+        120
+      ],
+      "sha256": "c1cb53df189eb21a0c976e90b01a8b84b7d40354e928f7034e280734aff96f79"
+    },
+    {
+      "id": "GR-MYKONOS-121",
+      "iconId": 121,
+      "imageFile": "gr-mykonos-121.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        157,
+        1112,
+        291,
+        1240
+      ],
+      "opaquePixels": 8031,
+      "restoredOutsideCell": 0,
+      "size": [
+        150,
+        144
+      ],
+      "sha256": "5cf38186456c32135031a3d22e207041d9ddc9558d57b5dbf5f91936143018e5"
+    },
+    {
+      "id": "GR-MYKONOS-122",
+      "iconId": 122,
+      "imageFile": "gr-mykonos-122.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        295,
+        1135,
+        440,
+        1241
+      ],
+      "opaquePixels": 11121,
+      "restoredOutsideCell": 0,
+      "size": [
+        161,
+        122
+      ],
+      "sha256": "5c471419776156e5d7482450149a34bc1ccf7cc80f755ff8f88008ca08d42759"
+    },
+    {
+      "id": "GR-MYKONOS-123",
+      "iconId": 123,
+      "imageFile": "gr-mykonos-123.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        440,
+        1127,
+        581,
+        1236
+      ],
+      "opaquePixels": 10714,
+      "restoredOutsideCell": 0,
+      "size": [
+        157,
+        125
+      ],
+      "sha256": "322167c04bb87e5eac4a490f6c10f29dea237ebe445fec9986314c6601f6ef42"
+    },
+    {
+      "id": "GR-MYKONOS-124",
+      "iconId": 124,
+      "imageFile": "gr-mykonos-124.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        584,
+        1120,
+        723,
+        1239
+      ],
+      "opaquePixels": 10882,
+      "restoredOutsideCell": 0,
+      "size": [
+        155,
+        135
+      ],
+      "sha256": "5b8f08effac2e94c8ac12d59ba186656fcca5ef152f7a2fc2421efa70c1af2e7"
+    },
+    {
+      "id": "GR-MYKONOS-125",
+      "iconId": 125,
+      "imageFile": "gr-mykonos-125.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        725,
+        1127,
+        872,
+        1236
+      ],
+      "opaquePixels": 11015,
+      "restoredOutsideCell": 0,
+      "size": [
+        163,
+        125
+      ],
+      "sha256": "7f31fcb50349868962ec904f779fe245e299e4c540c975f23cf7a64887063414"
+    },
+    {
+      "id": "GR-MYKONOS-126",
+      "iconId": 126,
+      "imageFile": "gr-mykonos-126.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        872,
+        1138,
+        1021,
+        1236
+      ],
+      "opaquePixels": 10789,
+      "restoredOutsideCell": 0,
+      "size": [
+        165,
+        114
+      ],
+      "sha256": "7712a1bf9ea747d93ee53ec77dd1fb88fab4cc71850d1e405e16d2330bf8ff28"
+    },
+    {
+      "id": "GR-MYKONOS-127",
+      "iconId": 127,
+      "imageFile": "gr-mykonos-127.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        4,
+        1260,
+        148,
+        1381
+      ],
+      "opaquePixels": 9661,
+      "restoredOutsideCell": 0,
+      "size": [
+        160,
+        137
+      ],
+      "sha256": "9ecb0bd88c40898aa1f308d49ab879085674872fed25cf53f85f32dd8fac971e"
+    },
+    {
+      "id": "GR-MYKONOS-128",
+      "iconId": 128,
+      "imageFile": "gr-mykonos-128.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        149,
+        1270,
+        294,
+        1379
+      ],
+      "opaquePixels": 9098,
+      "restoredOutsideCell": 0,
+      "size": [
+        161,
+        125
+      ],
+      "sha256": "82c908924816b34820aab2993561922b868e22a5b8022cfa64c3b0f70a9ff397"
+    },
+    {
+      "id": "GR-MYKONOS-129",
+      "iconId": 129,
+      "imageFile": "gr-mykonos-129.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        294,
+        1280,
+        439,
+        1376
+      ],
+      "opaquePixels": 9505,
+      "restoredOutsideCell": 0,
+      "size": [
+        161,
+        112
+      ],
+      "sha256": "fdb83f5792d7c7b618241ba2236fff31b6634dae19e31a0d3c2ab87bd22e7dcc"
+    },
+    {
+      "id": "GR-MYKONOS-130",
+      "iconId": 130,
+      "imageFile": "gr-mykonos-130.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        439,
+        1285,
+        584,
+        1378
+      ],
+      "opaquePixels": 8694,
+      "restoredOutsideCell": 0,
+      "size": [
+        161,
+        109
+      ],
+      "sha256": "5491fee4266fee2dad517beae7481b9bca798bbd3ba0bcbb047630ca09c85912"
+    },
+    {
+      "id": "GR-MYKONOS-131",
+      "iconId": 131,
+      "imageFile": "gr-mykonos-131.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        584,
+        1269,
+        732,
+        1376
+      ],
+      "opaquePixels": 10574,
+      "restoredOutsideCell": 2,
+      "size": [
+        164,
+        123
+      ],
+      "sha256": "fcfd61e14baf316acdebaa7bec1c3176e7c2e8e36008fcce8739fcf30167661a"
+    },
+    {
+      "id": "GR-MYKONOS-132",
+      "iconId": 132,
+      "imageFile": "gr-mykonos-132.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        729,
+        1268,
+        874,
+        1378
+      ],
+      "opaquePixels": 8974,
+      "restoredOutsideCell": 0,
+      "size": [
+        161,
+        126
+      ],
+      "sha256": "a484277524b1335a3a0922a2c7db4a2cb93ceed7c8fafc699a38e2814df51d62"
+    },
+    {
+      "id": "GR-MYKONOS-133",
+      "iconId": 133,
+      "imageFile": "gr-mykonos-133.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        877,
+        1264,
+        1022,
+        1378
+      ],
+      "opaquePixels": 10324,
+      "restoredOutsideCell": 0,
+      "size": [
+        161,
+        130
+      ],
+      "sha256": "abc8c0d6ebebbf6214bc1c7e3fb47a2d2eec2068b83799f80ea37a8260bf19a3"
+    },
+    {
+      "id": "GR-MYKONOS-134",
+      "iconId": 134,
+      "imageFile": "gr-mykonos-134.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        6,
+        1406,
+        150,
+        1525
+      ],
+      "opaquePixels": 9686,
+      "restoredOutsideCell": 0,
+      "size": [
+        160,
+        135
+      ],
+      "sha256": "1d601930fda64b034eac5b15f013d21818434cea85414cb81dcba8273b55a679"
+    },
+    {
+      "id": "GR-MYKONOS-135",
+      "iconId": 135,
+      "imageFile": "gr-mykonos-135.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        152,
+        1406,
+        291,
+        1525
+      ],
+      "opaquePixels": 10998,
+      "restoredOutsideCell": 0,
+      "size": [
+        155,
+        135
+      ],
+      "sha256": "756db9201abe65b0233d1834e432fd0f9bfa31109d97b6c243a5c5b62bd2d09e"
+    },
+    {
+      "id": "GR-MYKONOS-136",
+      "iconId": 136,
+      "imageFile": "gr-mykonos-136.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        294,
+        1404,
+        438,
+        1524
+      ],
+      "opaquePixels": 11229,
+      "restoredOutsideCell": 0,
+      "size": [
+        160,
+        136
+      ],
+      "sha256": "5a2eb97e1f3c25fae2dfa1cb968eacde2e24fff7454d846903e4a80a3091a749"
+    },
+    {
+      "id": "GR-MYKONOS-137",
+      "iconId": 137,
+      "imageFile": "gr-mykonos-137.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        440,
+        1418,
+        583,
+        1523
+      ],
+      "opaquePixels": 10818,
+      "restoredOutsideCell": 0,
+      "size": [
+        159,
+        121
+      ],
+      "sha256": "33499b4bbe2c8e367b4e72e63e1b0db4662f2e70afa586f457407806ce6fdd81"
+    },
+    {
+      "id": "GR-MYKONOS-138",
+      "iconId": 138,
+      "imageFile": "gr-mykonos-138.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        583,
+        1412,
+        727,
+        1523
+      ],
+      "opaquePixels": 10659,
+      "restoredOutsideCell": 0,
+      "size": [
+        160,
+        127
+      ],
+      "sha256": "5c0767b199f902de5f5a3ac931f0012a3f677174e7e01da29a97161ea04e54a1"
+    },
+    {
+      "id": "GR-MYKONOS-139",
+      "iconId": 139,
+      "imageFile": "gr-mykonos-139.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        727,
+        1420,
+        872,
+        1523
+      ],
+      "opaquePixels": 9157,
+      "restoredOutsideCell": 0,
+      "size": [
+        161,
+        119
+      ],
+      "sha256": "e2a7d01f9544b9afc9712979624c4519720c74f03bbcd193b0b4e333da725682"
+    },
+    {
+      "id": "GR-MYKONOS-140",
+      "iconId": 140,
+      "imageFile": "gr-mykonos-140.webp",
+      "sourceFile": "syros_mykonos_set2_70_scenes.png",
+      "sourceBox": [
+        874,
+        1403,
+        1021,
+        1524
+      ],
+      "opaquePixels": 11662,
+      "restoredOutsideCell": 0,
+      "size": [
+        163,
+        137
+      ],
+      "sha256": "3a024ca83e00e3495c62d58efce05dfdf734436a1274c0fcde5a85d8e090910a"
+    },
+    {
+      "id": "GR-SYROS-141",
+      "iconId": 141,
+      "imageFile": "gr-syros-141.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        6,
+        30,
+        150,
+        164
+      ],
+      "opaquePixels": 10455,
+      "restoredOutsideCell": 0,
+      "size": [
+        160,
+        150
+      ],
+      "sha256": "28f1ef344854bde9566e03dea0730152e5bf8ab8877b03bac21b5000c0806fa0"
+    },
+    {
+      "id": "GR-SYROS-142",
+      "iconId": 142,
+      "imageFile": "gr-syros-142.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        155,
+        32,
+        294,
+        160
+      ],
+      "opaquePixels": 10797,
+      "restoredOutsideCell": 0,
+      "size": [
+        155,
+        144
+      ],
+      "sha256": "436a394503b716ffaded040975e4ca61b5d834bf6cfc4b862cda04c166b6c8ad"
+    },
+    {
+      "id": "GR-SYROS-143",
+      "iconId": 143,
+      "imageFile": "gr-syros-143.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        301,
+        45,
+        443,
+        162
+      ],
+      "opaquePixels": 11145,
+      "restoredOutsideCell": 0,
+      "size": [
+        158,
+        133
+      ],
+      "sha256": "43bc60a4d1354acdd9bfc9c01a326f44e146ba202b63cef3b8b0760c74484304"
+    },
+    {
+      "id": "GR-SYROS-144",
+      "iconId": 144,
+      "imageFile": "gr-syros-144.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        442,
+        50,
+        580,
+        162
+      ],
+      "opaquePixels": 9444,
+      "restoredOutsideCell": 0,
+      "size": [
+        154,
+        128
+      ],
+      "sha256": "7380c727fbd50f5fdc9fb6e292936e25cb6eb9685f1ee2f455a70a4939aa784c"
+    },
+    {
+      "id": "GR-SYROS-145",
+      "iconId": 145,
+      "imageFile": "gr-syros-145.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        585,
+        28,
+        728,
+        164
+      ],
+      "opaquePixels": 11247,
+      "restoredOutsideCell": 0,
+      "size": [
+        159,
+        152
+      ],
+      "sha256": "eebf9c85706a1bde24d941bfd01a0b850de32838d758a75c3ee557e466139d97"
+    },
+    {
+      "id": "GR-SYROS-146",
+      "iconId": 146,
+      "imageFile": "gr-syros-146.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        733,
+        49,
+        878,
+        163
+      ],
+      "opaquePixels": 12197,
+      "restoredOutsideCell": 0,
+      "size": [
+        161,
+        130
+      ],
+      "sha256": "150247a05e54fe8fb361298745ec94e8739b1026c65685c3e30e0c67633c699f"
+    },
+    {
+      "id": "GR-SYROS-147",
+      "iconId": 147,
+      "imageFile": "gr-syros-147.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        879,
+        43,
+        1020,
+        164
+      ],
+      "opaquePixels": 10358,
+      "restoredOutsideCell": 0,
+      "size": [
+        157,
+        137
+      ],
+      "sha256": "9ebc0765e11744ae00a3fbe2ca7edd4881c4f38e2c26bfa89542d943a40c9465"
+    },
+    {
+      "id": "GR-SYROS-148",
+      "iconId": 148,
+      "imageFile": "gr-syros-148.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        7,
+        200,
+        151,
+        322
+      ],
+      "opaquePixels": 9973,
+      "restoredOutsideCell": 0,
+      "size": [
+        160,
+        138
+      ],
+      "sha256": "a2fd6d172bf2b290941fce7006fe71ba9cd35fdfec82e9406f984454b36c7cfe"
+    },
+    {
+      "id": "GR-SYROS-149",
+      "iconId": 149,
+      "imageFile": "gr-syros-149.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        155,
+        201,
+        296,
+        322
+      ],
+      "opaquePixels": 12090,
+      "restoredOutsideCell": 0,
+      "size": [
+        157,
+        137
+      ],
+      "sha256": "1b10f17d7a1ba6a11681687a63389ec0913035932bf7bc4620eca644fcf93921"
+    },
+    {
+      "id": "GR-SYROS-150",
+      "iconId": 150,
+      "imageFile": "gr-syros-150.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        299,
+        194,
+        439,
+        326
+      ],
+      "opaquePixels": 11068,
+      "restoredOutsideCell": 0,
+      "size": [
+        156,
+        148
+      ],
+      "sha256": "ba9876432f7e6c28511d6288e148e157c0082d9019a69908c6b0c9c6a31edbc8"
+    },
+    {
+      "id": "GR-SYROS-151",
+      "iconId": 151,
+      "imageFile": "gr-syros-151.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        444,
+        213,
+        579,
+        323
+      ],
+      "opaquePixels": 9628,
+      "restoredOutsideCell": 0,
+      "size": [
+        151,
+        126
+      ],
+      "sha256": "59baa10584af3ec05fbde45c1b610dc05e2cb3c5b6f75d272aaee0e9130a77e5"
+    },
+    {
+      "id": "GR-SYROS-152",
+      "iconId": 152,
+      "imageFile": "gr-syros-152.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        588,
+        185,
+        730,
+        324
+      ],
+      "opaquePixels": 10264,
+      "restoredOutsideCell": 0,
+      "size": [
+        158,
+        155
+      ],
+      "sha256": "78f4fa0c25851305657e953ff52551b539a4bf509d6695e862aba72dd405fd25"
+    },
+    {
+      "id": "GR-SYROS-153",
+      "iconId": 153,
+      "imageFile": "gr-syros-153.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        731,
+        213,
+        875,
+        323
+      ],
+      "opaquePixels": 11379,
+      "restoredOutsideCell": 0,
+      "size": [
+        160,
+        126
+      ],
+      "sha256": "b705edc6c0067146bf905b921053b434b8e75b3f078274810f03a09e13247ea0"
+    },
+    {
+      "id": "GR-SYROS-154",
+      "iconId": 154,
+      "imageFile": "gr-syros-154.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        879,
+        201,
+        1019,
+        324
+      ],
+      "opaquePixels": 9718,
+      "restoredOutsideCell": 0,
+      "size": [
+        156,
+        139
+      ],
+      "sha256": "0cdcee197428011f03aa9d4c4de0a41e9927b35d727d00d231d04ebed78861ca"
+    },
+    {
+      "id": "GR-SYROS-155",
+      "iconId": 155,
+      "imageFile": "gr-syros-155.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        5,
+        362,
+        149,
+        481
+      ],
+      "opaquePixels": 9621,
+      "restoredOutsideCell": 0,
+      "size": [
+        160,
+        135
+      ],
+      "sha256": "24a28ba29b598b6f95da07700c64729b19f3aefc9a4b8412c05a593b8a866986"
+    },
+    {
+      "id": "GR-SYROS-156",
+      "iconId": 156,
+      "imageFile": "gr-syros-156.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        154,
+        366,
+        296,
+        481
+      ],
+      "opaquePixels": 11571,
+      "restoredOutsideCell": 0,
+      "size": [
+        158,
+        131
+      ],
+      "sha256": "2aa1013a2ce17264c5effa1aff275560b3c041e07903445a26699e1fd5487ec7"
+    },
+    {
+      "id": "GR-SYROS-157",
+      "iconId": 157,
+      "imageFile": "gr-syros-157.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        298,
+        356,
+        447,
+        482
+      ],
+      "opaquePixels": 11528,
+      "restoredOutsideCell": 2,
+      "size": [
+        165,
+        142
+      ],
+      "sha256": "2c04ab098195789bb407ce0a66e670e3d952f04c0ec1027d26b061eebb70c5de"
+    },
+    {
+      "id": "GR-SYROS-158",
+      "iconId": 158,
+      "imageFile": "gr-syros-158.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        444,
+        364,
+        581,
+        482
+      ],
+      "opaquePixels": 9400,
+      "restoredOutsideCell": 0,
+      "size": [
+        153,
+        134
+      ],
+      "sha256": "a7861f92dc9bd725b56597ee26b6a946ceadff9542e1e587c308bfce1f23c2d4"
+    },
+    {
+      "id": "GR-SYROS-159",
+      "iconId": 159,
+      "imageFile": "gr-syros-159.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        586,
+        337,
+        729,
+        482
+      ],
+      "opaquePixels": 10403,
+      "restoredOutsideCell": 0,
+      "size": [
+        159,
+        161
+      ],
+      "sha256": "9222af32b657ac43cb533e05e324e0c002bdc41d6cc78a9304cb3b3039847384"
+    },
+    {
+      "id": "GR-SYROS-160",
+      "iconId": 160,
+      "imageFile": "gr-syros-160.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        731,
+        364,
+        878,
+        481
+      ],
+      "opaquePixels": 12159,
+      "restoredOutsideCell": 0,
+      "size": [
+        163,
+        133
+      ],
+      "sha256": "bf240621de660947cb63999d1f09ed75e481dfea990a9134b987498d2cc0a853"
+    },
+    {
+      "id": "GR-SYROS-161",
+      "iconId": 161,
+      "imageFile": "gr-syros-161.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        880,
+        361,
+        1020,
+        483
+      ],
+      "opaquePixels": 9426,
+      "restoredOutsideCell": 0,
+      "size": [
+        156,
+        138
+      ],
+      "sha256": "0a8d7a5e366fc616367ca72e0f2f9bbd99ebd59b78482f2174d32e339ae7cecb"
+    },
+    {
+      "id": "GR-SYROS-162",
+      "iconId": 162,
+      "imageFile": "gr-syros-162.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        7,
+        518,
+        146,
+        641
+      ],
+      "opaquePixels": 8767,
+      "restoredOutsideCell": 0,
+      "size": [
+        155,
+        139
+      ],
+      "sha256": "f6bd9ae4d23e04d8fe79d0fa049c413e140074fa2cb3c2354951eddec5ea8a76"
+    },
+    {
+      "id": "GR-SYROS-163",
+      "iconId": 163,
+      "imageFile": "gr-syros-163.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        152,
+        529,
+        295,
+        643
+      ],
+      "opaquePixels": 11464,
+      "restoredOutsideCell": 0,
+      "size": [
+        159,
+        130
+      ],
+      "sha256": "b71915843dc93723b2d85e8bd26fb3c1d5dbdf071f01dc4e6a849400e805ddaf"
+    },
+    {
+      "id": "GR-SYROS-164",
+      "iconId": 164,
+      "imageFile": "gr-syros-164.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        302,
+        520,
+        446,
+        642
+      ],
+      "opaquePixels": 10507,
+      "restoredOutsideCell": 0,
+      "size": [
+        160,
+        138
+      ],
+      "sha256": "cda301c1a680c09ef3eba0d022913161f3f948190e08a0e4ff7f70997b130de2"
+    },
+    {
+      "id": "GR-SYROS-165",
+      "iconId": 165,
+      "imageFile": "gr-syros-165.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        444,
+        528,
+        582,
+        643
+      ],
+      "opaquePixels": 8872,
+      "restoredOutsideCell": 0,
+      "size": [
+        154,
+        131
+      ],
+      "sha256": "33a81dad61e82f671d788ef0df3297a3766192ce79560e35ee7073539cfedad3"
+    },
+    {
+      "id": "GR-SYROS-166",
+      "iconId": 166,
+      "imageFile": "gr-syros-166.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        588,
+        505,
+        728,
+        645
+      ],
+      "opaquePixels": 9805,
+      "restoredOutsideCell": 0,
+      "size": [
+        156,
+        156
+      ],
+      "sha256": "7a6f93267315026693d92eae5d7def4ed4f9eacb93f4f399263001cde8d1cbe2"
+    },
+    {
+      "id": "GR-SYROS-167",
+      "iconId": 167,
+      "imageFile": "gr-syros-167.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        733,
+        528,
+        880,
+        644
+      ],
+      "opaquePixels": 11498,
+      "restoredOutsideCell": 0,
+      "size": [
+        163,
+        132
+      ],
+      "sha256": "affc347764591d3937b52a045f6b9ee2c11c2e055251f3192b4ffb38351eb694"
+    },
+    {
+      "id": "GR-SYROS-168",
+      "iconId": 168,
+      "imageFile": "gr-syros-168.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        876,
+        524,
+        1024,
+        644
+      ],
+      "opaquePixels": 9500,
+      "restoredOutsideCell": 0,
+      "size": [
+        164,
+        136
+      ],
+      "sha256": "d2da4542b1e85e1e4b689e0c4076e372d38ea586e55448b9beb9e1a01fed5b8e"
+    },
+    {
+      "id": "GR-SYROS-169",
+      "iconId": 169,
+      "imageFile": "gr-syros-169.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        6,
+        679,
+        145,
+        800
+      ],
+      "opaquePixels": 8295,
+      "restoredOutsideCell": 0,
+      "size": [
+        155,
+        137
+      ],
+      "sha256": "08d1671bb5f7585e2c1b36fa126e69c4b909896e5690d7396d1c376cbf6f1ede"
+    },
+    {
+      "id": "GR-SYROS-170",
+      "iconId": 170,
+      "imageFile": "gr-syros-170.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        150,
+        688,
+        294,
+        803
+      ],
+      "opaquePixels": 11465,
+      "restoredOutsideCell": 0,
+      "size": [
+        160,
+        131
+      ],
+      "sha256": "386c473c4aa69599476eee9095c70e4c5ddf1a5665305ac9a0d0309309dd3226"
+    },
+    {
+      "id": "GR-SYROS-171",
+      "iconId": 171,
+      "imageFile": "gr-syros-171.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        299,
+        682,
+        442,
+        803
+      ],
+      "opaquePixels": 10380,
+      "restoredOutsideCell": 0,
+      "size": [
+        159,
+        137
+      ],
+      "sha256": "ce5d886c13b2e61cb53869ee3616b588eca1bde53dd031bf18f74bc6e20ff372"
+    },
+    {
+      "id": "GR-SYROS-172",
+      "iconId": 172,
+      "imageFile": "gr-syros-172.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        441,
+        688,
+        580,
+        802
+      ],
+      "opaquePixels": 9209,
+      "restoredOutsideCell": 0,
+      "size": [
+        155,
+        130
+      ],
+      "sha256": "ec2dda98be64f0a5d86970a8aa637bcc3978316667a3e4337623afdd70974ef9"
+    },
+    {
+      "id": "GR-SYROS-173",
+      "iconId": 173,
+      "imageFile": "gr-syros-173.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        584,
+        672,
+        728,
+        803
+      ],
+      "opaquePixels": 11095,
+      "restoredOutsideCell": 0,
+      "size": [
+        160,
+        147
+      ],
+      "sha256": "544beaa0bcbb750c2ae2eebc159295c3487c4b55785913511edfb889b2a6fa3c"
+    },
+    {
+      "id": "GR-SYROS-174",
+      "iconId": 174,
+      "imageFile": "gr-syros-174.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        733,
+        692,
+        875,
+        803
+      ],
+      "opaquePixels": 11259,
+      "restoredOutsideCell": 0,
+      "size": [
+        158,
+        127
+      ],
+      "sha256": "2e3dae546f1d93e8c25b1ac68dcb032fb50ddf1475616bfa84f166c365728438"
+    },
+    {
+      "id": "GR-SYROS-175",
+      "iconId": 175,
+      "imageFile": "gr-syros-175.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        880,
+        693,
+        1020,
+        805
+      ],
+      "opaquePixels": 8813,
+      "restoredOutsideCell": 0,
+      "size": [
+        156,
+        128
+      ],
+      "sha256": "40887d532b792deff53a3eed24437f8bc51098e1701fc18229c2774aed455f1d"
+    },
+    {
+      "id": "GR-SYROS-176",
+      "iconId": 176,
+      "imageFile": "gr-syros-176.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        7,
+        838,
+        146,
+        959
+      ],
+      "opaquePixels": 9373,
+      "restoredOutsideCell": 0,
+      "size": [
+        155,
+        137
+      ],
+      "sha256": "27231caeb3d8a6374b31623b27ccf2bf71cbdcaf29ee8bc89d91b348689b013f"
+    },
+    {
+      "id": "GR-SYROS-177",
+      "iconId": 177,
+      "imageFile": "gr-syros-177.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        154,
+        845,
+        293,
+        959
+      ],
+      "opaquePixels": 11640,
+      "restoredOutsideCell": 0,
+      "size": [
+        155,
+        130
+      ],
+      "sha256": "c61b40ffff4257890cddd8cba2901d8bdabc80ce0261e2c65dbfd76447061d0b"
+    },
+    {
+      "id": "GR-SYROS-178",
+      "iconId": 178,
+      "imageFile": "gr-syros-178.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        298,
+        831,
+        444,
+        959
+      ],
+      "opaquePixels": 10574,
+      "restoredOutsideCell": 0,
+      "size": [
+        162,
+        144
+      ],
+      "sha256": "6ea4f3c2502c042762d7265c69f3bf83c8cdd9081b7a2c932c24167002f489d5"
+    },
+    {
+      "id": "GR-SYROS-179",
+      "iconId": 179,
+      "imageFile": "gr-syros-179.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        444,
+        846,
+        578,
+        960
+      ],
+      "opaquePixels": 8714,
+      "restoredOutsideCell": 0,
+      "size": [
+        150,
+        130
+      ],
+      "sha256": "07b65d52d491c5b36a434c7abf7f793f2d02092ac92b2be561360da62083b864"
+    },
+    {
+      "id": "GR-SYROS-180",
+      "iconId": 180,
+      "imageFile": "gr-syros-180.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        586,
+        830,
+        732,
+        960
+      ],
+      "opaquePixels": 10137,
+      "restoredOutsideCell": 0,
+      "size": [
+        162,
+        146
+      ],
+      "sha256": "91438740d528e30d279ae39dce6aa28be5b8f15c3b30bf43fefada390f4d8818"
+    },
+    {
+      "id": "GR-SYROS-181",
+      "iconId": 181,
+      "imageFile": "gr-syros-181.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        731,
+        848,
+        879,
+        959
+      ],
+      "opaquePixels": 10508,
+      "restoredOutsideCell": 0,
+      "size": [
+        164,
+        127
+      ],
+      "sha256": "4f7b9f3f67470ff187e0d6e6f3bc160a44cba220069d8ce6747b1ed7c74a64ac"
+    },
+    {
+      "id": "GR-SYROS-182",
+      "iconId": 182,
+      "imageFile": "gr-syros-182.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        880,
+        847,
+        1019,
+        958
+      ],
+      "opaquePixels": 7589,
+      "restoredOutsideCell": 0,
+      "size": [
+        155,
+        127
+      ],
+      "sha256": "09f70ad0c2c03b2bd7ec5cd982bbd6717179077924ae539877cb1a9148c760f1"
+    },
+    {
+      "id": "GR-SYROS-183",
+      "iconId": 183,
+      "imageFile": "gr-syros-183.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        5,
+        992,
+        151,
+        1109
+      ],
+      "opaquePixels": 11350,
+      "restoredOutsideCell": 0,
+      "size": [
+        162,
+        133
+      ],
+      "sha256": "82b9c5ced8427d73ad9e21ab44dd1862a03274a7ba9da368c91d4d810eccdf7b"
+    },
+    {
+      "id": "GR-SYROS-184",
+      "iconId": 184,
+      "imageFile": "gr-syros-184.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        153,
+        993,
+        290,
+        1110
+      ],
+      "opaquePixels": 7469,
+      "restoredOutsideCell": 0,
+      "size": [
+        153,
+        133
+      ],
+      "sha256": "36ea2141605aee2d386f449d0f4563552dd2ec6f4773435eb085889b5273206a"
+    },
+    {
+      "id": "GR-SYROS-185",
+      "iconId": 185,
+      "imageFile": "gr-syros-185.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        294,
+        1008,
+        439,
+        1109
+      ],
+      "opaquePixels": 10476,
+      "restoredOutsideCell": 0,
+      "size": [
+        161,
+        117
+      ],
+      "sha256": "943f099ce46a4bba0012a21c52c17eb6194626c48a09a38e34fcd0e8a05cbd22"
+    },
+    {
+      "id": "GR-SYROS-186",
+      "iconId": 186,
+      "imageFile": "gr-syros-186.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        442,
+        992,
+        580,
+        1110
+      ],
+      "opaquePixels": 12247,
+      "restoredOutsideCell": 0,
+      "size": [
+        154,
+        134
+      ],
+      "sha256": "0b4734463a0eb311e958aa63d5c88aede6da9b03f92ab9ddbbedc304d97325e0"
+    },
+    {
+      "id": "GR-SYROS-187",
+      "iconId": 187,
+      "imageFile": "gr-syros-187.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        586,
+        992,
+        727,
+        1112
+      ],
+      "opaquePixels": 9623,
+      "restoredOutsideCell": 0,
+      "size": [
+        157,
+        136
+      ],
+      "sha256": "18a85d26112aa36c51acd6fe620308030af2f4094397f326bd8dc3a2ce55af19"
+    },
+    {
+      "id": "GR-SYROS-188",
+      "iconId": 188,
+      "imageFile": "gr-syros-188.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        737,
+        992,
+        872,
+        1112
+      ],
+      "opaquePixels": 8612,
+      "restoredOutsideCell": 0,
+      "size": [
+        151,
+        136
+      ],
+      "sha256": "a4c538759bc95f2a47237f7aa6b2502b5f3a7b59146f4b3dafc30ee4a2fcdf20"
+    },
+    {
+      "id": "GR-SYROS-189",
+      "iconId": 189,
+      "imageFile": "gr-syros-189.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        884,
+        995,
+        1019,
+        1109
+      ],
+      "opaquePixels": 9959,
+      "restoredOutsideCell": 0,
+      "size": [
+        151,
+        130
+      ],
+      "sha256": "2dd373e4a596cac9a768f863066461c250a60c5b78de68316f45be25109caecc"
+    },
+    {
+      "id": "GR-MYKONOS-190",
+      "iconId": 190,
+      "imageFile": "gr-mykonos-190.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        5,
+        1147,
+        152,
+        1252
+      ],
+      "opaquePixels": 11528,
+      "restoredOutsideCell": 0,
+      "size": [
+        163,
+        121
+      ],
+      "sha256": "8d19782645349284a5c9973a88e2ea1227313eb5bf530f874d10545859d24e36"
+    },
+    {
+      "id": "GR-MYKONOS-191",
+      "iconId": 191,
+      "imageFile": "gr-mykonos-191.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        153,
+        1148,
+        296,
+        1252
+      ],
+      "opaquePixels": 11297,
+      "restoredOutsideCell": 0,
+      "size": [
+        159,
+        120
+      ],
+      "sha256": "da0a243578acf4f09d4f2879f01bafc7eff417458f7a234927d55de8691b4ebf"
+    },
+    {
+      "id": "GR-MYKONOS-192",
+      "iconId": 192,
+      "imageFile": "gr-mykonos-192.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        298,
+        1149,
+        437,
+        1249
+      ],
+      "opaquePixels": 10659,
+      "restoredOutsideCell": 0,
+      "size": [
+        155,
+        116
+      ],
+      "sha256": "db5238e26357b6a91523e863480032e53e25e48484963d30fb8fedc9baee1738"
+    },
+    {
+      "id": "GR-MYKONOS-193",
+      "iconId": 193,
+      "imageFile": "gr-mykonos-193.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        441,
+        1143,
+        578,
+        1250
+      ],
+      "opaquePixels": 9399,
+      "restoredOutsideCell": 0,
+      "size": [
+        153,
+        123
+      ],
+      "sha256": "4e00517cb75915dd747197ed9b1f243642639b3f2a2ae78072a11a0945301904"
+    },
+    {
+      "id": "GR-MYKONOS-194",
+      "iconId": 194,
+      "imageFile": "gr-mykonos-194.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        584,
+        1133,
+        727,
+        1251
+      ],
+      "opaquePixels": 9504,
+      "restoredOutsideCell": 0,
+      "size": [
+        159,
+        134
+      ],
+      "sha256": "055306549e48af78afffed85d4be0659b1605a7bf2bf7a17338ede739b400bd9"
+    },
+    {
+      "id": "GR-MYKONOS-195",
+      "iconId": 195,
+      "imageFile": "gr-mykonos-195.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        730,
+        1139,
+        872,
+        1251
+      ],
+      "opaquePixels": 9659,
+      "restoredOutsideCell": 0,
+      "size": [
+        158,
+        128
+      ],
+      "sha256": "5065c86dd6d0af51a0719c8f542218c69c510e4dcfcc6b925b2fd85334c3ed12"
+    },
+    {
+      "id": "GR-MYKONOS-196",
+      "iconId": 196,
+      "imageFile": "gr-mykonos-196.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        878,
+        1146,
+        1018,
+        1251
+      ],
+      "opaquePixels": 8386,
+      "restoredOutsideCell": 0,
+      "size": [
+        156,
+        121
+      ],
+      "sha256": "8f35fdbbf1c02cdd2562f1e5f933388a91879c5f06ee82d9ef38ad1d73af0cf1"
+    },
+    {
+      "id": "GR-MYKONOS-197",
+      "iconId": 197,
+      "imageFile": "gr-mykonos-197.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        7,
+        1273,
+        145,
+        1381
+      ],
+      "opaquePixels": 8363,
+      "restoredOutsideCell": 0,
+      "size": [
+        154,
+        124
+      ],
+      "sha256": "723bce6a02469aceb7474e6246428eb79a6efdf3ae9738151003f75e941a3828"
+    },
+    {
+      "id": "GR-MYKONOS-198",
+      "iconId": 198,
+      "imageFile": "gr-mykonos-198.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        151,
+        1269,
+        294,
+        1386
+      ],
+      "opaquePixels": 10092,
+      "restoredOutsideCell": 0,
+      "size": [
+        159,
+        133
+      ],
+      "sha256": "2ea1f85973cc2136135c38dee24730d607dde4efa4a356e605eb4fac0f01f27e"
+    },
+    {
+      "id": "GR-MYKONOS-199",
+      "iconId": 199,
+      "imageFile": "gr-mykonos-199.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        301,
+        1272,
+        438,
+        1383
+      ],
+      "opaquePixels": 9128,
+      "restoredOutsideCell": 0,
+      "size": [
+        153,
+        127
+      ],
+      "sha256": "2deabe68750bddf1eaf743faaf978006684d068a3c855ff097d2819c36d73d59"
+    },
+    {
+      "id": "GR-MYKONOS-200",
+      "iconId": 200,
+      "imageFile": "gr-mykonos-200.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        445,
+        1278,
+        582,
+        1384
+      ],
+      "opaquePixels": 8125,
+      "restoredOutsideCell": 0,
+      "size": [
+        153,
+        122
+      ],
+      "sha256": "c84e6e4b645145bdccf74948d4faa20246641b6db3b9b052b728c220e3997ee6"
+    },
+    {
+      "id": "GR-MYKONOS-201",
+      "iconId": 201,
+      "imageFile": "gr-mykonos-201.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        586,
+        1259,
+        726,
+        1391
+      ],
+      "opaquePixels": 9840,
+      "restoredOutsideCell": 4,
+      "size": [
+        156,
+        148
+      ],
+      "sha256": "fa071409127a42d7359601477d7f8eca1433a5160ebdfa66ae7da537785cd4e9"
+    },
+    {
+      "id": "GR-MYKONOS-202",
+      "iconId": 202,
+      "imageFile": "gr-mykonos-202.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        730,
+        1272,
+        873,
+        1388
+      ],
+      "opaquePixels": 9444,
+      "restoredOutsideCell": 0,
+      "size": [
+        159,
+        132
+      ],
+      "sha256": "46341f86c1744deee6a226dc97f1e036cf5d454b7ba31bbbc34a17725c4826de"
+    },
+    {
+      "id": "GR-MYKONOS-203",
+      "iconId": 203,
+      "imageFile": "gr-mykonos-203.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        879,
+        1281,
+        1019,
+        1386
+      ],
+      "opaquePixels": 8047,
+      "restoredOutsideCell": 0,
+      "size": [
+        156,
+        121
+      ],
+      "sha256": "67865862427642cd28417889927ec882c39732e77ea4997e614628d7eac55375"
+    },
+    {
+      "id": "GR-MYKONOS-204",
+      "iconId": 204,
+      "imageFile": "gr-mykonos-204.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        6,
+        1415,
+        151,
+        1520
+      ],
+      "opaquePixels": 8766,
+      "restoredOutsideCell": 0,
+      "size": [
+        161,
+        121
+      ],
+      "sha256": "a38b9f5364cadde937164bdbb9e7dfbeeb1100593d640c4944beaf9ebc8475a7"
+    },
+    {
+      "id": "GR-MYKONOS-205",
+      "iconId": 205,
+      "imageFile": "gr-mykonos-205.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        156,
+        1404,
+        293,
+        1519
+      ],
+      "opaquePixels": 10467,
+      "restoredOutsideCell": 0,
+      "size": [
+        153,
+        131
+      ],
+      "sha256": "541ecc8111bcbcbe32758eadb6bd6a4c740c8f8b9bd23dc81435c7b1b41f7f50"
+    },
+    {
+      "id": "GR-MYKONOS-206",
+      "iconId": 206,
+      "imageFile": "gr-mykonos-206.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        298,
+        1408,
+        430,
+        1521
+      ],
+      "opaquePixels": 8115,
+      "restoredOutsideCell": 0,
+      "size": [
+        148,
+        129
+      ],
+      "sha256": "75fa8d09af0969237197039291b7314f8a1bcf8c460c21c0cdf99684ab3965ae"
+    },
+    {
+      "id": "GR-MYKONOS-207",
+      "iconId": 207,
+      "imageFile": "gr-mykonos-207.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        435,
+        1433,
+        582,
+        1523
+      ],
+      "opaquePixels": 9467,
+      "restoredOutsideCell": 120,
+      "size": [
+        163,
+        106
+      ],
+      "sha256": "fc01a695a545330dbf85a065860b3779594c1dc3bc228a36b039ffdcd0b53e26"
+    },
+    {
+      "id": "GR-MYKONOS-208",
+      "iconId": 208,
+      "imageFile": "gr-mykonos-208.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        586,
+        1412,
+        722,
+        1523
+      ],
+      "opaquePixels": 9866,
+      "restoredOutsideCell": 0,
+      "size": [
+        152,
+        127
+      ],
+      "sha256": "46b75a4c052956bbe8bbbcf39d9f031db15c5f0109ddd69c9e36b79d0e1315d4"
+    },
+    {
+      "id": "GR-MYKONOS-209",
+      "iconId": 209,
+      "imageFile": "gr-mykonos-209.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        725,
+        1406,
+        879,
+        1524
+      ],
+      "opaquePixels": 11891,
+      "restoredOutsideCell": 25,
+      "size": [
+        170,
+        134
+      ],
+      "sha256": "b43a847f5363e643a8c04eab55da1d715a7065fd220fad3ebc8cd8477dbf1fcc"
+    },
+    {
+      "id": "GR-MYKONOS-210",
+      "iconId": 210,
+      "imageFile": "gr-mykonos-210.webp",
+      "sourceFile": "syros_mykonos_set3_70_scenes.png",
+      "sourceBox": [
+        877,
+        1411,
+        1018,
+        1522
+      ],
+      "opaquePixels": 10156,
+      "restoredOutsideCell": 0,
+      "size": [
+        157,
+        127
+      ],
+      "sha256": "3e6079e83874e6d1b268526fb5e2d4a7b06fb75860e8204d4af5b73757b06d0a"
+    },
+    {
+      "id": "GR-SYROS-211",
+      "iconId": 211,
+      "imageFile": "gr-syros-211.webp",
+      "sourceFile": "syros_mykonos_set4_12_scenes.png",
+      "sourceBox": [
+        14,
+        58,
+        357,
+        339
+      ],
+      "opaquePixels": 72048,
+      "restoredOutsideCell": 0,
+      "size": [
+        359,
+        297
+      ],
+      "sha256": "f919266ef8576fc04011236c486d7d08792b8fc8704a768edb4ff1df3b84e55c"
+    },
+    {
+      "id": "GR-MYKONOS-212",
+      "iconId": 212,
+      "imageFile": "gr-mykonos-212.webp",
+      "sourceFile": "syros_mykonos_set4_12_scenes.png",
+      "sourceBox": [
+        370,
+        81,
+        715,
+        343
+      ],
+      "opaquePixels": 72910,
+      "restoredOutsideCell": 0,
+      "size": [
+        361,
+        278
+      ],
+      "sha256": "2bb44ae6fe5266848288ec1888dbab6f76c34eb5a4a35880446c14d285ef0d3b"
+    },
+    {
+      "id": "GR-SYROS-213",
+      "iconId": 213,
+      "imageFile": "gr-syros-213.webp",
+      "sourceFile": "syros_mykonos_set4_12_scenes.png",
+      "sourceBox": [
+        729,
+        63,
+        1074,
+        341
+      ],
+      "opaquePixels": 70499,
+      "restoredOutsideCell": 0,
+      "size": [
+        361,
+        294
+      ],
+      "sha256": "1bdc1dc7c799b97a6ddce43b20bc0531b5fcd1343907b8627d408066bf02bdb0"
+    },
+    {
+      "id": "GR-SYROS-214",
+      "iconId": 214,
+      "imageFile": "gr-syros-214.webp",
+      "sourceFile": "syros_mykonos_set4_12_scenes.png",
+      "sourceBox": [
+        1090,
+        80,
+        1434,
+        343
+      ],
+      "opaquePixels": 74801,
+      "restoredOutsideCell": 0,
+      "size": [
+        360,
+        279
+      ],
+      "sha256": "e652a3d9597f20e2b448074fcbf6307883857bdbcc30f03e2fc661b76af49e58"
+    },
+    {
+      "id": "GR-MYKONOS-215",
+      "iconId": 215,
+      "imageFile": "gr-mykonos-215.webp",
+      "sourceFile": "syros_mykonos_set4_12_scenes.png",
+      "sourceBox": [
+        9,
+        387,
+        355,
+        689
+      ],
+      "opaquePixels": 83351,
+      "restoredOutsideCell": 0,
+      "size": [
+        362,
+        318
+      ],
+      "sha256": "244df6fc7f6a2cba25aae7d9026c4fee0b5ee4f6a5b5adbed357d4454cdd7c17"
+    },
+    {
+      "id": "GR-SYROS-216",
+      "iconId": 216,
+      "imageFile": "gr-syros-216.webp",
+      "sourceFile": "syros_mykonos_set4_12_scenes.png",
+      "sourceBox": [
+        369,
+        442,
+        716,
+        685
+      ],
+      "opaquePixels": 58720,
+      "restoredOutsideCell": 0,
+      "size": [
+        363,
+        259
+      ],
+      "sha256": "8e9da0ddbbd8c76455ca71417912547b04c09025d0270b8de7ed7b55917ba5ef"
+    },
+    {
+      "id": "GR-MYKONOS-217",
+      "iconId": 217,
+      "imageFile": "gr-mykonos-217.webp",
+      "sourceFile": "syros_mykonos_set4_12_scenes.png",
+      "sourceBox": [
+        727,
+        464,
+        1077,
+        686
+      ],
+      "opaquePixels": 61082,
+      "restoredOutsideCell": 0,
+      "size": [
+        366,
+        238
+      ],
+      "sha256": "61957aa8c91a33f5e6085bb4c92266d5f43ee90837899065441b26fd4f42b15d"
+    },
+    {
+      "id": "GR-SYROS-218",
+      "iconId": 218,
+      "imageFile": "gr-syros-218.webp",
+      "sourceFile": "syros_mykonos_set4_12_scenes.png",
+      "sourceBox": [
+        1086,
+        398,
+        1439,
+        695
+      ],
+      "opaquePixels": 77938,
+      "restoredOutsideCell": 0,
+      "size": [
+        369,
+        313
+      ],
+      "sha256": "d8f4879ae2ac016bbed840ca6fd5d973235ec8335bd9fe1e821c367d1d1624a1"
+    },
+    {
+      "id": "GR-MYKONOS-219",
+      "iconId": 219,
+      "imageFile": "gr-mykonos-219.webp",
+      "sourceFile": "syros_mykonos_set4_12_scenes.png",
+      "sourceBox": [
+        7,
+        786,
+        357,
+        1051
+      ],
+      "opaquePixels": 67073,
+      "restoredOutsideCell": 0,
+      "size": [
+        366,
+        281
+      ],
+      "sha256": "b6523455eaa3c4b988b0bc61f4f4249b65d5dde98b83e4e26f437b512d18417f"
+    },
+    {
+      "id": "GR-SYROS-220",
+      "iconId": 220,
+      "imageFile": "gr-syros-220.webp",
+      "sourceFile": "syros_mykonos_set4_12_scenes.png",
+      "sourceBox": [
+        369,
+        792,
+        717,
+        1051
+      ],
+      "opaquePixels": 74152,
+      "restoredOutsideCell": 0,
+      "size": [
+        364,
+        275
+      ],
+      "sha256": "43774e33fd3ef8f04772379430b1b20185773520a0d0ff73b494f4fe83845362"
+    },
+    {
+      "id": "GR-SYROS-221",
+      "iconId": 221,
+      "imageFile": "gr-syros-221.webp",
+      "sourceFile": "syros_mykonos_set4_12_scenes.png",
+      "sourceBox": [
+        728,
+        809,
+        1076,
+        1052
+      ],
+      "opaquePixels": 67056,
+      "restoredOutsideCell": 0,
+      "size": [
+        364,
+        259
+      ],
+      "sha256": "d3855dd0ba4994a69d1eb4bc79d81907d14d139a515c48e3fe1652fc8283b53f"
+    },
+    {
+      "id": "GR-SYROS-222",
+      "iconId": 222,
+      "imageFile": "gr-syros-222.webp",
+      "sourceFile": "syros_mykonos_set4_12_scenes.png",
+      "sourceBox": [
+        1086,
+        772,
+        1442,
+        1054
+      ],
+      "opaquePixels": 76387,
+      "restoredOutsideCell": 0,
+      "size": [
+        372,
+        298
+      ],
+      "sha256": "176be69eb6ab1fd4e8b2bd6f8d0e8618ae8706830957d512a4ff782448de1bc8"
+    }
+  ],
+  "method": "connected component ownership; source RGBA retained; 8px transparent padding"
+}

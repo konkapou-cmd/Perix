@@ -55,16 +55,18 @@ export function pickPairedOppositeRows(rows:ServingBus[], preferredPlatformId?: 
 }
 
 export default function CityInlineDetails({ entity, bounds, onSelect, stopBoardTitle, compactStopBoard=false, initialDepartureLimit=8,
-  progressiveDepartures=false,pairOppositeSides=false,fleetBatchLoadedKey="",vehicle, liveVehicles, transitLines, transitCatalogue, onArrivalsUpdate }: {
+  progressiveDepartures=false,pairOppositeSides=false,arrivalRounds=false,fleetBatchLoadedKey="",vehicle, liveVehicles, transitLines, transitCatalogue, onArrivalsUpdate }: {
   entity: DirectoryEntity; bounds: CityBounds; onSelect: (entity: DirectoryEntity) => void; stopBoardTitle?: string;
   compactStopBoard?: boolean; initialDepartureLimit?: number;
   progressiveDepartures?:boolean;pairOppositeSides?:boolean;fleetBatchLoadedKey?:string;
+  arrivalRounds?:boolean;
   vehicle?:LiveVehicle | null; liveVehicles?:LiveVehicle[]; transitLines?:V2MapLine[]; transitCatalogue?:TransitStopMarker[];
   onArrivalsUpdate?:(key:string,rows:ServingBus[],visibleCount?:number)=>void;
 }) {
   const { t } = useTranslation("city");
   const { t: mobilityText } = useTranslation();
-  const arrivalKey = `${entity.id}|${entity.facts?.platform_id || ''}`;
+  const selectedPlatformIds=String(entity.facts?.platform_ids || '').split('|').filter(Boolean);
+  const arrivalKey = `${entity.id}|${entity.facts?.platform_id || ''}${selectedPlatformIds.length ? `|group:${selectedPlatformIds.slice().sort().join('|')}` : ''}`;
   const [departuresExpanded,setDeparturesExpanded] = useState(false);
   const [visibleDepartureLimit,setVisibleDepartureLimit]=useState(initialDepartureLimit);
   const [arrivalPageState,setArrivalPageState]=useState({key:'',page:0});
@@ -101,21 +103,44 @@ export default function CityInlineDetails({ entity, bounds, onSelect, stopBoardT
   useEffect(()=>{
     if(entity.type!=='stop' || arrivalState.key!==arrivalKey)return;
     let active=true;
-    const paired=pairOppositeSides && entity.type==='stop';
+    const paired=(pairOppositeSides || arrivalRounds) && entity.type==='stop';
     const offset=(progressiveDepartures && !paired?arrivalPage:0)*2;
     const page=(progressiveDepartures && !paired)?{limit:2,offset}:paired?{limit:20,offset:0}:undefined;
+    let readHadError=false;
     const stop=startFleetPolling({intervalMs:10000,subscribeRefresh:subscribeVisualRefresh,
       load:()=>{
         // Paired mode always reads the union across platforms; facts.platform_id
         // is only a preference hint for which side is picked first, never a filter.
-        return getBusesServing(null,entity.id.replace(/^stop:/,''),null,null,paired?undefined:entity.facts?.platform_id,page)
-          .catch(error=>{if(active)setArrivalState(state=>state.key===arrivalKey?{...state,error:true}:state);throw error;});
+        const stopId=entity.id.replace(/^stop:/,'');
+        // Reuse exact platform reads: an unusually busy platform cannot fill
+        // a union page and starve the first/second arrivals of its neighbours.
+        const read=arrivalRounds && selectedPlatformIds.length
+          ? Promise.allSettled(selectedPlatformIds.map(platformId=>getBusesServing(null,stopId,null,null,platformId,{limit:2,offset:0}))).then(pages=>{
+            readHadError=pages.some(page=>page.status==='rejected');
+            return pages.flatMap((page,index)=>{
+              const platformId=selectedPlatformIds[index];
+              const rows=page.status==='fulfilled' ? page.value : arrivalRowsRef.current.rows;
+              // Older servers may ignore pagination; preserve exact platforms
+              // and select their two earliest source arrivals on the client.
+              return rows.filter(row=>String(row.platform_id || '')===platformId)
+                .sort((a,b)=>(a.eta_seconds ?? Infinity)-(b.eta_seconds ?? Infinity)).slice(0,2);
+            });})
+          : getBusesServing(null,stopId,null,null,paired?undefined:entity.facts?.platform_id,page);
+        return read.catch(error=>{if(active){
+          setArrivalState(state=>state.key===arrivalKey?{...state,error:true}:state);
+          if(arrivalRounds){const known=arrivalRowsRef.current.key===arrivalKey?arrivalRowsRef.current.rows:[];
+            arrivalsUpdateRef.current?.(arrivalKey,known,known.length);}
+        }throw error;});
       },
       publish:pageRows=>{
         const previous=arrivalRowsRef.current.key===arrivalKey?arrivalRowsRef.current.rows:[];
         let rows=pageRows;
-        if(paired){
-          rows=pickPairedOppositeRows(pageRows,entity.facts?.platform_id);
+        if(arrivalRounds){
+          rows=(selectedPlatformIds.length ? pageRows.filter(row=>selectedPlatformIds.includes(String(row.platform_id || ''))) : pageRows)
+            .sort((a,b)=>(a.eta_seconds ?? Infinity)-(b.eta_seconds ?? Infinity));
+        }else if(paired){
+           rows=pickPairedOppositeRows(selectedPlatformIds.length
+             ? pageRows.filter(row=>selectedPlatformIds.includes(String(row.platform_id || ''))) : pageRows,entity.facts?.platform_id);
         }else if(progressiveDepartures){
           const merged=new Map<string,ServingBus>();
           for(const row of previous)merged.set(`${row.trip_instance_id||row.trip_id}|${row.platform_id||""}`,row);
@@ -123,11 +148,11 @@ export default function CityInlineDetails({ entity, bounds, onSelect, stopBoardT
           rows=[...merged.values()].sort((a,b)=>(a.eta_seconds||0)-(b.eta_seconds||0));
         }
         arrivalRowsRef.current={key:arrivalKey,rows};
-        setArrivalState({key:arrivalKey,rows,loaded:true,error:false,pageSize:pageRows.length});
-        if(!progressiveDepartures || paired)arrivalsUpdateRef.current?.(arrivalKey,rows);
+        setArrivalState({key:arrivalKey,rows,loaded:true,error:readHadError,pageSize:pageRows.length});
+        if(!progressiveDepartures || paired)arrivalsUpdateRef.current?.(arrivalKey,rows,arrivalRounds?rows.length:undefined);
       }});
     return()=>{active=false;stop();};
-  },[arrivalKey,arrivalState.key,arrivalPage,entity.id,entity.type,entity.facts?.platform_id,progressiveDepartures,pairOppositeSides]);
+   },[arrivalKey,arrivalState.key,arrivalPage,entity.id,entity.type,entity.facts?.platform_id,progressiveDepartures,pairOppositeSides,arrivalRounds]);
   const [related, setRelated] = useState<DirectoryEntity[]>([]);
   const [relatedError, setRelatedError] = useState(false);
   const [comments, setComments] = useState<{ id: string; text: string; author: string }[]>([]);
@@ -175,7 +200,7 @@ export default function CityInlineDetails({ entity, bounds, onSelect, stopBoardT
   },[arrivalKey,arrivalState.key,arrivalState.loaded,arrivalState.rows,compactStopBoard,displayedBatchKey,
     entity.type,onArrivalsUpdate,progressiveDepartures]);
   if (entity.publicService) return <View style={{ gap: 8 }}>
-    <PublicServiceCard service={entity.publicService} full />
+    <PublicServiceCard service={entity.publicService} full showMap={false} />
     <Pressable accessibilityRole="button" style={styles.button} onPress={() => router.push({
     pathname: "/public-services/[id]", params: { id: entity.publicService!.service_id },
     })}>
@@ -194,7 +219,7 @@ export default function CityInlineDetails({ entity, bounds, onSelect, stopBoardT
     {entity.cover_image && <Image source={{ uri: entity.cover_image }} style={styles.image} resizeMode="cover" accessibilityLabel={entity.title} />}
     {entity.address && <Text>{entity.address}</Text>}
     {!vehicleEntity && entity.description && <Text style={styles.text}>{entity.description}</Text>}
-    {Object.entries(entity.facts || {}).filter(([label]) => label !== 'platform_id').map(([label, value]) => <Text key={label} style={styles.text}>{label}: {value}</Text>)}
+     {Object.entries(entity.facts || {}).filter(([label]) => label !== 'platform_id' && label !== 'platform_ids').map(([label, value]) => <Text key={label} style={styles.text}>{label}: {value}</Text>)}
     {entity.type === 'stop' && <View>
       {!compactStopBoard && <Text style={styles.title}>{stopBoardTitle || mobilityText('mobility.arrival','Arrival')}</Text>}
       {(arrivalState.key !== arrivalKey || !arrivalState.loaded) && !arrivalState.error ? <ActivityIndicator /> : null}

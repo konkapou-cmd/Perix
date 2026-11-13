@@ -22,7 +22,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import DatePickerModal from "../../components/shared/DatePickerModal";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import AdaptiveVideo from "../../components/AdaptiveVideo";
 import AdaptiveImage from "../../components/AdaptiveImage";
@@ -97,8 +97,12 @@ import { useLayoutPreferences } from "../../hooks/useLayoutPreferences";
 import { CityAdCircles } from "../../components/home/CityAdCircles";
 import { CarouselSection } from "../../components/home/CarouselSection";
 import { MapSection } from "../../components/home/MapSection";
+import HomeDiscoveryPanel from "../../components/home/HomeDiscoveryPanel";
+import { useHomeDiscovery } from "../../hooks/useHomeDiscovery";
+import { createDiscoveryFilters, discoverySection, type DiscoverySection, type DiscoveryFilter } from "../../lib/home/discovery";
 import MapScreenHeader from "../../components/city/MapScreenHeader";
 import { MAP_PAGE_GUTTER } from "../../lib/city/mapLayout";
+import { prefetchNearbyCatalogue } from "../../lib/city/nearbyTransitCache";
 import { categoryIcon } from "../../lib/categoryIcons";
 import { getListings, Listing } from "../../lib/api/listings";
 import { IdentityDropdown } from "../../components/profile/IdentityDropdown";
@@ -176,6 +180,21 @@ export default function HomeScreen() {
   const [myBusinesses, setMyBusinesses] = useState<Business[]>([]);
   const viewportRequestRef = useRef(0);
   const lastViewportKeyRef = useRef("");
+  const discoveryParams = useLocalSearchParams<{ tab?: string; root_category?: string }>();
+  const [discoveryTab, setDiscoveryTab] = useState<DiscoverySection>(() => discoverySection(discoveryParams.tab));
+  const [discoveryFilters, setDiscoveryFilters] = useState(createDiscoveryFilters);
+  useEffect(() => {
+    const section = discoverySection(discoveryParams.tab);
+    setDiscoveryTab(section);
+    if (typeof discoveryParams.root_category === "string") setDiscoveryFilters(previous => ({ ...previous,
+      businesses: { ...previous.businesses, category: discoveryParams.root_category!, subcategory: "" },
+    }));
+  }, [discoveryParams.tab, discoveryParams.root_category]);
+  const discoveryData = useMemo(() => ({ businesses, hotels, events, activities, jobs, rentals, services,
+    products: viewportProducts, ownerHomes: viewportHomes }), [businesses, hotels, events, activities, jobs, rentals, services, viewportProducts, viewportHomes]);
+  const discovery = useHomeDiscovery({ token: sessionToken, bounds: mapBounds, data: discoveryData, section: discoveryTab,
+    filter: discoveryFilters[discoveryTab], favoriteBusinesses: !!homeLayout.favoriteCategories?.length, refreshKey: mapRefreshKey });
+  const updateDiscoveryFilter = (filter: DiscoveryFilter) => setDiscoveryFilters(previous => ({ ...previous, [discoveryTab]: filter }));
 
   useEffect(() => {
     if (!sessionToken) return;
@@ -852,6 +871,9 @@ export default function HomeScreen() {
           const d = 0.09;
           setMapBounds({ minLat: lat - d / 2, maxLat: lat + d / 2, minLng: lng - d / 2, maxLng: lng + d / 2, centerLat: lat, centerLng: lng });
           setUserOrigin(lat, lng, name);
+          // Warm the /app stops cache in the background; results are ready
+          // when the user returns to /app.
+          prefetchNearbyCatalogue({ latitude: lat, longitude: lng });
           setMapFocusToken((t) => t + 1);
         }}
       />
@@ -933,7 +955,7 @@ export default function HomeScreen() {
                     : t("home.useMyLocation", { defaultValue: "Use My Location" })}
                 </Text>
               </Pressable>
-              <Pressable style={[styles.mapPromptButton, styles.mapPromptButtonSecondary]} onPress={() => router.navigate("/(tabs)/locator" as any)} data-testid="go-to-map-btn">
+              <Pressable style={[styles.mapPromptButton, styles.mapPromptButtonSecondary]} onPress={() => setShowLocationSearch(true)} data-testid="go-to-map-btn">
                 <Ionicons name="navigate" size={20} color={COLORS.primary} />
                 <Text style={[styles.mapPromptButtonText, styles.mapPromptButtonTextSecondary]}>{t("home.goToMap", { defaultValue: "Go to Map" })}</Text>
               </Pressable>
@@ -958,15 +980,15 @@ export default function HomeScreen() {
         {mapBounds && homeLayout.sections.find(s => s.id === "map")?.enabled !== false && (
           <MapSection
             mapBounds={mapBounds}
-            businesses={shuffledBusinesses}
-            hotels={shuffledHotels}
-            events={shuffledEvents}
-            activities={shuffledActivities}
-            rentals={sortedRentals}
-            jobs={shuffledJobs}
-            services={shuffledServices}
-            products={viewportProducts}
-            ownerHomes={viewportHomes}
+            businesses={discovery.mapData.businesses}
+            hotels={discovery.mapData.hotels}
+            events={discovery.mapData.events}
+            activities={discovery.mapData.activities}
+            rentals={discovery.mapData.rentals}
+            jobs={discovery.mapData.jobs}
+            services={discovery.mapData.services}
+            products={discovery.mapData.products}
+            ownerHomes={discovery.mapData.ownerHomes}
             userLocation={userLocation}
             pinLocation={pinLocation}
             manualOrigin={userOrigin?.kind === "manual" ? userOrigin : null}
@@ -981,6 +1003,10 @@ export default function HomeScreen() {
           />
         )}
 
+        <HomeDiscoveryPanel token={sessionToken} section={discoveryTab} filter={discoveryFilters[discoveryTab]}
+          results={discovery.results} loading={discovery.loading} error={discovery.error} onRetry={discovery.retry}
+          onSection={setDiscoveryTab} onFilter={updateDiscoveryFilter} />
+
         {false && <>
         {homeLayout.sections.find(s => s.id === "events")?.enabled !== false && (
           <CarouselSection
@@ -988,7 +1014,7 @@ export default function HomeScreen() {
             icon="calendar"
             color={COLORS.pinEvent}
             activeFilterTextColor={COLORS.textPrimary}
-            seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "events" } } as any}
+            seeAllRoute={{ pathname: "/(tabs)/home" as any, params: { tab: "events" } } as any}
             filters={{
               options: [
                 { key: "all", label: t("common.all", "All") },
@@ -1056,7 +1082,7 @@ export default function HomeScreen() {
             icon="people"
             color={COLORS.pinActivity}
             activeFilterTextColor={COLORS.textPrimary}
-            seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "activities" } } as any}
+            seeAllRoute={{ pathname: "/(tabs)/home" as any, params: { tab: "activities" } } as any}
             filters={{
               options: [
                 { key: "all", label: t("common.all", "All") },
@@ -1123,7 +1149,7 @@ export default function HomeScreen() {
             icon="business"
             iconSource={illustratedIconSource("home","businesses")}
             color={COLORS.pinBusiness}
-            seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "businesses" } } as any}
+            seeAllRoute={{ pathname: "/(tabs)/home" as any, params: { tab: "businesses" } } as any}
             isCollapsed={collapsedSections.has("businesses")}
             onToggleCollapse={() => setSectionCollapsed("businesses", !collapsedSections.has("businesses"))}
           >
@@ -1161,7 +1187,7 @@ export default function HomeScreen() {
             icon="bed"
             iconSource={illustratedIconSource("home","hotels")}
             color={COLORS.pinHotel}
-            seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "hotels" } } as any}
+            seeAllRoute={{ pathname: "/(tabs)/home" as any, params: { tab: "hotels" } } as any}
             emptyMessage={t("home.noHotels", "No hotels nearby")}
             isCollapsed={collapsedSections.has("hotels")}
             onToggleCollapse={() => setSectionCollapsed("hotels", !collapsedSections.has("hotels"))}
@@ -1460,7 +1486,7 @@ export default function HomeScreen() {
           ) : null
         }
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={COLORS.primary} colors={[COLORS.primary]} />}
-        contentContainerStyle={{ paddingBottom: 52 + insets.bottom + 20 }}
+        contentContainerStyle={{ paddingBottom: 20 }}
         onViewableItemsChanged={onViewableItemsChangedRef}
         viewabilityConfig={viewabilityConfigRef}
         onEndReached={loadMorePosts}

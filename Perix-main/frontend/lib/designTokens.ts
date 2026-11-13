@@ -173,6 +173,13 @@ export const FONT_WEIGHTS = {
   extrabold: "800" as const,
 };
 
+// Shared /app display font (Quicksand), also used for Home discovery results.
+export const LOCATOR_FONT_FAMILY = {
+  regular: "Quicksand_400Regular",
+  semibold: "Quicksand_600SemiBold",
+  bold: "Quicksand_700Bold",
+} as const;
+
 export const BORDER_RADIUS = {
   none: 0,
   sm: 8,

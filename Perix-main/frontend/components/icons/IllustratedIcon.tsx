@@ -1,18 +1,28 @@
 import React from "react";
 import { Image, type ImageSourcePropType } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { PUBLIC_SERVICE_ILLUSTRATIONS, JOB_ILLUSTRATIONS, PROPERTY_ILLUSTRATIONS, MOBILITY_CATEGORY_ILLUSTRATIONS } from "../../lib/civicIllustrations";
 import {
   CATEGORY_GROUP_ILLUSTRATIONS,
   HOME_ILLUSTRATIONS,
-  MARKETPLACE_PARENT_ILLUSTRATIONS,
-  MARKETPLACE_SUBCATEGORY_ILLUSTRATIONS,
   ROOT_CATEGORY_ILLUSTRATIONS,
-  SERVICE_MODULE_ILLUSTRATIONS,
   SUBCATEGORY_ILLUSTRATIONS,
 } from "../../lib/illustrationSources.generated";
 
+// Marketplace + service-module maps stay out of the /app first-paint bundle.
+// They are required lazily on first use (e.g. drilling into products/services),
+// so CityGatewayScreen startup only evaluates home/root/group/sub + civic art.
+function lazyGenerated(): typeof import("../../lib/illustrationSources.generated") {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  return require("../../lib/illustrationSources.generated") as typeof import("../../lib/illustrationSources.generated");
+}
+
 export type IllustratedIconKind =
   | "home"
+  | "public-service"
+  | "job-type"
+  | "property-type"
+  | "mobility-category"
   | "home-or-root"
   | "business-root"
   | "business-group"
@@ -23,14 +33,18 @@ export type IllustratedIconKind =
 
 export function illustratedIconSource(kind: IllustratedIconKind, key: string): ImageSourcePropType | undefined {
   switch (kind) {
+    case "public-service": return PUBLIC_SERVICE_ILLUSTRATIONS[key];
+    case "job-type": return JOB_ILLUSTRATIONS[key];
+    case "property-type": return PROPERTY_ILLUSTRATIONS[key];
+    case "mobility-category": return MOBILITY_CATEGORY_ILLUSTRATIONS[key];
     case "home": return HOME_ILLUSTRATIONS[key];
     case "home-or-root": return HOME_ILLUSTRATIONS[key] || ROOT_CATEGORY_ILLUSTRATIONS[key];
     case "business-root": return ROOT_CATEGORY_ILLUSTRATIONS[key];
     case "business-group": return CATEGORY_GROUP_ILLUSTRATIONS[key];
     case "business-subcategory": return SUBCATEGORY_ILLUSTRATIONS[key];
-    case "marketplace-parent": return MARKETPLACE_PARENT_ILLUSTRATIONS[key];
-    case "marketplace-subcategory": return MARKETPLACE_SUBCATEGORY_ILLUSTRATIONS[key];
-    case "service-module": return SERVICE_MODULE_ILLUSTRATIONS[key];
+    case "marketplace-parent": return lazyGenerated().MARKETPLACE_PARENT_ILLUSTRATIONS[key];
+    case "marketplace-subcategory": return lazyGenerated().MARKETPLACE_SUBCATEGORY_ILLUSTRATIONS[key];
+    case "service-module": return lazyGenerated().SERVICE_MODULE_ILLUSTRATIONS[key];
   }
 }
 

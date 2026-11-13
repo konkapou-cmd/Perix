@@ -57,6 +57,20 @@ export const MEDIA_LIMITS = {
     maxVideoFileSizeBytes: 300 * BYTES_PER_MB,
   },
 
+  // Φ5 (policy v18): per-plan gallery/post limits. Indicative UI copy —
+  // the backend content policy is the only authority. Enforcement is
+  // feature-flagged server-side (POST_LIMITS_ENFORCEMENT, ...).
+  planGallery: {
+    freeUser: { photos: 3, videos: 0 },
+    premiumUser: { photos: 12, videos: 6 },
+    business: { photos: 30, videos: 12 },
+  },
+  planPosts: {
+    freeUser: 3,
+    premiumUser: 12,
+    business: 24,
+  },
+
   coverGallery: {
     maxItems: 20,
     maxVideos: 10,

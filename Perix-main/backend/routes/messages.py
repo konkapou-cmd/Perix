@@ -64,6 +64,12 @@ class MediaMessageCreate(BaseModel):
     text: Optional[str] = None
     media_url: str
     media_type: str  # "image", "video", "audio"
+    # Φ4 (policy v18): verified sender identity + context links + idempotency
+    sender_type: Optional[str] = None  # "user" | "business"
+    sender_business_id: Optional[str] = None
+    context_type: Optional[str] = None
+    context_id: Optional[str] = None
+    client_request_id: Optional[str] = None
 
 
 @router.get("/quota/{user_id}")
@@ -614,6 +620,42 @@ async def send_message(
         if to_user_id in (getattr(current_user, "blocked_users", None) or []):
             raise HTTPException(status_code=403, detail="You blocked this user")
 
+    # Φ4 (policy v18): verified sender identity, context link, idempotency
+    # and monthly quota. All enforcement switches are feature-flagged OFF.
+    from utils.messages_policy import (
+        MESSAGE_QUOTA_ENFORCEMENT,
+        context_is_active,
+        message_policy_fields,
+        personal_message_limit,
+        resolve_sender_identity,
+        validate_message_context,
+    )
+    from utils.quota import consume_usage, get_usage, period_key_for_month
+
+    sender_identity_type, sender_identity_id = await resolve_sender_identity(
+        current_user, payload.sender_type, payload.sender_business_id
+    )
+    context_type, context_id, context_doc = await validate_message_context(
+        payload.context_type, payload.context_id
+    )
+    context_active = context_is_active(context_type, context_doc)
+
+    if payload.client_request_id:
+        existing = await db.messages.find_one(
+            {"from_user_id": current_user.user_id, "client_request_id": payload.client_request_id},
+            {"_id": 0},
+        )
+        if existing:
+            return MessageResponse(**existing)
+
+    if sender_identity_type == "user" and MESSAGE_QUOTA_ENFORCEMENT:
+        period_key = period_key_for_month()
+        used = await get_usage("user", sender_identity_id, period_key)
+        user_doc = await db.users.find_one({"user_id": sender_identity_id}, {"account_plan": 1})
+        limit = personal_message_limit(user_doc)
+        if limit is not None and used >= limit:
+            raise HTTPException(status_code=403, detail="Monthly message limit reached")
+
     message_doc = {
         "message_id": generate_id("msg"),
         "from_user_id": current_user.user_id,
@@ -624,8 +666,22 @@ async def send_message(
         "text": payload.text,
         "read": False,
         "created_at": now_utc(),
+        "client_request_id": payload.client_request_id,
+        **message_policy_fields(
+            sender_identity_type=sender_identity_type,
+            sender_identity_id=sender_identity_id,
+            conversation_id=conversation_id,
+            context_type=context_type,
+            context_id=context_id,
+            context_active=context_active,
+        ),
     }
     await db.messages.insert_one(message_doc)
+
+    if sender_identity_type == "user" and MESSAGE_QUOTA_ENFORCEMENT:
+        await consume_usage(
+            "user", sender_identity_id, period_key_for_month(), message_doc["message_id"]
+        )
     
     asyncio.create_task(
         send_message_notification(
@@ -954,7 +1010,44 @@ async def send_media_message(
                     status_code=403,
                     detail="You have reached the free message limit with this user. Become friends to continue chatting.",
                 )
-    
+
+    # Φ4 (policy v18): verified sender identity, context link, idempotency,
+    # monthly quota and the 15-file media window (all feature-flagged OFF).
+    from utils.messages_policy import (
+        MESSAGE_QUOTA_ENFORCEMENT,
+        context_is_active,
+        enforce_media_window,
+        message_policy_fields,
+        personal_message_limit,
+        resolve_sender_identity,
+        validate_message_context,
+    )
+    from utils.quota import consume_usage, get_usage, period_key_for_month
+
+    sender_identity_type, sender_identity_id = await resolve_sender_identity(
+        current_user, payload.sender_type, payload.sender_business_id
+    )
+    context_type, context_id, context_doc = await validate_message_context(
+        payload.context_type, payload.context_id
+    )
+    context_active = context_is_active(context_type, context_doc)
+
+    if payload.client_request_id:
+        existing = await db.messages.find_one(
+            {"from_user_id": current_user.user_id, "client_request_id": payload.client_request_id},
+            {"_id": 0},
+        )
+        if existing:
+            return MessageResponse(**existing)
+
+    if sender_identity_type == "user" and MESSAGE_QUOTA_ENFORCEMENT:
+        period_key = period_key_for_month()
+        used = await get_usage("user", sender_identity_id, period_key)
+        user_doc = await db.users.find_one({"user_id": sender_identity_id}, {"account_plan": 1})
+        limit = personal_message_limit(user_doc)
+        if limit is not None and used >= limit:
+            raise HTTPException(status_code=403, detail="Monthly message limit reached")
+
     message_doc = {
         "message_id": generate_id("msg"),
         "from_user_id": current_user.user_id,
@@ -967,8 +1060,25 @@ async def send_media_message(
         "media_type": payload.media_type,
         "read": False,
         "created_at": now_utc(),
+        "client_request_id": payload.client_request_id,
+        **message_policy_fields(
+            sender_identity_type=sender_identity_type,
+            sender_identity_id=sender_identity_id,
+            conversation_id=conversation_id,
+            context_type=context_type,
+            context_id=context_id,
+            context_active=context_active,
+        ),
     }
     await db.messages.insert_one(message_doc)
+
+    if sender_identity_type == "user" and MESSAGE_QUOTA_ENFORCEMENT:
+        await consume_usage(
+            "user", sender_identity_id, period_key_for_month(), message_doc["message_id"]
+        )
+
+    # Keep only the latest 15 media files per conversation (logical retire).
+    await enforce_media_window(current_user.user_id, entity_type, conversation_id)
     
     media_type_label = {
         "image": "📷 Photo",

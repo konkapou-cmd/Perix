@@ -10,12 +10,13 @@ import { DirectionsDestination, DirectionsOrigin, GoogleTravelMode, googleDirect
 
 const modeIcons = { walking: "walk-outline", transit: "bus-outline", driving: "car-outline" } as const;
 
-export default function GoogleDirectionsPreview({ destination, origin, onLocate, locating }: {
-  destination: DirectionsDestination; origin: DirectionsOrigin | null; onLocate: () => void; locating: boolean;
+export default function GoogleDirectionsPreview({ destination, origin, onLocate, locating, initiallyOpen = false, onClose }: {
+  destination: DirectionsDestination; origin: DirectionsOrigin | null; onLocate: () => void; locating: boolean; initiallyOpen?: boolean;
+  onClose?:()=>void;
 }) {
   const { t, i18n } = useTranslation("city");
   const { t: common } = useTranslation();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initiallyOpen);
   const [mode, setMode] = useState<GoogleTravelMode>("walking");
   // Snapshot only on explicit open/refresh (or the first fix after a locate).
   // A stream of live fixes must not reload an iframe: this is NOT live navigation.
@@ -39,7 +40,7 @@ export default function GoogleDirectionsPreview({ destination, origin, onLocate,
   if (!validDirectionsPoint(destination)) return null;
   return <View testID="google-directions-preview" style={styles.card}>
     <Pressable testID="google-directions-toggle" accessibilityRole="button" accessibilityState={{ expanded: open }}
-      onPress={() => { if (!open) refresh(); setOpen(value => !value); }}
+      onPress={() => { if (!open) refresh(); else onClose?.(); setOpen(value => !value); }}
       style={[styles.action, styles.pill, !open && styles.selectedMode]}>
       <Ionicons name={open ? "close-outline" : "navigate-outline"} size={20}
         color={open ? MAP_ACTION_COLORS.text : MAP_ACTION_COLORS.activeText} />

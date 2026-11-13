@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
-import { StyleSheet, Text, View, Platform, Pressable, Modal, Image as RNImage, Linking, ActivityIndicator } from "react-native";
+import { StyleSheet, Text, View, Platform, Pressable, Modal, Image as RNImage, Linking, ActivityIndicator, type ImageSourcePropType } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Business, EventItem, ActivityItem, ArtistSearchResult, Rental, Job, Service } from "../lib/api";
 import { formatEventDate } from "../lib/formatDate";
@@ -10,13 +10,15 @@ import { acceptVisualPublication, applyGatewayTransitUpdate, authorizePreview, s
 import { sampleVisualPath } from "../lib/city/transitPath";
 import { stationQueueOffsets, smoothQueueOffset, StationQueueCandidate } from "../lib/city/stationQueue";
 import { measureVisualApplication } from "../lib/city/transitPublication";
-import { groupTransitStopIcons, transitStopPins } from "../lib/city/visualGeometry";
-import { createUserPinElement, mapEntityPinSize, profileInitial, transitStopAppearance } from "../lib/city/mapPresentation";
-import { declutterLandmarks, landmarkAppearance, landmarkHasBusinessBehind, landmarkOpacity } from "../lib/city/landmarks";
-import { SUPPLEMENT_LANDMARK_IMAGES } from "../lib/city/supplementLandmarkImages.generated";
-import type { SupplementLandmark } from "../lib/city/supplementLandmarks.generated";
+import { groupTransitStopIcons, transitStopPins, stopGeometryBearing, stopViewerBearing } from "../lib/city/visualGeometry";
+import { MAP_LAYERS, createUserPinElement, mapEmblemPinSize, mapEntityPinSize, mapMarkerGroupKey, profileInitial, transitStopAppearance, businessEmblemKey, perspectiveMultiplier, routeWeightForZoom, LOCKED_MAP_TILT, RASTER_FALLBACK_TILT, lockedTiltForRendering, PERIX_VECTOR_MAP_ID } from "../lib/city/mapPresentation";
+import { illustratedIconSource } from "./icons/IllustratedIcon";
+import { clusterLandmarks, landmarkAppearance, landmarkDepthLayout, landmarkIntersectsBounds, landmarkImageSource, landmarkTapTargets, LANDMARK_MAP_MAX_ZOOM, LANDMARK_STREET_DETAIL_ZOOM } from "../lib/city/landmarks";
+import { projectedRoutePath } from '../lib/city/routeArtwork';
+import type { Landmark } from "../lib/city/landmarks";
+import { autoCameraTarget, advanceAutoCamera, type AutoCameraState } from "../lib/city/mapLayout";
 import type { MotionPreview } from "../lib/api/mobility";
-import { MOBILITY_VIEW_SOURCES, vehicleMobilityViewAngle, stopMobilityViewAngle } from "../lib/mobilityViewSources.generated";
+import { MOBILITY_VIEW_SOURCES, vehicleKindViewAngle, stopMobilityViewAngle } from "../lib/mobilityViewSources.generated";
 import { getCurrentLanguageSync } from "../i18n";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
@@ -26,10 +28,13 @@ type MapMarker = {
   latitude: number;
   longitude: number;
   title?: string;
+  address?: string | null;
   description?: string;
   pinColor?: string;
   pinInnerColor?: string;
   pinImage?: string | null;
+  pinImageFit?: "cover" | "contain";
+  emblem?: ImageSourcePropType | null;
   selectionCompass?: boolean;
   type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service" | "product" | "bus" | "tram" | "taxi";
   heading?: number | null;
@@ -108,8 +113,10 @@ type Props = {
     name: string;
     latitude: number;
     longitude: number;
-    modes: ("bus" | "tram")[];
-    routes: { route_number: string; mode: "bus" | "tram" }[];
+    modes: ("bus" | "tram" | "subway" | "s-bahn" | "rail" | "ferry")[];
+    /** Street side ("left"/"right"); opposite known sides stay separate pins. */
+    side?: string | null;
+    routes: { route_number: string; mode: "bus" | "tram" | "subway" | "s-bahn" | "rail" | "ferry" }[];
     platforms?: {
       platform_id: string;
       platform_code?: string | null;
@@ -117,7 +124,7 @@ type Props = {
       longitude?: number | null;
       name?: string;
       directions?: string[];
-      modes?: ('bus' | 'tram')[];
+      modes?: ('bus' | 'tram' | 'subway' | 's-bahn' | 'rail' | 'ferry')[];
       routes?: string[];
       side?: string | null;
     }[];
@@ -134,10 +141,10 @@ type Props = {
     name: string;
     latitude: number;
     longitude: number;
-    modes: ("bus" | "tram")[];
-    routes: { route_number: string; mode: "bus" | "tram" }[];
+    modes: ("bus" | "tram" | "subway" | "s-bahn" | "rail" | "ferry")[];
+    routes: { route_number: string; mode: "bus" | "tram" | "subway" | "s-bahn" | "rail" | "ferry" }[];
     platforms?: {platform_id:string;platform_code?:string|null;name?:string;latitude?:number|null;longitude?:number|null;
-      modes?:('bus'|'tram')[];routes?:string[];directions?:string[]}[];
+      modes?:('bus'|'tram'|'subway'|'s-bahn'|'rail'|'ferry')[];routes?:string[];directions?:string[]}[];
   }) => void;
   /** Journey-plan route: walking legs light blue, tram green, bus blue. */
   planLines?: {
@@ -151,7 +158,16 @@ type Props = {
   userPinName?: string | null;
   pinLocation?: { latitude: number; longitude: number } | null;
   /** Supplement diorama landmarks (MD-X001..MD-X070): zoom-smart, decluttered, tap opens Google directions. */
-  landmarks?: SupplementLandmark[];
+  landmarks?: Landmark[];
+  landmarksMuted?: boolean;
+  onMapReady?: (available?: boolean) => void;
+  onLandmarksReady?: () => void;
+  pinScaleZoom?: number;
+  /** Auto camera: fit these points (e.g. user pin + approaching vehicles) and
+   *  keep refitting as they converge. Any user gesture cancels it until the
+   *  token changes (a new explicit action like selecting a stop). */
+  autofit?: { token: number; points: { latitude: number; longitude: number }[] } | null;
+  onAutofitCancel?: () => void;
   onRegionChange?: (bounds: MapBounds) => void;
   onRegionChangeComplete?: (bounds: MapBounds) => void;
   onZoomChange?: (zoom: number) => void;
@@ -347,6 +363,20 @@ const tramSvg = (label?: string | null, deg = 0) => {
 let googleScriptLoaded = false;
 let googleScriptPromise: Promise<void> | null = null;
 let transitRouteLabelStylesInstalled = false;
+let perixCinemaStylesInstalled = false;
+/** PERIX Soft Light Cinema — Film Finish. Separate CSS layer over the map frame
+ *  (never inside the Cloud Map Style JSON: it has no glare/bloom/vignette).
+ *  pointer-events:none keeps every control clickable; the bottom 48px stay
+ *  clear for the Google logo and attribution. Default intensity: PERIX Signature. */
+const PERIX_CINEMA_CSS = `.perix-cinema-light{position:absolute;inset:0 0 48px 0;z-index:2;pointer-events:none;background:radial-gradient(ellipse 65% 60% at 12% 4%,rgba(255,240,207,0.30),transparent 72%),radial-gradient(ellipse 55% 50% at 85% 8%,rgba(159,211,231,0.13),transparent 75%),radial-gradient(ellipse 120% 60% at 50% 0%,rgba(255,255,255,0.07),transparent 55%),radial-gradient(ellipse 85% 80% at 50% 46%,transparent 45%,rgba(79,64,52,0.14) 100%);}`;
+function ensurePerixCinemaStyles() {
+  if (perixCinemaStylesInstalled || typeof document === "undefined") return;
+  const style = document.createElement("style");
+  style.id = "perix-cinema-light-styles";
+  style.textContent = PERIX_CINEMA_CSS;
+  document.head.appendChild(style);
+  perixCinemaStylesInstalled = true;
+}
 
 /** Native google.maps.Marker icon for a transit vehicle: SVG data URL,
  *  scaled size + SVG-internal rotation (deterministic - the icon faces
@@ -357,9 +387,9 @@ const makeVehicleIcon = (google: any, rec: any) => {
   const canvas = isTram ? 82 : 64;
   const w = Math.max(16, Math.round(canvas * rec.scale));
   const heading = typeof rec.heading === "number" ? rec.heading : 0;
-  if (rec.type === "bus" || rec.type === "tram") {
-    const kind=rec.type as "bus"|"tram";
-    const viewAngle=vehicleMobilityViewAngle(heading);
+  if (rec.type === "bus" || rec.type === "tram" || rec.type === "subway" || rec.type === "s-bahn" || rec.type === "rail" || rec.type === "ferry" || rec.type === "metro" || rec.type === "isap" || rec.type === "athens_bus" || rec.type === "blue_star") {
+    const kind=rec.type as "bus"|"tram"|"subway"|"s-bahn"|"rail"|"ferry"|"metro"|"isap"|"athens_bus"|"blue_star";
+    const viewAngle=vehicleKindViewAngle(kind,heading,rec.cameraHeading || 0);
     const uri=resolveMapAssetUri(MOBILITY_VIEW_SOURCES[kind][viewAngle]);
     return {
       url:uri,
@@ -392,6 +422,7 @@ const vehicleMarkerLabel=(rec:any)=>{
     fontFamily:"Arial, sans-serif",fontSize:`${Math.max(8,Math.round(9*rec.scale))}px`,fontWeight:"800"};
 };
 const updateVehicleMarkerIcon=(google:any,rec:any)=>{
+  rec.cameraHeading=rec.marker.getMap?.()?.getHeading?.() || 0;
   rec.marker.setIcon(makeVehicleIcon(google,rec));
   const label=vehicleMarkerLabel(rec),key=`${label}|${rec.scale}`;
   if(rec.routeLabelKey===key)return;
@@ -451,6 +482,12 @@ export default function BusinessMap({
   markers,
   extraMarkers,
   landmarks,
+  landmarksMuted = false,
+  onMapReady,
+  onLandmarksReady,
+  pinScaleZoom = 15,
+  autofit,
+  onAutofitCancel,
   authoritativeTransit = false,
   transitLines,
   onTransitLineClick,
@@ -476,9 +513,54 @@ export default function BusinessMap({
   const mapDivRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const readyCallbackRef=useRef(onMapReady);readyCallbackRef.current=onMapReady;
+  const landmarksReadyRef=useRef(onLandmarksReady);landmarksReadyRef.current=onLandmarksReady;
+  const pinScaleZoomRef=useRef(pinScaleZoom);pinScaleZoomRef.current=pinScaleZoom;
+  const landmarkCacheRef = useRef<Map<string, any>>(new Map());
+  useEffect(() => () => {
+    landmarkCacheRef.current.forEach((rec: any) => { try { rec.overlay?.setMap(null); } catch (e) {} });
+    landmarkCacheRef.current.clear();
+  }, []);
   const [mapReady, setMapReady] = useState(false);
   const [stopViewportRevision, setStopViewportRevision] = useState(0);
   const [mapHeading, setMapHeading] = useState(0);
+  // Pedestrian mode: Street View opens only on explicit tap and only where
+  // Google has outdoor coverage; zooming back out (or the close button)
+  // returns to the aerial map. Nothing auto-enters.
+  const [mapZoomLevel, setMapZoomLevel] = useState(14);
+  const [streetView, setStreetView] = useState<{ lat: number; lng: number } | null>(null);
+  const [streetViewNotice, setStreetViewNotice] = useState<string | null>(null);
+  const streetPanoRef = useRef<any>(null);
+  const streetViewDivRef = useRef<HTMLDivElement | null>(null);
+  const openStreetView = () => {
+    const map = mapRef.current, google = (window as any).google;
+    const center = map?.getCenter?.();
+    if (!map || !google || !center) return;
+    setStreetViewNotice(null);
+    try {
+      new google.maps.StreetViewService().getPanorama(
+        { location: center, radius: 60, source: google.maps.StreetViewSource.OUTDOOR },
+        (data: any, status: string) => {
+          if (status === google.maps.StreetViewStatus.OK && data?.location?.latLng) {
+            setStreetView({ lat: data.location.latLng.lat(), lng: data.location.latLng.lng() });
+          } else {
+            setStreetViewNotice(t("map.noStreetView", "No street-level view available here yet."));
+          }
+        });
+    } catch (e) { setStreetViewNotice(t("map.noStreetView", "No street-level view available here yet.")); }
+  };
+  useEffect(() => {
+    if (!streetView || !streetViewDivRef.current) return;
+    const google = (window as any).google;
+    try {
+      streetPanoRef.current = new google.maps.StreetViewPanorama(streetViewDivRef.current, {
+        position: streetView, pov: { heading: mapRef.current?.getHeading?.() || 0, pitch: 0 },
+        zoom: 1, disableDefaultUI: true, linksControl: true, clickToGo: true,
+        addressControl: false, showRoadLabels: false, fullscreenControl: false, motionTrackingControl: false,
+      });
+    } catch (e) { setStreetView(null); }
+    return () => { try { streetPanoRef.current?.setVisible(false); } catch (e) {} streetPanoRef.current = null; };
+  }, [streetView]);
   const mapReadyRef = useRef(false);
   const mapReadyMonotonicRef = useRef<number | undefined>(undefined);
   const recordVisualApplication = (rec: any) => {
@@ -512,6 +594,10 @@ export default function BusinessMap({
   const lastBoundsRef = useRef<string>("");
   const prevCenterRef = useRef<string>("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Zoom fires continuously mid-gesture: overlay rebuilds (stops/landmarks)
+  // are debounced so a fast zoom-out/in resizes pins in place instead of
+  // destroying/recreating DOM overlays on every fractional tick.
+  const zoomDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // The map's one-time listeners must always call the LATEST props (stale
   // closures from the init render would keep old state like planPicking).
@@ -523,6 +609,27 @@ export default function BusinessMap({
   onRegionChangeCompleteRef.current = onRegionChangeComplete;
   const onZoomChangeRef = useRef(onZoomChange);
   onZoomChangeRef.current = onZoomChange;
+  const onMarkerPressRef = useRef(onMarkerPress);
+  onMarkerPressRef.current = onMarkerPress;
+  const landmarksMutedRef = useRef(landmarksMuted);
+  landmarksMutedRef.current = landmarksMuted;
+  const onTransitStopPressRef = useRef(onTransitStopPress);
+  onTransitStopPressRef.current = onTransitStopPress;
+  // Auto-fit camera state: cancelled by any user gesture, re-armed only when
+  // the gateway issues a new token (new explicit action).
+  const autoCameraRef = useRef<AutoCameraState|null>(null);
+  const autofitRef = useRef(autofit);
+  autofitRef.current = autofit;
+  const onAutofitCancelRef = useRef(onAutofitCancel);
+  onAutofitCancelRef.current = onAutofitCancel;
+  const cancelAutofit = () => {
+    const config=autofitRef.current;
+    if(!config)return;
+    const next=advanceAutoCamera(autoCameraRef.current,config.token,null).state;
+    if(next.cancelled)return;
+    autoCameraRef.current={...next,cancelled:true};
+    onAutofitCancelRef.current?.();
+  };
 
   // Visual estimates follow the authorized source-clock curve in geographic
   // space, independent of camera/zoom and React renders. Only the separate
@@ -816,16 +923,23 @@ export default function BusinessMap({
   businessesRef.current = businesses;
   const router = useRouter();
 
+  const businessEmblem = (business: { root_category?: string | null; subcategory?: string | null; subcategories?: string[] | null }) => {
+    const ref = businessEmblemKey(business);
+    return ref ? illustratedIconSource(ref.kind, ref.key) ?? undefined : undefined;
+  };
+
   const generatedMarkers: MapMarker[] = [
     ...businesses.map((business) => ({
       id: business.business_id,
       latitude: business.latitude,
       longitude: business.longitude,
       title: business.name,
+      address: business.address,
       type: "business" as const,
       description: business.category,
       pinImage: business.profile_photo || business.logo_image || business.cover_image,
       pinColor: business.root_category === "hotels" ? COLORS.pinHotel : COLORS.pinBusiness,
+      emblem: businessEmblem(business as { root_category?: string | null; subcategory?: string | null; subcategories?: string[] | null }),
     })),
     ...events
       .filter(e => e.latitude != null && e.longitude != null)
@@ -870,6 +984,7 @@ export default function BusinessMap({
         latitude: rental.latitude!,
         longitude: rental.longitude!,
         title: rental.title,
+        address: rental.address,
         type: "rental" as const,
         description: rental.rent_price || rental.address || "",
         pinImage: rental.business_logo || (rental as any).owner_photo || rental.cover_image,
@@ -894,6 +1009,7 @@ export default function BusinessMap({
         latitude: service.latitude!,
         longitude: service.longitude!,
         title: service.name,
+        address: service.address,
         type: "service" as const,
         description: service.address || "",
         pinImage: (service as any).business_logo || service.cover_image_url,
@@ -911,7 +1027,7 @@ export default function BusinessMap({
     const parts: string[] = [];
     allMarkers.forEach((m) => {
       parts.push(
-        `${m.id}|${m.latitude}|${m.longitude}|${m.pinColor || ""}|${m.pinInnerColor || ""}|${m.pinImage || ""}|compass${!!m.selectionCompass}` +
+        `${m.id}|${m.latitude}|${m.longitude}|${m.title || ""}|${m.address || ""}|${m.type || ""}|${m.pinColor || ""}|${m.pinInnerColor || ""}|${m.pinImage || ""}|${m.pinImageFit || ""}|emblem${m.emblem ? 1 : 0}|compass${!!m.selectionCompass}` +
         `|h${m.heading ?? ""}|s${m.positionState || ""}|p${m.progressM ?? ""}|j${m.journeyId || ""}|u${m.publicationStatus || ""}|e${!!m.estimated}|label${m.label || ""}` +
         `|r${m.planRevision || ""}|g${m.geometryFingerprint || ""}|c${m.motionPreview?.client_received_at_ms ?? ""}` +
         (m.path && m.path.length ? `|l${m.path.length}:${m.path[0]?.latitude}` : "")
@@ -923,7 +1039,7 @@ export default function BusinessMap({
   const groupedMarkers = useMemo(() => {
     const groups = new Map<string, MapMarker[]>();
     allMarkers.forEach((m) => {
-      const key = `${m.selectionCompass ? m.id + ':' : ''}${m.latitude.toFixed(5)}_${m.longitude.toFixed(5)}`;
+      const key = mapMarkerGroupKey(m);
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(m);
     });
@@ -941,7 +1057,9 @@ export default function BusinessMap({
         count: items.length,
         pinColor: items.length === 1 ? items[0].pinColor ?? COLORS.pinClosed : "#264348",
         pinInnerColor: items.length === 1 ? items[0].pinInnerColor : undefined,
-        pinImage: items.length === 1 ? items[0].pinImage : undefined,
+        pinImage: items[0].pinImage,
+        pinImageFit: items[0].pinImageFit,
+        emblem: items[0].emblem,
         memberColors: items.length > 1 ? uniqueColors.slice(0, 4) : [],
         type: items[0].type,
         heading: items[0].heading ?? null,
@@ -961,6 +1079,13 @@ export default function BusinessMap({
     if (!mapDivRef.current || mapError) return;
     if (mapRef.current) return; // map already alive for this div
     let cancelled = false;
+    const host=mapDivRef.current;
+    const listeners:any[]=[];
+    // Capture before Google's controls/pinch handlers run. This also covers
+    // zoom buttons and keyboard controls, not just dragging and wheel zoom.
+    const onUserGesture=(event:Event)=>{if(event.isTrusted)cancelAutofit();};
+    for(const event of ['pointerdown','touchstart','wheel','keydown'])host.addEventListener(event,onUserGesture,{capture:true,passive:true});
+    ensurePerixCinemaStyles();
     loadGoogleScript()
       .then(() => {
         if (cancelled || !mapDivRef.current) return;
@@ -968,32 +1093,31 @@ export default function BusinessMap({
         const map = new google.maps.Map(mapDivRef.current, {
           center: { lat: centerLat, lng: centerLng },
           zoom: Number.isFinite(focusZoom) ? focusZoom : 14,
+          // Vector ROADMAP so buildings render natively in 3D at the locked 67°
+          // tilt. (Vector hybrid stays flat: aerial photos have no extrusion.)
+          // POI/transit hiding + Perix palette live in the Cloud console style.
+          mapId: PERIX_VECTOR_MAP_ID,
+          tilt: LOCKED_MAP_TILT,
+          heading: 0,
+          mapTypeId: "roadmap",
           isFractionalZoomEnabled: true,
+          maxZoom: LANDMARK_MAP_MAX_ZOOM,
           disableDefaultUI: staticMode,
           zoomControl: !staticMode,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: !staticMode,
           gestureHandling: staticMode ? "none" : "greedy",
-          styles: [
-            { elementType: 'geometry', stylers: [{ color: '#FFFFFF' }] },
-            { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-            { elementType: 'labels.text.fill', stylers: [{ color: '#5C7A99' }] },
-            { elementType: 'labels.text.stroke', stylers: [{ color: '#EDF4FB' }] },
-            { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#DCE8F4' }] },
-            { featureType: 'administrative.country', elementType: 'labels.text.fill', stylers: [{ color: '#7C97B3' }] },
-            { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#5C7A99' }] },
-            { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-            { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#C8E2F4' }] },
-            { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#EDF4FB' }] },
-            { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#7C97B3' }] },
-            { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#E2EEF9' }] },
-            { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#4A6B8C' }] },
-            { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-            { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#59ABE3' }] },
-            { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#FFFFFF' }] },
-          ],
         });
+        const applyLockedTilt = (target: any) => {
+          try {
+            const want = lockedTiltForRendering(target.getRenderingType?.());
+            if (Math.abs((target.getTilt?.() || 0) - want) >= 1) target.setTilt?.(want);
+          } catch (e) {}
+        };
+        applyLockedTilt(map);
+        map.addListener("tilesloaded", () => applyLockedTilt(map));
+        try { (window as any).__perixMap = map; } catch (e) {}
 
         map.addListener("bounds_changed", () => {
           // NO animation state is touched here anymore. Vehicles are
@@ -1022,20 +1146,56 @@ export default function BusinessMap({
           onMapPressRef.current?.(e.latLng.lat(), e.latLng.lng());
         });
 
-        map.addListener("zoom_changed", () => {
-          setStopViewportRevision(value => value + 1);
-          const zoom = map.getZoom() || 14;
-          const scale = Math.max(0.8, Math.min(1.7, zoom / 12));
-          const vscale = vehicleScale(zoom);
-          // Local rendering only: resize existing pins/markers in place -
-          // nothing is destroyed or recreated on zoom (persistent map).
+        listeners.push(map.addListener("dragstart", cancelAutofit));
+
+        // One in-place refresh for every camera movement (pan, zoom, tilt):
+        // pins, vehicles and lines rescale where they stand. Nothing is
+        // destroyed or recreated here, so there are no reloads and no jumps.
+        const refreshScales = () => {
+          const liveMap = mapRef.current; if (!liveMap) return;
+          const z = liveMap.getZoom() || 14;
+          const s = Math.max(0.8, Math.min(1.7, z / 12));
+          const vs = vehicleScale(z);
           markersRef.current.forEach((rec: any) => {
-            try { rec?.resize?.(scale, vscale); } catch (e) {}
+            try { rec?.resize?.(s, vs, z); } catch (e) {}
           });
-          onZoomChangeRef.current?.(zoom);
+          landmarkCacheRef.current.forEach((rec: any) => {
+            try { rec?.resize?.(); } catch (e) {}
+          });
+          stopsCacheRef.current.forEach((rec: any) => {
+            try { rec?.resize?.(z); } catch (e) {}
+          });
+          const reweight = (entry: any, fallback: number) => {
+            try { (entry?.poly ?? entry).setOptions({ strokeWeight: routeWeightForZoom(entry?.base ?? fallback, z) }); } catch (e) {}
+          };
+          transitLinesRef.current.forEach((entry: any) => reweight(entry, 2));
+          planLinesRef.current.forEach((entry: any) => reweight(entry, 5));
+        };
+        map.addListener("zoom_changed", () => {
+          refreshScales();
+          // Tilt stays locked — re-apply whenever the camera moved.
+          applyLockedTilt(map);
+          try {
+            const zoom = map.getZoom() || 14;
+            setMapZoomLevel(prev => ((prev >= 19) === (zoom >= 19) ? prev : zoom));
+            if (zoom < 19) { setStreetView(null); setStreetViewNotice(null); }
+          } catch (e) {}
+          if (zoomDebounceRef.current) clearTimeout(zoomDebounceRef.current);
+          zoomDebounceRef.current = setTimeout(() => {
+            if (cancelled) return;
+            setStopViewportRevision(value => value + 1);
+          }, 350);
+          onZoomChangeRef.current?.(map.getZoom() || 14);
+        });
+        // Tilt stays locked: gestures snap back (threshold avoids loops).
+        // Tilt rescales from the POV without reloading any data.
+        map.addListener("tilt_changed", () => {
+          refreshScales();
+          applyLockedTilt(map);
         });
         map.addListener("heading_changed", () => {
           const heading=map.getHeading?.() || 0;
+          markersRef.current.forEach((rec:any)=>{if(rec?.marker)updateVehicleMarkerIcon((window as any).google,rec);});
           setMapHeading((previous:number)=>Math.abs(previous-heading)<0.1?previous:heading);
           setStopViewportRevision(value=>value+1);
         });
@@ -1046,12 +1206,17 @@ export default function BusinessMap({
         mapReadyMonotonicRef.current = performance.now();
         setMapHeading(map.getHeading?.() || 0);
         setMapReady(true);
+        readyCallbackRef.current?.(true);
         console.log("[WebMap] initialized zoom=" + map.getZoom());
         onZoomChangeRef.current?.(map.getZoom() || 14);
       })
-      .catch((e) => { console.error("[WebMap] init failed", e); setMapError(true); });
+      .catch((e) => { console.error("[WebMap] init failed", e); setMapError(true); readyCallbackRef.current?.(false); });
     return () => {
       cancelled = true;
+      for(const event of ['pointerdown','touchstart','wheel','keydown'])host.removeEventListener(event,onUserGesture,true);
+      listeners.forEach(listener=>listener.remove?.());
+      if(debounceRef.current)clearTimeout(debounceRef.current);
+      if(zoomDebounceRef.current)clearTimeout(zoomDebounceRef.current);
       mapRef.current = null;
       mapReadyRef.current = false;
     };
@@ -1068,9 +1233,12 @@ export default function BusinessMap({
     // Preserve transit vehicle markers so estimated positions animate
     // smoothly between polls instead of jumping.
     const existingTransit = new Map<string, any>();
+    const existingPins = new Map<string, any>();
     markersRef.current.forEach((rec: any) => {
       if (rec?.vehicleId) {
         existingTransit.set(rec.vehicleId, rec);
+      } else if (rec?.pinKey) {
+        existingPins.set(rec.pinKey, rec);
       } else {
         try { rec?.overlay?.setMap(null); } catch (e) {}
       }
@@ -1092,6 +1260,9 @@ export default function BusinessMap({
         transitItems.forEach((m) => transitMarkers.push(m));
         const places = group.items.filter((i) => i.type !== "bus" && i.type !== "tram");
         pinGroups.push({ ...group, items: places, count: places.length, type: places[0].type,
+          pinImage: places.length === 1 ? places[0].pinImage : undefined,
+          pinImageFit: places.length === 1 ? places[0].pinImageFit : undefined,
+          pinInnerColor: places.length === 1 ? places[0].pinInnerColor : undefined,
           pinColor: places.length === 1 ? places[0].pinColor ?? COLORS.pinClosed : "#264348" });
         return;
       }
@@ -1116,23 +1287,36 @@ export default function BusinessMap({
     );
 
     pinGroups.forEach((group) => {
+      // Fleet polls must never tear down stationary directory pins. Retain the
+      // exact overlay/DOM until that place's appearance or membership changes.
+      const signature = JSON.stringify(group.items);
+      const existing = existingPins.get(group.key);
+      existingPins.delete(group.key);
+      if (existing?.pinSignature === signature && existing.map === mapRef.current) {
+        markersRef.current.push(existing);
+        return;
+      }
+      existing?.overlay?.setMap(null);
       const isGroup = group.count > 1;
       const isTaxi=group.count===1 && group.items[0].type==="taxi";
       const baseSize = isGroup
         ? (group.count < 3 ? 26 : group.count < 10 ? 30 : group.count < 30 ? 34 : 40)
         : isTaxi ? 22 : 28;
       const baseFont = group.count >= 100 ? 9 : group.count >= 10 ? 10.5 : 12;
-      const sizePx = isGroup || isTaxi ? Math.round(baseSize * zoomScale) : mapEntityPinSize(zoom);
+      const sizePx = isTaxi ? Math.round(baseSize * zoomScale) : mapEntityPinSize(zoom,pinScaleZoomRef.current);
       const innerSize = Math.round(Math.max(6, 8 * zoomScale));
       const fontSize = Math.min(17, baseFont * zoomScale);
       const pinColor = group.pinColor || "#264348";
-      const profileImage=!isGroup && !isTaxi ? group.pinImage : undefined;
+      const profileImage=!isTaxi ? group.pinImage : undefined;
+      const imageFit=group.pinImageFit || "cover";
 
       // Container div (positioned by OverlayView)
       const container = document.createElement("div");
       container.style.position = "absolute";
       container.style.cursor = "pointer";
+      container.style.zIndex=String(group.items[0].selectionCompass?MAP_LAYERS.selection:MAP_LAYERS.pin);
       container.style.userSelect = "none";
+      google.maps.OverlayView.preventMapHitsAndGesturesFrom(container);
 
       const pin = document.createElement("div");
       pin.style.width = sizePx + "px";
@@ -1154,53 +1338,111 @@ export default function BusinessMap({
         pin.style.width = "38px"; pin.style.height = "38px";
         pin.style.backgroundColor = "transparent"; pin.style.border = "0"; pin.style.boxShadow = "none";
         const image = document.createElement("img");
-        const asset = require("../assets/brand/perix-compass.png");
+        const asset = require("../assets/brand/perix-compass-transparent.png");
         image.src = resolveMapAssetUri(asset);
         image.alt = group.items[0].title || "PERIX"; image.style.width = "100%"; image.style.height = "100%";
         pin.appendChild(image);
-      } else if (isGroup) {
-        const countText = document.createElement("div");
-        countText.textContent = String(group.count);
-        countText.style.color = "#ffffff";
-        countText.style.fontWeight = "700";
-        countText.style.fontFamily = "Arial, sans-serif";
-        countText.style.fontSize = fontSize + "px";
-        countText.style.lineHeight = "1";
-        pin.appendChild(countText);
-
-        const dots: HTMLDivElement[] = [];
-        group.memberColors.slice(0, 4).forEach((c, i) => {
-          const dot = document.createElement("div");
-          const dotSize = Math.round(Math.max(4, 5 * zoomScale));
-          dot.style.position = "absolute";
-          dot.style.width = dotSize + "px";
-          dot.style.height = dotSize + "px";
-          dot.style.borderRadius = "50%";
-          dot.style.backgroundColor = c;
-          dot.style.border = "1px solid #fff";
-          const angle = (i / Math.min(group.memberColors.length, 4)) * Math.PI * 2;
-          const r = sizePx / 2 + 3;
-          dot.style.left = sizePx / 2 + Math.cos(angle) * r - dotSize / 2 + "px";
-          dot.style.top = sizePx / 2 + Math.sin(angle) * r - dotSize / 2 + "px";
-          pin.appendChild(dot);
-          dots.push(dot);
-        });
-
-        const resize = (scale: number) => {
-          const px = Math.round(baseSize * scale);
-          pin.style.width = px + "px";
-          pin.style.height = px + "px";
-          countText.style.fontSize = Math.min(17, baseFont * scale) + "px";
-          dots.forEach((dot, i) => {
-            const dotSize = Math.round(Math.max(4, 5 * scale));
-            dot.style.width = dotSize + "px";
-            dot.style.height = dotSize + "px";
-            const angle = (i / Math.min(group.memberColors.length, 4)) * Math.PI * 2;
-            const r = px / 2 + 3;
-            dot.style.left = px / 2 + Math.cos(angle) * r - dotSize / 2 + "px";
-            dot.style.top = px / 2 + Math.sin(angle) * r - dotSize / 2 + "px";
-          });
+        // Compass records must participate in normal overlay cleanup too.
+        const resize=(_scale:number,_vehicleScale?:number,level=mapRef.current?.getZoom?.() ?? 14)=>{
+          const px=Math.max(8,Math.round(mapEntityPinSize(level,pinScaleZoomRef.current)*perspectiveMultiplier(mapRef.current,group.items[0]?.latitude,group.items[0]?.longitude)));
+          pin.style.width=px+"px";pin.style.height=px+"px";
         };
+        resize(zoomScale,vScale,zoom);
+        markersRef.current.push({overlay:null as any,resize});
+      } else if (!isTaxi && group.emblem && !group.items[0].selectionCompass) {
+        // Subcategory emblem pin: slightly larger wooden emblem, a small profile
+        // medallion and the place name below. Applies to businesses and public
+        // services on every map; all other types keep their legacy pins.
+        const emblemUri = resolveMapAssetUri(group.emblem);
+        pin.dataset.emblemPin = "true";
+        if (isGroup) pin.dataset.addressProfileGroup = "true";
+        pin.style.backgroundColor = "#fff";
+        pin.style.borderColor = pinColor;
+        pin.style.overflow = "visible";
+        const emblem = document.createElement("img");
+        emblem.src = emblemUri; emblem.alt = group.items[0].title || ""; emblem.draggable = false;
+        Object.assign(emblem.style, { objectFit: "contain", pointerEvents: "none" });
+        const fallback = document.createElement("div");
+        fallback.textContent = profileInitial(group.items[0].title);
+        Object.assign(fallback.style, { display: "none", alignItems: "center", justifyContent: "center",
+          width: "100%", height: "100%", borderRadius: "50%", backgroundColor: pinColor, color: "#fff",
+          fontFamily: "Arial,sans-serif", fontWeight: "800" });
+        emblem.onerror = () => { emblem.style.display = "none"; fallback.style.display = "flex"; };
+        pin.appendChild(fallback);
+        pin.appendChild(emblem);
+        const medallion = document.createElement("div");
+        const medSize = 18;
+        Object.assign(medallion.style, { position: "absolute", right: "-3px", bottom: "-3px", width: medSize + "px",
+          height: medSize + "px", borderRadius: "50%", overflow: "hidden", backgroundColor: pinColor,
+          border: "2px solid #fff", boxShadow: "0 1px 3px rgba(0,0,0,0.35)", boxSizing: "border-box",
+          display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
+          fontFamily: "Arial,sans-serif", fontWeight: "800", fontSize: "9px" });
+        medallion.textContent = profileInitial(group.items[0].title);
+        if (profileImage) {
+          const face = document.createElement("img");
+          face.src = profileImage; face.alt = ""; face.draggable = false;
+          Object.assign(face.style, { width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" });
+          face.onerror = () => { face.style.display = "none"; };
+          medallion.textContent = ""; medallion.appendChild(face);
+        }
+        pin.appendChild(medallion);
+        const nameLabel = document.createElement("div");
+        nameLabel.dataset.pinNameLabel = "true";
+        nameLabel.textContent = group.items[0].title || "";
+        Object.assign(nameLabel.style, { position: "absolute", left: "0", transform: "translateX(-50%)",
+          maxWidth: "120px", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
+          fontFamily: "Arial,sans-serif", fontSize: "11px", fontWeight: "600", color: "#264348",
+          textAlign: "center", pointerEvents: "none",
+          textShadow: "0 0 3px #fff,1px 0 0 #fff,-1px 0 0 #fff,0 1px 0 #fff,0 -1px 0 #fff" });
+        container.appendChild(nameLabel);
+        if (isGroup) {
+          const count = document.createElement("div");
+          count.dataset.addressCount = String(group.count); count.textContent = String(group.count);
+          Object.assign(count.style, { position: "absolute", right: "-4px", top: "-4px", minWidth: "16px", height: "16px",
+            borderRadius: "8px", border: "1px solid #fff", padding: "0 3px", boxSizing: "border-box",
+            backgroundColor: group.items[0].pinColor || pinColor,
+            color: "#fff", font: "700 10px Arial,sans-serif", display: "flex", alignItems: "center", justifyContent: "center" });
+          pin.appendChild(count);
+        }
+        const paintEmblemPin = (_scale: number, _vehicleScale?: number, level = mapRef.current?.getZoom?.() ?? 14) => {
+          const px = Math.max(10,Math.round(mapEmblemPinSize(level, pinScaleZoomRef.current)*perspectiveMultiplier(mapRef.current,group.items[0]?.latitude,group.items[0]?.longitude))), border = Math.min(2, px / 10);
+          pin.style.width = px + "px"; pin.style.height = px + "px";
+          pin.style.borderWidth = border + "px";
+          const art = Math.round(px * 0.78);
+          emblem.style.width = art + "px"; emblem.style.height = art + "px";
+          fallback.style.fontSize = Math.round(px * 0.42) + "px";
+          const med = Math.max(14, Math.min(20, Math.round(px * 0.45)));
+          medallion.style.width = med + "px"; medallion.style.height = med + "px";
+          medallion.style.fontSize = Math.max(8, Math.round(med * 0.5)) + "px";
+          nameLabel.style.top = (px / 2 + 4) + "px";
+        };
+        paintEmblemPin(zoomScale, vScale, zoom);
+        markersRef.current.push({ overlay: null as any, resize: paintEmblemPin });
+      } else if (isGroup) {
+        // Same address: keep the first list item's identity and add a count,
+        // at exactly the same base size as an individual profile pin.
+        pin.dataset.addressProfileGroup="true";
+        const face=document.createElement("div");
+        Object.assign(face.style,{width:"100%",height:"100%",borderRadius:"50%",overflow:"hidden",
+          display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",backgroundColor:pinColor});
+        face.textContent=profileInitial(group.items[0].title);
+        if(profileImage){
+          const image=document.createElement("img");image.src=profileImage;image.alt=group.items[0].title || "";
+          const inset=imageFit==="contain"?"70%":"100%";
+          Object.assign(image.style,{width:inset,height:inset,objectFit:imageFit});
+          face.textContent="";face.style.backgroundColor="#fff";face.appendChild(image);
+        }
+        pin.appendChild(face);
+        const count=document.createElement("div");count.dataset.addressCount=String(group.count);count.textContent=String(group.count);
+        Object.assign(count.style,{position:"absolute",right:"-4px",bottom:"-4px",minWidth:"16px",height:"16px",
+          borderRadius:"8px",border:"1px solid #fff",padding:"0 3px",boxSizing:"border-box",backgroundColor:group.items[0].pinColor || pinColor,
+          color:"#fff",font:"700 10px Arial,sans-serif",display:"flex",alignItems:"center",justifyContent:"center"});
+        pin.appendChild(count);
+        const resize=(_scale:number,_vehicleScale?:number,level=mapRef.current?.getZoom?.() ?? 14)=>{
+          const px=Math.max(8,Math.round(mapEntityPinSize(level,pinScaleZoomRef.current)*perspectiveMultiplier(mapRef.current,group.items[0]?.latitude,group.items[0]?.longitude)));
+          pin.style.width=px+"px";pin.style.height=px+"px";pin.style.borderWidth=Math.min(2,px/10)+"px";
+        };
+        resize(zoomScale,vScale,zoom);
         markersRef.current.push({ overlay: null as any, resize });
       } else if (profileImage) {
         pin.style.overflow="hidden";
@@ -1213,15 +1455,23 @@ export default function BusinessMap({
         pin.appendChild(fallback);
         const avatar=document.createElement("img");
         avatar.src=profileImage;avatar.alt=group.items[0].title || "";avatar.draggable=false;
-        avatar.style.position="absolute";avatar.style.left="2px";avatar.style.top="2px";
-        avatar.style.width=Math.max(0,sizePx-4)+"px";avatar.style.height=Math.max(0,sizePx-4)+"px";
-        avatar.style.borderRadius="50%";avatar.style.objectFit="cover";avatar.style.display="block";
+        avatar.style.position="absolute";
+        avatar.style.borderRadius=imageFit==="contain"?"0":"50%";avatar.style.objectFit=imageFit;
         avatar.onerror=()=>{avatar.style.display="none";};pin.appendChild(avatar);
-        const resize=(scale:number)=>{
-          const px=Math.min(44,Math.max(24,Math.round(28*scale)));
+        const resize=(_scale:number,_vehicleScale?:number,level=mapRef.current?.getZoom?.() ?? 14)=>{
+          const px0=mapEntityPinSize(level,pinScaleZoomRef.current);
+          const px=Math.max(8,Math.round(px0*perspectiveMultiplier(mapRef.current,group.items[0]?.latitude,group.items[0]?.longitude))),border=Math.min(2,px/10);
+          const artworkSize=Math.max(0,(px-border*2)*(imageFit==="contain"?0.7:1));
           pin.style.width=px+"px";pin.style.height=px+"px";
-          avatar.style.width=Math.max(0,px-4)+"px";avatar.style.height=Math.max(0,px-4)+"px";
+          pin.style.borderWidth=border+"px";
+          pin.style.backgroundColor=imageFit==="contain"&&px>=10?"#fff":pinColor;
+          avatar.style.width=artworkSize+"px";avatar.style.height=artworkSize+"px";
+          avatar.style.left=((px-border*2-artworkSize)/2)+"px";
+          avatar.style.top=((px-border*2-artworkSize)/2)+"px";
+          avatar.style.visibility=px>=10?"visible":"hidden";
+          fallback.style.visibility=px>=10?"visible":"hidden";
         };
+        resize(zoomScale,vScale,zoom);
         markersRef.current.push({overlay:null as any,resize});
       } else if (group.pinInnerColor) {
         const inner = document.createElement("div");
@@ -1231,21 +1481,27 @@ export default function BusinessMap({
         inner.style.backgroundColor = group.pinInnerColor;
         pin.appendChild(inner);
 
-        const resize = (scale: number) => {
-          const px = isTaxi ? Math.round(baseSize*scale) : Math.min(44,Math.max(24,Math.round(28*scale)));
+        const resize = (scale: number,_vehicleScale?:number,level=mapRef.current?.getZoom?.() ?? 14) => {
+          const raw = isTaxi ? Math.round(baseSize*scale) : mapEntityPinSize(level,pinScaleZoomRef.current);
+          const px = isTaxi ? raw : Math.max(8,Math.round(raw*perspectiveMultiplier(mapRef.current,group.items[0]?.latitude,group.items[0]?.longitude)));
           pin.style.width = px + "px";
           pin.style.height = px + "px";
-          const ins = Math.round(Math.max(6, 8 * scale));
+          pin.style.borderWidth = Math.min(2,px/10)+"px";
+          const ins = Math.min(px*0.4,8*scale);
           inner.style.width = ins + "px";
           inner.style.height = ins + "px";
         };
+        resize(zoomScale,vScale,zoom);
         markersRef.current.push({ overlay: null as any, resize });
       } else {
-        const resize = (scale: number) => {
-          const px = isTaxi ? Math.round(baseSize*scale) : Math.min(44,Math.max(24,Math.round(28*scale)));
+        const resize = (scale: number,_vehicleScale?:number,level=mapRef.current?.getZoom?.() ?? 14) => {
+          const raw = isTaxi ? Math.round(baseSize*scale) : mapEntityPinSize(level,pinScaleZoomRef.current);
+          const px = isTaxi ? raw : Math.max(8,Math.round(raw*perspectiveMultiplier(mapRef.current,group.items[0]?.latitude,group.items[0]?.longitude)));
           pin.style.width = px + "px";
           pin.style.height = px + "px";
+          pin.style.borderWidth = Math.min(2,px/10)+"px";
         };
+        resize(zoomScale,vScale,zoom);
         markersRef.current.push({ overlay: null as any, resize });
       }
 
@@ -1284,12 +1540,13 @@ export default function BusinessMap({
         }
         const biz = businessesRef.current.find((b) => b.business_id === group.items[0].id);
         if (biz) setSelectedBusiness(biz);
-        onMarkerPress?.(group.items[0].id);
+        onMarkerPressRef.current?.(group.items[0].id);
       });
 
       const record = markersRef.current[markersRef.current.length - 1];
-      if (record) record.overlay = overlay;
+      if (record) Object.assign(record, { overlay, pinKey: group.key, pinSignature: signature, map: mapRef.current });
     });
+    existingPins.forEach(record => record.overlay?.setMap(null));
 
     // Transit vehicles: NATIVE google.maps.Marker with an SVG icon. The
     // map itself pins each marker to its geographic coordinate through
@@ -1383,7 +1640,9 @@ export default function BusinessMap({
       const rec: any = {
         marker,
         resize: (_zoomScaleArg: number, vScaleArg?: number) => {
-          const ns = vScaleArg ?? vehicleScale(mapRef.current?.getZoom?.() || 14);
+          const base = vScaleArg ?? vehicleScale(mapRef.current?.getZoom?.() || 14);
+          const pos = rec.marker.getPosition?.();
+          const ns = base * perspectiveMultiplier(mapRef.current, pos?.lat?.(), pos?.lng?.());
           rec.scale = ns;
           updateVehicleMarkerIcon(google, rec);
         },
@@ -1457,20 +1716,22 @@ export default function BusinessMap({
       seen.add(key);
       const existing = transitLinesRef.current.get(key);
       if (existing) {
-        existing.setPath(line.points.map((p) => ({ lat: p.latitude, lng: p.longitude })));
-        existing.setOptions({
+        existing.poly.setPath(line.points.map((p) => ({ lat: p.latitude, lng: p.longitude })));
+        existing.base = line.weight ?? 2;
+        existing.poly.setOptions({
           strokeColor: line.color,
-          strokeWeight: line.weight ?? 2,
+          strokeWeight: routeWeightForZoom(existing.base, mapRef.current?.getZoom?.() ?? 14),
           strokeOpacity: line.opacity ?? 0.45,
+          zIndex: MAP_LAYERS.route,
         });
         return;
       }
       const poly = new google.maps.Polyline({
         path: line.points.map((p) => ({ lat: p.latitude, lng: p.longitude })),
         strokeColor: line.color,
-        strokeWeight: line.weight ?? 2,
+        strokeWeight: routeWeightForZoom(line.weight ?? 2, mapRef.current?.getZoom?.() ?? 14),
         strokeOpacity: line.opacity ?? 0.45,
-        zIndex: 1,
+        zIndex: MAP_LAYERS.route,
       });
       if (onTransitLineClick && line.routeNumber) {
         poly.addListener("click", () => {
@@ -1478,11 +1739,11 @@ export default function BusinessMap({
         });
       }
       poly.setMap(mapRef.current);
-      transitLinesRef.current.set(key, poly);
+      transitLinesRef.current.set(key, { poly, base: line.weight ?? 2 });
     });
-    transitLinesRef.current.forEach((poly, key) => {
+    transitLinesRef.current.forEach((entry, key) => {
       if (!seen.has(key)) {
-        try { poly.setMap(null); } catch (e) {}
+        try { entry.poly.setMap(null); } catch (e) {}
         transitLinesRef.current.delete(key);
       }
     });
@@ -1494,7 +1755,7 @@ export default function BusinessMap({
   useEffect(() => {
     if (!mapRef.current || !mapReadyRef.current) return;
     planLinesRef.current.forEach((p) => {
-      try { p.setMap(null); } catch (e) {}
+      try { p.poly.setMap(null); } catch (e) {}
     });
     planLinesRef.current = [];
     const google = (window as any).google;
@@ -1503,20 +1764,71 @@ export default function BusinessMap({
       const poly = new google.maps.Polyline({
         path: line.points.map((p) => ({ lat: p.latitude, lng: p.longitude })),
         strokeColor: line.color,
-        strokeWeight: line.weight ?? 5,
+        strokeWeight: routeWeightForZoom(line.weight ?? 5, mapRef.current?.getZoom?.() ?? 14),
         strokeOpacity: line.opacity ?? 0.9,
-        zIndex: 2,
+        zIndex: MAP_LAYERS.journey,
       });
       poly.setMap(mapRef.current);
-      planLinesRef.current.push(poly);
+      planLinesRef.current.push({ poly, base: line.weight ?? 5 });
     });
   }, [planLines, mapReady]);
 
-  // Same-name nearby bus/tram platforms share one clickable stop pin. At close
-  // zoom show platform codes below it; route numbers are never rendered here.
-  // PERSISTENT: pins are cached per (id + zoom bucket) and reused - zoom
-  // and pan never destroy/recreate the same pin, only bucket crossings
-  // (12/14/16) rebuild their appearance.
+  // Google's Polyline zIndex orders its vector paths, not arbitrary DOM
+  // OverlayView siblings. Use a foreground SVG in that SAME pane to ensure
+  // the existing route geometry actually stays above large landmark images.
+  const routeForegroundRef=useRef<any>(null);
+  useEffect(()=>()=>{routeForegroundRef.current?.overlay.setMap(null);routeForegroundRef.current=null;},[]);
+  useEffect(()=>{
+    const map=mapRef.current;if(!map||!mapReadyRef.current)return;
+    const google=(window as any).google,ns='http://www.w3.org/2000/svg';
+    let record=routeForegroundRef.current;
+    if(record?.map!==map){record?.overlay.setMap(null);record=null;}
+    if(!record){
+      const container=document.createElement('div'),svg=document.createElementNS(ns,'svg');
+      container.dataset.routeForeground='true';
+      Object.assign(container.style,{position:'absolute',left:'0',top:'0',width:'1px',height:'1px',
+        overflow:'visible',pointerEvents:'none',zIndex:String(MAP_LAYERS.route)});
+      svg.setAttribute('width','1');svg.setAttribute('height','1');svg.style.overflow='visible';
+      container.appendChild(svg);
+      const state:any={map,container,svg,paths:[]};
+      class RouteForeground extends google.maps.OverlayView {
+        onAdd(){this.getPanes().overlayLayer.appendChild(container);}
+        draw(){
+          const projection=this.getProjection();if(!projection)return;
+          container.style.display=(map.getZoom() || 14)>=LANDMARK_STREET_DETAIL_ZOOM?'block':'none';
+          if(container.style.display==='none')return;
+          for(const row of state.paths){
+            row.path.setAttribute('d',projectedRoutePath(row.points,(point)=>
+              projection.fromLatLngToDivPixel(new google.maps.LatLng(point.latitude,point.longitude))));
+          }
+        }
+        onRemove(){container.remove();}
+      }
+      state.overlay=new RouteForeground();record=state;routeForegroundRef.current=record;
+      record.overlay.setMap(map);
+    }
+    record.svg.replaceChildren();record.paths=[];
+    const rows=[...(transitLines || []).map(line=>({line,journey:false})),...(planLines || []).map(line=>({line,journey:true}))];
+    for(const {line,journey} of rows){
+      if(line.points.length<2)continue;
+      const path=document.createElementNS(ns,'path');path.dataset.routeKind=journey?'journey':'network';
+      path.setAttribute('fill','none');path.setAttribute('stroke',line.color);
+      path.setAttribute('stroke-width',String(line.weight ?? (journey?5:2)));
+      path.setAttribute('stroke-opacity',String(line.opacity ?? (journey ? .9 : .45)));
+      path.setAttribute('stroke-linecap','round');path.setAttribute('stroke-linejoin','round');
+      path.setAttribute('vector-effect','non-scaling-stroke');path.style.pointerEvents='none';
+      if(!journey && onTransitLineClick && 'routeNumber' in line && line.routeNumber){
+        const routeNumber=String(line.routeNumber);path.style.pointerEvents='stroke';
+        path.addEventListener('click',event=>{event.stopPropagation();onTransitLineClick(routeNumber,(line as any).patternId);});
+      }
+      record.svg.appendChild(path);record.paths.push({path,points:line.points});
+    }
+    record.overlay.draw();
+  },[transitLines,planLines,mapReady,onTransitLineClick]);
+
+  // Stable illustrated stops: one fixed anchor per boarding group across
+  // zoom/pan. Platform codes and names are always shown; camera heading only
+  // chooses one of the supplied 360-degree icon frames.
   const transitStopsRef = useRef<any[]>([]);
   const stopsCacheRef = useRef<Map<string, any>>(new Map());
   useEffect(() => {
@@ -1531,20 +1843,14 @@ export default function BusinessMap({
       return;
     }
     const google = (window as any).google;
-    const bounds = mapRef.current.getBounds();
-    const visiblePins = transitStopPins(transitStops || []).filter(
-      (s) =>
-        !bounds ||
-        (s.latitude >= bounds.getSouthWest().lat() && s.latitude <= bounds.getNorthEast().lat() &&
-          s.longitude >= bounds.getSouthWest().lng() && s.longitude <= bounds.getNorthEast().lng())
-    );
+    // Group the full catalogue, not the current viewport. Google projects and
+    // clips existing overlays itself; pan/zoom never changes group membership.
+    const visiblePins = transitStopPins(transitStops || []);
     const list = groupTransitStopIcons(visiblePins);
-    // Reduce decoration, not physical network presence, on dense views.
+    // Build-time tier decides the initial paint only; zoom switches tiers
+    // in place through each record's resize without rebuilding or moving it.
     const appearance = transitStopAppearance(zoom);
     const viewAngle=stopMobilityViewAngle(mapHeading);
-    const showPlatformCodes = appearance.platforms;
-    const showNames = appearance.names;
-    const bucket = appearance.bucket;
     class StopOverlay extends google.maps.OverlayView {
       div: HTMLDivElement;
       pos: { lat: number; lng: number };
@@ -1573,11 +1879,9 @@ export default function BusinessMap({
     }
     const seenKeys = new Set<string>();
     const buildPin = (s: any, lat: number, lng: number, key?: string) => {
-      const hasBus = s.modes.includes("bus");
-      const hasTram = s.modes.includes("tram");
-      const pinColor = hasBus && hasTram ? "#264348" : hasTram ? "#8B0000" : "#1E3A8A";
       const container = document.createElement("div");
       container.dataset.physicalStopId = s.physical_stop_id || s.stop_id;
+      container.style.zIndex=String(MAP_LAYERS.stop);
       container.dataset.platformId = s.platform_id || '';
       container.dataset.platformIds = (s.platform_ids || []).join(',');
       container.dataset.stopBucket = appearance.bucket;
@@ -1586,76 +1890,86 @@ export default function BusinessMap({
       container.dataset.longitude = String(lng);
       container.title = s.platform_codes?.length ? `${s.name} · ${s.platform_codes.join(' · ')}` : s.name;
       container.style.position = "absolute";
+      // The fixed icon box is the geographic anchor. The dot tier and the
+      // labels are all centered inside/under this box, so zoom-tier changes
+      // or label changes can never move the pin.
       container.style.transform = "translate(-50%, -50%)";
+      container.style.width = "36px";
+      container.style.height = "36px";
       container.style.pointerEvents = "auto";
       container.style.cursor = "pointer";
       container.style.userSelect = "none";
-      container.style.display = "flex";
-      container.style.flexDirection = "column";
-      container.style.alignItems = "center";
+      container.style.display = "block";
+      container.style.boxSizing = "border-box";
 
-      if (appearance.dot) {
-        const mini = document.createElement("div");
-        mini.style.width = `${appearance.size}px`;
-        mini.style.height = `${appearance.size}px`;
-        mini.style.borderRadius = "50%";
-        mini.style.backgroundColor = pinColor;
-        mini.style.border = "1px solid #fff";
-        mini.style.boxSizing = "border-box";
-        container.style.minWidth = "12px";container.style.minHeight = "12px";container.style.justifyContent = "center";
-        container.appendChild(mini);
-      } else {
-        const pin = document.createElement("div");
-        pin.style.display = "flex";
-        pin.style.alignItems = "center";
-        pin.style.justifyContent = "center";
-        pin.style.gap = "3px";
-        pin.style.padding = appearance.names ? "3px 5px" : "2px 3px";
-        pin.style.borderRadius = "9px";
-        pin.style.backgroundColor = pinColor;
-        pin.style.border = "1px solid #ffffff";
-        pin.style.boxShadow = "0 1px 4px rgba(0,0,0,0.4)";
-        pin.style.boxSizing = "border-box";
-        pin.style.fontFamily = "Arial, sans-serif";
-        if (hasBus || hasTram) {
-          const ic = document.createElement("img");
-          ic.src = resolveMapAssetUri(MOBILITY_VIEW_SOURCES.bus_stop[viewAngle]);
-          ic.alt = "";ic.draggable=false;ic.style.width=`${appearance.icon}px`;ic.style.height=`${appearance.icon}px`;
-          ic.style.objectFit="contain";ic.style.display="block";
-          pin.appendChild(ic);
-        }
-        container.appendChild(pin);
+      // Far zoom: small light-blue pin, exactly on the coordinate.
+      const dot = document.createElement("div");
+      Object.assign(dot.style, { position: "absolute", left: "50%", top: "50%",
+        transform: "translate(-50%, -50%)", width: "8px", height: "8px", borderRadius: "50%",
+        backgroundColor: "#59ABE3", border: "1px solid #ffffff", boxShadow: "0 1px 3px rgba(0,0,0,0.35)",
+        boxSizing: "border-box" });
+      container.appendChild(dot);
 
-        const platformCodes=Array.isArray(s.platform_codes)?s.platform_codes.filter(Boolean):[];
-        if(showPlatformCodes && platformCodes.length){
-          const codes=document.createElement("div");
-          codes.textContent=Array.from(new Set(platformCodes)).join(" · ");
-          codes.dataset.platformCodes=platformCodes.join(",");
-          codes.style.fontSize="9px";codes.style.fontWeight="800";codes.style.fontFamily="Arial, sans-serif";
-          codes.style.color="#264348";codes.style.backgroundColor="rgba(255,255,255,0.94)";
-          codes.style.borderRadius="6px";codes.style.padding="1px 4px";codes.style.marginTop="1px";
-          codes.style.whiteSpace="nowrap";codes.style.maxWidth="120px";codes.style.overflow="hidden";codes.style.textOverflow="ellipsis";
-          container.appendChild(codes);
-        }
-        if (showNames) {
-          const nameEl = document.createElement("div");
-          nameEl.textContent = s.name;
-          nameEl.style.fontSize = "10px";
-          nameEl.style.fontWeight = "700";
-          nameEl.style.fontFamily = "Arial, sans-serif";
-          nameEl.style.color = "#264348";
-          nameEl.style.backgroundColor = "rgba(255,255,255,0.92)";
-          nameEl.style.borderRadius = "6px";
-          nameEl.style.padding = "1px 4px";
-          nameEl.style.marginTop = "1px";
-          nameEl.style.whiteSpace = "nowrap";
-          container.appendChild(nameEl);
-        }
+      // Close zoom: illustrated stop artwork (360-degree frame per heading).
+      const image = document.createElement("img");
+      image.src = resolveMapAssetUri(MOBILITY_VIEW_SOURCES.bus_stop[viewAngle]);
+      image.alt = ""; image.draggable = false;
+      Object.assign(image.style, { position: "absolute", left: "0", top: "0",
+        width: "36px", height: "36px", objectFit: "contain", display: "block" });
+      container.appendChild(image);
+
+      // Platform codes and name always exist (hidden on the dot tier).
+      const labels = document.createElement("div");
+      Object.assign(labels.style, { position: "absolute", top: "100%", left: "50%", transform: "translateX(-50%)",
+        display: "flex", flexDirection: "column", alignItems: "center", pointerEvents: "auto" });
+      container.appendChild(labels);
+      const platformCodes=Array.isArray(s.platform_codes)?s.platform_codes.filter(Boolean):[];
+      if (platformCodes.length) {
+        const codes=document.createElement("div");
+        codes.textContent=Array.from(new Set(platformCodes)).join(" · ");
+        codes.dataset.platformCodes=platformCodes.join(",");
+        codes.style.fontSize="12px";codes.style.fontWeight="800";codes.style.fontFamily="Arial, sans-serif";
+        codes.style.color="#264348";codes.style.backgroundColor="rgba(255,255,255,0.94)";
+        codes.style.borderRadius="6px";codes.style.padding="1px 4px";codes.style.marginTop="1px";
+        codes.style.whiteSpace="nowrap";codes.style.maxWidth="120px";codes.style.overflow="hidden";codes.style.textOverflow="ellipsis";
+        labels.appendChild(codes);
       }
+      {
+        const nameEl = document.createElement("div");
+        nameEl.textContent = s.name;
+        nameEl.style.fontSize = "13px";
+        nameEl.style.fontWeight = "700";
+        nameEl.style.fontFamily = "Arial, sans-serif";
+        nameEl.style.color = "#264348";
+        nameEl.style.backgroundColor = "rgba(255,255,255,0.92)";
+        nameEl.style.borderRadius = "6px";
+        nameEl.style.padding = "1px 4px";
+        nameEl.style.marginTop = "1px";
+        nameEl.style.whiteSpace = "nowrap";
+        labels.appendChild(nameEl);
+      }
+
+      // Tier painting is a pure visibility toggle inside the fixed anchor box,
+      // scaled by POV perspective (clamped, never vanishing).
+      const paintTier = (z: number) => {
+        const tier = transitStopAppearance(z);
+        const ps = perspectiveMultiplier(mapRef.current, lat, lng);
+        const size = Math.max(1, Math.round(tier.size * ps)), icon = Math.max(0, Math.round(tier.icon * ps));
+        const far = tier.dot;
+        dot.style.display = far ? "block" : "none";
+        image.style.display = far ? "none" : "block";
+        dot.style.width=size+'px';dot.style.height=size+'px';
+        image.style.width=icon+'px';image.style.height=icon+'px';
+        image.style.left=(36-icon)/2+'px';image.style.top=(36-icon)/2+'px';
+        labels.style.display = tier.names ? "flex" : "none";
+        container.dataset.stopBucket=tier.bucket;
+        container.dataset.stopVisualSize=String(tier.size);
+      };
+      paintTier(mapRef.current?.getZoom?.() || 14);
 
       container.addEventListener("click", (e) => {
         e.stopPropagation();
-        onTransitStopPress?.(s as any);
+        onTransitStopPressRef.current?.(s as any);
       });
 
       const existing = key && stopsCacheRef.current.get(key);
@@ -1665,27 +1979,36 @@ export default function BusinessMap({
         existing.overlay.pos = { lat, lng };
         existing.overlay.draw();
         existing.container = container;
+        existing.image = image;
+        existing.resize = paintTier;
         return;
       }
       const overlay = new StopOverlay(container, { lat, lng });
       overlay.setMap(mapRef.current);
       transitStopsRef.current.push(overlay);
-      if (key) stopsCacheRef.current.set(key, { overlay, container });
-      else stopsCacheRef.current.set(`anon:${lat},${lng}`, { overlay, container });
+      if (key) stopsCacheRef.current.set(key, { overlay, container, image, resize: paintTier });
+      else stopsCacheRef.current.set(`anon:${lat},${lng}`, { overlay, container, image, resize: paintTier });
     };
 
     list.forEach((s) => {
+      const center=mapRef.current.getCenter?.();
+      const viewer=pinLocation || location || (center?{latitude:center.lat(),longitude:center.lng()}:null);
+      const viewAngle=stopMobilityViewAngle(mapHeading,stopGeometryBearing(s,transitLines || []),stopViewerBearing(s,viewer),s.side);
       const identity=(s.platform_ids?.length?s.platform_ids.slice().sort():s.stop_ids?.length?s.stop_ids.slice().sort():[s.stop_id]).join('|');
       const key = `stop:${identity}:name:${String(s.name).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase()}`;
       seenKeys.add(key);
-      const signature = JSON.stringify([bucket, showPlatformCodes, viewAngle, s.name, s.latitude, s.longitude, s.modes, s.platform_ids, s.platform_codes]);
+      const signature = JSON.stringify([s.name, s.latitude, s.longitude, s.modes, s.platform_ids, s.platform_codes]);
       if (stopsCacheRef.current.get(key)?.signature !== signature) {
         buildPin(s, s.latitude, s.longitude, key);
         stopsCacheRef.current.get(key).signature = signature;
       }
+      // Changing the camera heading only selects a 360-degree artwork frame,
+      // never replaces the overlay or changes its geographic coordinate.
+      const rec=stopsCacheRef.current.get(key);
+      if(rec?.image)rec.image.src=resolveMapAssetUri(MOBILITY_VIEW_SOURCES.bus_stop[viewAngle]);
     });
 
-    // Remove pins no longer visible in the current set/bucket
+    // Remove only records removed from the supplied catalogue, not offscreen pins.
     stopsCacheRef.current.forEach((rec, key) => {
       if (!seenKeys.has(key)) {
         try { rec.overlay.setMap(null); } catch (e) {}
@@ -1693,7 +2016,156 @@ export default function BusinessMap({
       }
     });
     transitStopsRef.current = Array.from(stopsCacheRef.current.values()).map((r) => r.overlay);
-  }, [transitStops, mapReady, stopViewportRevision, mapHeading]);
+  }, [transitStops, mapReady, mapHeading, transitLines, pinLocation, location, stopViewportRevision]);
+
+  // Individual diorama buildings: viewport-bounded, progressively revealed,
+  // never represented by numbered clusters or displaced coordinates.
+  useEffect(() => {
+    if (!mapRef.current || !mapReadyRef.current) return;
+    const google = (window as any).google;
+    const zoom = mapRef.current?.getZoom?.() || 14;
+    const inView = (landmarks || []).filter((l) =>
+      Number.isFinite(l.latitude) && Number.isFinite(l.longitude));
+    const visible = clusterLandmarks(inView, zoom);
+    const seen = new Set<string>();
+    class LandmarkOverlay extends google.maps.OverlayView {
+      div: HTMLDivElement;
+      pos: { lat: number; lng: number };
+      constructor(div: HTMLDivElement, pos: { lat: number; lng: number }) {
+        super();
+        this.div = div;
+        this.pos = pos;
+      }
+      onAdd(this: any) {
+        // Pane ordering beats child z-index: buildings stay below native
+        // vehicle markers and all interactive pins, not just below each other.
+        this.getPanes().overlayLayer.appendChild(this.div);
+      }
+      draw(this: any) {
+        const p = this.getProjection?.()?.fromLatLngToDivPixel(new google.maps.LatLng(this.pos.lat, this.pos.lng));
+        if (p) {
+          this.div.style.left = p.x + "px";
+          this.div.style.top = p.y + "px";
+        }
+      }
+      onRemove(this: any) {
+        if (this.div.parentNode) this.div.parentNode.removeChild(this.div);
+      }
+    }
+    const labelStops=groupTransitStopIcons(transitStopPins(transitStops || []));
+    let sceneKey='',scene=new Map<string,import('../lib/city/landmarks').LandmarkDepth>();
+    const depthScene=()=>{
+      const map=mapRef.current,center=map?.getCenter?.();
+      const viewer=pinLocation || location || {latitude:center?.lat() || 52.14,longitude:center?.lng() || 11.63};
+      const z=map?.getZoom?.() || 14,heading=map?.getHeading?.() || 0;
+      const key=JSON.stringify([z,heading,viewer.latitude,viewer.longitude]);
+      if(key!==sceneKey){sceneKey=key;scene=landmarkDepthLayout(inView,labelStops,z,viewer,heading,landmarksMuted);}
+      return scene;
+    };
+    visible.forEach((group) => {
+      const key = `landmark:${group.id}`;
+      seen.add(key);
+      const recalculate = (container: HTMLDivElement, images: HTMLImageElement[]) => {
+        const z = mapRef.current?.getZoom?.() || 14;
+        const a = landmarkAppearance(z,group.id);
+        const px=a.size,depth=depthScene().get(group.id);
+        container.dataset.landmarkSize=String(px);
+        container.dataset.latitude=String(group.latitude);container.dataset.longitude=String(group.longitude);
+        container.style.width=px+'px';container.style.height=px*.78+'px';
+        container.style.opacity = '1';
+        container.style.display=depth?.showArtwork===false?'none':'block';
+        container.dataset.landmarkOpacity=String(depth?.opacity ?? 1);
+        container.style.zIndex = String(depth?.zIndex ?? 10);
+        container.style.pointerEvents = landmarksMuted ? "none" : "auto";
+        const label=container.querySelector('[data-landmark-name]') as HTMLElement|null;
+        if(label)label.style.display=depth?.showLabel?'block':'none';
+        images.forEach((img) => {
+          img.style.opacity=String(depth?.opacity ?? 1);
+          img.style.width = px + "px";
+          img.style.height = px * 0.78 + "px";
+          img.style.filter=`drop-shadow(0 2px 3px rgba(10,20,60,.3))${depth?.blur ? ` blur(${depth.blur}px)` : ''}`;
+        });
+      };
+      let rec = landmarkCacheRef.current.get(key);
+      if (rec) {
+        recalculate(rec.container, rec.images);
+        rec.overlay.pos = { lat: group.latitude, lng: group.longitude };
+        try { rec.overlay.draw(); } catch (e) {}
+        rec.resize = () => recalculate(rec.container, rec.images);
+        return;
+      }
+      const container = document.createElement("div");
+      container.dataset.landmarkId = group.items.map((item) => item.id).join(",");
+      container.title = group.items.map((item) => item.name).join(" · ");
+      container.style.position = "absolute";
+      container.style.transform = "translate(-50%, -100%)";
+      container.style.cursor = "pointer";
+      container.style.userSelect = "none";
+      const images: HTMLImageElement[] = [];
+      {
+        const item = group.items[0];
+        const img = document.createElement("img");
+        img.src = resolveMapAssetUri(landmarkImageSource(item.id));
+        img.alt = item.name;
+        img.draggable = false;
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.setAttribute("fetchpriority","low");
+        img.style.display = "block";
+        img.style.objectFit = "contain";
+        images.push(img); container.appendChild(img);
+      }
+      const label=document.createElement('div');label.dataset.landmarkName=group.items[0].id;
+      label.textContent=group.items[0].name;
+      Object.assign(label.style,{position:'absolute',top:'100%',left:'50%',transform:'translateX(-50%)',
+        font:'700 13px Arial,sans-serif',color:'#264348',background:'rgba(255,255,255,.94)',
+        borderRadius:'6px',padding:'2px 5px',whiteSpace:'nowrap',maxWidth:'220px',overflow:'hidden',textOverflow:'ellipsis',pointerEvents:'auto'});
+      container.appendChild(label);
+      recalculate(container, images);
+      container.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if(landmarksMutedRef.current)return;
+        const ids = landmarkTapTargets(group.items[0],inView,mapRef.current?.getZoom?.() ?? 14).map(item=>item.id);
+        onMarkerPressRef.current?.(ids.length > 1 ? `landmark-group:${ids.join("|")}` : `landmark:${ids[0]}`);
+      });
+      const overlay = new LandmarkOverlay(container, { lat: group.latitude, lng: group.longitude });
+      overlay.setMap(mapRef.current);
+      rec = { overlay, container, images, resize: () => recalculate(container, images) };
+      landmarkCacheRef.current.set(key, rec);
+    });
+    landmarkCacheRef.current.forEach((rec, key) => {
+      if (!seen.has(key)) {
+        try { rec.overlay.setMap(null); } catch (e) {}
+        landmarkCacheRef.current.delete(key);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [landmarks, landmarksMuted, mapReady, transitStops, pinLocation, location, mapHeading]);
+
+  // Release directory fetching after the visible building batch paints, not
+  // after every offscreen image in the 10km scope. A slow image cannot block
+  // the directory forever. Camera/zoom is deliberately not a dependency.
+  useEffect(()=>{
+    if(!mapReady && !mapError)return;
+    let active=true,completed=false,frame=0;
+    const cleanup:(()=>void)[]=[];
+    const done=()=>{if(!active || completed)return;completed=true;clearTimeout(timer);cleanup.forEach(fn=>fn());cleanup.length=0;landmarksReadyRef.current?.();};
+    const timer=setTimeout(done,750);
+    frame=requestAnimationFrame(()=>{
+      if(mapError){done();return;}
+      const mapRect=mapDivRef.current?.getBoundingClientRect();
+      const images:HTMLImageElement[]=Array.from(landmarkCacheRef.current.values()).flatMap(rec=>{
+        const r=rec.container.getBoundingClientRect();
+        return mapRect && rec.container.style.display!=="none" && r.right>=mapRect.left && r.left<=mapRect.right
+          && r.bottom>=mapRect.top && r.top<=mapRect.bottom ? rec.images : [];
+      });
+      Promise.all(images.map(image=>image.complete?Promise.resolve():new Promise<void>(resolve=>{
+        const finish=()=>resolve();image.addEventListener("load",finish,{once:true});image.addEventListener("error",finish,{once:true});
+        cleanup.push(()=>{image.removeEventListener("load",finish);image.removeEventListener("error",finish);});
+      }))).then(done);
+    });
+    return()=>{active=false;clearTimeout(timer);cancelAnimationFrame(frame);cleanup.forEach(fn=>fn());};
+  },[landmarks,mapReady,mapError]);
 
   // Fly to location
   useEffect(() => {
@@ -1785,11 +2257,26 @@ export default function BusinessMap({
   }, [centerLat, centerLng, location, mapReady]);
 
   // Fly to explicitly focused region (e.g. search selection / recenter)
+  const lastAppliedFocusToken = useRef<number | undefined>(undefined);
   useEffect(() => {
     if (!mapRef.current || !mapReadyRef.current || !focusToken || !focusRegion) return;
+    if(lastAppliedFocusToken.current===focusToken)return;
+    lastAppliedFocusToken.current=focusToken;
     mapRef.current.panTo({ lat: focusRegion.latitude, lng: focusRegion.longitude });
     mapRef.current.setZoom(Number.isFinite(focusZoom) ? focusZoom : 14);
   }, [focusToken, focusZoom, mapReady]);
+
+  // Run after explicit focus so it cannot immediately undo the first group fit.
+  useEffect(() => {
+    if (!mapRef.current || !mapReadyRef.current || !autofit) return;
+    const rect=mapDivRef.current?.getBoundingClientRect();
+    const target=rect ? autoCameraTarget(autofit.points,rect.width,rect.height) : null;
+    const next=advanceAutoCamera(autoCameraRef.current,autofit.token,target);
+    autoCameraRef.current=next.state;
+    if(!next.target)return;
+    mapRef.current.panTo({lat:next.target.latitude,lng:next.target.longitude});
+    mapRef.current.setZoom(next.target.zoom);
+  }, [autofit?.token, autofit?.points, mapReady, height]);
 
   if (disabled) {
     return (
@@ -1873,6 +2360,30 @@ export default function BusinessMap({
         ref={mapDivRef as any}
         style={{ flex: 1, borderRadius: 12 }}
       />
+      {/* Film finish above the tiles, below UI: morning-sun grade, attribution strip kept clear. */}
+      <div aria-hidden className="perix-cinema-light" />
+      {mapZoomLevel >= 19 && !streetView && (
+        <Pressable testID="street-view-toggle" accessibilityRole="button"
+          accessibilityLabel={t("map.walkHere", "Walk here")}
+          onPress={openStreetView} style={s.streetViewToggle}>
+          <Ionicons name="walk-outline" size={18} color="#fff" />
+          <Text style={s.streetViewToggleText}>{t("map.walkHere", "Walk here")}</Text>
+        </Pressable>
+      )}
+      {!!streetViewNotice && !streetView && <Text style={s.streetViewNotice}>{streetViewNotice}</Text>}
+
+      <Modal visible={!!streetView} transparent={false} animationType="slide" onRequestClose={() => setStreetView(null)}>
+        <View style={s.streetViewWrap}>
+          <View style={s.streetViewBar}>
+            <Pressable testID="street-view-close" accessibilityRole="button"
+              accessibilityLabel={t("ui.close", "Close")} onPress={() => setStreetView(null)} style={s.streetViewClose}>
+              <Ionicons name="close" size={22} color="#fff" />
+              <Text style={s.streetViewCloseText}>{t("map.backToAerial", "Back to aerial view")}</Text>
+            </Pressable>
+          </View>
+          <View ref={streetViewDivRef as any} style={{ flex: 1 }} />
+        </View>
+      </Modal>
 
       <Modal visible={!!selectedGroup} transparent animationType="slide" onRequestClose={() => setSelectedGroup(null)}>
         <Pressable style={s.sheetOverlay} onPress={() => setSelectedGroup(null)}>
@@ -1942,7 +2453,14 @@ export default function BusinessMap({
 }
 
 const s = StyleSheet.create({
-  wrap: { marginHorizontal: 16, borderRadius: 12, backgroundColor: "#ffffff", overflow: "hidden" },
+  wrap: { marginHorizontal: 16, borderRadius: 12, backgroundColor: "#ffffff", overflow: "hidden", position: "relative" },
+  streetViewToggle: { position: "absolute", left: 12, bottom: 12, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: COLORS.primary, borderRadius: 20, paddingHorizontal: 14, height: 40 },
+  streetViewToggleText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  streetViewNotice: { position: "absolute", left: 12, bottom: 56, backgroundColor: "rgba(6,68,114,0.9)", color: "#fff", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, fontSize: 12 },
+  streetViewWrap: { flex: 1, backgroundColor: "#000" },
+  streetViewBar: { flexDirection: "row", alignItems: "center", padding: 10, backgroundColor: "#fff" },
+  streetViewClose: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: COLORS.primary, borderRadius: 20, paddingHorizontal: 14, height: 40 },
+  streetViewCloseText: { color: "#fff", fontWeight: "700", fontSize: 14 },
   sheetOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",

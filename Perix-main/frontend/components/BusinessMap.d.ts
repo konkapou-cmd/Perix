@@ -5,11 +5,13 @@ type MapMarker = {
   latitude: number;
   longitude: number;
   title?: string;
+  address?: string | null;
   description?: string;
   isOpen?: boolean;
   pinColor?: string;
   pinInnerColor?: string;
   pinImage?: string | null;
+  pinImageFit?: "cover" | "contain";
   selectionCompass?: boolean;
   type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service" | "product" | "bus" | "tram" | "taxi";
   heading?: number | null;
@@ -66,6 +68,15 @@ type Props = {
   services?: Service[];
   markers?: MapMarker[];
   extraMarkers?: MapMarker[];
+  /** Supplement diorama landmarks (MD-X001..MD-X070). */
+  landmarks?: import("../lib/city/landmarks").Landmark[];
+  landmarksMuted?: boolean;
+  onMapReady?: (available?: boolean) => void;
+  onLandmarksReady?: () => void;
+  pinScaleZoom?: number;
+  /** Auto camera: fit these points and keep refitting until a user gesture. */
+  autofit?: { token: number; points: { latitude: number; longitude: number }[] } | null;
+  onAutofitCancel?: () => void;
   /** Apply backend samples directly and hold pending modeled transit. */
   authoritativeTransit?: boolean;
   transitLines?: {
@@ -85,8 +96,10 @@ type Props = {
     name: string;
     latitude: number;
     longitude: number;
-    modes: ("bus" | "tram")[];
-    routes: { route_number: string; mode: "bus" | "tram" }[];
+    modes: ("bus" | "tram" | "subway" | "s-bahn" | "rail" | "ferry")[];
+    /** Street side ("left"/"right"); opposite known sides stay separate pins. */
+    side?: string | null;
+    routes: { route_number: string; mode: "bus" | "tram" | "subway" | "s-bahn" | "rail" | "ferry" }[];
     platforms?: {
       platform_id: string;
       platform_code?: string | null;
@@ -94,7 +107,7 @@ type Props = {
       longitude?: number | null;
       name?: string;
       directions?: string[];
-      modes?: ('bus' | 'tram')[];
+      modes?: ('bus' | 'tram' | 'subway' | 's-bahn' | 'rail' | 'ferry')[];
       routes?: string[];
     }[];
     platform_ids?: string[];
@@ -110,8 +123,10 @@ type Props = {
     name: string;
     latitude: number;
     longitude: number;
-    modes: ("bus" | "tram")[];
-    routes: { route_number: string; mode: "bus" | "tram" }[];
+    modes: ("bus" | "tram" | "subway" | "s-bahn" | "rail" | "ferry")[];
+    /** Street side ("left"/"right"); opposite known sides stay separate pins. */
+    side?: string | null;
+    routes: { route_number: string; mode: "bus" | "tram" | "subway" | "s-bahn" | "rail" | "ferry" }[];
     platforms?: {
       platform_id: string;
       platform_code?: string | null;
@@ -119,7 +134,7 @@ type Props = {
       longitude?: number | null;
       name?: string;
       directions?: string[];
-      modes?: ("bus" | "tram")[];
+      modes?: ("bus" | "tram" | "subway" | "s-bahn" | "rail" | "ferry")[];
       routes?: string[];
     }[];
   }) => void;

@@ -186,8 +186,15 @@ async def _realtime_worker():
                     and not report.get("blocking_missing"))
                 # Each retained version must independently pass the existing
                 # structural audit and readiness gate. Never relabel a feed.
+                # The degraded-mode gate (force activation without generations,
+                # e.g. OSM snapshot still importing) relaxes ONLY the readiness
+                # condition; identity/audit checks stay strict.
+                degraded_realtime = (
+                    os.getenv("MOBILITY_ACTIVATE_WITHOUT_GENERATIONS", "false").strip().lower()
+                    == "true"
+                )
                 if (not network.get("activated_at") or not network.get("version_id")
-                        or (atomic_generations_enabled() and not ready)
+                        or (atomic_generations_enabled() and not ready and not degraded_realtime)
                         or not audit_schedule({**network, "service_date": day})["ready_to_import"]):
                     continue
                 if day in dated_indexes:

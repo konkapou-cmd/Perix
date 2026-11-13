@@ -12,6 +12,7 @@ from models.user import UserPublic
 from models.event import EventCreate, EventResponse, EventUpdate, EventPublicResponse, EventAttendRequest, EVENT_THEMES
 from models.message import ChatMessageCreate, ChatMessageResponse
 from utils.helpers import generate_id, now_utc
+from utils.verification import require_verified_email
 from routes.dependencies import get_current_user, get_current_user_optional, build_user_public
 from routes.businesses import is_subscription_active
 from routes.ws import ws_broadcast_channel_message
@@ -51,6 +52,7 @@ async def build_tagged_artists(artist_ids: List[str]) -> tuple:
 async def create_event(
     payload: EventCreate, current_user: UserPublic = Depends(get_current_user)
 ):
+    await require_verified_email(current_user)
     business = None
     artist = None
     
@@ -67,6 +69,10 @@ async def create_event(
                 status_code=403,
                 detail="Premium subscription required to create events"
             )
+        # Φ7 (policy v18): basic Business plan allows 4 active events.
+        # Feature-flagged OFF by default; Artist flow stays untouched.
+        from utils.events_policy import assert_business_event_quota
+        await assert_business_event_quota(payload.business_id)
         # Business events use the business location — override any payload location
         if business.get("address"):
             payload.location = business.get("address")

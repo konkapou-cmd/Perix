@@ -95,7 +95,7 @@ const config: ExpoConfig = {
     [
       "expo-splash-screen",
       {
-        image: "./assets/brand/perix-watercolor-wordmark.png",
+        image: "./assets/brand/perix-carved-compass.png",
         imageWidth: 180,
         resizeMode: "contain",
         backgroundColor: "#ffffff",

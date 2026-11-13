@@ -2,7 +2,7 @@ import { apiRequest, API_BASE } from "./core";
 import { captureServerClock, sampleServerClock } from "../city/serverClock";
 import type { ServerClock } from "../city/serverClock";
 
-export type MobilityMode = "bus" | "tram" | "taxi";
+export type MobilityMode = "bus" | "tram" | "subway" | "s-bahn" | "rail" | "ferry" | "taxi";
 
 export type MotionPreview = {
   schema: number; revision: string; journey_id: string; pattern_id: string;
@@ -322,7 +322,7 @@ export type V2MapLine = {
   service_date?: string | null;
   approach_geometry_fingerprint?: string | null;
   route_number: string;
-  mode?: "bus" | "tram";
+  mode?: "bus" | "tram" | "subway" | "s-bahn" | "rail" | "ferry";
   direction?: string;
   points: { latitude: number; longitude: number }[];
   source?: string;
@@ -433,7 +433,7 @@ export type BusTrip = {
 export type BusRoute = {
   route_number: string;
   name: string;
-  mode?: "bus" | "tram";
+  mode?: "bus" | "tram" | "subway" | "s-bahn" | "rail" | "ferry";
   stops: BusStop[];
   trips?: BusTrip[];
   // legacy representative geometry (one direction)
@@ -452,7 +452,10 @@ export type BusNetwork = {
 export type TransitStopMarker = {
   physical_stop_id?: string;
   platform_id?: string;
+  platform_code?: string | null;
   service_active?: boolean;
+  /** Street side from the backend line geometry ("left"/"right"); null when unknown. */
+  side?: string | null;
   stop_id: string;
   stop_place_id?: string;
   stop_ids: string[];
@@ -466,7 +469,7 @@ export type TransitStopMarker = {
   }[];
   latitude: number;
   longitude: number;
-  modes: ("bus" | "tram")[];
+  modes: ("bus" | "tram" | "subway" | "s-bahn" | "rail" | "ferry")[];
   platforms?: {
     platform_id: string;
     latitude?: number | null;
@@ -475,13 +478,13 @@ export type TransitStopMarker = {
     platform_code?: string | null;
     directions?: string[];
     routes?: string[];
-    modes?: ('bus' | 'tram')[];
+    modes?: ('bus' | 'tram' | 'subway' | 's-bahn' | 'rail' | 'ferry')[];
     service_active?: boolean;
     side?: string | null;
   }[];
   routes: {
     route_number: string;
-    mode: "bus" | "tram";
+    mode: "bus" | "tram" | "subway" | "s-bahn" | "rail" | "ferry";
     directions: string[];
   }[];
 };
@@ -489,7 +492,8 @@ export type TransitStopMarker = {
 /**
  * The V2 map/stops catalogue is public and identical for signed-in and
  * anonymous callers. Share one in-flight read and a short in-memory snapshot
- * across App/Home/Locator route mounts; this cache is not persisted to storage.
+ * across App/Home/Locator route mounts. Stops and origin-scoped map geometry
+ * also have a bounded disk cache; clocks and fleet publications never do.
  */
 export const V2_MAP_CACHE_TTL_MS = 4 * 60 * 1000;
 const mapRequests = new Map<string, Promise<V2Map>>();
@@ -500,8 +504,46 @@ const nearbyMapRequests = new Map<string, Promise<V2NearbyLines>>();
 const nearbyMapSnapshots = new Map<string, { expiresAt: number; value: V2NearbyLines }>();
 const nearbyStopsRequests = new Map<string, Promise<V2NearbyStops>>();
 const nearbyStopsSnapshots = new Map<string, { expiresAt: number; value: V2NearbyStops }>();
+
+// Reuse existing public catalogue/geometry. Nearby keys include origin/bounds,
+// so Magdeburg, Syros and Mykonos never share a nearby snapshot.
+export const PERSIST_TTL_MS = 12 * 3600 * 1000;
+function persistGet<T>(key: string,validate:(value:unknown)=>boolean): T | null {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return null;
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || !Number.isFinite(data.expiresAt) || data.expiresAt <= Date.now()
+      || data.schema!==2 || data.day!==cacheServiceDay() || !validate(data.value)) return null;
+    return data.value as T;
+  } catch { return null; }
+}
+function persistSet(key: string, value: unknown) {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return;
+    const storage=window.localStorage;
+    const prefix='@perix_v2_';
+    // Bound disk use to at most eight snapshots. Do not evict unrelated app data.
+    const existing=Array.from({length:storage.length},(_,i)=>storage.key(i)).filter((k):k is string=>!!k&&k.startsWith(prefix)&&k!==key);
+    while(existing.length>=8){const oldest=existing.shift();if(oldest)storage.removeItem(oldest);}
+    storage.setItem(key, JSON.stringify({schema:2,day:cacheServiceDay(),value,expiresAt:Date.now()+PERSIST_TTL_MS}));
+  } catch {}
+}
+function cacheServiceDay(){
+  // A route snapshot contains dated service information, not just static roads.
+  // Invalidate on either region's service-date rollover (DST-safe).
+  return ['Europe/Berlin','Europe/Athens'].map(timeZone=>new Intl.DateTimeFormat('en-CA',
+    {timeZone,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())).join('|');
+}
+const validStoredStops=(value:unknown)=>Array.isArray(value)&&value.every(stop=>stop&&typeof stop.stop_id==='string'
+  &&Number.isFinite(stop.latitude)&&Number.isFinite(stop.longitude)&&Array.isArray(stop.routes)&&Array.isArray(stop.modes));
+const validStoredLines=(value:unknown)=>!!value&&typeof value==='object'&&Array.isArray((value as V2NearbyLines).lines)
+  &&(value as V2NearbyLines).lines.every(line=>line&&Array.isArray(line.points)
+    &&line.points.every(point=>Number.isFinite(point.latitude)&&Number.isFinite(point.longitude)));
+const validStoredNearbyStops=(value:unknown)=>!!value&&typeof value==='object'&&validStoredStops((value as V2NearbyStops).stops);
 export const getV2Map = (token: string | null | undefined, options: { force?: boolean } = {}): Promise<V2Map> => {
-  const key = API_BASE;
+  const key = `${API_BASE}|${cacheServiceDay()}`;
   const cached=mapSnapshots.get(key);
   if(!options.force && cached && cached.expiresAt>Date.now())return Promise.resolve(cached.value);
   const existing = mapRequests.get(key);
@@ -524,12 +566,15 @@ export const getV2Map = (token: string | null | undefined, options: { force?: bo
  * A later map response refreshes this same short-lived in-memory snapshot.
  */
 export const getTransitStops = (token: string | null | undefined): Promise<TransitStopMarker[]> => {
-  const key=API_BASE,cached=stopSnapshots.get(key);
+  const key=`${API_BASE}|${cacheServiceDay()}`,cached=stopSnapshots.get(key);
   if(cached && cached.expiresAt>Date.now())return Promise.resolve(cached.value);
+  const persisted=persistGet<TransitStopMarker[]>(`@perix_v2_stops_v1:${key}`,validStoredStops);
+  if(persisted){stopSnapshots.set(key,{value:persisted,expiresAt:Date.now()+V2_MAP_CACHE_TTL_MS});return Promise.resolve(persisted);}
   const existing=stopRequests.get(key);
   if(existing)return existing;
   const request=apiRequest<TransitStopMarker[]>(`/mobility/v2/stops`,"GET",token || undefined)
-    .then(value=>{const rows=value || [];stopSnapshots.set(key,{value:rows,expiresAt:Date.now()+V2_MAP_CACHE_TTL_MS});return rows;})
+    .then(value=>{const rows=value || [];stopSnapshots.set(key,{value:rows,expiresAt:Date.now()+V2_MAP_CACHE_TTL_MS});
+      persistSet(`@perix_v2_stops_v1:${key}`,rows);return rows;})
     .finally(()=>{if(stopRequests.get(key)===request)stopRequests.delete(key);});
   stopRequests.set(key,request);
   return request;
@@ -538,7 +583,7 @@ export const getTransitStops = (token: string | null | undefined): Promise<Trans
 function nearbyRequestKey(origin:{latitude:number;longitude:number},bounds:{minLat:number;maxLat:number;minLng:number;maxLng:number},limit:number,radiusM:number,
   positionPatternIds:readonly string[]=[]){
   const viewport=[bounds.minLat,bounds.maxLat,bounds.minLng,bounds.maxLng].map(value=>value.toFixed(5));
-  return JSON.stringify([API_BASE,origin.latitude.toFixed(5),origin.longitude.toFixed(5),viewport,limit,radiusM,[...positionPatternIds].sort()]);
+  return JSON.stringify([API_BASE,origin.latitude.toFixed(5),origin.longitude.toFixed(5),viewport,limit,radiusM,[...positionPatternIds].sort(),cacheServiceDay()]);
 }
 function nearbyRequestBody(origin:{latitude:number;longitude:number},bounds:{minLat:number;maxLat:number;minLng:number;maxLng:number},limit:number,radiusM:number,
   positionPatternIds:readonly string[]=[]){
@@ -549,21 +594,53 @@ function nearbyRequestBody(origin:{latitude:number;longitude:number},bounds:{min
   return body;
 }
 
+// Production releases may still enforce the former 250 m request minimum.
+// Negotiate once on that specific validation error, never on network failures.
+// The caller's 150 m display scope remains unchanged.
+let nearbyServerMinimumRadiusM = 1;
+let nearbyServerLegacyLimit=false;
+function legacyNearbyLimit(error:unknown){
+  const detail=error as {status?:number;message?:string};
+  // apiRequest exposes Pydantic's message, not its field location. On these
+  // two known schemas only the stop limit has a maximum of 1 or 3.
+  return detail.status===422 && /less than or equal to (?:1|3)(?!\d)/.test(detail.message || '');
+}
+async function nearbyRead<T>(path:string, token:string|null|undefined,
+  body:ReturnType<typeof nearbyRequestBody> & Record<string,unknown>, timeoutMs:number):Promise<T> {
+  const payload={...body,radius_m:Math.max(body.radius_m,nearbyServerMinimumRadiusM)};
+  try {
+    return await apiRequest<T>(path,"POST",token || undefined,payload,timeoutMs);
+  } catch (error) {
+    const detail=error as {status?:number;message?:string};
+    if(detail.status!==422 || payload.radius_m>=250 || !/greater than or equal to 250/.test(detail.message || ""))throw error;
+    nearbyServerMinimumRadiusM=250;
+    return apiRequest<T>(path,"POST",token || undefined,{...body,radius_m:250},timeoutMs);
+  }
+}
+
 /** Fast first stage: only the visible, nearby physical stop records. */
 export const getNearbyStops = (token: string | null | undefined,
   origin: { latitude: number; longitude: number },
   bounds: { minLat:number; maxLat:number; minLng:number; maxLng:number },
   options: { limit?: number; radiusM?: number; force?: boolean } = {}): Promise<V2NearbyStops> => {
-  const limit=Math.max(1,Math.min(1,Math.floor(options.limit ?? 1)));
+  const limit=Math.max(1,Math.min(6,Math.floor(options.limit ?? 1)));
   const radiusM=Math.max(1,Math.min(5000,Math.floor(options.radiusM ?? 150)));
   const key=nearbyRequestKey(origin,bounds,limit,radiusM);
   const cached=nearbyStopsSnapshots.get(key);
   if(!options.force && cached && cached.expiresAt>Date.now())return Promise.resolve(cached.value);
+  const persisted=persistGet<V2NearbyStops>(`@perix_v2_nearbystops_v1:${key}`,validStoredNearbyStops);
+  if(!options.force&&persisted){nearbyStopsSnapshots.set(key,{value:persisted,expiresAt:Date.now()+V2_MAP_CACHE_TTL_MS});return Promise.resolve(persisted);}
   const existing=nearbyStopsRequests.get(key);
   if(existing)return existing;
-  const request=apiRequest<V2NearbyStops>(`/mobility/v2/nearby-stops`,"POST",token || undefined,
-    nearbyRequestBody(origin,bounds,limit,radiusM),20000)
-    .then(value=>{nearbyStopsSnapshots.set(key,{value,expiresAt:Date.now()+V2_MAP_CACHE_TTL_MS});return value;})
+  const catalogue=async()=>({stops:await getTransitStops(token),radius_m:radiusM});
+  const request=(nearbyServerLegacyLimit && limit>3 ? catalogue() : nearbyRead<V2NearbyStops>(`/mobility/v2/nearby-stops`,token,
+    nearbyRequestBody(origin,bounds,limit,radiusM),20000))
+    .catch(async error=>{if(!legacyNearbyLimit(error))throw error;
+      // Old servers cannot return five places. Reuse the existing catalogue;
+      // the caller still ranks real platforms within its exact 150 m scope.
+      nearbyServerLegacyLimit=true;return catalogue();})
+    .then(value=>{nearbyStopsSnapshots.set(key,{value,expiresAt:Date.now()+V2_MAP_CACHE_TTL_MS});
+      persistSet(`@perix_v2_nearbystops_v1:${key}`,value);return value;})
     .finally(()=>{if(nearbyStopsRequests.get(key)===request)nearbyStopsRequests.delete(key);});
   nearbyStopsRequests.set(key,request);
   return request;
@@ -574,40 +651,70 @@ export const getNearbyMap = (token: string | null | undefined,
   origin: { latitude: number; longitude: number },
   bounds: { minLat:number; maxLat:number; minLng:number; maxLng:number },
   options: { limit?: number; radiusM?: number; force?: boolean; positionPatternIds?: string[] } = {}): Promise<V2NearbyLines> => {
-  const limit=Math.max(1,Math.min(1,Math.floor(options.limit ?? 1)));
+  const limit=Math.max(1,Math.min(6,Math.floor(options.limit ?? 1)));
   const radiusM=Math.max(1,Math.min(5000,Math.floor(options.radiusM ?? 150)));
   const positionPatternIds=[...new Set(options.positionPatternIds || [])].sort();
   const key=nearbyRequestKey(origin,bounds,limit,radiusM,positionPatternIds);
   const cached=nearbyMapSnapshots.get(key);
   if(!options.force && cached && cached.expiresAt>Date.now())return Promise.resolve(cached.value);
+  const persisted=persistGet<V2NearbyLines>(`@perix_v2_nearbymap_v1:${key}`,validStoredLines);
+  if(!options.force && persisted){nearbyMapSnapshots.set(key,{value:persisted,expiresAt:Date.now()+V2_MAP_CACHE_TTL_MS});return Promise.resolve(persisted);}
   const existing=nearbyMapRequests.get(key);
   if(existing)return existing;
-  const request=apiRequest<V2NearbyLines>(`/mobility/v2/nearby-map`,"POST",token || undefined,
-    nearbyRequestBody(origin,bounds,limit,radiusM,positionPatternIds),45000)
-    .then(value=>{nearbyMapSnapshots.set(key,{value,expiresAt:Date.now()+V2_MAP_CACHE_TTL_MS});return value;})
+  const request=(nearbyServerLegacyLimit && limit>3 || positionPatternIds.length>40
+    ? getV2Map(token,{force:options.force}) : nearbyRead<V2NearbyLines>(`/mobility/v2/nearby-map`,token,
+    nearbyRequestBody(origin,bounds,limit,radiusM,positionPatternIds),45000))
+    .catch(async error=>{if(!legacyNearbyLimit(error))throw error;
+      nearbyServerLegacyLimit=true;
+      return getV2Map(token,{force:options.force});})
+    .then(value=>{nearbyMapSnapshots.set(key,{value,expiresAt:Date.now()+V2_MAP_CACHE_TTL_MS});
+      persistSet(`@perix_v2_nearbymap_v1:${key}`,value);return value;})
     .finally(()=>{if(nearbyMapRequests.get(key)===request)nearbyMapRequests.delete(key);});
   nearbyMapRequests.set(key,request);
   return request;
 };
 
 /** Nearby-only fleet snapshot for the exact compact viewport/selected stops. */
+// Older backends answer the scoped POST with the SPA fallback's 405. Once
+// observed, skip the doomed POST on later polls and read the canonical fleet.
+let nearbyVehiclesScopedRouteMissing = false;
 export const getNearbyVehicles = async (token:string | null | undefined,
   origin:{latitude:number;longitude:number},
-  bounds:{minLat:number;maxLat:number;minLng:number;maxLng:number},initialSync=false,vehicleIds:readonly string[]=[]):Promise<LiveVehicle[]>=>{
-  const scopedVehicleIds=[...new Set(vehicleIds.map(String).filter(Boolean))].slice(0,40);
+  bounds:{minLat:number;maxLat:number;minLng:number;maxLng:number},initialSync=false,vehicleIds:readonly string[]=[],
+  options:{limit?:number;lifetime?:boolean}={}):Promise<LiveVehicle[]>=>{
+  const scopedVehicleIds=[...new Set(vehicleIds.map(String).filter(Boolean))];
   if(!scopedVehicleIds.length)return [];
   const requestedAt=Date.now();
   const requestedMonotonic=typeof performance!=='undefined'?performance.now():undefined;
   const navigationStarted=typeof performance!=='undefined'
     ? performance.getEntriesByType?.('navigation')?.[0]?.startTime ?? 0 : undefined;
   refreshVisualClock();
-  const raw=await apiRequest<V2Vehicle[]>(`/mobility/v2/nearby-vehicles`,"POST",token || undefined,
-    {...nearbyRequestBody(origin,bounds,1,150),initial_sync:initialSync,visual_preview_seconds:45,
-      vehicle_ids:scopedVehicleIds,
-    },45000);
-  const receivedAt=Date.now();
-  const receivedMonotonic=typeof performance!=='undefined'?performance.now():undefined;
-  return adaptV2Vehicles(raw,requestedAt,requestedMonotonic,navigationStarted,receivedAt,receivedMonotonic,true);
+  const finish=(raw:V2Vehicle[])=>{
+    const receivedAt=Date.now();
+    const receivedMonotonic=typeof performance!=='undefined'?performance.now():undefined;
+    return adaptV2Vehicles(raw,requestedAt,requestedMonotonic,navigationStarted,receivedAt,receivedMonotonic,true);
+  };
+  const readCanonical=async()=>{
+    const params = [`visual_rule_version=station-cycle-v2`, `visual_preview_seconds=45`];
+    if (initialSync) params.push("initial_sync=true");
+    const all = await apiRequest<V2Vehicle[]>(`/mobility/v2/vehicles?${params.join("&")}`,"GET",token || undefined,undefined,45000);
+    const wanted = new Set(scopedVehicleIds);
+    return finish(all.filter(vehicle => wanted.has(String(vehicle.vehicle_id))));
+  };
+  // The nearby POST excludes routes no longer serving the origin. Lifetime
+  // tracking uses the SAME canonical source serializer, with exact ID filtering.
+  if (nearbyVehiclesScopedRouteMissing || options.lifetime || scopedVehicleIds.length>40) return readCanonical();
+  try {
+    const raw=await nearbyRead<V2Vehicle[]>(`/mobility/v2/nearby-vehicles`,token,
+      {...nearbyRequestBody(origin,bounds,options.limit ?? 1,150),initial_sync:initialSync,visual_preview_seconds:45,
+        vehicle_ids:scopedVehicleIds,
+      },45000);
+    return finish(raw);
+  } catch (error) {
+    if ((error as {status?:number})?.status !== 405) throw error;
+    nearbyVehiclesScopedRouteMissing = true;
+    return readCanonical();
+  }
 };
 
 /** Fleet churn is not a geometry revision. Refresh only uncovered authorities. */

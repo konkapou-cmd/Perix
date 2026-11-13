@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import MapView, { Marker, Polyline, Region } from "react-native-maps";
-import { StyleSheet, View, Text, Pressable, Platform, Image, Modal, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import { StyleSheet, View, Text, Pressable, Platform, Image, Modal, ScrollView, TouchableOpacity, ActivityIndicator, Alert, type ImageSourcePropType } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import * as Location from "expo-location";
@@ -10,20 +10,27 @@ import { COLORS } from "../lib/designTokens";
 import { isBusinessOpen } from "../lib/openingHours";
 import VisualTransitMarker, { VisualMarkerInput } from "./VisualTransitMarker.native";
 import { useNativeStationQueue } from "../hooks/city/useNativeStationQueue";
-import { mapEntityPinSize, profileInitial, transitStopAppearance } from "../lib/city/mapPresentation";
-import { MOBILITY_VIEW_SOURCES, stopMobilityView, vehicleMobilityViewAngle } from "../lib/mobilityViewSources.generated";
-import { groupTransitStopIcons } from "../lib/city/visualGeometry";
+import { MAP_LAYERS, businessEmblemKey, mapEmblemPinSize, mapEntityPinSize, mapMarkerGroupKey, profileInitial, transitStopAppearance } from "../lib/city/mapPresentation";
+import { illustratedIconSource } from "./icons/IllustratedIcon";
+import { clusterLandmarks, landmarkAppearance, landmarkDepthLayout, landmarkIntersectsBounds, landmarkImageSource, landmarkTapTargets, LANDMARK_MAP_MAX_ZOOM } from "../lib/city/landmarks";
+import type { Landmark } from "../lib/city/landmarks";
+import { autoCameraTarget, advanceAutoCamera, type AutoCameraState } from "../lib/city/mapLayout";
+import { MOBILITY_VIEW_SOURCES, stopMobilityView, vehicleKindViewAngle } from "../lib/mobilityViewSources.generated";
+import { groupTransitStopIcons, stopGeometryBearing, stopViewerBearing } from "../lib/city/visualGeometry";
 
 type MapMarker = VisualMarkerInput & {
   id: string;
   latitude: number;
   longitude: number;
   title?: string;
+  address?: string | null;
   description?: string;
   isOpen?: boolean;
   pinColor?: string;
   pinInnerColor?: string;
   pinImage?: string | null;
+  pinImageFit?: "cover" | "contain";
+  emblem?: ImageSourcePropType | null;
   selectionCompass?: boolean;
   type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service" | "product" | "bus" | "tram" | "taxi";
   heading?: number | null;
@@ -40,7 +47,7 @@ type MapBounds = {
   maxLng: number;
 };
 
-function VehicleMarkerArt({mode,viewAngle,size,label}:{mode:"bus"|"tram";viewAngle:number;size:number;label?:string|null}){
+function VehicleMarkerArt({mode,viewAngle,size,label}:{mode:"bus"|"tram"|"subway"|"s-bahn"|"rail"|"ferry"|"metro"|"isap"|"athens_bus"|"blue_star";viewAngle:number;size:number;label?:string|null}){
   return <View style={{width:size,height:size,alignItems:"center",justifyContent:"center"}}>
     <Image source={MOBILITY_VIEW_SOURCES[mode][viewAngle]} resizeMode="contain" style={{width:size,height:size}} />
     {!!label && <Text numberOfLines={1} style={{position:"absolute",bottom:-3,maxWidth:size+8,paddingHorizontal:2,
@@ -49,14 +56,49 @@ function VehicleMarkerArt({mode,viewAngle,size,label}:{mode:"bus"|"tram";viewAng
   </View>;
 }
 
-function DirectoryPinArt({source,size,color,label}:{source:string;size:number;color:string;label?:string|null}){
+const VEHICLE_MARKER_TYPES = ["bus", "tram", "subway", "s-bahn", "rail", "ferry",
+  "metro", "isap", "athens_bus", "blue_star"] as const;
+function isVehicleMarkerType(t: unknown): t is (typeof VEHICLE_MARKER_TYPES)[number] {
+  return typeof t === "string" && (VEHICLE_MARKER_TYPES as readonly string[]).includes(t);
+}
+
+function DirectoryPinArt({source,size,color,label,fit="cover"}:{source:string;size:number;color:string;label?:string|null;fit?:"cover"|"contain"}){
   const [failed,setFailed]=useState(false);
+  useEffect(()=>setFailed(false),[source]);
+  const border=Math.min(2,size/10),imageSize=Math.max(0,(size-border*2)*(fit==="contain"?0.7:1));
   return <View accessibilityLabel={label || "Map location"} style={{width:size,height:size,borderRadius:size/2,
-    borderWidth:2,borderColor:"#fff",backgroundColor:color,alignItems:"center",justifyContent:"center",
+    borderWidth:border,borderColor:"#fff",backgroundColor:fit==="contain"&&size>=10?"#fff":color,alignItems:"center",justifyContent:"center",
     overflow:"hidden",shadowColor:"#000",shadowOpacity:0.32,shadowRadius:3,shadowOffset:{width:0,height:1},elevation:4}}>
-    {failed ? <Text style={{color:"#fff",fontSize:size*0.42,fontWeight:"800"}}>{profileInitial(label)}</Text>
-      : <Image source={{uri:source}} resizeMode="cover" onError={()=>setFailed(true)}
-        style={{width:size-4,height:size-4,borderRadius:(size-4)/2}} />}
+    {failed ? <Text style={{color:fit==="contain"?color:"#fff",fontSize:size*0.42,fontWeight:"800"}}>{profileInitial(label)}</Text>
+      : size>=10 && <Image source={{uri:source}} resizeMode={fit} onError={()=>setFailed(true)}
+        style={{width:imageSize,height:imageSize,borderRadius:fit==="contain"?0:imageSize/2}} />}
+  </View>;
+}
+
+function EmblemPinArt({emblem,size,color,photo,label,count}:{emblem:ImageSourcePropType;size:number;color:string;photo?:string|null;label?:string|null;count?:number}){
+  const [failed,setFailed]=useState(false);
+  useEffect(()=>setFailed(false),[emblem]);
+  const border=Math.min(2,size/10),artSize=Math.max(0,Math.round((size-border*2)*0.78));
+  const med=Math.max(14,Math.min(20,Math.round(size*0.45)));
+  return <View style={{alignItems:"center"}}>
+    <View accessibilityLabel={label || "Map location"} style={{width:size,height:size,borderRadius:size/2,
+      borderWidth:border,borderColor:color,backgroundColor:"#fff",alignItems:"center",justifyContent:"center",
+      shadowColor:"#000",shadowOpacity:0.32,shadowRadius:3,shadowOffset:{width:0,height:1},elevation:4}}>
+      {failed ? <Text style={{color,fontSize:size*0.42,fontWeight:"800"}}>{profileInitial(label)}</Text>
+        : <Image source={emblem} resizeMode="contain" onError={()=>setFailed(true)} style={{width:artSize,height:artSize}} />}
+      {!!photo && <Image source={{uri:photo}} resizeMode="cover" onError={()=>{}}
+        style={{position:"absolute",right:-3,bottom:-3,width:med,height:med,borderRadius:med/2,borderWidth:2,borderColor:"#fff",backgroundColor:color}} />}
+      {!photo && <View style={{position:"absolute",right:-3,bottom:-3,width:med,height:med,borderRadius:med/2,borderWidth:2,
+        borderColor:"#fff",backgroundColor:color,alignItems:"center",justifyContent:"center"}}>
+        <Text style={{color:"#fff",fontSize:Math.max(8,Math.round(med*0.5)),fontWeight:"800"}}>{profileInitial(label)}</Text>
+      </View>}
+      {count != null && count > 1 && <View style={{position:"absolute",right:-4,top:-4,minWidth:16,height:16,borderRadius:8,borderWidth:1,
+        borderColor:"#fff",backgroundColor:color,paddingHorizontal:3,alignItems:"center",justifyContent:"center"}}>
+        <Text style={{color:"#fff",fontSize:10,fontWeight:"700"}}>{count}</Text>
+      </View>}
+    </View>
+    {!!label && <Text numberOfLines={1} testID="pin-name-label" style={{maxWidth:120,fontSize:11,fontWeight:"600",color:"#264348",
+      textAlign:"center",textShadowColor:"#fff",textShadowOffset:{width:0,height:0},textShadowRadius:3}}>{label}</Text>}
   </View>;
 }
 
@@ -104,6 +146,8 @@ type Props = {
     latitude: number;
     longitude: number;
     modes: ("bus" | "tram")[];
+    /** Street side ("left"/"right"); opposite known sides stay separate pins. */
+    side?: string | null;
     routes: { route_number: string; mode: "bus" | "tram" }[];
     platforms?: {platform_id:string;platform_code?:string|null;name?:string;latitude?:number|null;longitude?:number|null;
       modes?:('bus'|'tram')[];routes?:string[];directions?:string[]}[];
@@ -121,6 +165,8 @@ type Props = {
     latitude: number;
     longitude: number;
     modes: ("bus" | "tram")[];
+    /** Street side ("left"/"right"); opposite known sides stay separate pins. */
+    side?: string | null;
     routes: { route_number: string; mode: "bus" | "tram" }[];
     platforms?: {platform_id:string;platform_code?:string|null;name?:string;latitude?:number|null;longitude?:number|null;
       modes?:('bus'|'tram')[];routes?:string[];directions?:string[]}[];
@@ -130,6 +176,15 @@ type Props = {
   userPinImage?: string | null;
   userPinName?: string | null;
   pinLocation?: { latitude: number; longitude: number } | null;
+  /** Supplement diorama landmarks (MD-X001..MD-X070). */
+  landmarks?: Landmark[];
+  landmarksMuted?: boolean;
+  onMapReady?: (available?: boolean) => void;
+  onLandmarksReady?: () => void;
+  pinScaleZoom?: number;
+  /** Auto camera: fit these points and keep refitting until a user gesture. */
+  autofit?: { token: number; points: { latitude: number; longitude: number }[] } | null;
+  onAutofitCancel?: () => void;
   onRegionChange?: (bounds: MapBounds) => void;
   onRegionChangeComplete?: (bounds: MapBounds) => void;
   onZoomChange?: (zoom: number) => void;
@@ -160,6 +215,13 @@ export default function BusinessMap({
   services = [] as Service[],
   markers,
   extraMarkers,
+  landmarks,
+  landmarksMuted = false,
+  onMapReady: onMapReadyCallback,
+  onLandmarksReady,
+  pinScaleZoom = 15,
+  autofit,
+  onAutofitCancel,
   transitLines = [],
   onTransitLineClick,
   transitStops = [],
@@ -180,6 +242,10 @@ export default function BusinessMap({
   disabledHint = "Tap to enable location",
   staticMode = false,
 }: Props) {
+  const businessEmblem = (business: { root_category?: string | null; subcategory?: string | null; subcategories?: string[] | null }) => {
+    const ref = businessEmblemKey(business);
+    return ref ? illustratedIconSource(ref.kind, ref.key) ?? undefined : undefined;
+  };
   const generatedMarkers: MapMarker[] = [
     ...businesses
       .filter(b => b.latitude != null && b.longitude != null)
@@ -188,6 +254,7 @@ export default function BusinessMap({
       latitude: business.latitude,
       longitude: business.longitude,
       title: business.name,
+      address: business.address,
       description: business.category,
       isOpen: isBusinessOpen(business),
       type: "business" as const,
@@ -195,6 +262,7 @@ export default function BusinessMap({
       pinColor: business.root_category === "hotels"
         ? COLORS.pinHotel
         : (isBusinessOpen(business) ? COLORS.pinBusiness : COLORS.pinClosed),
+      emblem: businessEmblem(business as { root_category?: string | null; subcategory?: string | null; subcategories?: string[] | null }),
     })),
       ...events
       .filter(e => e.latitude != null && e.longitude != null)
@@ -241,6 +309,7 @@ export default function BusinessMap({
         latitude: rental.latitude!,
         longitude: rental.longitude!,
         title: rental.title,
+        address: rental.address,
         description: rental.rent_price || rental.address || "",
         type: "rental" as const,
         pinImage: rental.business_logo || (rental as any).owner_photo || rental.cover_image,
@@ -265,6 +334,7 @@ export default function BusinessMap({
         latitude: service.latitude!,
         longitude: service.longitude!,
         title: service.name,
+        address: service.address,
         description: service.address || "",
         type: "service" as const,
         pinImage: (service as any).business_logo || service.cover_image_url,
@@ -290,17 +360,62 @@ export default function BusinessMap({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevLocationRef = useRef<string>("");
   const readyRef = useRef(false);
+  const [cameraReady,setCameraReady]=useState(false);
+  const landmarksReadyRef=useRef(onLandmarksReady);landmarksReadyRef.current=onLandmarksReady;
+  useEffect(()=>{
+    if(!cameraReady)return;
+    const frame=requestAnimationFrame(()=>landmarksReadyRef.current?.());
+    return()=>cancelAnimationFrame(frame);
+  },[landmarks,cameraReady]);
+  const [mapSize,setMapSize]=useState({width:0,height:0});
   const [selectedGroup, setSelectedGroup] = useState<MapMarker[] | null>(null);
   const [zoomLevel, setZoomLevel] = useState(12);
+  const [visibleBounds, setVisibleBounds] = useState<MapBounds | null>(() => resolvedInitialRegion ? ({
+    minLat: resolvedInitialRegion.latitude - resolvedInitialRegion.latitudeDelta / 2,
+    maxLat: resolvedInitialRegion.latitude + resolvedInitialRegion.latitudeDelta / 2,
+    minLng: resolvedInitialRegion.longitude - resolvedInitialRegion.longitudeDelta / 2,
+    maxLng: resolvedInitialRegion.longitude + resolvedInitialRegion.longitudeDelta / 2,
+  }) : null);
   const [cameraHeading,setCameraHeading] = useState(0);
   const [pinImageFailed,setPinImageFailed]=useState(false);
   useEffect(()=>setPinImageFailed(false),[userPinImage]);
   const stopAppearance=transitStopAppearance(zoomLevel);
+  const [trackStopArtwork,setTrackStopArtwork]=useState(true);
+  useEffect(()=>{
+    setTrackStopArtwork(true);
+    const timer=setTimeout(()=>setTrackStopArtwork(false),500);
+    return()=>clearTimeout(timer);
+  },[cameraHeading,transitStops,stopAppearance.bucket,stopAppearance.icon,stopAppearance.size,transitLines,pinLocation,location,visibleBounds]);
   const groupedTransitStops=useMemo(()=>groupTransitStopIcons(transitStops || []),[transitStops]);
   const nativeQueueSize=20*Math.max(0.8,Math.min(1.7,zoomLevel/12));
   const stationQueue=useNativeStationQueue(mapMarkers,nativeQueueSize,cameraHeading);
+  const visibleLandmarks = useMemo(() => clusterLandmarks(
+    (landmarks || []).filter((l) => Number.isFinite(l.latitude) && Number.isFinite(l.longitude)), zoomLevel,
+  ), [landmarks]);
+  const landmarkViewer=pinLocation || location || {latitude:visibleBounds?(visibleBounds.minLat+visibleBounds.maxLat)/2:52.14,
+    longitude:visibleBounds?(visibleBounds.minLng+visibleBounds.maxLng)/2:11.63};
+  const landmarkDepth=useMemo(()=>landmarkDepthLayout(visibleLandmarks.flatMap(group=>group.items),
+    groupedTransitStops,zoomLevel,landmarkViewer,cameraHeading,landmarksMuted),
+    [visibleLandmarks,groupedTransitStops,zoomLevel,landmarkViewer.latitude,landmarkViewer.longitude,cameraHeading,landmarksMuted]);
+  const [trackLandmarkArtwork,setTrackLandmarkArtwork]=useState(true);
+  useEffect(()=>{setTrackLandmarkArtwork(true);const timer=setTimeout(()=>setTrackLandmarkArtwork(false),500);
+    return()=>clearTimeout(timer);},[landmarkDepth]);
   const [enabling, setEnabling] = useState(false);
   const enablingRef = useRef(false);
+  const autoCameraRef=useRef<AutoCameraState|null>(null);
+  const cancelAutofit=()=>{
+    if(!autofit)return;
+    const state=advanceAutoCamera(autoCameraRef.current,autofit.token,null).state;
+    if(state.cancelled)return;
+    autoCameraRef.current={...state,cancelled:true};onAutofitCancel?.();
+  };
+  useEffect(() => {
+    if (!autofit || !mapRef.current || !cameraReady) return;
+    const target=autoCameraTarget(autofit.points,mapSize.width,mapSize.height);
+    const next=advanceAutoCamera(autoCameraRef.current,autofit.token,target);autoCameraRef.current=next.state;
+    if(next.target)mapRef.current.animateCamera({center:{latitude:next.target.latitude,longitude:next.target.longitude},
+      zoom:next.target.zoom},{duration:650});
+  }, [autofit?.points, autofit?.token, cameraReady, mapSize]);
 
   useEffect(() => {
     const t = setTimeout(() => { readyRef.current = true; }, 800);
@@ -318,7 +433,7 @@ export default function BusinessMap({
         transitSingles.push(m);
         return;
       }
-      const key = `${m.selectionCompass ? m.id + ':' : ''}${m.latitude.toFixed(5)}_${m.longitude.toFixed(5)}`;
+      const key = mapMarkerGroupKey(m);
       if (!pins.has(key)) pins.set(key, []);
       pins.get(key)!.push(m);
     });
@@ -336,7 +451,8 @@ export default function BusinessMap({
         count: items.length,
         pinColor: items.length === 1 ? items[0].pinColor : "#264348",
         pinInnerColor: items.length === 1 ? items[0].pinInnerColor : undefined,
-        pinImage: items.length === 1 ? items[0].pinImage : undefined,
+        pinImage: items[0].pinImage,
+        emblem: items[0].emblem,
         memberColors: items.length > 1 ? uniqueColors.slice(0, 4) : [],
         type: items[0].type,
       };
@@ -349,6 +465,7 @@ export default function BusinessMap({
       count: 1,
       pinColor: m.pinColor,
       pinInnerColor: m.pinInnerColor,
+      emblem: m.emblem,
       memberColors: [],
       type: m.type,
     }));
@@ -387,6 +504,7 @@ export default function BusinessMap({
       minLng: region.longitude - region.longitudeDelta / 2,
       maxLng: region.longitude + region.longitudeDelta / 2,
     };
+    setVisibleBounds(bounds);
     onRegionChange?.(bounds);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -395,6 +513,7 @@ export default function BusinessMap({
   };
 
   const handleMapPress = (event: any) => {
+    if(event.nativeEvent?.action==='marker-press')return;
     if (onMapPress && !disabled) {
       const { latitude, longitude } = event.nativeEvent.coordinate;
       onMapPress(latitude, longitude);
@@ -477,14 +596,19 @@ export default function BusinessMap({
         customMapStyle={mapStyle}
         onRegionChangeComplete={handleRegionChangeComplete}
         onPress={handleMapPress}
+        onMapReady={()=>{setCameraReady(true);onMapReadyCallback?.(true);}}
+        onLayout={event=>{const {width,height}=event.nativeEvent.layout;setMapSize({width,height});}}
+        onTouchStart={cancelAutofit}
+        onPanDrag={cancelAutofit}
         scrollEnabled={!staticMode}
         zoomEnabled={!staticMode}
+        maxZoomLevel={LANDMARK_MAP_MAX_ZOOM}
         pitchEnabled={!staticMode}
         rotateEnabled={!staticMode}
       >
         {planLines.map((line, index) => <Polyline key={`journey-plan-${index}`} coordinates={line.points}
-          strokeColor={line.color} strokeWidth={line.weight ?? 5} zIndex={10} />)}
-        {showUserLocation && pinLocation && <Marker coordinate={pinLocation} anchor={{ x: 0.5, y: 0.5 }} zIndex={1000}>
+          strokeColor={line.color} strokeWidth={line.weight ?? 5} zIndex={MAP_LAYERS.journey} />)}
+        {showUserLocation && pinLocation && <Marker coordinate={pinLocation} anchor={{ x: 0.5, y: 0.5 }} zIndex={MAP_LAYERS.user}>
           <View style={styles.userPin}>
             {userPinImage && !pinImageFailed ? <Image source={{ uri: userPinImage }} style={styles.userPinImage} onError={()=>setPinImageFailed(true)} />
               : <Text style={styles.userPinInitial}>{profileInitial(userPinName)}</Text>}
@@ -496,6 +620,7 @@ export default function BusinessMap({
             coordinates={line.points}
             strokeColor={line.color}
             strokeWidth={line.weight ?? 2}
+            zIndex={MAP_LAYERS.route}
             onPress={() => {
               if (onTransitLineClick && line.routeNumber) {
                 onTransitLineClick(line.routeNumber as string, (line as any).patternId);
@@ -504,82 +629,134 @@ export default function BusinessMap({
           />
         ))}
         {groupedTransitStops.map((stop) => {
-            const hasBus = stop.modes.includes("bus");
-            const hasTram = stop.modes.includes("tram");
             const platformLabel=stop.platform_codes.join(" · ");
             const stopKey=(stop.platform_ids.length ? stop.platform_ids.slice().sort().join("|") : stop.stop_ids.slice().sort().join("|")) || stop.stop_id;
+            const far=stopAppearance.dot;
             return (
               <Marker
-                key={`transit-stop-${stopKey}:${stopAppearance.bucket}`}
+                key={`transit-stop-${stopKey}`}
+                zIndex={MAP_LAYERS.stop}
                 coordinate={{ latitude: stop.latitude, longitude: stop.longitude }}
-                onPress={() => onTransitStopPress?.(stop)}
-                tracksViewChanges={false}
+                anchor={far ? {x:0.5,y:0.5} : {x:0.5,y:stopAppearance.icon/2/(stopAppearance.icon+32)}}
+                onPress={event=>{event.stopPropagation();onTransitStopPress?.(stop);}}
+                tracksViewChanges={trackStopArtwork}
               >
-                <View style={styles.transitStopWrap}>
-                  {stopAppearance.dot ? <View style={{width:stopAppearance.size,height:stopAppearance.size,borderRadius:stopAppearance.size/2,
-                    borderWidth:1,borderColor:'#fff',backgroundColor:hasBus && hasTram ? '#264348' : hasTram ? '#8B0000' : '#1E3A8A'}} /> : <View
-                    style={[
-                      styles.transitStopPin,
-                      {paddingHorizontal:3,paddingVertical:2},
-                      {
-                        backgroundColor:
-                          hasBus && hasTram ? "#264348" : hasTram ? "#8B0000" : "#1E3A8A",
-                      },
-                    ]}
-                  >
-                    {(hasBus || hasTram) && <Image source={stopMobilityView(cameraHeading)}
-                      style={{width:stopAppearance.icon,height:stopAppearance.icon}} resizeMode="contain" />}
-                  </View>}
+                {far ? <View style={{width:stopAppearance.size,height:stopAppearance.size,borderRadius:stopAppearance.size/2,backgroundColor:'#59ABE3',borderWidth:.5,borderColor:'#fff'}} />
+                : <View style={{width:140,height:stopAppearance.icon+32,alignItems:'center'}}>
+                  <Image source={stopMobilityView(cameraHeading,stopGeometryBearing(stop,transitLines),stopViewerBearing(stop,landmarkViewer),stop.side)}
+                    style={{width:stopAppearance.icon,height:stopAppearance.icon}} resizeMode="contain" />
                   {stopAppearance.platforms && !!platformLabel && <Text numberOfLines={1}
                     style={styles.stopPlatformCodes}>{platformLabel}</Text>}
-          {stopAppearance.names && <Text numberOfLines={1} style={{fontSize:10,color:'#264348',backgroundColor:'#fff',maxWidth:120}}>{stop.name}</Text>}
-                </View>
+                  {stopAppearance.names && <Text numberOfLines={1} style={{fontSize:13,color:'#264348',backgroundColor:'#fff',maxWidth:140}}>{stop.name}</Text>}
+                </View>}
               </Marker>
             );
           })}
+        {visibleLandmarks.map((group) => {
+          const appearance=landmarkAppearance(zoomLevel,group.id),iconSize=appearance.size;
+          const depth=landmarkDepth.get(group.id),imageHeight=iconSize*.78;
+          const visible=depth?.showArtwork!==false && landmarkIntersectsBounds(group,visibleBounds,zoomLevel);
+          const showLabel=depth?.showLabel ?? false;
+          const groupPress = () => {
+            if(landmarksMuted)return;
+            const ids = landmarkTapTargets(group.items[0],visibleLandmarks.flatMap(item=>item.items),zoomLevel).map(item=>item.id);
+            onMarkerPress?.(ids.length > 1 ? `landmark-group:${ids.join("|")}` : `landmark:${ids[0]}`);
+          };
+          return (
+            <Marker
+              key={`landmark-${group.id}`}
+              tappable={visible && !landmarksMuted}
+              opacity={visible ? 1 : 0}
+              coordinate={{ latitude: group.latitude, longitude: group.longitude }}
+              anchor={{ x: 0.5, y: imageHeight/(imageHeight+(showLabel?24:0)) }}
+              zIndex={depth?.zIndex ?? 10}
+              onPress={event=>{event.stopPropagation();groupPress();}}
+              tracksViewChanges={trackLandmarkArtwork}
+            >
+              <View style={{width:iconSize,height:imageHeight+(showLabel?24:0),alignItems:'center',
+                shadowColor:'#0A143C',shadowOpacity:.3,shadowRadius:3,shadowOffset:{width:0,height:2},elevation:3}}>
+                <Image source={landmarkImageSource(group.id)} blurRadius={depth?.blur ?? 0}
+                  style={{width:iconSize,height:imageHeight,opacity:depth?.opacity ?? 1}} resizeMode="contain" accessibilityLabel={group.items[0].name} />
+                {showLabel && <Text numberOfLines={1} style={{fontSize:13,fontWeight:'700',color:'#264348',maxWidth:220,
+                  backgroundColor:'rgba(255,255,255,.94)',borderRadius:6,paddingHorizontal:5}}>{group.items[0].name}</Text>}
+              </View>
+            </Marker>
+          );
+        })}
         {groupedMarkers.map((group) => {
+          if(group.emblem && !group.items[0].selectionCompass){
+            const first=group.items[0],size=mapEmblemPinSize(zoomLevel,pinScaleZoom);
+            return <Marker key={group.key} coordinate={{latitude:group.latitude,longitude:group.longitude}}
+              anchor={{x:.5,y:.42}} zIndex={MAP_LAYERS.pin}
+              onPress={event=>{event.stopPropagation();group.count>1?setSelectedGroup(group.items):onMarkerPress?.(first.id);}}>
+              <EmblemPinArt emblem={group.emblem} size={size} color={group.pinColor||COLORS.pinClosed} photo={first.pinImage} label={first.title} count={group.count} />
+            </Marker>;
+          }
+          if(group.count>1){
+            const size=mapEntityPinSize(zoomLevel,pinScaleZoom),first=group.items[0];
+            return <Marker key={group.key} coordinate={{latitude:group.latitude,longitude:group.longitude}}
+              anchor={{x:.5,y:.5}} zIndex={MAP_LAYERS.pin}
+              onPress={event=>{event.stopPropagation();setSelectedGroup(group.items);}}>
+              <View style={{width:size,height:size}}>
+                <DirectoryPinArt source={first.pinImage || ''} size={size} color={first.pinColor || COLORS.pinClosed} label={first.title} fit={first.pinImageFit} />
+                <View style={{position:'absolute',right:-4,bottom:-4,minWidth:16,height:16,borderRadius:8,borderWidth:1,
+                  borderColor:'#fff',backgroundColor:first.pinColor || COLORS.pinClosed,paddingHorizontal:3,alignItems:'center',justifyContent:'center'}}>
+                  <Text style={{color:'#fff',fontSize:10,fontWeight:'700'}}>{group.count}</Text>
+                </View>
+              </View>
+            </Marker>;
+          }
           if (group.count === 1 && group.items[0].selectionCompass) {
             return <Marker key={group.key} coordinate={{latitude:group.latitude,longitude:group.longitude}}
-              anchor={{x:0.5,y:0.5}} onPress={()=>onMarkerPress?.(group.items[0].id)}>
-              <Image source={require("../assets/brand/perix-compass.png")} style={{width:38,height:38}} resizeMode="contain" />
+              zIndex={MAP_LAYERS.selection}
+              anchor={{x:0.5,y:0.5}} onPress={event=>{event.stopPropagation();onMarkerPress?.(group.items[0].id);}}>
+              <Image source={require("../assets/brand/perix-compass-transparent.png")} style={{width:mapEntityPinSize(zoomLevel,pinScaleZoom),height:mapEntityPinSize(zoomLevel,pinScaleZoom)}} resizeMode="contain" />
             </Marker>;
           }
           const zoomScale = Math.max(0.8, Math.min(1.7, zoomLevel / 12));
-          const isTransitPin=group.items[0].type === "bus" || group.items[0].type === "tram" || group.items[0].type === "taxi";
+          const isTransitPin=isVehicleMarkerType(group.items[0].type) || group.items[0].type === "taxi";
           const groupSize = group.count > 1
             ? (group.count < 3 ? 26 : group.count < 10 ? 30 : group.count < 30 ? 34 : 40) * zoomScale
-            : isTransitPin ? 20 * zoomScale : mapEntityPinSize(zoomLevel);
+            : isTransitPin ? 20 * zoomScale : mapEntityPinSize(zoomLevel,pinScaleZoom);
           const groupFontSize = Math.min(17, (group.count >= 100 ? 9 : group.count >= 10 ? 10.5 : 12) * zoomScale);
           const dotSize = 7 * zoomScale;
           const groupDotSize = 4 * zoomScale;
-          if (group.count === 1 && group.items[0].visualEstimate && (group.items[0].type === "bus" || group.items[0].type === "tram")) {
+          if (group.count === 1 && group.items[0].visualEstimate) {
             const item=group.items[0];
-            return <VisualTransitMarker key={group.key} marker={group.items[0]}
-              queueOffset={stationQueue.get(group.items[0].id)} iconSizePx={groupSize}
-              onPress={() => onMarkerPress?.(group.items[0].id)}
-              renderIcon={viewAngle=><VehicleMarkerArt mode={item.type as "bus"|"tram"} viewAngle={viewAngle} size={groupSize} label={item.label} />}>
-            </VisualTransitMarker>;
+            if(isVehicleMarkerType(item.type)) {
+              const vehicleMode = item.type;
+              return <VisualTransitMarker key={group.key} marker={item} cameraHeading={cameraHeading}
+                queueOffset={stationQueue.get(item.id)} iconSizePx={groupSize}
+                onPress={() => onMarkerPress?.(item.id)}
+                renderIcon={viewAngle=><VehicleMarkerArt mode={vehicleMode} viewAngle={viewAngle} size={groupSize} label={item.label} />}>
+              </VisualTransitMarker>;
+            }
           }
-          if(group.count===1 && (group.items[0].type==="bus" || group.items[0].type==="tram")){
+          if(group.count===1){
             const item=group.items[0];
-            return <Marker key={group.key} coordinate={{latitude:group.latitude,longitude:group.longitude}} anchor={{x:0.5,y:0.5}}
-              onPress={()=>onMarkerPress?.(item.id)}>
-              <VehicleMarkerArt mode={item.type as "bus"|"tram"} viewAngle={vehicleMobilityViewAngle(item.heading ?? 0)} size={groupSize} label={item.label} />
-            </Marker>;
+            if(isVehicleMarkerType(item.type)){
+              return <Marker key={group.key} coordinate={{latitude:group.latitude,longitude:group.longitude}} anchor={{x:0.5,y:0.5}}
+                zIndex={MAP_LAYERS.vehicle}
+                onPress={event=>{event.stopPropagation();onMarkerPress?.(item.id);}}>
+                <VehicleMarkerArt mode={item.type} viewAngle={vehicleKindViewAngle(item.type, item.heading ?? 0,cameraHeading)} size={groupSize} label={item.label} />
+              </Marker>;
+            }
           }
           if(group.count===1 && group.items[0].pinImage && group.items[0].type!=="taxi"){
             const item=group.items[0];
             return <Marker key={group.key} coordinate={{latitude:group.latitude,longitude:group.longitude}} anchor={{x:0.5,y:0.5}}
-              onPress={()=>onMarkerPress?.(item.id)}>
-              <DirectoryPinArt source={item.pinImage!} size={groupSize} color={item.pinColor || COLORS.pinClosed} label={item.title} />
+              zIndex={MAP_LAYERS.pin}
+              onPress={event=>{event.stopPropagation();onMarkerPress?.(item.id);}}>
+              <DirectoryPinArt source={item.pinImage!} size={groupSize} color={item.pinColor || COLORS.pinClosed} label={item.title} fit={item.pinImageFit} />
             </Marker>;
           }
-          if (group.count === 1 && group.items[0].visualEstimate) {
           return (
           <Marker
-            key={group.key}
+             key={group.key}
+             zIndex={MAP_LAYERS.pin}
             coordinate={{ latitude: group.latitude, longitude: group.longitude }}
-            onPress={() => {
+             onPress={event => {
+               event.stopPropagation();
               if (group.count === 1) {
                 onMarkerPress?.(group.items[0].id);
               } else {
@@ -588,24 +765,12 @@ export default function BusinessMap({
             }}
           >
             <View style={[group.count > 1 ? styles.groupPin : styles.customPin, { backgroundColor: group.pinColor || COLORS.pinClosed, width: groupSize, height: groupSize, borderRadius: groupSize / 2 }]}>
-              {group.count > 1 ? (
-                <>
-                  <Text style={[styles.groupPinText, { fontSize: groupFontSize }]}>{group.count}</Text>
-                  {group.memberColors.length > 0 && (
-                    <View style={styles.groupDotsRow}>
-                      {group.memberColors.map((c, i) => (
-                        <View key={i} style={[styles.groupDot, { backgroundColor: c, width: groupDotSize, height: groupDotSize, borderRadius: groupDotSize / 2 }]} />
-                      ))}
-                    </View>
-                  )}
-                </>
-              ) : group.pinInnerColor ? (
+              {group.pinInnerColor ? (
                 <View style={[styles.pinDot, { backgroundColor: group.pinInnerColor, width: dotSize, height: dotSize, borderRadius: dotSize / 2 }]} />
               ) : null}
             </View>
           </Marker>
           );
-          }
         })}
       </MapView>
       <Modal visible={selectedGroup !== null} transparent animationType="slide" onRequestClose={() => setSelectedGroup(null)}>
@@ -665,7 +830,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   stopPlatformCodes:{marginTop:1,maxWidth:120,paddingHorizontal:4,borderRadius:6,overflow:"hidden",
-    backgroundColor:"rgba(255,255,255,0.94)",color:"#264348",fontSize:9,fontWeight:"800",textAlign:"center"},
+    backgroundColor:"rgba(255,255,255,0.94)",color:"#264348",fontSize:12,fontWeight:"800",textAlign:"center"},
   disabledOverlay: {
     flex: 1,
     backgroundColor: COLORS.borderGray,

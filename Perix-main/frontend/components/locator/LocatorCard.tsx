@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View, Image, Platform } from "react-native
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { translateCategory } from "../../lib/categoryTranslation";
-import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
+import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS, LOCATOR_FONT_FAMILY } from "../../lib/designTokens";
 import { getThemeColors, getThemeStyles, applyThemeToText } from "../../hooks/useThemeStyles";
 import type { Business, EventItem, ActivityItem } from "../../lib/api";
 import { formatEventDate, formatDate } from "../../lib/formatDate";
@@ -282,12 +282,14 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: Platform.OS === "web" ? FONT_SIZES.h4 : FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.semibold as any,
+    fontFamily: LOCATOR_FONT_FAMILY.semibold,
     color: "#264348",
   },
   cardSubtitle: {
     fontSize: Platform.OS === "web" ? FONT_SIZES.caption : FONT_SIZES.small,
     marginTop: 1,
     color: "#264348",
+    fontFamily: LOCATOR_FONT_FAMILY.regular,
   },
   cardMetaRow: {
     flexDirection: "row",
@@ -298,6 +300,7 @@ const styles = StyleSheet.create({
   cardMetaText: {
     fontSize: Platform.OS === "web" ? FONT_SIZES.caption : FONT_SIZES.small,
     color: "#264348",
+    fontFamily: LOCATOR_FONT_FAMILY.regular,
   },
   // Status badges
   statusPill: {
@@ -369,6 +372,7 @@ const styles = StyleSheet.create({
   eventMetaText: {
     fontSize: Platform.OS === "web" ? FONT_SIZES.caption : FONT_SIZES.small,
     color: "#264348",
+    fontFamily: LOCATOR_FONT_FAMILY.regular,
   },
   attendeesChip: {
     flexDirection: "row",

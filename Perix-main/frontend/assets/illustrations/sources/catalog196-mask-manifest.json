@@ -1,0 +1,4526 @@
+{
+  "sources": {
+    "s1": {
+      "file": "ChatGPT Image Nov 10, 2026, 03_25_21 PM.png",
+      "sha256": "b0780400ed38b9641cd7a5f1560b29f697e5af5f39cb8d91f4062277c234f927"
+    },
+    "s2": {
+      "file": "ChatGPT Image Nov 10, 2026, 03_25_44 PM.png",
+      "sha256": "f1cb39d85199f7e7a7765207d8c99ef656c17f33a25bdc29dff7387eb7b8b90f"
+    },
+    "s3": {
+      "file": "ChatGPT Image Nov 10, 2026, 03_26_00 PM.png",
+      "sha256": "e77bf6d869bb0573c1aadfb97faaa222faf1577747bd532e76364cb0c94347ad"
+    }
+  },
+  "icons": [
+    {
+      "order": 1,
+      "sheet": "s1",
+      "row": 0,
+      "col": 0,
+      "category": "Jobs",
+      "name": "Full-time",
+      "kind": "sub-new",
+      "key": "Vollzeit",
+      "target": "categories/sub/Vollzeit.webp",
+      "shared_with_order": null,
+      "size": [
+        140,
+        143
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        140,
+        143
+      ],
+      "sha256": "4f42965dbb0f0db4a4ae342cc8c52bbdf152b39e2ebfd7eb1c38c917907cf24b"
+    },
+    {
+      "order": 2,
+      "sheet": "s1",
+      "row": 0,
+      "col": 1,
+      "category": "Jobs",
+      "name": "Part-time",
+      "kind": "sub-new",
+      "key": "Teilzeit",
+      "target": "categories/sub/Teilzeit.webp",
+      "shared_with_order": null,
+      "size": [
+        139,
+        150
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        139,
+        150
+      ],
+      "sha256": "f828f8f0431b0fa2751c4fbd2f37ea2c6ea292f707aa3d0f4f55b5e50effc127"
+    },
+    {
+      "order": 3,
+      "sheet": "s1",
+      "row": 0,
+      "col": 2,
+      "category": "Jobs",
+      "name": "Contract",
+      "kind": "sub-new",
+      "key": "Vertrag",
+      "target": "categories/sub/Vertrag.webp",
+      "shared_with_order": null,
+      "size": [
+        136,
+        158
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        136,
+        158
+      ],
+      "sha256": "8984ff95163071811e2855241d8725c71ee8587ef29fb4b1461fdb797b7c984a"
+    },
+    {
+      "order": 4,
+      "sheet": "s1",
+      "row": 0,
+      "col": 3,
+      "category": "Jobs",
+      "name": "Internship",
+      "kind": "sub-new",
+      "key": "Praktikum",
+      "target": "categories/sub/Praktikum.webp",
+      "shared_with_order": null,
+      "size": [
+        115,
+        158
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        115,
+        158
+      ],
+      "sha256": "27218900f93aea648e9caf8a25b6453ffdfbb58ba6bc416a7b0f4119ab30f419"
+    },
+    {
+      "order": 5,
+      "sheet": "s1",
+      "row": 0,
+      "col": 4,
+      "category": "Jobs",
+      "name": "Remote",
+      "kind": "sub-new",
+      "key": "Remote",
+      "target": "categories/sub/Remote.webp",
+      "shared_with_order": null,
+      "size": [
+        137,
+        148
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        137,
+        148
+      ],
+      "sha256": "ede0034131df1c92a4349953e1a447c17a167e285aede40d64a799444c762f99"
+    },
+    {
+      "order": 6,
+      "sheet": "s1",
+      "row": 0,
+      "col": 5,
+      "category": "Rentals",
+      "name": "Apartment",
+      "kind": "sub-new",
+      "key": "apartment",
+      "target": "categories/sub/apartment.webp",
+      "shared_with_order": null,
+      "size": [
+        147,
+        153
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        147,
+        153
+      ],
+      "sha256": "2e4b33dcd7639b6d091342ca38d8d2fda483501a4c3ea1ee1bc96a567c994b15"
+    },
+    {
+      "order": 7,
+      "sheet": "s1",
+      "row": 0,
+      "col": 6,
+      "category": "Rentals",
+      "name": "House",
+      "kind": "sub-new",
+      "key": "house",
+      "target": "categories/sub/house.webp",
+      "shared_with_order": null,
+      "size": [
+        145,
+        140
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        145,
+        140
+      ],
+      "sha256": "e61dcf0e41f6d3ce8e71de2fd03257afbca395179276f9b15956f7e1f2afb946"
+    },
+    {
+      "order": 8,
+      "sheet": "s1",
+      "row": 0,
+      "col": 7,
+      "category": "Rentals",
+      "name": "Studio",
+      "kind": "sub-new",
+      "key": "studio",
+      "target": "categories/sub/studio.webp",
+      "shared_with_order": null,
+      "size": [
+        147,
+        153
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        147,
+        153
+      ],
+      "sha256": "2e4b33dcd7639b6d091342ca38d8d2fda483501a4c3ea1ee1bc96a567c994b15"
+    },
+    {
+      "order": 9,
+      "sheet": "s1",
+      "row": 0,
+      "col": 8,
+      "category": "Rentals",
+      "name": "Room",
+      "kind": "sub-new",
+      "key": "room",
+      "target": "categories/sub/room.webp",
+      "shared_with_order": null,
+      "size": [
+        140,
+        141
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        140,
+        141
+      ],
+      "sha256": "52479cffdfcc3e7cb94f58a5089303acd796b446eceac138a9beaa81b0266c98"
+    },
+    {
+      "order": 10,
+      "sheet": "s1",
+      "row": 0,
+      "col": 9,
+      "category": "Rentals",
+      "name": "Commercial",
+      "kind": "sub-new",
+      "key": "commercial",
+      "target": "categories/sub/commercial.webp",
+      "shared_with_order": null,
+      "size": [
+        151,
+        134
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        151,
+        134
+      ],
+      "sha256": "1fc785c7f01d5f245d5bbf8ff7cf71fc138f79028cb032e2809069c821657e0f"
+    },
+    {
+      "order": 11,
+      "sheet": "s1",
+      "row": 1,
+      "col": 0,
+      "category": "Fitness Sports Wellness",
+      "name": "Fitness",
+      "kind": "group",
+      "key": "sports-fitness-wellness--fitness",
+      "target": "categories/group/sports-fitness-wellness--fitness.webp",
+      "shared_with_order": null,
+      "size": [
+        141,
+        137
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        141,
+        137
+      ],
+      "sha256": "54cb88c8cb2b4446406a82043e92018e558de80f20bd12438d0794e310d85f71"
+    },
+    {
+      "order": 12,
+      "sheet": "s1",
+      "row": 1,
+      "col": 1,
+      "category": "Fitness Sports Wellness",
+      "name": "Sports",
+      "kind": "group",
+      "key": "sports-fitness-wellness--sports",
+      "target": "categories/group/sports-fitness-wellness--sports.webp",
+      "shared_with_order": null,
+      "size": [
+        145,
+        136
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        145,
+        136
+      ],
+      "sha256": "3b9922e41fdc3d05446ae17f589875514526449e292b2356ccb5fb594198f8eb"
+    },
+    {
+      "order": 13,
+      "sheet": "s1",
+      "row": 1,
+      "col": 2,
+      "category": "Fitness Sports Wellness",
+      "name": "Wellness & Recovery",
+      "kind": "group",
+      "key": "sports-fitness-wellness--wellness-recovery",
+      "target": "categories/group/sports-fitness-wellness--wellness-recovery.webp",
+      "shared_with_order": null,
+      "size": [
+        149,
+        135
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        149,
+        135
+      ],
+      "sha256": "b865edb42f8e5d6fc4a5cb690c377033853219557b46272c1668ca6095f9c66b"
+    },
+    {
+      "order": 14,
+      "sheet": "s1",
+      "row": 1,
+      "col": 3,
+      "category": "Fitness Sports Wellness",
+      "name": "Gyms",
+      "kind": "sub",
+      "key": "gyms",
+      "target": "categories/sub/gyms.webp",
+      "shared_with_order": null,
+      "size": [
+        149,
+        129
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        149,
+        129
+      ],
+      "sha256": "4f21580e6afa9e4f385ae0fe88d3f72b67d82b4ca16965b2a48fea1b3919078d"
+    },
+    {
+      "order": 15,
+      "sheet": "s1",
+      "row": 1,
+      "col": 4,
+      "category": "Fitness Sports Wellness",
+      "name": "CrossFit",
+      "kind": "sub",
+      "key": "crossfit",
+      "target": "categories/sub/crossfit.webp",
+      "shared_with_order": null,
+      "size": [
+        133,
+        134
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        133,
+        134
+      ],
+      "sha256": "f5070c9a86234e315f283b6712aba00b2a202db982890e9a3e685f63dd5dcfe3"
+    },
+    {
+      "order": 16,
+      "sheet": "s1",
+      "row": 1,
+      "col": 5,
+      "category": "Fitness Sports Wellness",
+      "name": "Functional Training",
+      "kind": "sub",
+      "key": "functional-training",
+      "target": "categories/sub/functional-training.webp",
+      "shared_with_order": null,
+      "size": [
+        145,
+        137
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        145,
+        137
+      ],
+      "sha256": "a5dd74fa6706a76125c4ae5471e87c979008116ec49c1e63812bc05333281a0e"
+    },
+    {
+      "order": 17,
+      "sheet": "s1",
+      "row": 1,
+      "col": 6,
+      "category": "Fitness Sports Wellness",
+      "name": "Personal Training",
+      "kind": "sub",
+      "key": "personal-training",
+      "target": "categories/sub/personal-training.webp",
+      "shared_with_order": null,
+      "size": [
+        139,
+        144
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        139,
+        144
+      ],
+      "sha256": "e10eba20016c7347e5fead4b9a46675513cff0936da7885d4bc3374754c6fdf9"
+    },
+    {
+      "order": 18,
+      "sheet": "s1",
+      "row": 1,
+      "col": 7,
+      "category": "Fitness Sports Wellness",
+      "name": "Pilates",
+      "kind": "sub",
+      "key": "pilates",
+      "target": "categories/sub/pilates.webp",
+      "shared_with_order": null,
+      "size": [
+        158,
+        104
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        158,
+        104
+      ],
+      "sha256": "a121da2e7ba6e2cf7510616976a78a40e2cf21820658e166022ba1868a897ae7"
+    },
+    {
+      "order": 19,
+      "sheet": "s1",
+      "row": 1,
+      "col": 8,
+      "category": "Fitness Sports Wellness",
+      "name": "Yoga",
+      "kind": "sub",
+      "key": "yoga",
+      "target": "categories/sub/yoga.webp",
+      "shared_with_order": null,
+      "size": [
+        143,
+        132
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        143,
+        132
+      ],
+      "sha256": "49a291280ef4ef190de6b0b320a90b4b807e3936dd8450a8ba1562000905329f"
+    },
+    {
+      "order": 20,
+      "sheet": "s1",
+      "row": 1,
+      "col": 9,
+      "category": "Fitness Sports Wellness",
+      "name": "Group Fitness",
+      "kind": "sub",
+      "key": "group-fitness",
+      "target": "categories/sub/group-fitness.webp",
+      "shared_with_order": null,
+      "size": [
+        154,
+        116
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        154,
+        116
+      ],
+      "sha256": "4f92c4f4fc664824707fdbdaaa36689a3e9107eea411447c951296533e8a5e7c"
+    },
+    {
+      "order": 21,
+      "sheet": "s1",
+      "row": 2,
+      "col": 0,
+      "category": "Fitness Sports Wellness",
+      "name": "Team Sports",
+      "kind": "sub",
+      "key": "team-sports",
+      "target": "categories/sub/team-sports.webp",
+      "shared_with_order": null,
+      "size": [
+        145,
+        140
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        145,
+        140
+      ],
+      "sha256": "08f80d71a340c402fa9c8e48cf062bb28b7759ae49e31eab8677614701d0c685"
+    },
+    {
+      "order": 22,
+      "sheet": "s1",
+      "row": 2,
+      "col": 1,
+      "category": "Fitness Sports Wellness",
+      "name": "Racket Sports",
+      "kind": "sub",
+      "key": "racket-sports",
+      "target": "categories/sub/racket-sports.webp",
+      "shared_with_order": null,
+      "size": [
+        142,
+        139
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        142,
+        139
+      ],
+      "sha256": "f456000f37bb51701f5e07f3ebab38d1ad0037aa3880aedbb6ee3395d9fc7ac3"
+    },
+    {
+      "order": 23,
+      "sheet": "s1",
+      "row": 2,
+      "col": 2,
+      "category": "Fitness Sports Wellness",
+      "name": "Swimming",
+      "kind": "sub",
+      "key": "swimming",
+      "target": "categories/sub/swimming.webp",
+      "shared_with_order": null,
+      "size": [
+        144,
+        113
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        144,
+        113
+      ],
+      "sha256": "16027ada936c4d1feaf5e5563b860519a75930e6c637824866c0be6a89bbaf11"
+    },
+    {
+      "order": 24,
+      "sheet": "s1",
+      "row": 2,
+      "col": 3,
+      "category": "Fitness Sports Wellness",
+      "name": "Martial Arts",
+      "kind": "sub",
+      "key": "martial-arts",
+      "target": "categories/sub/martial-arts.webp",
+      "shared_with_order": null,
+      "size": [
+        150,
+        145
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        150,
+        145
+      ],
+      "sha256": "8297520e59d06c35998c1f95cac8d0ed4ae1455c4d00259653cbd5ab6a596248"
+    },
+    {
+      "order": 25,
+      "sheet": "s1",
+      "row": 2,
+      "col": 4,
+      "category": "Fitness Sports Wellness",
+      "name": "Climbing",
+      "kind": "sub",
+      "key": "climbing",
+      "target": "categories/sub/climbing.webp",
+      "shared_with_order": null,
+      "size": [
+        144,
+        144
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        144,
+        144
+      ],
+      "sha256": "a568bb829f22e72602e1b50670a32e5846c66624b5ccd3cf4794d8ac841fe731"
+    },
+    {
+      "order": 26,
+      "sheet": "s1",
+      "row": 2,
+      "col": 5,
+      "category": "Fitness Sports Wellness",
+      "name": "Cycling",
+      "kind": "sub",
+      "key": "cycling",
+      "target": "categories/sub/cycling.webp",
+      "shared_with_order": null,
+      "size": [
+        159,
+        116
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        159,
+        116
+      ],
+      "sha256": "36342c00f250c559a516ca7ac6f42fa7cefd33c3dda133cd2ddaa7c67cd246c2"
+    },
+    {
+      "order": 27,
+      "sheet": "s1",
+      "row": 2,
+      "col": 6,
+      "category": "Fitness Sports Wellness",
+      "name": "Running Clubs",
+      "kind": "sub",
+      "key": "running-clubs",
+      "target": "categories/sub/running-clubs.webp",
+      "shared_with_order": null,
+      "size": [
+        149,
+        109
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        149,
+        109
+      ],
+      "sha256": "f05cb7b28dfb1ed78433755901be8309dd3f272a02dc275dfe01ca7cde5b8274"
+    },
+    {
+      "order": 28,
+      "sheet": "s1",
+      "row": 2,
+      "col": 7,
+      "category": "Fitness Sports Wellness",
+      "name": "Water Sports",
+      "kind": "sub",
+      "key": "water-sports",
+      "target": "categories/sub/water-sports.webp",
+      "shared_with_order": null,
+      "size": [
+        137,
+        155
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        137,
+        155
+      ],
+      "sha256": "7b27bf6b2389ad03456e3bd3c5a5af90c7f664b58784334ce6e8e811a506fd7a"
+    },
+    {
+      "order": 29,
+      "sheet": "s1",
+      "row": 2,
+      "col": 8,
+      "category": "Fitness Sports Wellness",
+      "name": "Winter Sports",
+      "kind": "sub",
+      "key": "winter-sports",
+      "target": "categories/sub/winter-sports.webp",
+      "shared_with_order": null,
+      "size": [
+        142,
+        147
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        142,
+        147
+      ],
+      "sha256": "1132b02e5bb5f11abe32919e185e0a3ddc41803926a1c0db8ba64bb9d7bdd54c"
+    },
+    {
+      "order": 30,
+      "sheet": "s1",
+      "row": 2,
+      "col": 9,
+      "category": "Fitness Sports Wellness",
+      "name": "Extreme Sports",
+      "kind": "sub",
+      "key": "extreme-sports",
+      "target": "categories/sub/extreme-sports.webp",
+      "shared_with_order": null,
+      "size": [
+        132,
+        144
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        132,
+        144
+      ],
+      "sha256": "5c2cd2fe2aea4c5de3e35cb5d967b7f0a5fed82a56b8f05e0e0a0ddefefb1bc2"
+    },
+    {
+      "order": 31,
+      "sheet": "s1",
+      "row": 3,
+      "col": 0,
+      "category": "Fitness Sports Wellness",
+      "name": "Physiotherapy",
+      "kind": "sub",
+      "key": "physiotherapy",
+      "target": "categories/sub/physiotherapy.webp",
+      "shared_with_order": null,
+      "size": [
+        144,
+        135
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        144,
+        135
+      ],
+      "sha256": "7921ca2e0fe534c0f2997d1cd81a5acd1adecbd04a678f1a3b224c6f8b71b419"
+    },
+    {
+      "order": 32,
+      "sheet": "s1",
+      "row": 3,
+      "col": 1,
+      "category": "Fitness Sports Wellness",
+      "name": "Rehabilitation",
+      "kind": "sub",
+      "key": "rehabilitation",
+      "target": "categories/sub/rehabilitation.webp",
+      "shared_with_order": null,
+      "size": [
+        128,
+        136
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        128,
+        136
+      ],
+      "sha256": "b9b5886eee6584032d35878c2ef8b8b5d5ffd7aec24ff88216c06c0c981680ce"
+    },
+    {
+      "order": 33,
+      "sheet": "s1",
+      "row": 3,
+      "col": 2,
+      "category": "Fitness Sports Wellness",
+      "name": "Sports Massage",
+      "kind": "sub",
+      "key": "sports-massage",
+      "target": "categories/sub/sports-massage.webp",
+      "shared_with_order": null,
+      "size": [
+        152,
+        142
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        152,
+        142
+      ],
+      "sha256": "3edfc4aeb69d9f2f2f7a84daa2cb3a086c0ddaea49d89077c8463b777802042c"
+    },
+    {
+      "order": 34,
+      "sheet": "s1",
+      "row": 3,
+      "col": 3,
+      "category": "Fitness Sports Wellness",
+      "name": "Recovery Centers",
+      "kind": "sub",
+      "key": "recovery-centers",
+      "target": "categories/sub/recovery-centers.webp",
+      "shared_with_order": null,
+      "size": [
+        125,
+        148
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        125,
+        148
+      ],
+      "sha256": "3db14a8afbae8c064a3e4e2c57222c3b2293ef8156e38025a450354a3e68a7fd"
+    },
+    {
+      "order": 35,
+      "sheet": "s1",
+      "row": 3,
+      "col": 4,
+      "category": "Fitness Sports Wellness",
+      "name": "Wellness Centers",
+      "kind": "sub",
+      "key": "wellness-centers",
+      "target": "categories/sub/wellness-centers.webp",
+      "shared_with_order": null,
+      "size": [
+        163,
+        134
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        163,
+        134
+      ],
+      "sha256": "ac0f505a54b40da6fd8acc36ebb476320ed8298f8946d9f3e384b3d39e0e0c32"
+    },
+    {
+      "order": 36,
+      "sheet": "s1",
+      "row": 3,
+      "col": 5,
+      "category": "Fitness Sports Wellness",
+      "name": "Meditation",
+      "kind": "sub",
+      "key": "meditation",
+      "target": "categories/sub/meditation.webp",
+      "shared_with_order": null,
+      "size": [
+        143,
+        130
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        143,
+        130
+      ],
+      "sha256": "5aad6ccb3951f99c114ba0f72c853ca9e9ffe0916c304b6db9354be8d8578010"
+    },
+    {
+      "order": 37,
+      "sheet": "s1",
+      "row": 3,
+      "col": 6,
+      "category": "Fashion",
+      "name": "Clothing",
+      "kind": "group",
+      "key": "fashion-accessories--clothing",
+      "target": "categories/group/fashion-accessories--clothing.webp",
+      "shared_with_order": null,
+      "size": [
+        144,
+        144
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        144,
+        144
+      ],
+      "sha256": "5b68a740ff9efb5e34ab9db763f714d822108228fcc965ce4891cfd1ef6993f7"
+    },
+    {
+      "order": 38,
+      "sheet": "s1",
+      "row": 3,
+      "col": 7,
+      "category": "Fashion",
+      "name": "Footwear",
+      "kind": "group",
+      "key": "fashion-accessories--footwear",
+      "target": "categories/group/fashion-accessories--footwear.webp",
+      "shared_with_order": null,
+      "size": [
+        144,
+        107
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        144,
+        107
+      ],
+      "sha256": "85ab88182808d8b4df4227219236f96f117f8c5177bcea21b9fd007bd48338bd"
+    },
+    {
+      "order": 39,
+      "sheet": "s1",
+      "row": 3,
+      "col": 8,
+      "category": "Fashion",
+      "name": "Accessories",
+      "kind": "group",
+      "key": "fashion-accessories--accessories",
+      "target": "categories/group/fashion-accessories--accessories.webp",
+      "shared_with_order": null,
+      "size": [
+        157,
+        131
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        157,
+        131
+      ],
+      "sha256": "7a5ab5772949d93edd2a87ec76417fe6363d507b082a37e72c15d10b298f5a74"
+    },
+    {
+      "order": 40,
+      "sheet": "s1",
+      "row": 3,
+      "col": 9,
+      "category": "Fashion",
+      "name": "Specialty tailoring",
+      "kind": "group",
+      "key": "fashion-accessories--specialty",
+      "target": "categories/group/fashion-accessories--specialty.webp",
+      "shared_with_order": null,
+      "size": [
+        110,
+        159
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        110,
+        159
+      ],
+      "sha256": "f1d26f5ef0b256fdc1d08c9f51323206b528bcb110150e2aa0fe3b717cc941c2"
+    },
+    {
+      "order": 41,
+      "sheet": "s1",
+      "row": 4,
+      "col": 0,
+      "category": "Fashion",
+      "name": "Casual Wear",
+      "kind": "sub",
+      "key": "casual-wear",
+      "target": "categories/sub/casual-wear.webp",
+      "shared_with_order": null,
+      "size": [
+        146,
+        132
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        146,
+        132
+      ],
+      "sha256": "f1a0ada5db5af212d5f47299b766f2ee75c8b05eb835be5b05a60bd3a9f23011"
+    },
+    {
+      "order": 42,
+      "sheet": "s1",
+      "row": 4,
+      "col": 1,
+      "category": "Fashion",
+      "name": "Formal Wear",
+      "kind": "sub",
+      "key": "formal-wear",
+      "target": "categories/sub/formal-wear.webp",
+      "shared_with_order": null,
+      "size": [
+        137,
+        135
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        137,
+        135
+      ],
+      "sha256": "2bca26f757162d20da2ff38d293fec6bb46f3496f4409b5c41398de54d7bd1b9"
+    },
+    {
+      "order": 43,
+      "sheet": "s1",
+      "row": 4,
+      "col": 2,
+      "category": "Fashion",
+      "name": "Sportswear",
+      "kind": "sub",
+      "key": "sportswear",
+      "target": "categories/sub/sportswear.webp",
+      "shared_with_order": null,
+      "size": [
+        141,
+        131
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        141,
+        131
+      ],
+      "sha256": "713a818dc1f46ec98ff55e59a217ac8ecf97417d8e3e1521d5e565d6cabfd3b1"
+    },
+    {
+      "order": 44,
+      "sheet": "s1",
+      "row": 4,
+      "col": 3,
+      "category": "Fashion",
+      "name": "Children's Clothing",
+      "kind": "sub",
+      "key": "childrens-clothing",
+      "target": "categories/sub/childrens-clothing.webp",
+      "shared_with_order": null,
+      "size": [
+        133,
+        132
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        133,
+        132
+      ],
+      "sha256": "10d3fc2907ac31e058af2a2bb88bb2187b8fb5d084ecf161065772d4f7931fce"
+    },
+    {
+      "order": 45,
+      "sheet": "s1",
+      "row": 4,
+      "col": 4,
+      "category": "Fashion",
+      "name": "Vintage & Thrift",
+      "kind": "sub",
+      "key": "vintage-thrift",
+      "target": "categories/sub/vintage-thrift.webp",
+      "shared_with_order": null,
+      "size": [
+        139,
+        126
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        139,
+        126
+      ],
+      "sha256": "1a50554819b43cc160ccc9071a5ed62ce4d965fcb19e268c314f466e11492c8c"
+    },
+    {
+      "order": 46,
+      "sheet": "s1",
+      "row": 4,
+      "col": 5,
+      "category": "Fashion",
+      "name": "Sneakers",
+      "kind": "sub",
+      "key": "sneakers",
+      "target": "categories/sub/sneakers.webp",
+      "shared_with_order": null,
+      "size": [
+        155,
+        120
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        155,
+        120
+      ],
+      "sha256": "5c09d83ca52f08db907ac1e1bf9a5241c89d4fdc1d5cdb64a0d692fbb0b228ca"
+    },
+    {
+      "order": 47,
+      "sheet": "s1",
+      "row": 4,
+      "col": 6,
+      "category": "Fashion",
+      "name": "Formal Shoes",
+      "kind": "sub",
+      "key": "formal-shoes",
+      "target": "categories/sub/formal-shoes.webp",
+      "shared_with_order": null,
+      "size": [
+        157,
+        100
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        157,
+        100
+      ],
+      "sha256": "ff8414d4aa5a7dfc5806811f0cc2016a1827cfb452b6caafa981bdf9fc55269e"
+    },
+    {
+      "order": 48,
+      "sheet": "s1",
+      "row": 4,
+      "col": 7,
+      "category": "Fashion",
+      "name": "Athletic Footwear",
+      "kind": "sub",
+      "key": "athletic-footwear",
+      "target": "categories/sub/athletic-footwear.webp",
+      "shared_with_order": null,
+      "size": [
+        146,
+        104
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        146,
+        104
+      ],
+      "sha256": "578dc6ee138b3c5d3996da97f57c4dfafa113ad1b9b17ddf74251641af0acf9d"
+    },
+    {
+      "order": 49,
+      "sheet": "s1",
+      "row": 4,
+      "col": 8,
+      "category": "Fashion",
+      "name": "Jewelry",
+      "kind": "sub",
+      "key": "jewelry",
+      "target": "categories/sub/jewelry.webp",
+      "shared_with_order": null,
+      "size": [
+        123,
+        132
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        123,
+        132
+      ],
+      "sha256": "585d822c74c6ebdd231fb5f28bff9c5e0fa40e7a13a21c8adced41abfa0b9690"
+    },
+    {
+      "order": 50,
+      "sheet": "s1",
+      "row": 4,
+      "col": 9,
+      "category": "Fashion",
+      "name": "Watches",
+      "kind": "sub",
+      "key": "watches",
+      "target": "categories/sub/watches.webp",
+      "shared_with_order": null,
+      "size": [
+        107,
+        134
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        107,
+        134
+      ],
+      "sha256": "f519366ae24b7d5a967b8b0bb1e95b345511001695596a2c0994b4f566d04865"
+    },
+    {
+      "order": 51,
+      "sheet": "s1",
+      "row": 5,
+      "col": 0,
+      "category": "Fashion",
+      "name": "Sunglasses",
+      "kind": "sub",
+      "key": "sunglasses",
+      "target": "categories/sub/sunglasses.webp",
+      "shared_with_order": null,
+      "size": [
+        153,
+        77
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        153,
+        77
+      ],
+      "sha256": "fd5d2bee2f744ed3594aac8699a9b1b1fb4768828078025b213942f4baa35a7b"
+    },
+    {
+      "order": 52,
+      "sheet": "s1",
+      "row": 5,
+      "col": 1,
+      "category": "Fashion",
+      "name": "Fashion Accessories",
+      "kind": "sub",
+      "key": "fashion-accessories",
+      "target": "categories/sub/fashion-accessories.webp",
+      "shared_with_order": null,
+      "size": [
+        147,
+        128
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        147,
+        128
+      ],
+      "sha256": "e2b27618d905cbacacf801bf91cb1eb71bda785a437faad7187f215e059f8510"
+    },
+    {
+      "order": 53,
+      "sheet": "s1",
+      "row": 5,
+      "col": 2,
+      "category": "Fashion",
+      "name": "Tailoring & Custom",
+      "kind": "sub",
+      "key": "tailoring-custom",
+      "target": "categories/sub/tailoring-custom.webp",
+      "shared_with_order": null,
+      "size": [
+        138,
+        125
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        138,
+        125
+      ],
+      "sha256": "3f9643e76454c1db114421f5264dbc3eb1b56212f58e14d666b99bef9214c2c1"
+    },
+    {
+      "order": 54,
+      "sheet": "s1",
+      "row": 5,
+      "col": 3,
+      "category": "Fashion",
+      "name": "Bags & Leather Goods",
+      "kind": "sub",
+      "key": "bags-leather-goods",
+      "target": "categories/sub/bags-leather-goods.webp",
+      "shared_with_order": null,
+      "size": [
+        132,
+        124
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        132,
+        124
+      ],
+      "sha256": "8fa5abedefbe0764c530113ba4cedc5ef934ededd64bd4451c18386b65eade3d"
+    },
+    {
+      "order": 55,
+      "sheet": "s1",
+      "row": 5,
+      "col": 4,
+      "category": "Fashion",
+      "name": "Luxury Fashion",
+      "kind": "sub",
+      "key": "luxury-fashion",
+      "target": "categories/sub/luxury-fashion.webp",
+      "shared_with_order": null,
+      "size": [
+        133,
+        129
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        133,
+        129
+      ],
+      "sha256": "60610b540c275568de0d6afd6e358dd3075051235d364a05957bc4a1c83604b3"
+    },
+    {
+      "order": 56,
+      "sheet": "s1",
+      "row": 5,
+      "col": 5,
+      "category": "Entertainment",
+      "name": "Experiences",
+      "kind": "group",
+      "key": "entertainment-events--experiences",
+      "target": "categories/group/entertainment-events--experiences.webp",
+      "shared_with_order": null,
+      "size": [
+        155,
+        122
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        155,
+        122
+      ],
+      "sha256": "518eab1e035e293aa0c8825a1c3d3b8af27b1d335b67214fb29c38945ae3136a"
+    },
+    {
+      "order": 57,
+      "sheet": "s1",
+      "row": 5,
+      "col": 6,
+      "category": "Entertainment",
+      "name": "Gaming & Activities",
+      "kind": "group",
+      "key": "entertainment-events--gaming-activities",
+      "target": "categories/group/entertainment-events--gaming-activities.webp",
+      "shared_with_order": null,
+      "size": [
+        147,
+        104
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        147,
+        104
+      ],
+      "sha256": "82d8c2bcd23d15f5a6515676670d2b30b761d45fd6e45bed0d71f13bcf3b3f1b"
+    },
+    {
+      "order": 58,
+      "sheet": "s1",
+      "row": 5,
+      "col": 7,
+      "category": "Entertainment",
+      "name": "Family Entertainment",
+      "kind": "group",
+      "key": "entertainment-events--family-entertainment",
+      "target": "categories/group/entertainment-events--family-entertainment.webp",
+      "shared_with_order": null,
+      "size": [
+        131,
+        128
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        131,
+        128
+      ],
+      "sha256": "14296071b5be88d2fa48fba42cfc05e760e582e1c918a887182a731324bbcf44"
+    },
+    {
+      "order": 59,
+      "sheet": "s1",
+      "row": 5,
+      "col": 8,
+      "category": "Entertainment",
+      "name": "Venues",
+      "kind": "group",
+      "key": "entertainment-events--venues",
+      "target": "categories/group/entertainment-events--venues.webp",
+      "shared_with_order": null,
+      "size": [
+        151,
+        117
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        151,
+        117
+      ],
+      "sha256": "98a71e6e10b74442b3b80ad04e24ac17a6acdcf1ec0a4ad0b5dc9f010e025e1f"
+    },
+    {
+      "order": 60,
+      "sheet": "s1",
+      "row": 5,
+      "col": 9,
+      "category": "Entertainment",
+      "name": "Artists & Performers",
+      "kind": "group",
+      "key": "entertainment-events--artists-performers",
+      "target": "categories/group/entertainment-events--artists-performers.webp",
+      "shared_with_order": null,
+      "size": [
+        153,
+        123
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        153,
+        123
+      ],
+      "sha256": "ffdad8219d9e52755031a6ff495066ce56ba8ccd20f266ede28c8bf0198285b8"
+    },
+    {
+      "order": 61,
+      "sheet": "s1",
+      "row": 6,
+      "col": 0,
+      "category": "Entertainment",
+      "name": "Cinema",
+      "kind": "sub",
+      "key": "cinema",
+      "target": "categories/sub/cinema.webp",
+      "shared_with_order": null,
+      "size": [
+        151,
+        142
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        151,
+        142
+      ],
+      "sha256": "eb46c3fbcc8e5971a3b1de72b97e2687b3aa21e86392b953f13e6d3e07724e14"
+    },
+    {
+      "order": 62,
+      "sheet": "s1",
+      "row": 6,
+      "col": 1,
+      "category": "Entertainment",
+      "name": "Theatre",
+      "kind": "sub",
+      "key": "theatre",
+      "target": "categories/sub/theatre.webp",
+      "shared_with_order": null,
+      "size": [
+        142,
+        128
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        142,
+        128
+      ],
+      "sha256": "502377d1acfb7f1488048085ffacb9d53935f9cff3dcaa0f8f1ba2c2d9b025b7"
+    },
+    {
+      "order": 63,
+      "sheet": "s1",
+      "row": 6,
+      "col": 2,
+      "category": "Entertainment",
+      "name": "Stand-up Comedy",
+      "kind": "sub",
+      "key": "stand-up-comedy",
+      "target": "categories/sub/stand-up-comedy.webp",
+      "shared_with_order": null,
+      "size": [
+        140,
+        133
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        140,
+        133
+      ],
+      "sha256": "5620588f66116a21ce72a7dcc4b4cfcc8deaa87e139913fbc6db6a6fc9d44198"
+    },
+    {
+      "order": 64,
+      "sheet": "s1",
+      "row": 6,
+      "col": 3,
+      "category": "Entertainment",
+      "name": "Cultural Events",
+      "kind": "sub",
+      "key": "cultural-events",
+      "target": "categories/sub/cultural-events.webp",
+      "shared_with_order": null,
+      "size": [
+        150,
+        133
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        150,
+        133
+      ],
+      "sha256": "847cf4e202dd65bbce5bf1e68d498c91930eacb186570ca08990a8f02686ab0f"
+    },
+    {
+      "order": 65,
+      "sheet": "s1",
+      "row": 6,
+      "col": 4,
+      "category": "Entertainment",
+      "name": "Exhibitions",
+      "kind": "sub",
+      "key": "exhibitions",
+      "target": "categories/sub/exhibitions.webp",
+      "shared_with_order": null,
+      "size": [
+        155,
+        133
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        155,
+        133
+      ],
+      "sha256": "515ced4342bdbfe8cf101886e994a66e526d22739081cf25096608fcab3effe8"
+    },
+    {
+      "order": 66,
+      "sheet": "s1",
+      "row": 6,
+      "col": 5,
+      "category": "Entertainment",
+      "name": "Escape Rooms",
+      "kind": "sub",
+      "key": "escape-rooms",
+      "target": "categories/sub/escape-rooms.webp",
+      "shared_with_order": null,
+      "size": [
+        134,
+        137
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        134,
+        137
+      ],
+      "sha256": "24a92f85506359970129cea4f0ca4dba182a789ec333ab170087ce5897e9fe8c"
+    },
+    {
+      "order": 67,
+      "sheet": "s1",
+      "row": 6,
+      "col": 6,
+      "category": "Entertainment",
+      "name": "VR Gaming",
+      "kind": "sub",
+      "key": "vr-gaming",
+      "target": "categories/sub/vr-gaming.webp",
+      "shared_with_order": null,
+      "size": [
+        150,
+        119
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        150,
+        119
+      ],
+      "sha256": "537da57e886a894fccf5bf17ae3173f8b3025442ee4f17ae016c083c81b5287d"
+    },
+    {
+      "order": 68,
+      "sheet": "s1",
+      "row": 6,
+      "col": 7,
+      "category": "Entertainment",
+      "name": "Arcades",
+      "kind": "sub",
+      "key": "arcades",
+      "target": "categories/sub/arcades.webp",
+      "shared_with_order": null,
+      "size": [
+        125,
+        137
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        125,
+        137
+      ],
+      "sha256": "4c296554c33e459818a4534f9d3d8b15881f76fcb0772e0953b6e97d9dbc3be9"
+    },
+    {
+      "order": 69,
+      "sheet": "s1",
+      "row": 6,
+      "col": 8,
+      "category": "Entertainment",
+      "name": "Bowling",
+      "kind": "sub",
+      "key": "bowling",
+      "target": "categories/sub/bowling.webp",
+      "shared_with_order": null,
+      "size": [
+        129,
+        130
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        129,
+        130
+      ],
+      "sha256": "0eb8eb41f4672b7cdfd7cc934d756eb3ce68274df145873ec26b0faabe6bc963"
+    },
+    {
+      "order": 70,
+      "sheet": "s1",
+      "row": 6,
+      "col": 9,
+      "category": "Entertainment",
+      "name": "Billiards",
+      "kind": "sub",
+      "key": "billiards",
+      "target": "categories/sub/billiards.webp",
+      "shared_with_order": null,
+      "size": [
+        150,
+        130
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        150,
+        130
+      ],
+      "sha256": "99bd526ad983b6dc27b15c00c4d1ca94312f8b9c5ae383daed4c7001dd6f40c5"
+    },
+    {
+      "order": 71,
+      "sheet": "s2",
+      "row": 0,
+      "col": 0,
+      "category": "Entertainment",
+      "name": "Indoor Playgrounds",
+      "kind": "sub",
+      "key": "indoor-playgrounds",
+      "target": "categories/sub/indoor-playgrounds.webp",
+      "shared_with_order": null,
+      "size": [
+        169,
+        171
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        169,
+        171
+      ],
+      "sha256": "e63a5a3d2da1b6257686d012c037fee087995f559208d893db596ad61278518f"
+    },
+    {
+      "order": 72,
+      "sheet": "s2",
+      "row": 0,
+      "col": 1,
+      "category": "Entertainment",
+      "name": "Family Activity Centers",
+      "kind": "sub",
+      "key": "family-activity-centers",
+      "target": "categories/sub/family-activity-centers.webp",
+      "shared_with_order": null,
+      "size": [
+        139,
+        145
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        139,
+        145
+      ],
+      "sha256": "11e90b589d2b08d31de9b859f259cb20b73f4048013c7cd3b5b6c7ae07a72eee"
+    },
+    {
+      "order": 73,
+      "sheet": "s2",
+      "row": 0,
+      "col": 2,
+      "category": "Entertainment",
+      "name": "Event Venues",
+      "kind": "sub",
+      "key": "event-venues",
+      "target": "categories/sub/event-venues.webp",
+      "shared_with_order": null,
+      "size": [
+        162,
+        163
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        162,
+        163
+      ],
+      "sha256": "c13330ae674ca0dc3274a32efadf3478a11f3de38dbbc5b9bcd10e9367748d86"
+    },
+    {
+      "order": 74,
+      "sheet": "s2",
+      "row": 0,
+      "col": 3,
+      "category": "Entertainment",
+      "name": "Concert Halls",
+      "kind": "sub",
+      "key": "concert-halls",
+      "target": "categories/sub/concert-halls.webp",
+      "shared_with_order": null,
+      "size": [
+        144,
+        147
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        144,
+        147
+      ],
+      "sha256": "85e960bd01a73e45d213f388ee13d1db6ba7bacea73ab43074b3601ed6179507"
+    },
+    {
+      "order": 75,
+      "sheet": "s2",
+      "row": 0,
+      "col": 4,
+      "category": "Entertainment",
+      "name": "DJs",
+      "kind": "sub",
+      "key": "djs",
+      "target": "categories/sub/djs.webp",
+      "shared_with_order": null,
+      "size": [
+        139,
+        149
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        139,
+        149
+      ],
+      "sha256": "aa023d009ddb1b1ea16bee91fe4e819a9bbe5ba5e9fb5df362f0094d55063165"
+    },
+    {
+      "order": 76,
+      "sheet": "s2",
+      "row": 0,
+      "col": 5,
+      "category": "Entertainment",
+      "name": "Bands",
+      "kind": "sub",
+      "key": "bands",
+      "target": "categories/sub/bands.webp",
+      "shared_with_order": null,
+      "size": [
+        161,
+        142
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        161,
+        142
+      ],
+      "sha256": "ca3dcdc7fac2a7d87b341fc18739cd8151b017144b71db40091ba70385208268"
+    },
+    {
+      "order": 77,
+      "sheet": "s2",
+      "row": 0,
+      "col": 6,
+      "category": "Entertainment",
+      "name": "Singers",
+      "kind": "sub",
+      "key": "singers",
+      "target": "categories/sub/singers.webp",
+      "shared_with_order": null,
+      "size": [
+        113,
+        158
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        113,
+        158
+      ],
+      "sha256": "dd2131a8127b0d9870828c83f4ae2d08c3724758f569273add5a43cab0afcbd4"
+    },
+    {
+      "order": 78,
+      "sheet": "s2",
+      "row": 0,
+      "col": 7,
+      "category": "Entertainment",
+      "name": "Comedians",
+      "kind": "sub",
+      "key": "comedians",
+      "target": "categories/sub/comedians.webp",
+      "shared_with_order": null,
+      "size": [
+        136,
+        140
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        136,
+        140
+      ],
+      "sha256": "f0fcb0947e4217b09543b72db72521fe6c4d5ce2f8b87c83d94cb1e7f4d58d19"
+    },
+    {
+      "order": 79,
+      "sheet": "s2",
+      "row": 0,
+      "col": 8,
+      "category": "Entertainment",
+      "name": "Magicians",
+      "kind": "sub",
+      "key": "magicians",
+      "target": "categories/sub/magicians.webp",
+      "shared_with_order": null,
+      "size": [
+        137,
+        147
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        137,
+        147
+      ],
+      "sha256": "6c2cd04010dc659f2d18149b18aedc3b74bc707d060d76d3b20c5d9e87cf97c3"
+    },
+    {
+      "order": 80,
+      "sheet": "s2",
+      "row": 0,
+      "col": 9,
+      "category": "Entertainment",
+      "name": "Dancers",
+      "kind": "sub",
+      "key": "dancers",
+      "target": "categories/sub/dancers.webp",
+      "shared_with_order": null,
+      "size": [
+        144,
+        158
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        144,
+        158
+      ],
+      "sha256": "8f7da871e92b19ada39c90b9f64d5636d6690beaf9dfbb8edd3e7dd8560750c2"
+    },
+    {
+      "order": 81,
+      "sheet": "s2",
+      "row": 1,
+      "col": 0,
+      "category": "Entertainment",
+      "name": "Actors",
+      "kind": "sub",
+      "key": "actors",
+      "target": "categories/sub/actors.webp",
+      "shared_with_order": null,
+      "size": [
+        164,
+        146
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        164,
+        146
+      ],
+      "sha256": "134fdeae30fe87ab8ee7d1188f6490fdc2c18829bbfd9f4212d93f48baa77b16"
+    },
+    {
+      "order": 82,
+      "sheet": "s2",
+      "row": 1,
+      "col": 1,
+      "category": "Entertainment",
+      "name": "MCs & Hosts",
+      "kind": "sub",
+      "key": "mcs-hosts",
+      "target": "categories/sub/mcs-hosts.webp",
+      "shared_with_order": null,
+      "size": [
+        142,
+        149
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        142,
+        149
+      ],
+      "sha256": "5bc243e55b3a78d58ce2e4e2fa63e36f1ab408ce6c208ec083981df75bf9ddcd"
+    },
+    {
+      "order": 83,
+      "sheet": "s2",
+      "row": 1,
+      "col": 2,
+      "category": "Entertainment",
+      "name": "Cultural Groups",
+      "kind": "sub",
+      "key": "cultural-groups",
+      "target": "categories/sub/cultural-groups.webp",
+      "shared_with_order": null,
+      "size": [
+        157,
+        149
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        157,
+        149
+      ],
+      "sha256": "43e7183abb16277cb2c773617f9d7aea1dff9010c13a60c995d8ae48bad426bd"
+    },
+    {
+      "order": 84,
+      "sheet": "s2",
+      "row": 1,
+      "col": 3,
+      "category": "Nightlife",
+      "name": "Bars",
+      "kind": "group",
+      "key": "nightlife-social--bars",
+      "target": "categories/group/nightlife-social--bars.webp",
+      "shared_with_order": null,
+      "size": [
+        147,
+        155
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        147,
+        155
+      ],
+      "sha256": "bf214061075ed23acb6a634e34a8dcf8175b8c04b63daf819c5b5ba1ce0f399b"
+    },
+    {
+      "order": 85,
+      "sheet": "s2",
+      "row": 1,
+      "col": 4,
+      "category": "Nightlife",
+      "name": "Music Venues",
+      "kind": "group",
+      "key": "nightlife-social--music-venues",
+      "target": "categories/group/nightlife-social--music-venues.webp",
+      "shared_with_order": null,
+      "size": [
+        151,
+        151
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        151,
+        151
+      ],
+      "sha256": "828051801a7830f474048f39d4d60fe19d0313a1f88a6d577d2d74df856f8ad2"
+    },
+    {
+      "order": 86,
+      "sheet": "s2",
+      "row": 1,
+      "col": 5,
+      "category": "Nightlife",
+      "name": "Clubs",
+      "kind": "group",
+      "key": "nightlife-social--clubs",
+      "target": "categories/group/nightlife-social--clubs.webp",
+      "shared_with_order": null,
+      "size": [
+        149,
+        154
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        149,
+        154
+      ],
+      "sha256": "c135ba03c28d7805f25ae67cf7f3d5f240ef3b23ced10652645fc1a3b01d369b"
+    },
+    {
+      "order": 87,
+      "sheet": "s2",
+      "row": 1,
+      "col": 6,
+      "category": "Nightlife",
+      "name": "Cocktail Bars",
+      "kind": "sub",
+      "key": "cocktail-bars",
+      "target": "categories/sub/cocktail-bars.webp",
+      "shared_with_order": null,
+      "size": [
+        124,
+        155
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        124,
+        155
+      ],
+      "sha256": "8988f66f88b2735cfa421df75b14fb872b801a9bbd1d4d6e4325cf4a18cef628"
+    },
+    {
+      "order": 88,
+      "sheet": "s2",
+      "row": 1,
+      "col": 7,
+      "category": "Nightlife",
+      "name": "Wine Bars",
+      "kind": "sub",
+      "key": "wine-bars",
+      "target": "categories/sub/wine-bars.webp",
+      "shared_with_order": null,
+      "size": [
+        98,
+        161
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        98,
+        161
+      ],
+      "sha256": "85bd1fac53b6a1d7f019800ba71c2ca161e6071f4056495245f22ae8c76dae94"
+    },
+    {
+      "order": 89,
+      "sheet": "s2",
+      "row": 1,
+      "col": 8,
+      "category": "Nightlife",
+      "name": "Beer Bars",
+      "kind": "sub",
+      "key": "beer-bars",
+      "target": "categories/sub/beer-bars.webp",
+      "shared_with_order": null,
+      "size": [
+        134,
+        145
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        134,
+        145
+      ],
+      "sha256": "9ce7f273d6aa73a812511885b923d6e93911ddcc6b3a9703a6eb38a20e0a1408"
+    },
+    {
+      "order": 90,
+      "sheet": "s2",
+      "row": 1,
+      "col": 9,
+      "category": "Nightlife",
+      "name": "Sports Bars",
+      "kind": "sub",
+      "key": "sports-bars",
+      "target": "categories/sub/sports-bars.webp",
+      "shared_with_order": null,
+      "size": [
+        157,
+        140
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        157,
+        140
+      ],
+      "sha256": "9a71bbeb867234843d987df5d6dae190913ff0687a430910106db8859d1d9362"
+    },
+    {
+      "order": 91,
+      "sheet": "s2",
+      "row": 2,
+      "col": 0,
+      "category": "Nightlife",
+      "name": "Rock Bars",
+      "kind": "sub",
+      "key": "rock-bars",
+      "target": "categories/sub/rock-bars.webp",
+      "shared_with_order": null,
+      "size": [
+        163,
+        164
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        163,
+        164
+      ],
+      "sha256": "05801348bf27e66568cafc0c93b3db25f55c62fbb8f4478ce53105f0b4b6eae8"
+    },
+    {
+      "order": 92,
+      "sheet": "s2",
+      "row": 2,
+      "col": 1,
+      "category": "Nightlife",
+      "name": "Jazz Bars",
+      "kind": "sub",
+      "key": "jazz-bars",
+      "target": "categories/sub/jazz-bars.webp",
+      "shared_with_order": null,
+      "size": [
+        135,
+        158
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        135,
+        158
+      ],
+      "sha256": "96f7b53f9b4db063a5c9d1826b045a53fd406b6bacce22782a8685adaac1461f"
+    },
+    {
+      "order": 93,
+      "sheet": "s2",
+      "row": 2,
+      "col": 2,
+      "category": "Nightlife",
+      "name": "Live Folk Music",
+      "kind": "sub",
+      "key": "live-folk-music",
+      "target": "categories/sub/live-folk-music.webp",
+      "shared_with_order": null,
+      "size": [
+        174,
+        159
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        174,
+        159
+      ],
+      "sha256": "317e7afe219140b99607e5b444beaa6822ec4ec986a697a3bb41166afd71303c"
+    },
+    {
+      "order": 94,
+      "sheet": "s2",
+      "row": 2,
+      "col": 3,
+      "category": "Nightlife",
+      "name": "Live Music Venues",
+      "kind": "sub",
+      "key": "live-music-venues",
+      "target": "categories/sub/live-music-venues.webp",
+      "shared_with_order": null,
+      "size": [
+        160,
+        158
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        160,
+        158
+      ],
+      "sha256": "c4057892719a345fab6c40f880bd01d0a012dd26add8ff90a2056116281a547b"
+    },
+    {
+      "order": 95,
+      "sheet": "s2",
+      "row": 2,
+      "col": 4,
+      "category": "Nightlife",
+      "name": "DJ Clubs",
+      "kind": "sub",
+      "key": "dj-clubs",
+      "target": "categories/sub/dj-clubs.webp",
+      "shared_with_order": null,
+      "size": [
+        145,
+        142
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        145,
+        142
+      ],
+      "sha256": "2ab4dac8a1bc81012cb219c8d95c03b7f25bfa4fa020501ae6999d80eaf92e72"
+    },
+    {
+      "order": 96,
+      "sheet": "s2",
+      "row": 2,
+      "col": 5,
+      "category": "Nightlife",
+      "name": "Dance Clubs",
+      "kind": "sub",
+      "key": "dance-clubs",
+      "target": "categories/sub/dance-clubs.webp",
+      "shared_with_order": null,
+      "size": [
+        146,
+        159
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        146,
+        159
+      ],
+      "sha256": "7c05292f27af4969c7f3529a965ef109ce61ef79a16d311405d7f63d07e4f973"
+    },
+    {
+      "order": 97,
+      "sheet": "s2",
+      "row": 2,
+      "col": 6,
+      "category": "Nightlife",
+      "name": "After Hours Clubs",
+      "kind": "sub",
+      "key": "after-hours-clubs",
+      "target": "categories/sub/after-hours-clubs.webp",
+      "shared_with_order": null,
+      "size": [
+        145,
+        160
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        145,
+        160
+      ],
+      "sha256": "98e6c5b7bc89938d7b6e30798a5e4261787036d682965bdb8f608e44b38cfde9"
+    },
+    {
+      "order": 98,
+      "sheet": "s2",
+      "row": 2,
+      "col": 7,
+      "category": "Professional",
+      "name": "Legal & Financial",
+      "kind": "group",
+      "key": "professional-services--legal-financial",
+      "target": "categories/group/professional-services--legal-financial.webp",
+      "shared_with_order": null,
+      "size": [
+        144,
+        148
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        144,
+        148
+      ],
+      "sha256": "bb97e9ade11941e2b18d5755d019082c5b1934f0c75ebe54eaa66a6eb2023683"
+    },
+    {
+      "order": 99,
+      "sheet": "s2",
+      "row": 2,
+      "col": 8,
+      "category": "Professional",
+      "name": "Consulting & Marketing",
+      "kind": "group",
+      "key": "professional-services--consulting-marketing",
+      "target": "categories/group/professional-services--consulting-marketing.webp",
+      "shared_with_order": null,
+      "size": [
+        140,
+        159
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        140,
+        159
+      ],
+      "sha256": "e145f0bd3fd98d5c336f4bd2ea34eb40d4d529a6831493fc2ee1576aebc5f88b"
+    },
+    {
+      "order": 100,
+      "sheet": "s2",
+      "row": 2,
+      "col": 9,
+      "category": "Professional",
+      "name": "Tech & IT",
+      "kind": "group",
+      "key": "professional-services--tech-it",
+      "target": "categories/group/professional-services--tech-it.webp",
+      "shared_with_order": null,
+      "size": [
+        164,
+        153
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        164,
+        153
+      ],
+      "sha256": "9d2bebb14d265df7d84525a32a9e722f8071d29ebc8481cef1cbce0d318d6112"
+    },
+    {
+      "order": 101,
+      "sheet": "s2",
+      "row": 3,
+      "col": 0,
+      "category": "Professional",
+      "name": "Real Estate",
+      "kind": "group",
+      "key": "professional-services--real-estate",
+      "target": "categories/group/professional-services--real-estate.webp",
+      "shared_with_order": null,
+      "size": [
+        166,
+        138
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        166,
+        138
+      ],
+      "sha256": "424e4e1774920ac753022f9a9ae811d6f0590570d50cfd82e7042105b3133ff5"
+    },
+    {
+      "order": 102,
+      "sheet": "s2",
+      "row": 3,
+      "col": 1,
+      "category": "Professional",
+      "name": "Law Firms",
+      "kind": "sub",
+      "key": "law-firms",
+      "target": "categories/sub/law-firms.webp",
+      "shared_with_order": null,
+      "size": [
+        141,
+        149
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        141,
+        149
+      ],
+      "sha256": "8e93c8082969400ed042784c1716d7df91afe1b0a5530758b179694d8134bbe3"
+    },
+    {
+      "order": 103,
+      "sheet": "s2",
+      "row": 3,
+      "col": 2,
+      "category": "Professional",
+      "name": "Accounting",
+      "kind": "sub",
+      "key": "accounting",
+      "target": "categories/sub/accounting.webp",
+      "shared_with_order": null,
+      "size": [
+        153,
+        135
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        153,
+        135
+      ],
+      "sha256": "bdd4b00dc14a4062006a2f4aa6f508e400ddb05e3490c665ee48e59f5ed3d23b"
+    },
+    {
+      "order": 104,
+      "sheet": "s2",
+      "row": 3,
+      "col": 3,
+      "category": "Professional",
+      "name": "Tax Services",
+      "kind": "sub",
+      "key": "tax-services",
+      "target": "categories/sub/tax-services.webp",
+      "shared_with_order": null,
+      "size": [
+        132,
+        146
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        132,
+        146
+      ],
+      "sha256": "94106264e8399f7a1c0382709c772b1aeeacd219cd8418600852b02d8ea56a1c"
+    },
+    {
+      "order": 105,
+      "sheet": "s2",
+      "row": 3,
+      "col": 4,
+      "category": "Professional",
+      "name": "Insurance",
+      "kind": "sub",
+      "key": "insurance",
+      "target": "categories/sub/insurance.webp",
+      "shared_with_order": null,
+      "size": [
+        128,
+        142
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        128,
+        142
+      ],
+      "sha256": "c1cbaf2e46adeda8e825abd84e4c7d779d7ea4af43a44e29c1c3032387369e4a"
+    },
+    {
+      "order": 106,
+      "sheet": "s2",
+      "row": 3,
+      "col": 5,
+      "category": "Professional",
+      "name": "Consulting",
+      "kind": "sub",
+      "key": "consulting",
+      "target": "categories/sub/consulting.webp",
+      "shared_with_order": null,
+      "size": [
+        149,
+        140
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        149,
+        140
+      ],
+      "sha256": "bd12ba4a7f3dcaa3a069ae514c517662609b069674aa39c129dd79653ccde064"
+    },
+    {
+      "order": 107,
+      "sheet": "s2",
+      "row": 3,
+      "col": 6,
+      "category": "Professional",
+      "name": "Marketing & Digital",
+      "kind": "sub",
+      "key": "marketing-digital",
+      "target": "categories/sub/marketing-digital.webp",
+      "shared_with_order": null,
+      "size": [
+        151,
+        138
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        151,
+        138
+      ],
+      "sha256": "0bea4740b17834f18a2e7b1b026d6f744e485c6d4e4476014dd3b9252959f1c0"
+    },
+    {
+      "order": 108,
+      "sheet": "s2",
+      "row": 3,
+      "col": 7,
+      "category": "Professional",
+      "name": "Translation Services",
+      "kind": "sub",
+      "key": "translation-services",
+      "target": "categories/sub/translation-services.webp",
+      "shared_with_order": null,
+      "size": [
+        142,
+        121
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        142,
+        121
+      ],
+      "sha256": "5fb04d1993219f362b70de95edeba17319371447cf6093da077a660411e48c83"
+    },
+    {
+      "order": 109,
+      "sheet": "s2",
+      "row": 3,
+      "col": 8,
+      "category": "Professional",
+      "name": "IT Services",
+      "kind": "sub",
+      "key": "it-services",
+      "target": "categories/sub/it-services.webp",
+      "shared_with_order": null,
+      "size": [
+        129,
+        129
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        129,
+        129
+      ],
+      "sha256": "96bbc247052e6f5dafa79607168d270df741462b331c4f6427ccc1090cb797a1"
+    },
+    {
+      "order": 110,
+      "sheet": "s2",
+      "row": 3,
+      "col": 9,
+      "category": "Professional",
+      "name": "Software Development",
+      "kind": "sub",
+      "key": "software-development",
+      "target": "categories/sub/software-development.webp",
+      "shared_with_order": null,
+      "size": [
+        149,
+        116
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        149,
+        116
+      ],
+      "sha256": "d6725d74e6bc4263293728b9a58826fa4b6c36ca3bc7aacd2beadd1f78750640"
+    },
+    {
+      "order": 111,
+      "sheet": "s2",
+      "row": 4,
+      "col": 0,
+      "category": "Professional",
+      "name": "Web Design",
+      "kind": "sub",
+      "key": "web-design",
+      "target": "categories/sub/web-design.webp",
+      "shared_with_order": null,
+      "size": [
+        147,
+        126
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        147,
+        126
+      ],
+      "sha256": "cfc4d0c5d2032c1ba64c31d0b4386af95dad6ecf6fed493d8e961f9c00859332"
+    },
+    {
+      "order": 112,
+      "sheet": "s2",
+      "row": 4,
+      "col": 1,
+      "category": "Professional",
+      "name": "Real Estate Agents",
+      "kind": "sub",
+      "key": "real-estate-agents",
+      "target": "categories/sub/real-estate-agents.webp",
+      "shared_with_order": null,
+      "size": [
+        145,
+        115
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        145,
+        115
+      ],
+      "sha256": "195315d301ebc72b0ed72308c219818ba003480d928851bcb4cf2a836ed1645a"
+    },
+    {
+      "order": 113,
+      "sheet": "s2",
+      "row": 4,
+      "col": 2,
+      "category": "Professional",
+      "name": "Property Management",
+      "kind": "sub",
+      "key": "property-management",
+      "target": "categories/sub/property-management.webp",
+      "shared_with_order": null,
+      "size": [
+        164,
+        135
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        164,
+        135
+      ],
+      "sha256": "d3797ba1136784bd4a2006de6cc28c7df96188d86fb614d5cd5158c03fec3511"
+    },
+    {
+      "order": 114,
+      "sheet": "s2",
+      "row": 4,
+      "col": 3,
+      "category": "Beauty",
+      "name": "Hair",
+      "kind": "group",
+      "key": "beauty-care--hair",
+      "target": "categories/group/beauty-care--hair.webp",
+      "shared_with_order": null,
+      "size": [
+        169,
+        130
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        169,
+        130
+      ],
+      "sha256": "4161f6ebf70a394bacc70db39b29a69675f772f83d24dc7dc056aa6f793ddcbe"
+    },
+    {
+      "order": 115,
+      "sheet": "s2",
+      "row": 4,
+      "col": 4,
+      "category": "Beauty",
+      "name": "Nails & Skin",
+      "kind": "group",
+      "key": "beauty-care--nails-skin",
+      "target": "categories/group/beauty-care--nails-skin.webp",
+      "shared_with_order": null,
+      "size": [
+        168,
+        118
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        168,
+        118
+      ],
+      "sha256": "a7d4bf1b2aaea94a8710e92cd768f8394429b55cac9a3158251258fa2103cedd"
+    },
+    {
+      "order": 116,
+      "sheet": "s2",
+      "row": 4,
+      "col": 5,
+      "category": "Beauty",
+      "name": "Wellness",
+      "kind": "group",
+      "key": "beauty-care--wellness-beauty",
+      "target": "categories/group/beauty-care--wellness-beauty.webp",
+      "shared_with_order": null,
+      "size": [
+        167,
+        118
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        167,
+        118
+      ],
+      "sha256": "4c5c64e9e59ad3cf2b177d35e2535b22575f633e5724047870170aa0ae679a9a"
+    },
+    {
+      "order": 117,
+      "sheet": "s2",
+      "row": 4,
+      "col": 6,
+      "category": "Beauty",
+      "name": "Hair Salons",
+      "kind": "sub",
+      "key": "hair-salons",
+      "target": "categories/sub/hair-salons.webp",
+      "shared_with_order": null,
+      "size": [
+        164,
+        121
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        164,
+        121
+      ],
+      "sha256": "9f030cdf5dc2bb25fbee36114520fd7eb611d48950a556302ff1e09d4b17666f"
+    },
+    {
+      "order": 118,
+      "sheet": "s2",
+      "row": 4,
+      "col": 7,
+      "category": "Beauty",
+      "name": "Barbershops",
+      "kind": "sub",
+      "key": "barbershops",
+      "target": "categories/sub/barbershops.webp",
+      "shared_with_order": null,
+      "size": [
+        157,
+        136
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        157,
+        136
+      ],
+      "sha256": "a31b02acb3cac5acf9ea44ec5f75f65957c58b5428218321424eb70139403fac"
+    },
+    {
+      "order": 119,
+      "sheet": "s2",
+      "row": 4,
+      "col": 8,
+      "category": "Beauty",
+      "name": "Nail Salons",
+      "kind": "sub",
+      "key": "nail-salons",
+      "target": "categories/sub/nail-salons.webp",
+      "shared_with_order": null,
+      "size": [
+        157,
+        126
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        157,
+        126
+      ],
+      "sha256": "9d526b6a68a7186c4c1a0cd24c3fb406b87a58e32dbad6d2174e606daef75d81"
+    },
+    {
+      "order": 120,
+      "sheet": "s2",
+      "row": 4,
+      "col": 9,
+      "category": "Beauty",
+      "name": "Dermatology & Laser",
+      "kind": "sub",
+      "key": "dermatology-laser",
+      "target": "categories/sub/dermatology-laser.webp",
+      "shared_with_order": null,
+      "size": [
+        155,
+        121
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        155,
+        121
+      ],
+      "sha256": "70acd549618617f0a5409372bfd4a3ee9b98315476d32e63a25dec6b831b2b71"
+    },
+    {
+      "order": 121,
+      "sheet": "s2",
+      "row": 5,
+      "col": 0,
+      "category": "Beauty",
+      "name": "Facial & Body Treatments",
+      "kind": "sub",
+      "key": "facial-body-treatments",
+      "target": "categories/sub/facial-body-treatments.webp",
+      "shared_with_order": null,
+      "size": [
+        139,
+        121
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        139,
+        121
+      ],
+      "sha256": "5c1327a756331002ab08243619c635b910da1f8db2a0811ea3b1ff571dcdaf39"
+    },
+    {
+      "order": 122,
+      "sheet": "s2",
+      "row": 5,
+      "col": 1,
+      "category": "Beauty",
+      "name": "Spas",
+      "kind": "sub",
+      "key": "spas",
+      "target": "categories/sub/spas.webp",
+      "shared_with_order": null,
+      "size": [
+        164,
+        121
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        164,
+        121
+      ],
+      "sha256": "f00212a80bfa39be753860d7250e6e36d2fc626298d98cb6aa90d674080359d1"
+    },
+    {
+      "order": 123,
+      "sheet": "s2",
+      "row": 5,
+      "col": 2,
+      "category": "Beauty",
+      "name": "Makeup Services",
+      "kind": "sub",
+      "key": "makeup-services",
+      "target": "categories/sub/makeup-services.webp",
+      "shared_with_order": null,
+      "size": [
+        157,
+        118
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        157,
+        118
+      ],
+      "sha256": "5a3066dd0b2913db358189fe77ee94e68a7396e82659cc718cd8b691854a85f1"
+    },
+    {
+      "order": 124,
+      "sheet": "s2",
+      "row": 5,
+      "col": 3,
+      "category": "Beauty",
+      "name": "Tanning Salons",
+      "kind": "sub",
+      "key": "tanning-salons",
+      "target": "categories/sub/tanning-salons.webp",
+      "shared_with_order": null,
+      "size": [
+        146,
+        105
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        146,
+        105
+      ],
+      "sha256": "aaab349219784ab16859d6a558b07d694217ef862bb1982cb12f0e8e97031ca4"
+    },
+    {
+      "order": 125,
+      "sheet": "s2",
+      "row": 5,
+      "col": 4,
+      "category": "Education",
+      "name": "Academic",
+      "kind": "group",
+      "key": "education-creativity--academic",
+      "target": "categories/group/education-creativity--academic.webp",
+      "shared_with_order": null,
+      "size": [
+        128,
+        116
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        128,
+        116
+      ],
+      "sha256": "e61b07a0d0a07303454bf08b07caa9460f69548d9584f9132b774969c4263c12"
+    },
+    {
+      "order": 126,
+      "sheet": "s2",
+      "row": 5,
+      "col": 5,
+      "category": "Education",
+      "name": "Creative",
+      "kind": "group",
+      "key": "education-creativity--creative",
+      "target": "categories/group/education-creativity--creative.webp",
+      "shared_with_order": null,
+      "size": [
+        125,
+        121
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        125,
+        121
+      ],
+      "sha256": "56a971ecb5a8810575f5aa220eaa84979c7ee49fc3f1cbd8374bf0003316db79"
+    },
+    {
+      "order": 127,
+      "sheet": "s2",
+      "row": 5,
+      "col": 6,
+      "category": "Education",
+      "name": "Tutoring",
+      "kind": "sub",
+      "key": "tutoring",
+      "target": "categories/sub/tutoring.webp",
+      "shared_with_order": null,
+      "size": [
+        153,
+        108
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        153,
+        108
+      ],
+      "sha256": "07c1a454040e7e7ba6105f174799da338d603adad51c72f3c239ada778c44fcf"
+    },
+    {
+      "order": 128,
+      "sheet": "s2",
+      "row": 5,
+      "col": 7,
+      "category": "Education",
+      "name": "Language Schools",
+      "kind": "sub",
+      "key": "language-schools",
+      "target": "categories/sub/language-schools.webp",
+      "shared_with_order": null,
+      "size": [
+        138,
+        124
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        138,
+        124
+      ],
+      "sha256": "adce3d4b2d50973ed6202380fafd23b759d0558f70f1eeed0367cdbc98b94d09"
+    },
+    {
+      "order": 129,
+      "sheet": "s2",
+      "row": 5,
+      "col": 8,
+      "category": "Food",
+      "name": "Restaurant Types",
+      "kind": "group",
+      "key": "food-dining--restaurant-types",
+      "target": "categories/group/food-dining--restaurant-types.webp",
+      "shared_with_order": null,
+      "size": [
+        148,
+        117
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        148,
+        117
+      ],
+      "sha256": "09410c009ca095827ae3100b727f0ac724876f5342659adf7ebacfbc3435d8cc"
+    },
+    {
+      "order": 130,
+      "sheet": "s2",
+      "row": 5,
+      "col": 9,
+      "category": "Food",
+      "name": "Cuisine",
+      "kind": "group",
+      "key": "food-dining--cuisine",
+      "target": "categories/group/food-dining--cuisine.webp",
+      "shared_with_order": null,
+      "size": [
+        116,
+        124
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        116,
+        124
+      ],
+      "sha256": "310fd9822800624e4f314dee57e6600c51a6e6093f7881f84293cf247b63c227"
+    },
+    {
+      "order": 131,
+      "sheet": "s2",
+      "row": 6,
+      "col": 0,
+      "category": "Food",
+      "name": "Specialty",
+      "kind": "group",
+      "key": "food-dining--specialty",
+      "target": "categories/group/food-dining--specialty.webp",
+      "shared_with_order": null,
+      "size": [
+        143,
+        109
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        143,
+        109
+      ],
+      "sha256": "6f0f785fc89354f377daed40be8ebc033ab96149ef0e6f9c626656ffc902efb2"
+    },
+    {
+      "order": 132,
+      "sheet": "s2",
+      "row": 6,
+      "col": 1,
+      "category": "Food",
+      "name": "Drinks & Cafes",
+      "kind": "group",
+      "key": "food-dining--drinks-cafes",
+      "target": "categories/group/food-dining--drinks-cafes.webp",
+      "shared_with_order": null,
+      "size": [
+        143,
+        120
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        143,
+        120
+      ],
+      "sha256": "9b0a962b4c8a41ee0ca9b47d8a760eb9002b03a3df19835a0016cab99840629e"
+    },
+    {
+      "order": 133,
+      "sheet": "s2",
+      "row": 6,
+      "col": 2,
+      "category": "Food",
+      "name": "Casual Dining",
+      "kind": "sub",
+      "key": "casual-dining",
+      "target": "categories/sub/casual-dining.webp",
+      "shared_with_order": null,
+      "size": [
+        154,
+        112
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        154,
+        112
+      ],
+      "sha256": "92d502332e3627c9ca033324dc82287f178038a682d2ac6238c513aa97bcbe50"
+    },
+    {
+      "order": 134,
+      "sheet": "s2",
+      "row": 6,
+      "col": 3,
+      "category": "Food",
+      "name": "Fine Dining",
+      "kind": "sub",
+      "key": "fine-dining",
+      "target": "categories/sub/fine-dining.webp",
+      "shared_with_order": null,
+      "size": [
+        153,
+        117
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        153,
+        117
+      ],
+      "sha256": "6cd709c27104f1a31fb257675b63fe0a6618771a015ad84bbf890c0026565088"
+    },
+    {
+      "order": 135,
+      "sheet": "s2",
+      "row": 6,
+      "col": 4,
+      "category": "Food",
+      "name": "Fast Casual",
+      "kind": "sub",
+      "key": "fast-casual",
+      "target": "categories/sub/fast-casual.webp",
+      "shared_with_order": null,
+      "size": [
+        139,
+        116
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        139,
+        116
+      ],
+      "sha256": "fd8668aadf3fd8efb6f478b5e76230aa2553a06b761ff2cd867cf3e558b06d1f"
+    },
+    {
+      "order": 136,
+      "sheet": "s2",
+      "row": 6,
+      "col": 5,
+      "category": "Food",
+      "name": "Buffet",
+      "kind": "sub",
+      "key": "buffet",
+      "target": "categories/sub/buffet.webp",
+      "shared_with_order": null,
+      "size": [
+        151,
+        104
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        151,
+        104
+      ],
+      "sha256": "a48618f8e741687bb1195027873051c1386087e21815676df68ff38977fccba9"
+    },
+    {
+      "order": 137,
+      "sheet": "s2",
+      "row": 6,
+      "col": 6,
+      "category": "Food",
+      "name": "Food Courts",
+      "kind": "sub",
+      "key": "food-courts",
+      "target": "categories/sub/food-courts.webp",
+      "shared_with_order": null,
+      "size": [
+        145,
+        107
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        145,
+        107
+      ],
+      "sha256": "9ef7e1e9548dc4bcec0e6b3388dd9e60af0b9b8bb1d19e675408bb28252591c6"
+    },
+    {
+      "order": 138,
+      "sheet": "s2",
+      "row": 6,
+      "col": 7,
+      "category": "Food",
+      "name": "Italian",
+      "kind": "sub",
+      "key": "italian",
+      "target": "categories/sub/italian.webp",
+      "shared_with_order": null,
+      "size": [
+        144,
+        112
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        144,
+        112
+      ],
+      "sha256": "0956b272c89830189605105513f5df82adf8c38953aa35e54e56d843f0b548e4"
+    },
+    {
+      "order": 139,
+      "sheet": "s2",
+      "row": 6,
+      "col": 8,
+      "category": "Food",
+      "name": "Asian",
+      "kind": "sub",
+      "key": "asian",
+      "target": "categories/sub/asian.webp",
+      "shared_with_order": null,
+      "size": [
+        133,
+        120
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        133,
+        120
+      ],
+      "sha256": "dd2e2d6a109ec3ddd6dbdf999d6b4b822a57a02c6af2636f4ed1dc13e86e5486"
+    },
+    {
+      "order": 140,
+      "sheet": "s2",
+      "row": 6,
+      "col": 9,
+      "category": "Food",
+      "name": "Greek",
+      "kind": "sub",
+      "key": "greek",
+      "target": "categories/sub/greek.webp",
+      "shared_with_order": null,
+      "size": [
+        151,
+        115
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        151,
+        115
+      ],
+      "sha256": "ec484a9e150fe920e6353a8371c05436450ce4bbbe0fa27d9274cc02ae7ee509"
+    },
+    {
+      "order": 141,
+      "sheet": "s3",
+      "row": 0,
+      "col": 0,
+      "category": "Food",
+      "name": "Balkan",
+      "kind": "sub",
+      "key": "balkan",
+      "target": "categories/sub/balkan.webp",
+      "shared_with_order": null,
+      "size": [
+        175,
+        155
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        175,
+        155
+      ],
+      "sha256": "1204a8aca9403edb4d71f3b8d38ac4ec709715601099e2fb981a910b6cc54cf4"
+    },
+    {
+      "order": 142,
+      "sheet": "s3",
+      "row": 0,
+      "col": 1,
+      "category": "Food",
+      "name": "German",
+      "kind": "sub",
+      "key": "german",
+      "target": "categories/sub/german.webp",
+      "shared_with_order": null,
+      "size": [
+        176,
+        166
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        176,
+        166
+      ],
+      "sha256": "162015dd96c1543eaacc8661824031f6484c20aadde3158f37761235a8e15929"
+    },
+    {
+      "order": 143,
+      "sheet": "s3",
+      "row": 0,
+      "col": 2,
+      "category": "Food",
+      "name": "African",
+      "kind": "sub",
+      "key": "african",
+      "target": "categories/sub/african.webp",
+      "shared_with_order": null,
+      "size": [
+        164,
+        162
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        164,
+        162
+      ],
+      "sha256": "660d34853140720ca575ec0a4aca06394ade8c23a97becb3b274df2b0e1c0700"
+    },
+    {
+      "order": 144,
+      "sheet": "s3",
+      "row": 0,
+      "col": 3,
+      "category": "Food",
+      "name": "American",
+      "kind": "sub",
+      "key": "american",
+      "target": "categories/sub/american.webp",
+      "shared_with_order": null,
+      "size": [
+        168,
+        164
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        168,
+        164
+      ],
+      "sha256": "37f4edae56a3f919ca57097a5149de51af0fbf3c27630e16a278ff18689d5eba"
+    },
+    {
+      "order": 145,
+      "sheet": "s3",
+      "row": 0,
+      "col": 4,
+      "category": "Food",
+      "name": "Arabic",
+      "kind": "sub",
+      "key": "arabic",
+      "target": "categories/sub/arabic.webp",
+      "shared_with_order": null,
+      "size": [
+        161,
+        166
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        161,
+        166
+      ],
+      "sha256": "43b65587e4e253400dd70dadd8e285a233c42526145459f055225c4496bfbd81"
+    },
+    {
+      "order": 146,
+      "sheet": "s3",
+      "row": 0,
+      "col": 5,
+      "category": "Food",
+      "name": "Japanese",
+      "kind": "sub",
+      "key": "japanese",
+      "target": "categories/sub/japanese.webp",
+      "shared_with_order": null,
+      "size": [
+        177,
+        162
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        177,
+        162
+      ],
+      "sha256": "f81c2a7d6e3366e84cfc0fcb240787d9a5d8e01ec9174db29fd7e5de2c89b05d"
+    },
+    {
+      "order": 147,
+      "sheet": "s3",
+      "row": 0,
+      "col": 6,
+      "category": "Food",
+      "name": "Chinese",
+      "kind": "sub",
+      "key": "chinese",
+      "target": "categories/sub/chinese.webp",
+      "shared_with_order": null,
+      "size": [
+        164,
+        149
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        164,
+        149
+      ],
+      "sha256": "ade957d773b769ef215607e1540b78b0d2ba65751b5169ef375cb1d086cfff9b"
+    },
+    {
+      "order": 148,
+      "sheet": "s3",
+      "row": 0,
+      "col": 7,
+      "category": "Food",
+      "name": "Korean",
+      "kind": "sub",
+      "key": "korean",
+      "target": "categories/sub/korean.webp",
+      "shared_with_order": null,
+      "size": [
+        171,
+        156
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        171,
+        156
+      ],
+      "sha256": "9b475d895d5646c808eb789484272a7d842ac40376732d83498bbbdea44d920a"
+    },
+    {
+      "order": 149,
+      "sheet": "s3",
+      "row": 1,
+      "col": 0,
+      "category": "Food",
+      "name": "Thai",
+      "kind": "sub",
+      "key": "thai",
+      "target": "categories/sub/thai.webp",
+      "shared_with_order": null,
+      "size": [
+        178,
+        161
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        178,
+        161
+      ],
+      "sha256": "6f302e293e5d7273c956e977e41061caa03b83e70d27af7dcf316e8d25672672"
+    },
+    {
+      "order": 150,
+      "sheet": "s3",
+      "row": 1,
+      "col": 1,
+      "category": "Food",
+      "name": "Mexican",
+      "kind": "sub",
+      "key": "mexican",
+      "target": "categories/sub/mexican.webp",
+      "shared_with_order": null,
+      "size": [
+        184,
+        141
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        184,
+        141
+      ],
+      "sha256": "de9a3f1981223c805298c94be044ce72ba2875f4b77a835b484da6b551677467"
+    },
+    {
+      "order": 151,
+      "sheet": "s3",
+      "row": 1,
+      "col": 2,
+      "category": "Food",
+      "name": "Indian",
+      "kind": "sub",
+      "key": "indian",
+      "target": "categories/sub/indian.webp",
+      "shared_with_order": null,
+      "size": [
+        170,
+        157
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        170,
+        157
+      ],
+      "sha256": "911b8c571759a5d1f9c32c217ed93143fa58dde2f13bae56f29237722696a4ed"
+    },
+    {
+      "order": 152,
+      "sheet": "s3",
+      "row": 1,
+      "col": 3,
+      "category": "Food",
+      "name": "Mediterranean",
+      "kind": "sub",
+      "key": "mediterranean",
+      "target": "categories/sub/mediterranean.webp",
+      "shared_with_order": null,
+      "size": [
+        180,
+        156
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        180,
+        156
+      ],
+      "sha256": "824009c82d726365ed9e994d40b6ff2eb65d6cb474a09656a03164a9252def6e"
+    },
+    {
+      "order": 153,
+      "sheet": "s3",
+      "row": 1,
+      "col": 4,
+      "category": "Food",
+      "name": "Seafood",
+      "kind": "sub",
+      "key": "seafood",
+      "target": "categories/sub/seafood.webp",
+      "shared_with_order": null,
+      "size": [
+        179,
+        142
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        179,
+        142
+      ],
+      "sha256": "4a276d014b0f51e39259c21c83fa7eee0962890b5c300349d3166475522a3d02"
+    },
+    {
+      "order": 154,
+      "sheet": "s3",
+      "row": 1,
+      "col": 5,
+      "category": "Food",
+      "name": "Steakhouse",
+      "kind": "sub",
+      "key": "steakhouse",
+      "target": "categories/sub/steakhouse.webp",
+      "shared_with_order": null,
+      "size": [
+        180,
+        149
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        180,
+        149
+      ],
+      "sha256": "e476d63ed6650c588b89e51ae1773ce08afc82898fc16a6b4db699eeea0745df"
+    },
+    {
+      "order": 155,
+      "sheet": "s3",
+      "row": 1,
+      "col": 6,
+      "category": "Food",
+      "name": "Vegan",
+      "kind": "sub",
+      "key": "vegan",
+      "target": "categories/sub/vegan.webp",
+      "shared_with_order": null,
+      "size": [
+        166,
+        154
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        166,
+        154
+      ],
+      "sha256": "5bd13fa8ccb65de936a7d08693474f1ea15cd544ce10fcfce1a1252df87893dc"
+    },
+    {
+      "order": 156,
+      "sheet": "s3",
+      "row": 1,
+      "col": 7,
+      "category": "Food",
+      "name": "Vegetarian",
+      "kind": "sub",
+      "key": "vegetarian",
+      "target": "categories/sub/vegetarian.webp",
+      "shared_with_order": null,
+      "size": [
+        172,
+        147
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        172,
+        147
+      ],
+      "sha256": "b2aeab22195f4dea04540df9cae9ba6ffd21b0726245b03aab038e7bdf61b93b"
+    },
+    {
+      "order": 157,
+      "sheet": "s3",
+      "row": 2,
+      "col": 0,
+      "category": "Food",
+      "name": "Brunch",
+      "kind": "sub",
+      "key": "brunch",
+      "target": "categories/sub/brunch.webp",
+      "shared_with_order": null,
+      "size": [
+        187,
+        155
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        187,
+        155
+      ],
+      "sha256": "d2883da0e6a4d62f6d95879d310783a14f51be1b519bccce1e467f72c9762371"
+    },
+    {
+      "order": 158,
+      "sheet": "s3",
+      "row": 2,
+      "col": 1,
+      "category": "Food",
+      "name": "Pizza",
+      "kind": "sub",
+      "key": "pizza",
+      "target": "categories/sub/pizza.webp",
+      "shared_with_order": null,
+      "size": [
+        183,
+        152
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        183,
+        152
+      ],
+      "sha256": "f75d2e36018088fbf21182c760757abeb89e5fd104c48d72118d494f9ef0482d"
+    },
+    {
+      "order": 159,
+      "sheet": "s3",
+      "row": 2,
+      "col": 2,
+      "category": "Food",
+      "name": "Burger",
+      "kind": "sub",
+      "key": "burger",
+      "target": "categories/sub/burger.webp",
+      "shared_with_order": null,
+      "size": [
+        154,
+        147
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        154,
+        147
+      ],
+      "sha256": "d3d986f7424214d6c3cad6cfe34b7aa4e686fd91e2f95f38aa317b8b49527c35"
+    },
+    {
+      "order": 160,
+      "sheet": "s3",
+      "row": 2,
+      "col": 3,
+      "category": "Food",
+      "name": "Caf\u00e9s",
+      "kind": "sub",
+      "key": "cafes",
+      "target": "categories/sub/cafes.webp",
+      "shared_with_order": null,
+      "size": [
+        177,
+        150
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        177,
+        150
+      ],
+      "sha256": "841cd3d886ecddd9c3f9e34264e33b224eff0420b4538e944af3af2fd73e8499"
+    },
+    {
+      "order": 161,
+      "sheet": "s3",
+      "row": 2,
+      "col": 4,
+      "category": "Food",
+      "name": "Coffee Shops",
+      "kind": "sub",
+      "key": "coffee-shops",
+      "target": "categories/sub/coffee-shops.webp",
+      "shared_with_order": null,
+      "size": [
+        183,
+        151
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        183,
+        151
+      ],
+      "sha256": "a7cc98fad5a70a63d3cd5d35f0c782f0ac5f1292c3c655e813d87883cd35922c"
+    },
+    {
+      "order": 162,
+      "sheet": "s3",
+      "row": 2,
+      "col": 5,
+      "category": "Food",
+      "name": "Bakeries",
+      "kind": "sub",
+      "key": "bakeries",
+      "target": "categories/sub/bakeries.webp",
+      "shared_with_order": null,
+      "size": [
+        174,
+        163
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        174,
+        163
+      ],
+      "sha256": "bb508ff1c4a125fc503159dbe2a32476381056466af93ff1abe6bd6bbfc37cf6"
+    },
+    {
+      "order": 163,
+      "sheet": "s3",
+      "row": 2,
+      "col": 6,
+      "category": "Shopping",
+      "name": "Rentals",
+      "kind": "home",
+      "key": "rentals",
+      "target": "categories/home/rentals.webp",
+      "shared_with_order": null,
+      "size": [
+        167,
+        147
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        167,
+        147
+      ],
+      "sha256": "cf03f2e2c2f25c1810dfe6b3d62f67a34614a2f1d533aba3c0e5314b511aa9db"
+    },
+    {
+      "order": 164,
+      "sheet": "s3",
+      "row": 2,
+      "col": 7,
+      "category": "Shopping",
+      "name": "Hotels",
+      "kind": "home",
+      "key": "hotels",
+      "target": "categories/home/hotels.webp",
+      "shared_with_order": null,
+      "size": [
+        176,
+        167
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        176,
+        167
+      ],
+      "sha256": "92a1906005835523f6845308833812ebbf40d77cdc4ea8337588945dc8d8339e"
+    },
+    {
+      "order": 165,
+      "sheet": "s3",
+      "row": 3,
+      "col": 0,
+      "category": "Shopping",
+      "name": "Shopping & Retail",
+      "kind": "root",
+      "key": "shopping-retail",
+      "target": "categories/root/shopping-retail.webp",
+      "shared_with_order": null,
+      "size": [
+        220,
+        224
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        220,
+        224
+      ],
+      "sha256": "c9c7bff8cff58dcd97245f640de01b8f5cf5e3c3b4a5b629918591ec17dd8b18"
+    },
+    {
+      "order": 166,
+      "sheet": "s3",
+      "row": 3,
+      "col": 1,
+      "category": "Shopping",
+      "name": "Electronics",
+      "kind": "sub",
+      "key": "electronics",
+      "target": "categories/sub/electronics.webp",
+      "shared_with_order": null,
+      "size": [
+        175,
+        142
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        175,
+        142
+      ],
+      "sha256": "778d5c29f233ae7e6327f9a5083e5a396a1aa69aa949319f75f4d65c026c1fd3"
+    },
+    {
+      "order": 167,
+      "sheet": "s3",
+      "row": 3,
+      "col": 2,
+      "category": "Shopping",
+      "name": "Home Goods",
+      "kind": "sub",
+      "key": "home-goods",
+      "target": "categories/sub/home-goods.webp",
+      "shared_with_order": null,
+      "size": [
+        159,
+        146
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        159,
+        146
+      ],
+      "sha256": "2c1f2ca06067b885d3f16368a410df650cfdfd90396625bdda1df6beff2343e6"
+    },
+    {
+      "order": 168,
+      "sheet": "s3",
+      "row": 3,
+      "col": 3,
+      "category": "Shopping",
+      "name": "Furniture",
+      "kind": "sub",
+      "key": "furniture",
+      "target": "categories/sub/furniture.webp",
+      "shared_with_order": null,
+      "size": [
+        178,
+        143
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        178,
+        143
+      ],
+      "sha256": "b20b14ceef7027a7df2baf7445ccb4180641d1bc0b20a6e4aadfc415102a8a3e"
+    },
+    {
+      "order": 169,
+      "sheet": "s3",
+      "row": 3,
+      "col": 4,
+      "category": "Shopping",
+      "name": "Books & Stationery",
+      "kind": "sub",
+      "key": "books-stationery",
+      "target": "categories/sub/books-stationery.webp",
+      "shared_with_order": null,
+      "size": [
+        168,
+        142
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        168,
+        142
+      ],
+      "sha256": "84b437996cf65f896c0f6a12b8b5b0ac6ccde7737d6f01b86c6c88d009a1a52f"
+    },
+    {
+      "order": 170,
+      "sheet": "s3",
+      "row": 3,
+      "col": 5,
+      "category": "Shopping",
+      "name": "Florists",
+      "kind": "sub",
+      "key": "florists",
+      "target": "categories/sub/florists.webp",
+      "shared_with_order": null,
+      "size": [
+        161,
+        152
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        161,
+        152
+      ],
+      "sha256": "16d38f02ef0e340a83efe2fa585e026ed788c01c08a18cb5c46cf6c2c0fdc060"
+    },
+    {
+      "order": 171,
+      "sheet": "s3",
+      "row": 3,
+      "col": 6,
+      "category": "Shopping",
+      "name": "Gifts & Souvenirs",
+      "kind": "sub",
+      "key": "gifts-souvenirs",
+      "target": "categories/sub/gifts-souvenirs.webp",
+      "shared_with_order": null,
+      "size": [
+        174,
+        141
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        174,
+        141
+      ],
+      "sha256": "bdd12a029694c988c8ab18f6dcb1e36535c214957ffa54e0f9a97f1c95ceffc2"
+    },
+    {
+      "order": 172,
+      "sheet": "s3",
+      "row": 3,
+      "col": 7,
+      "category": "Vehicles",
+      "name": "Cars",
+      "kind": "group",
+      "key": "automotive--cars",
+      "target": "categories/group/automotive--cars.webp",
+      "shared_with_order": null,
+      "size": [
+        192,
+        116
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        192,
+        116
+      ],
+      "sha256": "959f68ae9400ab528db2f76e3d4273f43213f1cb65ca4f27c21e8be89f4fb836"
+    },
+    {
+      "order": 173,
+      "sheet": "s3",
+      "row": 4,
+      "col": 0,
+      "category": "Vehicles",
+      "name": "Motorcycles",
+      "kind": "group",
+      "key": "automotive--motorcycles",
+      "target": "categories/group/automotive--motorcycles.webp",
+      "shared_with_order": null,
+      "size": [
+        188,
+        133
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        188,
+        133
+      ],
+      "sha256": "d6ac1e2bc9573896a66c46edee03bdc5ec461b2e98e816b48a994d6298faf85a"
+    },
+    {
+      "order": 174,
+      "sheet": "s3",
+      "row": 4,
+      "col": 1,
+      "category": "Vehicles",
+      "name": "Shared Services",
+      "kind": "group",
+      "key": "automotive--shared-services",
+      "target": "categories/group/automotive--shared-services.webp",
+      "shared_with_order": null,
+      "size": [
+        137,
+        136
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        137,
+        136
+      ],
+      "sha256": "586d61def8714e2c0df31feb384a71d4843f9bfb68145f6b9b73f1290388fb30"
+    },
+    {
+      "order": 175,
+      "sheet": "s3",
+      "row": 4,
+      "col": 2,
+      "category": "Vehicles",
+      "name": "Car Dealers (new)",
+      "kind": "sub",
+      "key": "car-dealers",
+      "target": "categories/sub/car-dealers.webp",
+      "shared_with_order": null,
+      "size": [
+        183,
+        139
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        183,
+        139
+      ],
+      "sha256": "da7704c6b9142c386a5aa5a49cdd64265356dfefbbb6f29dbbfa278fc629c365"
+    },
+    {
+      "order": 176,
+      "sheet": "s3",
+      "row": 4,
+      "col": 3,
+      "category": "Vehicles",
+      "name": "Used Cars",
+      "kind": "sub",
+      "key": "used-cars",
+      "target": "categories/sub/used-cars.webp",
+      "shared_with_order": null,
+      "size": [
+        155,
+        110
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        155,
+        110
+      ],
+      "sha256": "774f7f66dd984bee346bbb2fa89dc49544b8f0a2a2deb2e5c5669503da69243b"
+    },
+    {
+      "order": 177,
+      "sheet": "s3",
+      "row": 4,
+      "col": 4,
+      "category": "Vehicles",
+      "name": "Car Rentals",
+      "kind": "sub",
+      "key": "car-rentals",
+      "target": "categories/sub/car-rentals.webp",
+      "shared_with_order": null,
+      "size": [
+        153,
+        135
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        153,
+        135
+      ],
+      "sha256": "59b546c9c080d1bc4b10da70b1f42187fecd9219d707649ee011a29b00611c4f"
+    },
+    {
+      "order": 178,
+      "sheet": "s3",
+      "row": 4,
+      "col": 5,
+      "category": "Vehicles",
+      "name": "Car Washes",
+      "kind": "sub",
+      "key": "car-washes",
+      "target": "categories/sub/car-washes.webp",
+      "shared_with_order": null,
+      "size": [
+        164,
+        126
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        164,
+        126
+      ],
+      "sha256": "2e58ac7e161737062fc3b0a8ad5be0f52643567516d5b66e1601e5bd490f0c72"
+    },
+    {
+      "order": 179,
+      "sheet": "s3",
+      "row": 4,
+      "col": 6,
+      "category": "Vehicles",
+      "name": "Repair Shops",
+      "kind": "sub",
+      "key": "repair-shops",
+      "target": "categories/sub/repair-shops.webp",
+      "shared_with_order": null,
+      "size": [
+        171,
+        137
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        171,
+        137
+      ],
+      "sha256": "f8db4beb2ea6fb2f2b4e8bb914c8316033c2119b1353144d4c84f22eceba8c3f"
+    },
+    {
+      "order": 180,
+      "sheet": "s3",
+      "row": 4,
+      "col": 7,
+      "category": "Vehicles",
+      "name": "Moto Dealers (new)",
+      "kind": "sub",
+      "key": "moto-dealers",
+      "target": "categories/sub/moto-dealers.webp",
+      "shared_with_order": null,
+      "size": [
+        181,
+        138
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        181,
+        138
+      ],
+      "sha256": "322cae2c8bfce11389aa61bbce183dc43aab9952896f80c3c508287f5e69bb25"
+    },
+    {
+      "order": 181,
+      "sheet": "s3",
+      "row": 5,
+      "col": 0,
+      "category": "Vehicles",
+      "name": "Used Motorcycles",
+      "kind": "sub",
+      "key": "moto-used",
+      "target": "categories/sub/moto-used.webp",
+      "shared_with_order": null,
+      "size": [
+        186,
+        129
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        186,
+        129
+      ],
+      "sha256": "0be2925cfea11ea91737d953851741ed0bcfea716ed0da25659c71b5c7a2d804"
+    },
+    {
+      "order": 182,
+      "sheet": "s3",
+      "row": 5,
+      "col": 1,
+      "category": "Vehicles",
+      "name": "Moto Rentals",
+      "kind": "sub",
+      "key": "moto-rentals",
+      "target": "categories/sub/moto-rentals.webp",
+      "shared_with_order": null,
+      "size": [
+        164,
+        132
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        164,
+        132
+      ],
+      "sha256": "4c2f5a7f77a0e1d45a9364693e4c8f44acad93ca3d315fe3d2dadd1c2e7440b4"
+    },
+    {
+      "order": 183,
+      "sheet": "s3",
+      "row": 5,
+      "col": 2,
+      "category": "Vehicles",
+      "name": "Moto Repair",
+      "kind": "sub",
+      "key": "moto-repair",
+      "target": "categories/sub/moto-repair.webp",
+      "shared_with_order": null,
+      "size": [
+        165,
+        133
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        165,
+        133
+      ],
+      "sha256": "02e2120afca09f5ccc8acee92ae392e86f68520accde74af811559e285867aa6"
+    },
+    {
+      "order": 184,
+      "sheet": "s3",
+      "row": 5,
+      "col": 3,
+      "category": "Vehicles",
+      "name": "Parts & Equipment",
+      "kind": "sub",
+      "key": "moto-parts",
+      "target": "categories/sub/moto-parts.webp",
+      "shared_with_order": null,
+      "size": [
+        178,
+        136
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        178,
+        136
+      ],
+      "sha256": "32a3681166f69d7888e012dd00fca76e91090e6773724ed67864b8ca085925f7"
+    },
+    {
+      "order": 185,
+      "sheet": "s3",
+      "row": 5,
+      "col": 4,
+      "category": "Vehicles",
+      "name": "Tire Shops",
+      "kind": "sub",
+      "key": "tire-shops",
+      "target": "categories/sub/tire-shops.webp",
+      "shared_with_order": null,
+      "size": [
+        145,
+        130
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        145,
+        130
+      ],
+      "sha256": "512a1baf4f59771bf9199e2ab2a40ad2ba8f7d70ba57138d15b559e357bfe853"
+    },
+    {
+      "order": 186,
+      "sheet": "s3",
+      "row": 5,
+      "col": 5,
+      "category": "Vehicles",
+      "name": "Washes",
+      "kind": "sub",
+      "key": "vehicle-washes",
+      "target": "categories/sub/vehicle-washes.webp",
+      "shared_with_order": null,
+      "size": [
+        165,
+        124
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        165,
+        124
+      ],
+      "sha256": "5027c42419f9a30547c8c929b769d68e0edcfa4939f31f8e858cae8753b3ebde"
+    },
+    {
+      "order": 187,
+      "sheet": "s3",
+      "row": 5,
+      "col": 6,
+      "category": "Vehicles",
+      "name": "Driving Schools",
+      "kind": "sub",
+      "key": "driving-schools",
+      "target": "categories/sub/driving-schools.webp",
+      "shared_with_order": null,
+      "size": [
+        192,
+        126
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        192,
+        126
+      ],
+      "sha256": "7c331e79e2c3f5e8f8dd3fcefeb10517b84f7f2b536df72cc6406ce2f50e9527"
+    },
+    {
+      "order": 188,
+      "sheet": "s3",
+      "row": 5,
+      "col": 7,
+      "category": "Vehicles",
+      "name": "Insurance",
+      "kind": "sub",
+      "key": "insurance-agencies",
+      "target": "categories/sub/insurance-agencies.webp",
+      "shared_with_order": null,
+      "size": [
+        177,
+        120
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        177,
+        120
+      ],
+      "sha256": "1bbdb000f70ca594190cb432303f9a1716ed20ba5abfcfb7954638ba74497b8c"
+    },
+    {
+      "order": 189,
+      "sheet": "s3",
+      "row": 6,
+      "col": 0,
+      "category": "Vehicles",
+      "name": "Financing / Leasing",
+      "kind": "sub",
+      "key": "leasing-financing",
+      "target": "categories/sub/leasing-financing.webp",
+      "shared_with_order": null,
+      "size": [
+        173,
+        148
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        173,
+        148
+      ],
+      "sha256": "0f0521cc9f852b59ef5b8dda6f2196db95c7f08b726c2c750044a65dfaf63093"
+    },
+    {
+      "order": 190,
+      "sheet": "s3",
+      "row": 6,
+      "col": 1,
+      "category": "Vehicles",
+      "name": "Roadside Assistance",
+      "kind": "sub",
+      "key": "roadside-assistance",
+      "target": "categories/sub/roadside-assistance.webp",
+      "shared_with_order": null,
+      "size": [
+        183,
+        126
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        183,
+        126
+      ],
+      "sha256": "f1ea76be7255287561ab167ec7e0c94490ce3aed7fd7906b5a7e2463c026bf04"
+    },
+    {
+      "order": 191,
+      "sheet": "s3",
+      "row": 6,
+      "col": 2,
+      "category": "Healthcare Pets",
+      "name": "Healthcare",
+      "kind": "root",
+      "key": "healthcare",
+      "target": "categories/root/healthcare.webp",
+      "shared_with_order": null,
+      "size": [
+        224,
+        221
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        224,
+        221
+      ],
+      "sha256": "2c707b3fd8f3493ccf10e88763e3ec7e4237aca7d1e46b5353f19ff2721ae5e0"
+    },
+    {
+      "order": 192,
+      "sheet": "s3",
+      "row": 6,
+      "col": 3,
+      "category": "Healthcare Pets",
+      "name": "Pets",
+      "kind": "root",
+      "key": "pets",
+      "target": "categories/root/pets.webp",
+      "shared_with_order": null,
+      "size": [
+        224,
+        197
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        224,
+        197
+      ],
+      "sha256": "73e3ca6bd3137a0703fa78228e5441fc4fa143989c405e5ea8192d150e99b6cd"
+    },
+    {
+      "order": 193,
+      "sheet": "s3",
+      "row": 6,
+      "col": 4,
+      "category": "Healthcare Pets",
+      "name": "Veterinarians",
+      "kind": "sub",
+      "key": "veterinarians",
+      "target": "categories/sub/veterinarians.webp",
+      "shared_with_order": null,
+      "size": [
+        183,
+        142
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        183,
+        142
+      ],
+      "sha256": "e08e71e0353bdbb5d294f08ca737454ac81236b217c315e577f0c50a6d25201f"
+    },
+    {
+      "order": 194,
+      "sheet": "s3",
+      "row": 6,
+      "col": 5,
+      "category": "Healthcare Pets",
+      "name": "Pet Grooming",
+      "kind": "sub",
+      "key": "pet-grooming",
+      "target": "categories/sub/pet-grooming.webp",
+      "shared_with_order": null,
+      "size": [
+        165,
+        140
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        165,
+        140
+      ],
+      "sha256": "6e9cf045765abc08b153b01711b6afd4c456a7d288d192a0b2077a054243e580"
+    },
+    {
+      "order": 195,
+      "sheet": "s3",
+      "row": 6,
+      "col": 6,
+      "category": "Healthcare Pets",
+      "name": "Pet Supplies",
+      "kind": "sub",
+      "key": "pet-supplies",
+      "target": "categories/sub/pet-supplies.webp",
+      "shared_with_order": null,
+      "size": [
+        176,
+        134
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        176,
+        134
+      ],
+      "sha256": "4ffe198de64b318397abae6e6387fbee84311985e0369bea40db0c9e8ba67ffe"
+    },
+    {
+      "order": 196,
+      "sheet": "s3",
+      "row": 6,
+      "col": 7,
+      "category": "Healthcare Pets",
+      "name": "Pet Hotel",
+      "kind": "skip",
+      "key": "pet-hotel",
+      "target": "SKIP-pet-hotel.webp",
+      "shared_with_order": null,
+      "size": [
+        188,
+        148
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        180,
+        140
+      ],
+      "sha256": "c11263c197393c2e4c943948fd14da659c096fe0ac42a85598d6570bd1d6659b"
+    }
+  ]
+}

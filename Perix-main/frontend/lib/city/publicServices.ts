@@ -1,4 +1,5 @@
 import { apiRequest } from "../api/core";
+import { PUBLIC_SERVICE_ILLUSTRATIONS } from "../civicIllustrations";
 
 export type PublicServiceSource = {
   source_provider: string;
@@ -101,6 +102,8 @@ export type PublicServiceCategory = {
   label_de: string;
   label_en?: string;
   icon?: string;
+  /** Hidden branches stay out of the /app tiles but keep map, search and detail pages. */
+  hidden?: boolean;
   children?: PublicServiceCategory[];
 };
 
@@ -121,12 +124,13 @@ export function getPublicServices(input: { countryCode: string; cityId: string; 
 }
 
 // Render on the existing BusinessMap; entity identity stays public_service.
-// The renderer's existing generic service artwork avoids changing shared map types.
+// Subcategory emblem pins, like the gateway directory pins.
 export function publicServiceMarkers(records: PublicService[]) {
   return records.filter(r => (r.coordinate_review_status == null || r.coordinate_review_status === "approved")
     && Number.isFinite(r.latitude) && Number.isFinite(r.longitude))
     .map(r => ({ id: r.service_id, latitude: r.latitude!, longitude: r.longitude!, title: r.name,
-      type: "service" as const, pinColor: PUBLIC_SERVICE_THEME.navy }));
+      type: "service" as const, pinColor: PUBLIC_SERVICE_THEME.navy,
+      emblem: PUBLIC_SERVICE_ILLUSTRATIONS[r.subcategory_ids?.[0] || ""] ?? PUBLIC_SERVICE_ILLUSTRATIONS["government-administration"] }));
 }
 
 export function mergeCityResults<T extends { id: string; type: string }>(existing: T[], publicServices: PublicService[]) {

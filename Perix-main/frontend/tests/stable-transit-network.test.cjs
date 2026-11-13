@@ -54,8 +54,9 @@ test('already expanded platforms and manual unplatformed places are not duplicat
   assert.equal(transitStopPins([manual]).length, 1);
 });
 
-test('same-name nearby bus and tram platforms share one visual icon while retaining platform identities and codes',()=>{
+test('same-side nearby bus and tram platforms share a fixed icon while retaining identities and codes',()=>{
   const stop=station();
+  stop.platforms.forEach(platform=>platform.side='left');
   stop.platforms[0].platform_code='A';
   stop.platforms[1].platform_code='B';
   stop.platforms[2].platform_code='C';
@@ -63,12 +64,12 @@ test('same-name nearby bus and tram platforms share one visual icon while retain
   const grouped=groupTransitStopIcons(pins);
   assert.equal(pins.length,4,'operational platform pins remain ungrouped');
   assert.equal(grouped.length,1,'the same named station draws one icon');
-  assert.deepEqual(Array.from(grouped[0].modes),['bus','tram']);
+  assert.deepEqual(Array.from(grouped[0].modes).sort(),['bus','tram']);
   assert.deepEqual(Array.from(grouped[0].platform_ids).sort(),['bus','close-but-distinct','left','right']);
   assert.deepEqual(Array.from(grouped[0].platform_codes).sort(),['A','B','C']);
   assert.equal(grouped[0].platform_id,undefined,'a multi-platform stop does not invent a selected platform');
   assert.deepEqual(Array.from(grouped[0].platforms,p=>p.platform_id).sort(),['bus','close-but-distinct','left','right']);
-  assert.ok(Math.abs(grouped[0].latitude-pins.reduce((sum,p)=>sum+p.latitude,0)/pins.length)<1e-8,'marker is centered on all platforms');
+  assert.equal(grouped[0].latitude,pins.find(p=>p.platform_id==='bus').latitude,'anchor stays on a real boarding coordinate');
 });
 
 test('different stop names remain distinct, and repeated names far apart are not merged',()=>{
@@ -111,9 +112,10 @@ test('renderer changes detail rather than dropping minor stops or clustering opp
   assert.doesNotMatch(stops, /i % stride|clusters\.find|dMain < 25|zoom < 11/);
   assert.match(stops, /s\.platform_ids\.slice\(\)\.sort\(\)/);
   assert.match(stops, /container\.dataset\.platformId/);
-  assert.match(stops,/showPlatformCodes/);
+  assert.match(stops,/paintTier/);
   assert.doesNotMatch(stops,/\.textContent\s*=\s*r\.route_number/);
-  assert.match(map, /\[transitStops, mapReady, stopViewportRevision, mapHeading\]/);
+  assert.match(map, /\[transitStops, mapReady, mapHeading, transitLines, pinLocation, location, stopViewportRevision\]/);
+  assert.doesNotMatch(stops,/getBounds\(/,'viewport cannot change stop grouping');
   const native=fs.readFileSync(path.join(__dirname,'../components/BusinessMap.native.tsx'),'utf8');
   const nativeStops=native.slice(native.indexOf('{groupedTransitStops.map'),native.indexOf('{groupedMarkers.map'));
   assert.match(nativeStops,/groupedTransitStops\.map/);
@@ -124,5 +126,6 @@ test('renderer changes detail rather than dropping minor stops or clustering opp
   assert.doesNotMatch(selection, /routes\.length >= 2|list = \[\]|mapZoom/);
   const city = fs.readFileSync(path.join(__dirname, '../components/city/CityGatewayScreen.tsx'), 'utf8');
   assert.match(city, /platforms: s\.platforms/);
-  assert.match(city, /transitLines=\{distinctGeometryLines\(nearbyTransitLines\)/);
+  assert.match(city, /renderedTransitLines=useMemo\(\(\)=>distinctGeometryLines\(nearbyTransitLines\)/);
+  assert.match(city,/transitLines=\{renderedTransitLines\}/);
 });

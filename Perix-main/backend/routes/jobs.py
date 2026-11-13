@@ -7,6 +7,7 @@ import uuid
 
 from database import db
 from routes.dependencies import get_current_user, get_current_user_optional, UserPublic
+from utils.verification import require_verified_email
 from routes.uploads import upload_to_cloudinary
 from routes.ws import ws_broadcast_notification
 from models.focal_point import FocalPoint
@@ -145,6 +146,7 @@ async def create_job(
     current_user: UserPublic = Depends(get_current_user)
 ):
     """Create a new job posting (business owners only)"""
+    await require_verified_email(current_user)
     # Use provided business_id or fall back to first owned business
     business = None
     if job_data.business_id:

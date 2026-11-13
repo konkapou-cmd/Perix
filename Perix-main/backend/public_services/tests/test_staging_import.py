@@ -10,10 +10,10 @@ def source_record(**overrides):
         "catalog_number": 1,
         "name": "BürgerBüro Mitte",
         "category": "public-services",
-        "subcategory": "citizen-services",
-        "subcategory_el": "Εξυπηρέτηση Πολιτών & Απολεσθέντα",
-        "subcategory_de": "Bürgerservice & Fundbüro",
-        "subcategory_en": "Citizen Services & Lost Property",
+        "subcategory": "citizen-offices",
+        "subcategory_el": "Κέντρα εξυπηρέτησης",
+        "subcategory_de": "Bürgerbüros",
+        "subcategory_en": "Citizen offices",
         "country": "DE",
         "city": "Magdeburg",
         "address": "Leiterstraße 2a, 39104 Magdeburg",
@@ -46,7 +46,7 @@ def source_record(**overrides):
 def test_mapping_uses_canonical_categories_and_keeps_record_unpublished():
     prepared = prepare_record(source_record())
     assert prepared["category_ids"] == ["public-services"]
-    assert prepared["subcategory_ids"] == ["citizen-services"]
+    assert prepared["subcategory_ids"] == ["citizen-offices"]
     assert prepared["service_id"].startswith("ps_") and len(prepared["service_id"]) == 27
     assert prepared["publication_status"] == "hidden"
     assert prepared["verification_status"] == "needs_review"
@@ -132,13 +132,16 @@ def test_unknown_category_and_duplicate_source_ids_are_rejected():
         prepare_records([source_record(), source_record()])
 
 
-def test_taxonomy_matches_the_16_import_subcategories():
-    expected = {
-        "citizen-services", "immigration-citizenship", "civil-registry", "business-licensing",
-        "family-youth", "social-housing", "public-health", "mobility-transport",
-        "building-infrastructure", "education-culture", "waste-recycling",
-        "government-administration", "employment-careers", "courts-justice", "tax-finance",
-        "police-security",
+def test_taxonomy_matches_the_unified_import_subcategories():
+    expected_tops = {
+        "civic-admin", "social-support", "health", "education-culture-sport",
+        "employment", "economy-business", "environment",
+        "construction-property-transport", "justice-safety", "locations",
     }
-    assert {node["id"] for node in TAXONOMY["children"] if not node["id"].startswith("ps:")} == expected
+    tops = [node for node in TAXONOMY["children"] if not node["id"].startswith("ps:")]
+    assert {node["id"] for node in tops} == expected_tops
+    subs = [sub for node in tops for sub in node.get("children", [])]
+    assert len(subs) == 73
+    assert all(sub["label_el"] and sub["label_de"] and sub["label_en"] for sub in subs)
+    assert len({sub["id"] for sub in subs}) == 73
     assert PUBLIC_PREDICATE["publication_rights_status"] == {"$in": ["approved", None]}

@@ -38,6 +38,9 @@ from routes.account_deletion import router as account_deletion_router
 from routes.push_web import router as push_web_router
 from routes.public_services import router as public_services_router
 from routes.city_public import router as city_public_router
+from routes.subscriptions import router as subscriptions_router
+from routes.promotions import router as promotions_router
+from routes.redeem import router as redeem_router
 
 # Create main API router
 api_router = APIRouter(prefix="/api")
@@ -87,6 +90,9 @@ api_router.include_router(account_deletion_router)
 api_router.include_router(push_web_router)
 api_router.include_router(public_services_router)
 api_router.include_router(city_public_router)
+api_router.include_router(subscriptions_router)
+api_router.include_router(promotions_router)
+api_router.include_router(redeem_router)
 
 
 @api_router.get("/")

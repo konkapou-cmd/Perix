@@ -192,12 +192,15 @@ test('nearby map request includes a compact viewport and shares only its locatio
    const first=api.getNearbyMap(null,origin,bounds,{limit:1,radiusM:150});assert.equal(api.getNearbyMap('another-token',origin,bounds,{limit:1,radiusM:150}),first);
   assert.equal(calls.length,2);assert.equal(calls[1].url,'/mobility/v2/nearby-map');assert.equal(calls[1].method,'POST');
   const payload={lines:[{route_number:'10'}]};calls[1].resolve(payload);assert.equal(await first,payload);
-   assert.equal(await api.getNearbyMap(null,origin,bounds,{limit:3}),payload);assert.equal(calls.length,2);
+   assert.equal(await api.getNearbyMap(null,origin,bounds,{limit:1}),payload);assert.equal(calls.length,2);
    const otherBounds={...bounds,maxLng:11.65};const other=api.getNearbyMap(null,origin,otherBounds,{limit:1,radiusM:150});
    assert.equal(calls.length,3);calls[2].resolve({lines:[]});await other;
    const predecessor=api.getNearbyMap(null,origin,bounds,{limit:1,radiusM:150,positionPatternIds:['previous-pattern']});
    assert.equal(calls.length,4);assert.deepEqual(JSON.parse(JSON.stringify(calls[3].body)).position_pattern_ids,['previous-pattern']);
-   calls[3].resolve({lines:[]});await predecessor;
+    calls[3].resolve({lines:[]});await predecessor;
+    const five=api.getNearbyMap(null,origin,bounds,{limit:5});
+    assert.equal(calls.length,5);assert.equal(calls[4].body.limit,5);
+    calls[4].resolve({lines:[]});await five;
 });
 
 test('App nearby fleet polling uses the compact stop-scoped endpoint and preserves dated vehicle identity',async()=>{

@@ -1,11 +1,13 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Pressable, Image, Modal, Platform, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { Business } from "../../lib/api";
+import { fetchEntitlements } from "../../lib/api/account";
 import { COLORS } from "../../lib/designTokens";
 import { PROFILE_COLORS } from "./ProfileDesign";
+import { useRouter } from "expo-router";
 
 const { width } = Dimensions.get("window");
 
@@ -27,14 +29,40 @@ export const IdentityDropdown: React.FC<IdentityDropdownProps> = ({
   compact = false,
 }) => {
   const { t } = useTranslation();
-  const { user, activeIdentity } = useAuth();
+  const { user, activeIdentity, sessionToken } = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
+  const [businessGrant, setBusinessGrant] = useState<string | null>(null);
+  const router = useRouter();
 
   if (!user) return null;
+
+  // Refresh the Business-plan grant whenever the switcher opens: a redeemed
+  // Pro100 code (or an owned business plan) unlocks business creation.
+  useEffect(() => {
+    if (!modalVisible || !sessionToken) return;
+    let cancelled = false;
+    fetchEntitlements(sessionToken, "user")
+      .then((snapshot) => {
+        if (!cancelled) setBusinessGrant(snapshot.business_plan_grant ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [modalVisible, sessionToken]);
 
   const currentAvatar = activeIdentity?.type === "business"
     ? activeIdentity.avatar
     : activeIdentity?.avatar || user.profile_photo || user.picture;
+
+  // A purchased Business / Event Pro plan (plan_type on any owned business
+  // or a redeemed Pro100 grant) unlocks business creation; otherwise it
+  // goes through the plans page.
+  const hasBusinessPlan =
+    !!businessGrant ||
+    businesses.some(
+      (b) => b.plan_type === "business" || b.plan_type === "event_pro"
+    );
 
   return (
     <>
@@ -139,12 +167,30 @@ export const IdentityDropdown: React.FC<IdentityDropdownProps> = ({
 
             {/* Create Actions */}
             <View style={styles.createActions}>
-              {!businesses.length && (
-                <Pressable style={styles.createButton} onPress={() => { setModalVisible(false); onCreateBusiness(); }}>
-                  <Ionicons name="add-circle-outline" size={20} color="#10b981" />
-                  <Text style={[styles.createText, { color: '#10b981' }]}>{t("profile.createBusiness")}</Text>
-                </Pressable>
-              )}
+              <Pressable
+                style={styles.createButton}
+                onPress={() => {
+                  setModalVisible(false);
+                  if (hasBusinessPlan) {
+                    onCreateBusiness();
+                  } else {
+                    router.push("/plans" as any);
+                  }
+                }}
+              >
+                <Ionicons name="add-circle-outline" size={20} color="#10b981" />
+                <Text style={[styles.createText, { color: "#10b981" }]}>{t("profile.createBusiness", "Δημιουργία επιχείρησης")}</Text>
+              </Pressable>
+              <Pressable
+                style={styles.plansButton}
+                onPress={() => {
+                  setModalVisible(false);
+                  router.push("/plans" as any);
+                }}
+              >
+                <Ionicons name="layers-outline" size={18} color="#59ABE3" />
+                <Text style={styles.plansText}>{t("profile.viewPlans", "Δες τα πλάνα")}</Text>
+              </Pressable>
             </View>
           </View>
         </Pressable>
@@ -307,5 +353,20 @@ const styles = StyleSheet.create({
   createText: {
     fontSize: 15,
     fontWeight: "600",
-  }
+  },
+  plansButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: "#f1f7fb",
+  },
+  plansText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#59ABE3",
+  },
 });

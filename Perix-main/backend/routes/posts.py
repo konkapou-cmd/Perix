@@ -13,6 +13,7 @@ from models.post import (
     PostCommentResponse, PostCommentUpdate, PostReaction, BusinessPostInfo
 )
 from utils.helpers import generate_id, now_utc
+from utils.verification import require_verified_email
 from utils.cloudinary_utils import upload_to_cloudinary
 from utils.push_notifications import send_activity_notification
 from routes.push_web import notify_web_push
@@ -94,6 +95,7 @@ def build_post_response(
 async def create_post(
     payload: PostCreate, current_user: UserPublic = Depends(get_current_user)
 ):
+    await require_verified_email(current_user)
     actor = await resolve_actor(payload.actor_type, payload.actor_id, current_user)
     created_at = now_utc()
     # Posts never expire automatically (2-week rule removed).
@@ -135,6 +137,19 @@ async def create_post(
             business_info = await get_business_info_for_post(existing)
             return build_post_response(existing, current_user, current_user, business_info=business_info)
 
+    # Φ5 (policy v18): post limits 3/12/24 and overflow rules (D04/D05),
+    # feature-flagged OFF by default.
+    from utils.content_policy import enforce_post_creation, retire_oldest_post
+    actor_user_doc = None
+    if actor["actor_type"] == "user":
+        actor_user_doc = await db.users.find_one({"user_id": actor["actor_id"]}, {"_id": 0, "account_plan": 1})
+    post_decision = await enforce_post_creation(actor["actor_type"], actor["actor_id"], actor_user_doc)
+    if post_decision == "reject":
+        raise HTTPException(
+            status_code=400,
+            detail="You have reached the free post limit (3 active posts).",
+        )
+
     # DEBUG: Log what's being posted
     logger.debug(f"[DEBUG] create_post: actor_type={actor['actor_type']}, actor_id={actor['actor_id']}")
     logger.debug(f"[DEBUG] create_post: payload.actor_type={payload.actor_type}, payload.actor_id={payload.actor_id}")
@@ -160,7 +175,7 @@ async def create_post(
         "youtube_link": payload.youtube_link,
         "soundcloud_url": payload.soundcloud_url,
         "created_at": created_at,
-        "expires_at": None,  # no automatic expiry (2-week rule removed)
+        "expires_at": post_expiry(actor["actor_type"]),  # v18 retention (flag-gated)
         "likes": [],
         "comments": [],
         "client_request_id": payload.client_request_id,
@@ -178,6 +193,12 @@ async def create_post(
         post_doc["business_id"] = business_id
 
     await db.posts.insert_one(post_doc)
+
+    # Φ5 (v18 D05): when the plan limit is full, Premium (12) and Business
+    # (24) replace the oldest active post — deleted together with its home
+    # snapshot. Media files stay for deferred, reference-aware cleanup.
+    if post_decision == "replace":
+        await retire_oldest_post(actor["actor_type"], actor["actor_id"])
 
     # Automatic moderation: hide the post + create a report when text violates
     from utils.moderation import auto_moderate

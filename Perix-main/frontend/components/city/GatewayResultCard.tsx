@@ -16,12 +16,12 @@ export default function GatewayResultCard({ entity, onPress }: { entity: Directo
     entity.publicService.profile_image_asset,entity.publicService.cover_image_asset) : null;
   const profileImage=entity.publicService?.profile_image_url
     ? {uri:entity.publicService.profile_image_url} : localServiceImages?.profile;
-  const imageSource=entity.cover_image ? {uri:entity.cover_image} : profileImage;
+  const imageSource=entity.publicService ? profileImage : entity.cover_image ? {uri:entity.cover_image} : profileImage;
   const illustrationLabel=language==="el"?"Εικαστικό":language==="de"?"Illustration":"Illustration";
   return <Pressable testID="gateway-result-card" accessibilityRole="button" onPress={onPress} style={[styles.card,styles.flatCard]}>
     <View style={styles.cardRow}>
-      <View style={[styles.photoWrap,{backgroundColor:"#fff",overflow:"hidden"}]}>
-        {imageSource ? <Image source={imageSource} style={styles.photo} contentFit="cover"
+      <View style={[styles.photoWrap,{backgroundColor:"#fff",overflow:"hidden"},entity.publicService && {width:104,height:104}]}>
+        {imageSource ? <Image source={imageSource} style={[styles.photo, entity.publicService && {width:"100%",height:"100%"}]} contentFit="cover"
           accessibilityLabel={entity.publicService?.visual_is_illustration ? `${entity.title} — ${illustrationLabel}` : entity.title} />
           : <Ionicons name={entity.type === "event" ? "calendar-outline" : entity.type === "activity" ? "walk-outline" : "location-outline"} size={32} color={color} />}
         {entity.publicService?.visual_is_illustration && <Text style={{position:"absolute",left:2,bottom:2,overflow:"hidden",paddingHorizontal:3,

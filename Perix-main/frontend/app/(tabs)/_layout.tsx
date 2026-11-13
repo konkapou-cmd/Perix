@@ -8,7 +8,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS } from "../../lib/designTokens";
 import { useAuth } from "../../context/AuthContext";
 import { useCreateFlow } from "../../context/CreateFlowContext";
+import { TAB_BAR_ILLUSTRATIONS } from "../../lib/illustrationSources.generated";
 import { MAP_PAGE_BACKGROUND, MAP_PAGE_MAX_WIDTH } from "../../lib/city/mapLayout";
+import TabArtworkButton from '../../components/navigation/TabArtworkButton';
+import { TAB_BAR_CONTENT_HEIGHT, TAB_BUTTON_FACE_SIZE, TAB_BUTTON_ICON_SIZE } from '../../lib/navigation/tabLayout';
+import AppBottomNavigation from '../../components/navigation/AppBottomNavigation';
 
 function TabBarBackground() {
   return (
@@ -20,12 +24,7 @@ function MessageTabIcon({ color, size, filled }: { color: string; size: number; 
   const { totalBadgeCount } = useBadge();
 
   return (
-    <View>
-      <Ionicons
-        name={filled ? "chatbubble-ellipses" : "chatbubble-ellipses-outline"}
-        size={size}
-        color={color}
-      />
+    <TabArtworkButton source={TAB_BAR_ILLUSTRATIONS.chat_tab} focused={filled}>
       {totalBadgeCount > 0 && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>
@@ -33,31 +32,29 @@ function MessageTabIcon({ color, size, filled }: { color: string; size: number; 
           </Text>
         </View>
       )}
-    </View>
+    </TabArtworkButton>
   );
 }
 
 function HomeTabIcon({ color, size, filled }: { color: string; size: number; filled?: boolean }) {
-  return <Ionicons name={filled ? "home" : "home-outline"} size={size} color={color} />;
+  return <TabArtworkButton source={TAB_BAR_ILLUSTRATIONS.home_tab} focused={filled} />;
 }
 
 function SearchTabIcon({ color, size, filled }: { color: string; size: number; filled?: boolean }) {
-  return <Ionicons name={filled ? "map" : "map-outline"} size={size} color={color} />;
+  return <TabArtworkButton source={TAB_BAR_ILLUSTRATIONS.locator_tab} focused={filled} />;
 }
 
 function ProfileTabIcon({ color, size, filled }: { color: string; size: number; filled?: boolean }) {
-  return <Ionicons name={filled ? "person" : "person-outline"} size={size} color={color} />;
+  return <TabArtworkButton source={TAB_BAR_ILLUSTRATIONS.profile_tab} focused={filled} />;
 }
 
 function JobsTabIcon({ color, size, filled }: { color: string; size: number; filled?: boolean }) {
-  return <Ionicons name={filled ? "briefcase" : "briefcase-outline"} size={size} color={color} />;
+  return <TabArtworkButton focused={filled}><Ionicons name={filled ? "briefcase" : "briefcase-outline"} size={TAB_BUTTON_ICON_SIZE} color={color} /></TabArtworkButton>;
 }
 
 function CreateTabIcon({ color, size, filled }: { color: string; size: number; filled?: boolean }) {
   return (
-    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
-      <Ionicons name="sparkles" size={size * 0.95} color={color} />
-    </View>
+    <TabArtworkButton source={TAB_BAR_ILLUSTRATIONS.create_tab} focused={filled} />
   );
 }
 
@@ -80,8 +77,8 @@ export default function TabsLayout() {
   };
 
   // Do not mount the member Home (and its effects) while a guest redirects.
-  if (segments[1] === "home" && loading) return <ActivityIndicator />;
-  if (segments[1] === "home" && !user) return <Redirect href="/login" />;
+  if (loading) return <ActivityIndicator />;
+  if (!user || !sessionToken) return <Redirect href="/login" />;
 
   return (
     <View style={styles.container}>
@@ -90,23 +87,24 @@ export default function TabsLayout() {
         showTopNavbar && styles.desktopContent
       ]}>
         <Tabs
+          tabBar={() => <AppBottomNavigation />}
           screenOptions={{
             headerShown: false,
             tabBarActiveTintColor: "#59ABE3",
             tabBarInactiveTintColor: "#264348",
             tabBarStyle: showTopNavbar ? { display: "none" } : {
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              paddingBottom: insets.bottom,
-              paddingTop: insets.bottom > 0 ? 0 : 8,
+              // Borderless artwork needs less chrome. Keep the 56px hit area
+              // and safe-area reserve while lowering the bar's separator.
+              paddingBottom: insets.bottom+2,
+              paddingTop: 2,
               backgroundColor: COLORS.background,
               borderTopWidth: StyleSheet.hairlineWidth,
               borderTopColor: COLORS.border,
               elevation: 0,
-              height: 52 + insets.bottom,
+              height: TAB_BAR_CONTENT_HEIGHT + insets.bottom,
             },
+            tabBarIconStyle:{width:TAB_BUTTON_FACE_SIZE,height:TAB_BUTTON_FACE_SIZE},
+            tabBarItemStyle:{paddingVertical:2,alignItems:'center',justifyContent:'center',minHeight:52},
             tabBarBackground: () => <TabBarBackground />,
             tabBarLabelStyle: {
               display: "none",
@@ -127,6 +125,7 @@ export default function TabsLayout() {
           <Tabs.Screen
             name="locator"
             options={{
+              href: null,
               tabBarIcon: ({ color, size, focused }) => (
                 <SearchTabIcon color={color} size={size} filled={focused} />
               ),
@@ -217,8 +216,8 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: "absolute",
-    right: -8,
-    top: -4,
+    right: -3,
+    top: -3,
     backgroundColor: COLORS.error,
     borderRadius: 10,
     minWidth: 18,

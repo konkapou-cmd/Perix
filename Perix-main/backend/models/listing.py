@@ -16,6 +16,8 @@ CATEGORY_ALIASES: dict = {
 
 class ListingCreate(BaseModel):
     listing_type: str  # "product" | "home_rental"
+    # Φ6 (policy v18 D02): classified_ad is the Free-user kind of a product.
+    item_kind: Optional[str] = None  # None | "classified_ad" | "product"
     title: str
     description: Optional[str] = None
     price: Optional[str] = None
@@ -88,12 +90,16 @@ class ListingUpdate(BaseModel):
     seller_id: Optional[str] = None
     business_id: Optional[str] = None
     publication_scope: Optional[PublicationScope] = None
+    # Φ6 (policy v18 D02)
+    item_kind: Optional[str] = None
 
 
 class ListingResponse(BaseModel):
     listing_id: str
     owner_id: str
     listing_type: str
+    item_kind: Optional[str] = None
+    expires_at: Optional[datetime] = None
     title: str
     description: Optional[str] = None
     price: Optional[str] = None

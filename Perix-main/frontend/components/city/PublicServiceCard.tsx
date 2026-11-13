@@ -67,7 +67,7 @@ function fieldLabel(language: string, key: "website" | "address" | "phone" | "em
   return copy[language === "el" ? 0 : language === "de" ? 1 : 2];
 }
 
-export function PublicServiceCard({ service, full = false, onPress }: { service: PublicService; full?: boolean; onPress?: () => void }) {
+export function PublicServiceCard({ service, full = false, showMap = true, onPress }: { service: PublicService; full?: boolean; showMap?: boolean; onPress?: () => void }) {
   const { t, i18n } = useTranslation("city");
   const language = (i18n.resolvedLanguage || i18n.language || "en").split("-")[0];
   const description = language === "el" ? service.description_el || service.description_en || service.description_de
@@ -148,9 +148,9 @@ export function PublicServiceCard({ service, full = false, onPress }: { service:
         <WebLink label={fieldLabel(language, "coordinateSource")} url={service.coordinate_source_url} />
         {service.coordinate_source_license?.toLowerCase().includes("openstreetmap") &&
           <WebLink label="© OpenStreetMap contributors · ODbL" url="https://www.openstreetmap.org/copyright" />}
-        <View style={styles.map}>
+        {showMap && <View style={styles.map}>
           <BusinessMap initialRegion={mapRegion} markers={marker} height={260} horizontalInset={0} />
-        </View>
+        </View>}
       </View>
       {!!Object.keys(service.additional_fields || {}).length && <View style={styles.section}>
         <Text style={styles.sectionTitle}>{sectionTitle(language, "other")}</Text>
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   coverPlaceholder: { height: 112, borderRadius: BORDER_RADIUS.button, backgroundColor: theme.ivory, alignItems: "center", justifyContent: "center", gap: 8 },
   illustrationNote: { color: "#59616A", fontSize: FONT_SIZES.micro, lineHeight: 18 },
   identity: { flexDirection: "row", alignItems: "center", gap: 12 }, identityText: { flex: 1, gap: 4 },
-  avatar: { width: 54, height: 54, borderRadius: 27, backgroundColor: theme.ivory, borderWidth: 1, borderColor: "#E4E0D7", alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  avatar: { width: 72, height: 72, borderRadius: 12, backgroundColor: "#fff", borderWidth: 1, borderColor: "#E4E0D7", alignItems: "center", justifyContent: "center", overflow: "hidden" },
   avatarImage: { width: "100%", height: "100%" }, kind: { fontSize: FONT_SIZES.micro, color: theme.navy },
   title: { fontSize: FONT_SIZES.h4, fontWeight: "700", color: theme.navy }, category: { color: theme.blue, fontSize: FONT_SIZES.bodySmall, fontWeight: "600" },
   address: { color: COLORS.textPrimary, lineHeight: 22 }, body: { lineHeight: 23, color: COLORS.textPrimary }, note: { color: "#59616A", fontSize: FONT_SIZES.bodySmall, lineHeight: 21 },

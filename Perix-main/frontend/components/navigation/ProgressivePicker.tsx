@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { COLORS } from "../../lib/designTokens";
+import { COLORS, LOCATOR_FONT_FAMILY } from "../../lib/designTokens";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -203,6 +203,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "500",
     minWidth: 80,
+    fontFamily: LOCATOR_FONT_FAMILY.regular,
   },
   valueArea: {
     flex: 1,
@@ -216,6 +217,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     flexShrink: 1,
+    fontFamily: LOCATOR_FONT_FAMILY.semibold,
   },
   modalOverlay: {
     flex: 1,
@@ -257,6 +259,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 17,
     fontWeight: "700",
+    fontFamily: LOCATOR_FONT_FAMILY.bold,
   },
   modalClose: {
     padding: 4,
@@ -285,10 +288,12 @@ const styles = StyleSheet.create({
   modalOptionText: {
     fontSize: 15,
     fontWeight: "500",
+    fontFamily: LOCATOR_FONT_FAMILY.regular,
   },
   modalEmpty: {
     textAlign: "center",
     paddingVertical: 32,
     fontSize: 14,
+    fontFamily: LOCATOR_FONT_FAMILY.regular,
   },
 });

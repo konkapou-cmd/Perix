@@ -83,7 +83,7 @@ test("Locator publishes every slow response without overlapping or sequence star
 });
 
 test("both web map screens use the same serialized polling lifecycle", () => {
-  const locator=fs.readFileSync(path.join(__dirname,'..','app/(tabs)/locator.tsx'),'utf8');
+  const locator=fs.readFileSync(path.join(__dirname,'..','components/locator/LegacyLocatorScreen.tsx'),'utf8');
   const effect=locator.slice(locator.indexOf('// Live mobility vehicles'),locator.indexOf('// Active transit network'));
   assert.match(effect,/return startFleetPolling\(/);
   assert.match(effect,/getLiveVehicles\(sessionToken, initialFleetSync.current, true\)/);
@@ -211,7 +211,7 @@ test("visual schema 2 is explicit and reaches its source stop clock, never physi
 });
 
 test("both screens wire visual identity and native uses the same bounded preview equations", () => {
-  const locator = fs.readFileSync(path.join(__dirname, '../app/(tabs)/locator.tsx'), 'utf8');
+  const locator = fs.readFileSync(path.join(__dirname, '../components/locator/LegacyLocatorScreen.tsx'), 'utf8');
   const gateway = fs.readFileSync(path.join(__dirname, '../components/city/CityGatewayScreen.tsx'), 'utf8');
   const native = fs.readFileSync(path.join(__dirname, '../components/VisualTransitMarker.native.tsx'), 'utf8');
   for (const s of [locator, gateway]) {
@@ -226,7 +226,7 @@ test("both screens wire visual identity and native uses the same bounded preview
 });
 
 test("both screens refresh map geometry when recovered optical geometry identity changes", () => {
-  const locator = fs.readFileSync(path.join(__dirname, '../app/(tabs)/locator.tsx'), 'utf8');
+  const locator = fs.readFileSync(path.join(__dirname, '../components/locator/LegacyLocatorScreen.tsx'), 'utf8');
   const gateway = fs.readFileSync(path.join(__dirname, '../components/city/CityGatewayScreen.tsx'), 'utf8');
   assert.match(locator, /missingVisualGeometryKeys\(liveVehicles, transitMapLines\)/);
   assert.match(gateway, /missingVisualGeometryKeys\(liveVehicles, transitLines\)/);
@@ -287,7 +287,7 @@ test("GPS/taxis and unvalidated geometry cannot use modeled transit previews", (
 
 test("the /app directory uses the existing fleet instead of another mobility read", () => {
   const gateway = fs.readFileSync(path.join(__dirname, "../components/city/CityGatewayScreen.tsx"), "utf8");
-  assert.match(gateway, /useCityDiscovery\(query, bounds, "", false,hasConfirmedOrigin && nearbyLinesLoaded\)/);
+  assert.match(gateway, /useCityDiscovery\(query, discoveryBounds\.current, "", false,hasConfirmedOrigin && !!sceneScope && paintedSceneKey===sceneScope\.key, scopeCities\)/);
   assert.match(gateway, /discoveryItems = useMemo\(\(\) => \[\.\.\.discovery\.items, \.\.\.mobilityItems\]/);
   const hook = fs.readFileSync(path.join(__dirname, "../lib/city/gateway.ts"), "utf8");
   assert.match(hook, /includeMobility && \(root \|\| filter\.mobilityOnly\)/);

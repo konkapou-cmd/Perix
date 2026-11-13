@@ -8,6 +8,7 @@ import { nearestTransitStops, NEARBY_STOP_RADIUS_M, OriginPoint, validOrigin } f
 import NearbyStopCard, { NearbyJourney } from "./NearbyStopCard";
 import TransitSourceNotice from "../city/TransitSourceNotice";
 import { transitStopPins } from "../../lib/city/visualGeometry";
+import { prefetchNearbyCatalogue } from "../../lib/city/nearbyTransitCache";
 import type { CityBounds } from "../../lib/city/publicServices";
 
 type Suggestion = OriginPoint & { id: string; title: string };
@@ -25,9 +26,12 @@ type Props = {
   initialExpanded?: boolean;
   /** Number of closest physical stops to show once the origin is confirmed. */
   stopLimit?: number;
+  excludeStopId?:string|null;
   /** Station search radius; /app uses a 150 m anchor scope. */
   radiusM?: number;
   progressiveDepartures?: boolean;
+  arrivalRounds?:boolean;
+  arrivalPlatformIds?:string[];
   /** 1+1: one departure per opposite side of the stop name (union read). */
   pairOppositeSides?: boolean;
   fleetBatchLoadedKey?: string;
@@ -40,7 +44,7 @@ type Props = {
 
 export default function NearbyTransitSection({ stops, stopsLoaded, stopsError, onRetryStops, liveVehicles, transitLines, onArrivalsUpdate, onOriginSelect, onDirections, activeJourney,
   collapsible=false, initialExpanded, hideWhenEmpty=false, bounds, onSelectStop, originEditorOnly=false, stopLimit=2,
-  originOverride,onUseCurrentOrigin,radiusM=NEARBY_STOP_RADIUS_M,progressiveDepartures=false,pairOppositeSides=false,fleetBatchLoadedKey="" }: Props) {
+   originOverride,onUseCurrentOrigin,radiusM=NEARBY_STOP_RADIUS_M,progressiveDepartures=false,pairOppositeSides=false,arrivalRounds=false,arrivalPlatformIds,excludeStopId,fleetBatchLoadedKey="" }: Props) {
   const { t }=useTranslation();
   const { t:city }=useTranslation("city");
   const { userOrigin, setUserOrigin, useLiveLocation }=useLocation();
@@ -88,7 +92,8 @@ export default function NearbyTransitSection({ stops, stopsLoaded, stopsError, o
   const visibleStopIds=useMemo(()=>bounds ? new Set(transitStopPins(rows).filter(p=>p.latitude!>=bounds.minLat && p.latitude!<=bounds.maxLat
     && p.longitude!>=bounds.minLng && p.longitude!<=bounds.maxLng).map(p=>p.stop_id)) : null,[rows,bounds]);
   const scopedRows=useMemo(()=>visibleStopIds ? rows.filter(s=>visibleStopIds.has(s.stop_id)) : rows,[rows,visibleStopIds]);
-  const nearest=useMemo(()=>nearestTransitStops(scopedRows,origin,stopLimit,radiusM),[scopedRows,origin?.latitude,origin?.longitude,stopLimit,radiusM]);
+  const nearest=useMemo(()=>nearestTransitStops(scopedRows,origin,stopLimit+(excludeStopId?1:0),radiusM)
+    .filter(({stop})=>stop.stop_id!==excludeStopId).slice(0,stopLimit),[scopedRows,origin?.latitude,origin?.longitude,stopLimit,radiusM,excludeStopId]);
   const locate=async()=>{
     if(pending.current)return;
     pending.current=true;setLocating(true);setLocateError(false);
@@ -153,6 +158,7 @@ export default function NearbyTransitSection({ stops, stopsLoaded, stopsError, o
     {suggestions.map(place=><Pressable key={place.id} accessibilityRole="button" style={styles.button} onPress={()=>{
       originAction.current+=1;
       setUserOrigin(place.latitude,place.longitude,place.title);
+      prefetchNearbyCatalogue({latitude:place.latitude,longitude:place.longitude});
       setQuery("");setSuggestions([]);setEditingOrigin(false);setLocateError(false);onOriginSelect?.({...place,name:place.title});
     }}><Text style={styles.link}>{place.title}</Text></Pressable>)}
     {!originEditorOnly && origin && !loaded && !error && <ActivityIndicator />}
@@ -160,23 +166,24 @@ export default function NearbyTransitSection({ stops, stopsLoaded, stopsError, o
       <Text>{city("ui.unavailable")} · {city("ui.retry")}</Text>
     </Pressable>}
     {!originEditorOnly && origin && loaded && !error && !nearest.length && <Text>{t("mobility.noNearbyStops","No stops within {{km}} km of this location.",{km:radiusM/1000})}</Text>}
-    {!originEditorOnly && origin && !error && nearest.length>0 && <View testID="nearby-transit-departures" style={styles.stopCards}>
+     </>}
+     {!originEditorOnly && (expanded || arrivalRounds) && origin && !error && nearest.length>0 && <View testID="nearby-transit-departures" style={[styles.stopCards,!expanded && {display:'none'}]}>
       {nearest.map(({stop,distanceM,target},index)=>target && <NearbyStopCard key={stop.stop_id} stop={stop} distanceM={distanceM}
          target={target} origin={origin!} closest={index===0} liveVehicles={liveVehicles} transitLines={transitLines}
          onArrivalsUpdate={onArrivalsUpdate} onDirections={onDirections} activeJourney={activeJourney} onSelectStop={onSelectStop}
-         progressiveDepartures={progressiveDepartures} pairOppositeSides={pairOppositeSides} fleetBatchLoadedKey={fleetBatchLoadedKey} />)}
+          progressiveDepartures={progressiveDepartures} pairOppositeSides={pairOppositeSides} arrivalRounds={arrivalRounds}
+          arrivalPlatformIds={arrivalPlatformIds} fleetBatchLoadedKey={fleetBatchLoadedKey} />)}
       <TransitSourceNotice />
     </View>}
-    </>}
-  </View>;
+   </View>;
 }
 
 const styles=StyleSheet.create({
   card:{paddingVertical:10,paddingHorizontal:0,gap:6,backgroundColor:"#fff",borderRadius:12,marginVertical:6},
-  heading:{fontSize:16,fontWeight:"700",color:"#264348"},
-  text:{fontSize:13,lineHeight:20,color:"#59616A"},link:{color:"#216BA2",fontSize:14},
+  heading:{fontSize:16,fontWeight:"700",color:"#264348",fontFamily:"Quicksand_600SemiBold"},
+  text:{fontSize:13,lineHeight:20,color:"#59616A",fontFamily:"Quicksand_400Regular"},link:{color:"#216BA2",fontSize:14,fontFamily:"Quicksand_400Regular"},
   button:{minHeight:44,justifyContent:"center",flexDirection:"row",alignItems:"center",gap:8},
-  input:{height:48,borderWidth:1,borderColor:"#ccd6da",borderRadius:10,paddingHorizontal:12,color:"#264348"},
+  input:{height:48,borderWidth:1,borderColor:"#ccd6da",borderRadius:10,paddingHorizontal:12,color:"#264348",fontFamily:"Quicksand_400Regular"},
   stopCards:{gap:8},originBar:{flexDirection:'row',alignItems:'center',gap:4},originText:{flex:1,minWidth:0},
   iconButton:{height:44,width:44,alignItems:'center',justifyContent:'center'},
 });

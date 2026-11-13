@@ -35,6 +35,7 @@ const LocationContext = createContext<LocationContextType | null>(null);
 
 const RADIUS_STORAGE_KEY = "@perix_radius";
 const LAST_LOCATION_KEY = "@perix_last_location";
+const USER_ORIGIN_KEY = "@perix_user_origin";
 const DEFAULT_RADIUS = 10; // 10km default
 
 // Last-known area: saved so a page refresh opens the map where the user
@@ -72,6 +73,15 @@ function saveLastLocation(lat: number, lng: number) {
   } catch {}
 }
 
+function saveUserOrigin(origin: UserOrigin | null) {
+  // Persist only an explicitly entered address, never relabel old GPS as live.
+  const payload=JSON.stringify(origin ? {...origin,savedAt:Date.now()} : null);
+  try {
+    if(Platform.OS==='web' && typeof window!=='undefined')window.localStorage.setItem(USER_ORIGIN_KEY,payload);
+    else void AsyncStorage.setItem(USER_ORIGIN_KEY,payload).catch(()=>{});
+  } catch {}
+}
+
 export function LocationProvider({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useState<LocationData | null>(null);
   // Live "you are here" position: the single source of truth for the pin.
@@ -96,6 +106,24 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   locationRef.current = location;
   const liveRef = useRef<FreshPosition | null>(null);
   liveRef.current = livePosition;
+  useEffect(()=>{
+    let active=true;
+    const action=originActionRef.current;
+    void (async()=>{
+      try {
+        const raw=Platform.OS==='web' && typeof window!=='undefined'
+          ? window.localStorage.getItem(USER_ORIGIN_KEY) : await AsyncStorage.getItem(USER_ORIGIN_KEY);
+        const saved=raw ? JSON.parse(raw) : null;
+        if(!active || action!==originActionRef.current || saved?.kind!=='manual'
+          || !Number.isFinite(saved.latitude) || !Number.isFinite(saved.longitude)
+          || Math.abs(saved.latitude)>90 || Math.abs(saved.longitude)>180
+          || !Number.isFinite(saved.savedAt) || Date.now()-saved.savedAt>7*24*3600*1000)return;
+        setManualUserOrigin({latitude:saved.latitude,longitude:saved.longitude,
+          name:typeof saved.name==='string'?saved.name:undefined,kind:'manual'});
+      } catch {}
+    })();
+    return()=>{active=false;};
+  },[]);
 
   // Startup location is only requested for signed-in users. Public screens
   // must explicitly opt in; the login screen never prompts on its own.
@@ -160,6 +188,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       if (action !== originActionRef.current) return null;
       if (current && isReliablePosition(current.accuracy)) {
         setManualUserOrigin(null);
+        saveUserOrigin(null);
         setLiveRequested(true);
         setGeoGranted(true);
         liveRef.current = { latitude: current.latitude, longitude: current.longitude, accuracy: current.accuracy };
@@ -206,6 +235,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     originActionRef.current += 1;
     setLoading(false);setError(null);
     setManualUserOrigin({latitude:lat,longitude:lng,name,kind:"manual"});
+    saveUserOrigin({latitude:lat,longitude:lng,name,kind:"manual"});
     setManualLocation(lat,lng,name);
   },[setManualLocation]);
 

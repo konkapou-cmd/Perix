@@ -53,8 +53,26 @@ async def cleanup_old_activities():
 
 
 async def cleanup_old_posts():
-    """Posts are no longer auto-deleted (2-week rule removed)."""
-    return 0
+    """Delete posts whose retention expired (policy v18, flag-gated).
+
+    Legacy posts without expires_at are never touched. Media file cleanup
+    stays deferred; only posts and their home-feed snapshots are removed.
+    """
+    from utils.content_policy import POST_RETENTION_ENFORCEMENT
+    if not POST_RETENTION_ENFORCEMENT:
+        return 0
+
+    cutoff = now_utc()
+    expired = await db.posts.find(
+        {"expires_at": {"$lte": cutoff}},
+        {"_id": 0, "post_id": 1},
+    ).to_list(2000)
+    ids = [post["post_id"] for post in expired]
+    if ids:
+        await db.posts.delete_many({"post_id": {"$in": ids}})
+        await db.home_posts.delete_many({"post_id": {"$in": ids}})
+        logger.info(f"Post retention cleanup deleted {len(ids)} posts")
+    return len(ids)
 
 
 # Retention windows for account-deletion data (disclosed in the privacy policy)
@@ -118,6 +136,53 @@ async def purge_deactivated_content():
     return purged
 
 
+async def cleanup_expired_messages():
+    """Delete plain messages whose 30-day retention expired (policy v18).
+
+    Gated by RETENTION_ENFORCEMENT. Messages linked to an active case are
+    re-checked against the case state and kept. Media attachments are only
+    logically retired here; physical file cleanup remains a separate step.
+    """
+    from utils.messages_policy import (
+        RETENTION_ENFORCEMENT,
+        CONTEXT_MAP,
+        context_is_active,
+    )
+    if not RETENTION_ENFORCEMENT:
+        return 0
+
+    cutoff = now_utc()
+    expired = await db.messages.find(
+        {"expires_at": {"$lte": cutoff}, "retention_exempt": {"$ne": True}},
+        {"_id": 0},
+    ).to_list(1000)
+
+    deletable_ids = []
+    for message in expired:
+        context_type = message.get("context_type")
+        context_id = message.get("context_id")
+        if context_type and context_id and context_type in CONTEXT_MAP:
+            collection, id_field = CONTEXT_MAP[context_type]
+            context_doc = await db[collection].find_one({id_field: context_id}, {"_id": 0})
+            if context_is_active(context_type, context_doc):
+                # The case is still active: keep the message (v18 D12).
+                await db.messages.update_one(
+                    {"message_id": message["message_id"]},
+                    {"$set": {"retention_exempt": True, "expires_at": None}},
+                )
+                continue
+        deletable_ids.append(message["message_id"])
+
+    deleted = 0
+    if deletable_ids:
+        result = await db.messages.delete_many({"message_id": {"$in": deletable_ids}})
+        deleted = result.deleted_count
+
+    if deleted:
+        logger.info(f"Message retention cleanup deleted {deleted} messages")
+    return deleted
+
+
 async def run_cleanup():
     """Run all cleanup tasks."""
     logger.info("Starting automatic cleanup...")
@@ -125,11 +190,12 @@ async def run_cleanup():
     events_deleted = await cleanup_old_events()
     activities_deleted = await cleanup_old_activities()
     posts_deleted = await cleanup_old_posts()
+    messages_deleted = await cleanup_expired_messages()
     purged = await purge_deactivated_content()
     
-    total = events_deleted + activities_deleted + posts_deleted
+    total = events_deleted + activities_deleted + posts_deleted + messages_deleted
     if total > 0:
-        logger.info(f"Cleanup complete: {events_deleted} events, {activities_deleted} activities, {posts_deleted} posts deleted")
+        logger.info(f"Cleanup complete: {events_deleted} events, {activities_deleted} activities, {posts_deleted} posts, {messages_deleted} messages deleted")
     else:
         logger.info("Cleanup complete: No old data to remove")
     
@@ -137,6 +203,7 @@ async def run_cleanup():
         "events_deleted": events_deleted,
         "activities_deleted": activities_deleted,
         "posts_deleted": posts_deleted,
+        "messages_deleted": messages_deleted,
         "retention_purged": purged,
     }
 

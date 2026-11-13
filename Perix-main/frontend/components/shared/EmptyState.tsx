@@ -1,11 +1,12 @@
 import React from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet, Image, type ImageSourcePropType } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 
 type EmptyStateProps = {
   icon?: keyof typeof Ionicons.glyphMap;
+  iconSource?: ImageSourcePropType;
   message?: string;
   subMessage?: string;
   i18nKey?: string;
@@ -26,6 +27,7 @@ const SIZE_CONFIG = {
 
 export const EmptyState = ({
   icon = "newspaper-outline",
+  iconSource,
   message,
   subMessage,
   i18nKey,
@@ -45,7 +47,11 @@ export const EmptyState = ({
 
   return (
     <View style={[styles.container, fullWidth && styles.fullWidth, { paddingVertical: cfg.padding }]}>
-      <Ionicons name={icon} size={cfg.icon} color={iconColor} />
+      {iconSource ? (
+        <Image source={iconSource} resizeMode="contain" style={{ width: cfg.icon, height: cfg.icon }} />
+      ) : (
+        <Ionicons name={icon} size={cfg.icon} color={iconColor} />
+      )}
       <Text style={[styles.text, { fontSize: cfg.font }, muted && styles.textMuted, fullWidth && styles.textFullWidth, messageColor ? { color: messageColor } : null]}>
         {text}
       </Text>

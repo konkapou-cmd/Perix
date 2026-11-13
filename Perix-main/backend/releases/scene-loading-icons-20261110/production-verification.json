@@ -1,0 +1,12 @@
+{
+  "deployment": "0e027c01-e90f-4b56-abc1-417909f6b09d",
+  "runtime_files_verified": 185,
+  "directory_count": 82,
+  "directory_sha256": "f659c861b1b798fd0f492fb76251d0e9fc1bd6c5bc2cc53b2e9f9f5e2d6699d5",
+  "bundle_matches": true,
+  "backend_code_unchanged": true,
+  "settings_unchanged": true,
+  "database_unchanged": true,
+  "source_files": 9,
+  "entry_sha256": "c7a01337a3e7696591fe2dd1ede46840bbf4a5d98724b00e6703f04d8621ab23"
+}

@@ -23,6 +23,7 @@ import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";
 import { ThemeStyles } from "../../hooks/useThemeStyles";
+import { PROFILE_ACTION_ILLUSTRATIONS } from "../../lib/profileActionIcons";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -34,6 +35,8 @@ export type TabDefinition = {
   icon: string;
   iconSource?: ImageSourcePropType;
   count?: number;
+  /** Plan-gated: rendered dimmed with a lock + upgrade hint; tap goes to onLockedPress. */
+  locked?: boolean;
 };
 
 interface ProfileBaseProps {
@@ -105,6 +108,10 @@ interface ProfileHeaderProps {
   isBlocked?: boolean;
   stats?: { label: string; count: number; onPress?: () => void }[];
   completenessItems?: { label: string; done: boolean }[];
+  /** Trust & safety advice shown while the profile is incomplete. */
+  completenessTip?: string | null;
+  /** "Complete your profile by …" deadline from a redeemed code. */
+  profileDeadline?: string | null;
   identityPicker?: React.ReactNode;
 }
 
@@ -113,6 +120,7 @@ type ActionBtnVariant = "primary" | "outline" | "secondaryIcon" | "dangerIcon" |
 function ProfileActionButton({
   label,
   icon,
+  iconSource,
   variant = "primary",
   color = PROFILE_COLORS.PRIMARY,
   onPress,
@@ -120,6 +128,7 @@ function ProfileActionButton({
 }: {
   label?: string;
   icon: string;
+  iconSource?: ImageSourcePropType;
   variant?: ActionBtnVariant;
   color?: string;
   onPress?: () => void;
@@ -147,15 +156,19 @@ function ProfileActionButton({
   if (isIcon && !label) {
     return (
       <Pressable onPress={onPress} disabled={disabled} style={abStyles.iconOnly}>
-        <Ionicons
-          name={icon as any}
-          size={20}
-          color={
-            variant === "dangerIcon" ? PROFILE_COLORS.DANGER
-            : variant === "savedIcon" ? COLORS.gold
-            : "#1F4788"
-          }
-        />
+        {iconSource ? (
+          <Image source={iconSource} resizeMode="contain" style={{ width: 20, height: 20 }} />
+        ) : (
+          <Ionicons
+            name={icon as any}
+            size={20}
+            color={
+              variant === "dangerIcon" ? PROFILE_COLORS.DANGER
+              : variant === "savedIcon" ? COLORS.gold
+              : "#1F4788"
+            }
+          />
+        )}
       </Pressable>
     );
   }
@@ -171,7 +184,11 @@ function ProfileActionButton({
       onPress={onPress}
       disabled={disabled}
     >
-      <Ionicons name={icon as any} size={iconSize} color={fg} />
+      {iconSource ? (
+        <Image source={iconSource} resizeMode="contain" style={{ width: iconSize, height: iconSize }} />
+      ) : (
+        <Ionicons name={icon as any} size={iconSize} color={fg} />
+      )}
       {label && <Text style={[abStyles.text, { color: fg }]} numberOfLines={1}>{label}</Text>}
     </Pressable>
   );
@@ -250,6 +267,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   isBlocked = false,
   stats,
   completenessItems,
+  completenessTip,
+  profileDeadline,
 }) => {
   const { t } = useTranslation();
   const router = useRouter();
@@ -330,6 +349,124 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           {name || t("profile.perixUser", "Perix User")}
         </Text>
 
+        <View style={styles.actionRow}>
+          {!readOnly && (
+            <View style={styles.primaryActions}>
+              <ProfileActionButton
+                icon="create-outline"
+                iconSource={PROFILE_ACTION_ILLUSTRATIONS.edit}
+                label={t("common.edit", "Profil bearbeiten")}
+                variant="flat"
+                onPress={onEditProfile}
+                color="#1F4788"
+              />
+              {onShare && (
+                <ProfileActionButton
+                  icon="share-social-outline"
+                  iconSource={PROFILE_ACTION_ILLUSTRATIONS.share}
+                  label={t("common.share", "Teilen")}
+                  variant="flat"
+                  onPress={onShare}
+                  color="#1F4788"
+                />
+              )}
+              {onViewPublic && (
+                <ProfileActionButton
+                  icon="open-outline"
+                  label={t("profile.viewProfile", "Profil")}
+                  variant="flat"
+                  onPress={onViewPublic}
+                  color="#1F4788"
+                />
+              )}
+              {onPlan && null /* payments removed */}
+              <ProfileActionButton
+                icon="bookmark-outline"
+                iconSource={PROFILE_ACTION_ILLUSTRATIONS.saved}
+                variant="secondaryIcon"
+                onPress={() => router.push("/saved" as any)}
+              />
+              <ProfileActionButton
+                icon="settings-outline"
+                iconSource={PROFILE_ACTION_ILLUSTRATIONS.settings}
+                variant="secondaryIcon"
+                onPress={onSettings || (() => router.push("/settings"))}
+              />
+            </View>
+          )}
+          {readOnly && (
+            <>
+              <View style={styles.primaryActions}>
+                {showMessageButton && onMessagePress && (
+                  <ProfileActionButton
+                    icon="chatbubble-ellipses-outline"
+                    label={t("profile.message", "Nachricht")}
+                    onPress={onMessagePress}
+                    color={primaryColor}
+                  />
+                )}
+                {onFriendPress && (
+                  <ProfileActionButton
+                    icon={friendStatus === "friends" ? "people" : "person-add-outline"}
+                    label={friendStatus === "friends" ? t("profile.friends", "Freunde") :
+                      friendStatus === "request_sent" ? t("profile.pending", "Anfrage gesendet") :
+                      friendStatus === "request_received" ? t("profile.acceptRequest", "Annehmen") :
+                      t("profile.addFriend", "Freund hinzufügen")}
+                    variant={friendStatus === "friends" ? "outline" : "primary"}
+                    onPress={onFriendPress}
+                    color={friendStatus === "friends" ? primaryColor : primaryColor}
+                  />
+                )}
+                {showFollowButton && onFollowPress && (
+                  <ProfileActionButton
+                    icon={friendStatus === "friends" ? "people" : "person-add-outline"}
+                    label={friendStatus === "friends" ? t("profile.friends", "Folgen") :
+                      friendStatus === "request_sent" ? t("profile.pending", "Anfrage gesendet") :
+                      friendStatus === "request_received" ? t("profile.acceptRequest", "Annehmen") :
+                      t("profile.follow", "Folgen")}
+                    variant={friendStatus === "friends" ? "outline" : "primary"}
+                    onPress={onFollowPress}
+                    color={friendStatus === "friends" ? primaryColor : primaryColor}
+                  />
+                )}
+              </View>
+              <View style={styles.secondaryRow}>
+                {onShare && (
+                  <ProfileActionButton
+                    icon="share-social-outline"
+                    iconSource={PROFILE_ACTION_ILLUSTRATIONS.share}
+                    variant="secondaryIcon"
+                    onPress={onShare}
+                  />
+                )}
+                {onSavePress && (
+                  <ProfileActionButton
+                    icon={isSaved ? "bookmark" : "bookmark-outline"}
+                    iconSource={PROFILE_ACTION_ILLUSTRATIONS.saved}
+                    variant="savedIcon"
+                    onPress={onSavePress}
+                    disabled={savingItem}
+                  />
+                )}
+                {onReportPress && (
+                  <ProfileActionButton
+                    icon="flag-outline"
+                    variant="secondaryIcon"
+                    onPress={onReportPress}
+                  />
+                )}
+                {onBlockPress && (
+                  <ProfileActionButton
+                    icon={isBlocked ? "ban" : "ban-outline"}
+                    variant="dangerIcon"
+                    onPress={onBlockPress}
+                  />
+                )}
+              </View>
+            </>
+          )}
+        </View>
+
         {slug && (
           <Pressable onPress={handleCopyLink} style={styles.slugRow}>
             <Text style={[styles.slugText, { color: primaryColor }, themeStyles as TextStyle]} numberOfLines={1}>
@@ -397,123 +534,21 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               <Text style={styles.completenessLabel}>{c.label}</Text>
             </View>
           ))}
+          {completenessTip ? (
+            <Text style={styles.completenessTip}>{completenessTip}</Text>
+          ) : null}
+          {profileDeadline ? (
+            <View style={styles.deadlineRow}>
+              <Ionicons name="time-outline" size={13} color="#1F4788" />
+              <Text style={styles.deadlineText}>{profileDeadline}</Text>
+            </View>
+          ) : null}
           <Pressable style={[styles.completenessBtn, { backgroundColor: primaryColor }]} onPress={onEditProfile}>
             <Text style={styles.completenessBtnText}>{t("profile.completeNow", "Complete Now")}</Text>
           </Pressable>
         </View>
       )}
 
-      <View style={styles.actionRow}>
-        {!readOnly && (
-          <View style={styles.primaryActions}>
-            <ProfileActionButton
-              icon="create-outline"
-              label={t("common.edit", "Profil bearbeiten")}
-              variant="flat"
-              onPress={onEditProfile}
-              color="#1F4788"
-            />
-            {onShare && (
-              <ProfileActionButton
-                icon="share-social-outline"
-                label={t("common.share", "Teilen")}
-                variant="flat"
-                onPress={onShare}
-                color="#1F4788"
-              />
-            )}
-            {onViewPublic && (
-              <ProfileActionButton
-                icon="open-outline"
-                label={t("profile.viewProfile", "Profil")}
-                variant="flat"
-                onPress={onViewPublic}
-                color="#1F4788"
-              />
-            )}
-            {onPlan && null /* payments removed */}
-            <ProfileActionButton
-              icon="bookmark-outline"
-              variant="secondaryIcon"
-              onPress={() => router.push("/saved" as any)}
-            />
-            <ProfileActionButton
-              icon="settings-outline"
-              variant="secondaryIcon"
-              onPress={onSettings || (() => router.push("/settings"))}
-            />
-          </View>
-        )}
-        {readOnly && (
-          <>
-            <View style={styles.primaryActions}>
-              {showMessageButton && onMessagePress && (
-                <ProfileActionButton
-                  icon="chatbubble-ellipses-outline"
-                  label={t("profile.message", "Nachricht")}
-                  onPress={onMessagePress}
-                  color={primaryColor}
-                />
-              )}
-              {onFriendPress && (
-                <ProfileActionButton
-                  icon={friendStatus === "friends" ? "people" : "person-add-outline"}
-                  label={friendStatus === "friends" ? t("profile.friends", "Freunde") :
-                    friendStatus === "request_sent" ? t("profile.pending", "Anfrage gesendet") :
-                    friendStatus === "request_received" ? t("profile.acceptRequest", "Annehmen") :
-                    t("profile.addFriend", "Freund hinzufügen")}
-                  variant={friendStatus === "friends" ? "outline" : "primary"}
-                  onPress={onFriendPress}
-                  color={friendStatus === "friends" ? primaryColor : primaryColor}
-                />
-              )}
-              {showFollowButton && onFollowPress && (
-                <ProfileActionButton
-                  icon={friendStatus === "friends" ? "people" : "person-add-outline"}
-                  label={friendStatus === "friends" ? t("profile.friends", "Folgen") :
-                    friendStatus === "request_sent" ? t("profile.pending", "Anfrage gesendet") :
-                    friendStatus === "request_received" ? t("profile.acceptRequest", "Annehmen") :
-                    t("profile.follow", "Folgen")}
-                  variant={friendStatus === "friends" ? "outline" : "primary"}
-                  onPress={onFollowPress}
-                  color={friendStatus === "friends" ? primaryColor : primaryColor}
-                />
-              )}
-            </View>
-            <View style={styles.secondaryRow}>
-              {onShare && (
-                <ProfileActionButton
-                  icon="share-social-outline"
-                  variant="secondaryIcon"
-                  onPress={onShare}
-                />
-              )}
-              {onSavePress && (
-                <ProfileActionButton
-                  icon={isSaved ? "bookmark" : "bookmark-outline"}
-                  variant="savedIcon"
-                  onPress={onSavePress}
-                  disabled={savingItem}
-                />
-              )}
-              {onReportPress && (
-                <ProfileActionButton
-                  icon="flag-outline"
-                  variant="secondaryIcon"
-                  onPress={onReportPress}
-                />
-              )}
-              {onBlockPress && (
-                <ProfileActionButton
-                  icon={isBlocked ? "ban" : "ban-outline"}
-                  variant="dangerIcon"
-                  onPress={onBlockPress}
-                />
-              )}
-            </View>
-          </>
-        )}
-      </View>
     </View>
   );
 };
@@ -526,6 +561,8 @@ interface ProfileTabsProps {
   bgColor?: string;
   borderColor?: string;
   themeStyles?: ThemeStyles;
+  /** Called when a locked tab is pressed (e.g. navigate to /plans). */
+  onLockedPress?: (tab: TabDefinition) => void;
 }
 
 export const ProfileTabs: React.FC<ProfileTabsProps> = ({
@@ -536,9 +573,29 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
   bgColor = PROFILE_COLORS.CARD,
   borderColor = PROFILE_COLORS.BORDER,
   themeStyles,
+  onLockedPress,
 }) => {
+  const { t } = useTranslation();
   const tabButtons = tabs.map((tab) => {
     const active = tab.key === activeTab;
+    if (tab.locked) {
+      return (
+        <Pressable
+          key={tab.key}
+          onPress={() => onLockedPress?.(tab)}
+          style={[iconStyles.tab, iconStyles.tabFlex, iconStyles.lockedTab]}
+        >
+          {tab.iconSource ? (
+            <Image source={tab.iconSource} resizeMode="contain" style={{ width: 20, height: 20 }} />
+          ) : (
+            <Ionicons name={tab.icon as any} size={20} color="#1F4788" />
+          )}
+          <Text style={iconStyles.lockLabel} numberOfLines={1}>
+            {t("creation.upgrade", "Αναβάθμισε")}
+          </Text>
+        </Pressable>
+      );
+    }
     return (
       <Pressable
         key={tab.key}
@@ -586,6 +643,17 @@ const iconStyles = StyleSheet.create({
     flex: 1,
     minWidth: 36,
     maxWidth: 64,
+  },
+  lockedTab: {
+    flexDirection: "column",
+    gap: 2,
+    justifyContent: "center",
+  },
+  lockLabel: {
+    fontSize: 8,
+    fontWeight: "700",
+    color: "#1F4788",
+    letterSpacing: 0.2,
   },
   badge: {
     position: "absolute",
@@ -764,6 +832,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#1F4788",
   },
+  completenessTip: {
+    fontSize: 12,
+    fontStyle: "italic",
+    color: "rgba(38,67,72,0.75)",
+    marginTop: 8,
+    lineHeight: 17,
+  },
+  deadlineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 6,
+  },
+  deadlineText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#1F4788",
+  },
   completenessBtn: {
     marginTop: 6,
     paddingVertical: 7,
@@ -778,7 +864,7 @@ const styles = StyleSheet.create({
   },
   actionRow: {
     paddingHorizontal: PROFILE.HORIZONTAL_PADDING,
-    marginTop: 12,
+    marginTop: 8,
   },
   primaryActions: {
     flexDirection: "row",

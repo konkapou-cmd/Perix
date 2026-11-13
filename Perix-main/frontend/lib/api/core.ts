@@ -91,6 +91,7 @@ export type User = {
     profile_photo?: string | null;
   } | null;
   role?: string;
+  email_verified?: boolean;
 };
 
 export type UserPublic = {
@@ -109,6 +110,7 @@ export type UserPublic = {
   theme?: ProfileTheme | null;
   post_count?: number;
   friend_count?: number;
+  email_verified?: boolean;
 };
 
 export type PostComment = {
@@ -201,6 +203,16 @@ export type Message = {
   edited_at?: string | null;
   to_business_id?: string | null;
   to_artist_id?: string | null;
+  // Φ4 (policy v18): verified sender identity + context + retention metadata
+  sender_identity_type?: "user" | "business" | null;
+  sender_identity_id?: string | null;
+  conversation_id?: string | null;
+  context_type?: string | null;
+  context_id?: string | null;
+  retention_exempt?: boolean | null;
+  media_retired?: boolean | null;
+  expires_at?: string | null;
+  client_request_id?: string | null;
 };
 
 export type Conversation = {

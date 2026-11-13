@@ -75,7 +75,7 @@ test('physical/GPS or taxi records still expose reported next stops without bein
   vehicle.next_stop_id=null;assert.equal(vehicleStopDetails(vehicle,lines,stops,1000).nextStopName,'B stop');
   vehicle.mode='taxi';vehicle.next_stop_name=null;
   assert.equal(vehicleStopDetails(vehicle,lines,stops,1000).nextStopName,undefined);
-  assert.match(read('app/(tabs)/locator.tsx'),/selectedVehicleMode==='taxi'/);
+  assert.match(read('components/locator/LegacyLocatorScreen.tsx'),/selectedVehicleMode==='taxi'/);
 });
 test('event clocks preserve the current network timezone and the parking/departure thirty-second difference',()=>{
   const departure=Date.UTC(2026,10,5,12,0,0),parking=departure-30000;

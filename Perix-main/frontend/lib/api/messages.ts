@@ -27,9 +27,28 @@ export const sendMessage = async (
     entity_type?: "user" | "business" | "artist";
     to_email?: string;
     text: string;
+    // Φ4 (policy v18): verified sender identity + context + idempotency
+    sender_type?: "user" | "business";
+    sender_business_id?: string;
+    context_type?: string;
+    context_id?: string;
+    client_request_id?: string;
   }
 ): Promise<Message> => {
   return apiRequest<Message>("/messages", "POST", token, payload);
+};
+
+/** Monthly plan quota snapshot for the current actor (policy v18). */
+export const getPlanMessageQuota = async (
+  token: string,
+  actorType: "user" | "business" = "user",
+  actorId?: string,
+): Promise<{ usage: Record<string, number>; remaining: Record<string, number | null | boolean> }> => {
+  const query =
+    actorType === "business" && actorId
+      ? `?actor_type=business&actor_id=${encodeURIComponent(actorId)}`
+      : "?actor_type=user";
+  return apiRequest(`/account/entitlements${query}`, "GET", token);
 };
 
 export const getUnreadMessageCount = async (token: string): Promise<{ unread_count: number }> => {

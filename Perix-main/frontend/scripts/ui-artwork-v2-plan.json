@@ -1,0 +1,8627 @@
+{
+  "method": "component masks from source alpha, original soft shadows, no rectangular output clipping",
+  "padding": 8,
+  "core_alpha_threshold": 160,
+  "matte_alpha_threshold": 8,
+  "sources": {
+    "app": {
+      "filename": "Transparent Perix App Icon Infographic.png",
+      "sha256": "3fb175bbcf76428fdedcdec98df1b44b8a9b8c61d212d38dce06b9b56f2880c0",
+      "size": [
+        1122,
+        1402
+      ]
+    },
+    "market1": {
+      "filename": "Perix Marketplace Subcategory Icon Sheet.png",
+      "sha256": "9ce82c47687d1e1511c32ab7f350814866436ef3a8514162f4c45b97c9c84f49",
+      "size": [
+        1122,
+        1402
+      ]
+    },
+    "market2": {
+      "filename": "Perix Handcrafted Wood Marketplace Icons.png",
+      "sha256": "a838a9ebaafea45505156b88c42c92fd16b5986c4c09c4eacca97c50a9436d24",
+      "size": [
+        1122,
+        1402
+      ]
+    },
+    "market3": {
+      "filename": "Handcrafted Wood Marketplace Subcategories Infographic.png",
+      "sha256": "eb9127179ffc717796bc779f2d8cffd807ec1bf0b1aae07e1b5e0276c410aa49",
+      "size": [
+        1122,
+        1402
+      ]
+    },
+    "services": {
+      "filename": "Handcrafted Wood Service Icons Sprite Sheet.png",
+      "sha256": "996b669edc89a388d00c37df116da5774820eed26d11624e4cf21e99a6abc217",
+      "size": [
+        1122,
+        1402
+      ]
+    }
+  },
+  "icons": [
+    {
+      "sheet": "app",
+      "id": "events",
+      "target": "categories/home/events.webp",
+      "selector": [
+        160,
+        480,
+        310,
+        610
+      ],
+      "source_box": [
+        178,
+        499,
+        291,
+        614
+      ],
+      "components": [
+        75
+      ],
+      "preserved_core_pixels": 9072,
+      "size": [
+        129,
+        131
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        121,
+        123
+      ],
+      "sha256": "58482fd8e320ca74417a70b36e17ce84001ae01f21b6cd1d1e16b8b6811adb15",
+      "mask_sha256": "fe91dc7a89ca3a6de084a1a036076a166b38a6d36f6b8170c47a7c1171fa2fc8"
+    },
+    {
+      "sheet": "app",
+      "id": "activities",
+      "target": "categories/home/activities.webp",
+      "selector": [
+        350,
+        480,
+        500,
+        610
+      ],
+      "source_box": [
+        364,
+        491,
+        478,
+        610
+      ],
+      "components": [
+        72,
+        77
+      ],
+      "preserved_core_pixels": 4217,
+      "size": [
+        130,
+        135
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        122,
+        127
+      ],
+      "sha256": "b2d4438e1980e7478d715bbe4495ca259215b543d9f7efa7597bccaf30a68ba6",
+      "mask_sha256": "5daff277556b1dbdd4e277e34d12a88dbc597d8289530ca16e97603ffddde2db"
+    },
+    {
+      "sheet": "app",
+      "id": "businesses",
+      "target": "categories/home/businesses.webp",
+      "selector": [
+        588,
+        480,
+        738,
+        610
+      ],
+      "source_box": [
+        598,
+        498,
+        726,
+        609
+      ],
+      "components": [
+        73
+      ],
+      "preserved_core_pixels": 10395,
+      "size": [
+        144,
+        127
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        136,
+        119
+      ],
+      "sha256": "184baff8e03ded6f55a3e9032e8bb6bd5accb99c728be24a2152b656a23fb1c3",
+      "mask_sha256": "f3449302355e40293b9a24a696335f64be28da1b9e34818b57e977812a336c2f"
+    },
+    {
+      "sheet": "app",
+      "id": "hotels",
+      "target": "categories/home/hotels.webp",
+      "selector": [
+        796,
+        480,
+        946,
+        610
+      ],
+      "source_box": [
+        810,
+        497,
+        930,
+        614
+      ],
+      "components": [
+        74
+      ],
+      "preserved_core_pixels": 9943,
+      "size": [
+        136,
+        133
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        128,
+        125
+      ],
+      "sha256": "295620e942e78a70577d48e3c5f0c090b77187f65c54dfa2cb03676fa4e8eddb",
+      "mask_sha256": "bfb8e1d578cb81743494396ca45a4c3cd708f2ff9802866562d4cafaa167a01d"
+    },
+    {
+      "sheet": "app",
+      "id": "services",
+      "target": "categories/home/services.webp",
+      "selector": [
+        954,
+        480,
+        1104,
+        610
+      ],
+      "source_box": [
+        979,
+        509,
+        1077,
+        608
+      ],
+      "components": [
+        76
+      ],
+      "preserved_core_pixels": 3895,
+      "size": [
+        114,
+        115
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        106,
+        107
+      ],
+      "sha256": "024636da0655c2ea5e35fc8471ada2a7a6ca05ee23d05ee8f3a02487ad400411",
+      "mask_sha256": "a50ecb5e1f6cd399a88537f4234d4a9c531293ceb670fed60db2999740046cfb"
+    },
+    {
+      "sheet": "app",
+      "id": "jobs",
+      "target": "categories/home/jobs.webp",
+      "selector": [
+        27,
+        641,
+        149,
+        748
+      ],
+      "source_box": [
+        35,
+        648,
+        142,
+        749
+      ],
+      "components": [
+        83
+      ],
+      "preserved_core_pixels": 7124,
+      "size": [
+        123,
+        117
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        115,
+        109
+      ],
+      "sha256": "0badee6b34b92d3193da15fb64dbbb6b49de350ff2a0fd6cab7a23be86c7b659",
+      "mask_sha256": "18ba391b644ee6430a6fbcb88c276533054cc88e8237e6032412d33717f60f44"
+    },
+    {
+      "sheet": "app",
+      "id": "rentals",
+      "target": "categories/home/rentals.webp",
+      "selector": [
+        153,
+        641,
+        275,
+        748
+      ],
+      "source_box": [
+        164,
+        649,
+        265,
+        748
+      ],
+      "components": [
+        84
+      ],
+      "preserved_core_pixels": 4770,
+      "size": [
+        117,
+        115
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        109,
+        107
+      ],
+      "sha256": "6c5c169d6edbd568c8af8c5f0a3339d44c34bf19959f418ce0009cb8662a0ce4",
+      "mask_sha256": "8c8e6bc76f702272cc7a83499a91fa6c12e4e0f35ff91386dda7218d0be8b33b"
+    },
+    {
+      "sheet": "app",
+      "id": "products",
+      "target": "categories/home/products.webp",
+      "selector": [
+        278,
+        641,
+        400,
+        748
+      ],
+      "source_box": [
+        288,
+        662,
+        388,
+        748
+      ],
+      "components": [
+        90
+      ],
+      "preserved_core_pixels": 3849,
+      "size": [
+        116,
+        102
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        108,
+        94
+      ],
+      "sha256": "425f4c29657df78609639d67982c0c3887e3e34a2b0b7b6d90b1e6a73da15741",
+      "mask_sha256": "e5e8b644c8d31a559a9b5950ae014fae7e1f5ecd23b87714441f54fc68d7279a"
+    },
+    {
+      "sheet": "app",
+      "id": "homes-nearby",
+      "target": "categories/home/homes-nearby.webp",
+      "selector": [
+        405,
+        641,
+        527,
+        748
+      ],
+      "source_box": [
+        413,
+        656,
+        525,
+        745
+      ],
+      "components": [
+        86
+      ],
+      "preserved_core_pixels": 5922,
+      "size": [
+        128,
+        105
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        120,
+        97
+      ],
+      "sha256": "4d89facd19b2c1355a27b6bf0bc9ab53eca2e0997fc96ee73a3709869c94c34a",
+      "mask_sha256": "11cb8f8f6c6ad85acd7e287706c06d6e3aefb5a05180addde9e4b7dc881fee9c"
+    },
+    {
+      "sheet": "app",
+      "id": "posts",
+      "target": "categories/home/posts.webp",
+      "selector": [
+        529,
+        641,
+        651,
+        748
+      ],
+      "source_box": [
+        546,
+        659,
+        639,
+        747
+      ],
+      "components": [
+        88
+      ],
+      "preserved_core_pixels": 5643,
+      "size": [
+        109,
+        104
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        101,
+        96
+      ],
+      "sha256": "c4edab5c27edc38ba40f1c2735ffd00d75f8d7137fd61155480b43af1a502009",
+      "mask_sha256": "3ac7a8f7a599bb487b2425faa71b2d7dd4bc093667d694b23355afef42cd6bb0"
+    },
+    {
+      "sheet": "app",
+      "id": "mobility",
+      "target": "categories/home/mobility.webp",
+      "selector": [
+        643,
+        641,
+        765,
+        748
+      ],
+      "source_box": [
+        657,
+        661,
+        753,
+        744
+      ],
+      "components": [
+        91
+      ],
+      "preserved_core_pixels": 5025,
+      "size": [
+        112,
+        99
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        104,
+        91
+      ],
+      "sha256": "bffe2b731c959d22b4b56e305d7b42871aedffb49c256a8ff0063df5823b74f1",
+      "mask_sha256": "49b1483538db47e076b19665c46c497c7fb973d30eed11e9ae4495888201c168"
+    },
+    {
+      "sheet": "app",
+      "id": "public-services",
+      "target": "categories/home/public-services.webp",
+      "selector": [
+        758,
+        641,
+        880,
+        748
+      ],
+      "source_box": [
+        770,
+        649,
+        866,
+        745
+      ],
+      "components": [
+        85
+      ],
+      "preserved_core_pixels": 5584,
+      "size": [
+        112,
+        112
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        104,
+        104
+      ],
+      "sha256": "a7e45c0df0334de7e31bdefe779cb55fc8a9082f5842eadcffa22ca6e8799458",
+      "mask_sha256": "4488d0e8f534fcd06172e2b8f49c32fa3dcbe5c4d2f9cd63accf98c52c3e06ea"
+    },
+    {
+      "sheet": "app",
+      "id": "sos",
+      "target": "categories/home/sos.webp",
+      "selector": [
+        870,
+        641,
+        992,
+        748
+      ],
+      "source_box": [
+        886,
+        655,
+        968,
+        748
+      ],
+      "components": [
+        87,
+        92,
+        93,
+        94,
+        95
+      ],
+      "preserved_core_pixels": 3199,
+      "size": [
+        98,
+        109
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        90,
+        101
+      ],
+      "sha256": "4d8889899f5a6762a0c7b9097b6a46f7d0642c54f005412a22d46cbb56570891",
+      "mask_sha256": "47f1bea9309dd7ebb21bd459c03852f0ae6731ddd33a26fe3508b8e5de58615f"
+    },
+    {
+      "sheet": "app",
+      "id": "login",
+      "target": "categories/home/login.webp",
+      "selector": [
+        985,
+        641,
+        1107,
+        748
+      ],
+      "source_box": [
+        994,
+        661,
+        1100,
+        747
+      ],
+      "components": [
+        89
+      ],
+      "preserved_core_pixels": 4368,
+      "size": [
+        122,
+        102
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        114,
+        94
+      ],
+      "sha256": "d446fa0268092d5260d49aa4f468c9855899ce45a456a7a844426e1539afc1ad",
+      "mask_sha256": "fb8b3ee8de87343a2cb7e0e50a37d786ae24890f4d491571d593ea9aaff02568"
+    },
+    {
+      "sheet": "app",
+      "id": "shopping-retail",
+      "target": "categories/root/shopping-retail.webp",
+      "selector": [
+        155,
+        831,
+        283,
+        935
+      ],
+      "source_box": [
+        158,
+        839,
+        283,
+        965
+      ],
+      "components": [
+        123
+      ],
+      "preserved_core_pixels": 8689,
+      "size": [
+        141,
+        142
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        133,
+        134
+      ],
+      "sha256": "bb84bc072c99a915ce8c1589156634c4c61ebbf78edc3934a3607e44ace95b59",
+      "mask_sha256": "724122ec5a7d757425c9f1ecb2ba31c1ce40189a05ca704fd6cedc276d4ec056"
+    },
+    {
+      "sheet": "app",
+      "id": "sports-fitness-wellness",
+      "target": "categories/root/sports-fitness-wellness.webp",
+      "selector": [
+        294,
+        831,
+        422,
+        935
+      ],
+      "source_box": [
+        303,
+        857,
+        413,
+        930
+      ],
+      "components": [
+        132
+      ],
+      "preserved_core_pixels": 3812,
+      "size": [
+        126,
+        89
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        118,
+        81
+      ],
+      "sha256": "9a47649c538a52d52abb6090b08fbf526dfcef682246a2ae9767f6e75196cac6",
+      "mask_sha256": "f2e5821305a709b2264bd452d3e20e4831a194f88a5b83b3d88b922b4c6bfbc1"
+    },
+    {
+      "sheet": "app",
+      "id": "education-creativity",
+      "target": "categories/root/education-creativity.webp",
+      "selector": [
+        432,
+        831,
+        560,
+        935
+      ],
+      "source_box": [
+        441,
+        851,
+        552,
+        933
+      ],
+      "components": [
+        131
+      ],
+      "preserved_core_pixels": 4923,
+      "size": [
+        127,
+        98
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        119,
+        90
+      ],
+      "sha256": "40f09e4e5f0fbca6a281fd1ea7287e0a5e3d456516a31f735de93fe64c246f6e",
+      "mask_sha256": "7141ae3079cb00da1791896f17e6264d51b986058ea028a569470e4e889f3236"
+    },
+    {
+      "sheet": "app",
+      "id": "rentals",
+      "target": "categories/root/rentals.webp",
+      "selector": [
+        567,
+        831,
+        695,
+        935
+      ],
+      "source_box": [
+        577,
+        844,
+        673,
+        937
+      ],
+      "components": [
+        125
+      ],
+      "preserved_core_pixels": 4117,
+      "size": [
+        112,
+        109
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        104,
+        101
+      ],
+      "sha256": "fe8e3a1f7c49e187315b543f6d7a48c638410d9efa53042fa2dd580b06b579b1",
+      "mask_sha256": "5fb602a82b0013161ea7e4e45022498b6c6ccc86cda8fff0b0427d9d4586e705"
+    },
+    {
+      "sheet": "app",
+      "id": "professional-services",
+      "target": "categories/root/professional-services.webp",
+      "selector": [
+        707,
+        831,
+        835,
+        935
+      ],
+      "source_box": [
+        707,
+        846,
+        808,
+        933
+      ],
+      "components": [
+        126
+      ],
+      "preserved_core_pixels": 5791,
+      "size": [
+        117,
+        103
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        109,
+        95
+      ],
+      "sha256": "a694cc0fb9f047e932f73cab6967602733b50a5d84dbd0046d6f94a61b45bd11",
+      "mask_sha256": "852f63cd02efb4d956a81e907198dc013a4757b6d7e6153428250b6b507f1666"
+    },
+    {
+      "sheet": "app",
+      "id": "pets",
+      "target": "categories/root/pets.webp",
+      "selector": [
+        847,
+        831,
+        975,
+        935
+      ],
+      "source_box": [
+        851,
+        849,
+        947,
+        934
+      ],
+      "components": [
+        127,
+        128,
+        133,
+        134,
+        135
+      ],
+      "preserved_core_pixels": 3792,
+      "size": [
+        112,
+        101
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        104,
+        93
+      ],
+      "sha256": "3addb0692ab0b18c88af38b25bc34661e49e1d66e1b8d252f380c178b0b320f4",
+      "mask_sha256": "01c82203d652325f9e49f6abe52123d32bd52a97f74eae59c07fda79b84eab72"
+    },
+    {
+      "sheet": "app",
+      "id": "fashion-accessories",
+      "target": "categories/root/fashion-accessories.webp",
+      "selector": [
+        982,
+        831,
+        1110,
+        935
+      ],
+      "source_box": [
+        961,
+        842,
+        1113,
+        965
+      ],
+      "components": [
+        124
+      ],
+      "preserved_core_pixels": 9743,
+      "size": [
+        168,
+        139
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        160,
+        131
+      ],
+      "sha256": "58722f6408e18f296ac19891a4b9cea5d6b121d51d4353dc12bbef0dc3002fa7",
+      "mask_sha256": "26b4f56349164aa20e2eb9204a6032e7808732f1e773b74faf83fe00c1a3a6d9"
+    },
+    {
+      "sheet": "app",
+      "id": "nightlife-social",
+      "target": "categories/root/nightlife-social.webp",
+      "selector": [
+        13,
+        969,
+        141,
+        1081
+      ],
+      "source_box": [
+        38,
+        973,
+        123,
+        1099
+      ],
+      "components": [
+        144
+      ],
+      "preserved_core_pixels": 4617,
+      "size": [
+        101,
+        142
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        93,
+        134
+      ],
+      "sha256": "4c233cb42f2914a679f7bfc4d9d67dc1c340a528e55579ea1f4685002b58b6fc",
+      "mask_sha256": "1734d0c80c3a5331d0f05d5d7242a81ad9b7d91c47e899d33f4d2efcf5329eb0"
+    },
+    {
+      "sheet": "app",
+      "id": "beauty-care",
+      "target": "categories/root/beauty-care.webp",
+      "selector": [
+        148,
+        969,
+        276,
+        1081
+      ],
+      "source_box": [
+        189,
+        977,
+        256,
+        1069
+      ],
+      "components": [
+        145
+      ],
+      "preserved_core_pixels": 3708,
+      "size": [
+        83,
+        108
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        75,
+        100
+      ],
+      "sha256": "dc4bdb40f95e2fadf7075d61421f5b26460527bfbafd385a243acae52a51674d",
+      "mask_sha256": "363c9de2c6b2951c3085e2ab8524961ab642d5ea383053fea6fa704229627599"
+    },
+    {
+      "sheet": "app",
+      "id": "automotive",
+      "target": "categories/root/automotive.webp",
+      "selector": [
+        286,
+        969,
+        414,
+        1081
+      ],
+      "source_box": [
+        295,
+        991,
+        402,
+        1072
+      ],
+      "components": [
+        150
+      ],
+      "preserved_core_pixels": 5346,
+      "size": [
+        123,
+        97
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        115,
+        89
+      ],
+      "sha256": "2588871a77ebaffa78f6708f862fb27badcf2a5381cc1dc40baae2255925f845",
+      "mask_sha256": "5367518b92735a697b92568ef106ba50686064cca5063e707b4a1c5badcaa87b"
+    },
+    {
+      "sheet": "app",
+      "id": "local-hotels",
+      "target": "categories/root/local-hotels.webp",
+      "selector": [
+        426,
+        969,
+        554,
+        1081
+      ],
+      "source_box": [
+        433,
+        993,
+        555,
+        1067
+      ],
+      "components": [
+        151
+      ],
+      "preserved_core_pixels": 4630,
+      "size": [
+        138,
+        90
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        130,
+        82
+      ],
+      "sha256": "9619e3bc360250f994b76d87c62760f23cd80b399f8bf18364dafe4b137c2e35",
+      "mask_sha256": "ffebcc946b07ec6845203d3d63c5d1661823775568400d779ce431b66b8d73e9"
+    },
+    {
+      "sheet": "app",
+      "id": "healthcare",
+      "target": "categories/root/healthcare.webp",
+      "selector": [
+        562,
+        969,
+        690,
+        1081
+      ],
+      "source_box": [
+        577,
+        989,
+        672,
+        1068
+      ],
+      "components": [
+        149
+      ],
+      "preserved_core_pixels": 4341,
+      "size": [
+        111,
+        95
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        103,
+        87
+      ],
+      "sha256": "39219fbf0c0cba6d177a3153c8b09027d65f2b3bd71f7939f33bddd91905b616",
+      "mask_sha256": "b204e13021469b024727a2ae59b7805ffd28d89279f7f6c83914204bae6b0d52"
+    },
+    {
+      "sheet": "app",
+      "id": "food-dining",
+      "target": "categories/root/food-dining.webp",
+      "selector": [
+        702,
+        969,
+        830,
+        1081
+      ],
+      "source_box": [
+        704,
+        987,
+        812,
+        1067
+      ],
+      "components": [
+        146
+      ],
+      "preserved_core_pixels": 4466,
+      "size": [
+        124,
+        96
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        116,
+        88
+      ],
+      "sha256": "9535ff8a26df6f6271a2eef80a4fcb0d1ee5324c8162815ec0ce03dc9b6d3cb6",
+      "mask_sha256": "6af7bef8237f651f7280cbd29c61445a55ac0aa67796fb2c46bf680fbfb3f548"
+    },
+    {
+      "sheet": "app",
+      "id": "entertainment-events",
+      "target": "categories/root/entertainment-events.webp",
+      "selector": [
+        841,
+        969,
+        969,
+        1081
+      ],
+      "source_box": [
+        843,
+        985,
+        951,
+        1068
+      ],
+      "components": [
+        147
+      ],
+      "preserved_core_pixels": 4945,
+      "size": [
+        124,
+        99
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        116,
+        91
+      ],
+      "sha256": "645c1ae7d180588987166f3c6ca675d25d8f0425583661e4f5fea4c9b458129b",
+      "mask_sha256": "85837654120e6a9905255c769937fecb5ea1d4a029fa235fa10a94e2a50f87e2"
+    },
+    {
+      "sheet": "app",
+      "id": "mobility-transport",
+      "target": "categories/root/mobility-transport.webp",
+      "selector": [
+        981,
+        969,
+        1109,
+        1081
+      ],
+      "source_box": [
+        994,
+        983,
+        1090,
+        1068
+      ],
+      "components": [
+        148
+      ],
+      "preserved_core_pixels": 5430,
+      "size": [
+        112,
+        101
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        104,
+        93
+      ],
+      "sha256": "910c966a385c6a503500f9582ab7e9d589a03e9b1cb5a620076d790928437c7b",
+      "mask_sha256": "8a7b5510842100b60f8a3c717e7a79d255c412fb645e171d455e42ca67d4794c"
+    },
+    {
+      "sheet": "app",
+      "id": "no_businesses_found",
+      "target": "empty/no_businesses_found.webp",
+      "selector": [
+        23,
+        1150,
+        197,
+        1268
+      ],
+      "source_box": [
+        47,
+        1158,
+        191,
+        1265
+      ],
+      "components": [
+        175
+      ],
+      "preserved_core_pixels": 10535,
+      "size": [
+        160,
+        123
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        152,
+        115
+      ],
+      "sha256": "ccd68d81d8f10cdd9e29544d23a9e3d49a279f5306922e98c0b5d0ac41085fe6",
+      "mask_sha256": "3cc2487ca3e9d28d2392ca2881899b8d3c2a93ecaaf447992b88c764554d8f35"
+    },
+    {
+      "sheet": "app",
+      "id": "no_content",
+      "target": "empty/no_content.webp",
+      "selector": [
+        213,
+        1150,
+        387,
+        1268
+      ],
+      "source_box": [
+        229,
+        1160,
+        339,
+        1269
+      ],
+      "components": [
+        177
+      ],
+      "preserved_core_pixels": 7722,
+      "size": [
+        126,
+        125
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        118,
+        117
+      ],
+      "sha256": "bf013efa7fbfc542ae0d5d2dc4f8642732e68bf5e0920317ce9096e91f2442d4",
+      "mask_sha256": "ed88a7f0213059271ad23cb9c62ca95d624a6ec29a269ce4514100494d1a6db5"
+    },
+    {
+      "sheet": "app",
+      "id": "empty_marketplace",
+      "target": "empty/empty_marketplace.webp",
+      "selector": [
+        363,
+        1150,
+        537,
+        1268
+      ],
+      "source_box": [
+        381,
+        1159,
+        508,
+        1265
+      ],
+      "components": [
+        176
+      ],
+      "preserved_core_pixels": 7230,
+      "size": [
+        143,
+        122
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        135,
+        114
+      ],
+      "sha256": "8a06a223f79df46e1e1683b75e29b7acbede46bd2e332dd6616943e569f64995",
+      "mask_sha256": "851df6b95a1b5d08a69c889178947fde638e8477b171390b11d2eaea811c5e99"
+    },
+    {
+      "sheet": "app",
+      "id": "home_tab",
+      "target": "tabs/home_tab.webp",
+      "selector": [
+        561,
+        1150,
+        661,
+        1268
+      ],
+      "source_box": [
+        567,
+        1172,
+        658,
+        1257
+      ],
+      "components": [
+        178
+      ],
+      "preserved_core_pixels": 4362,
+      "size": [
+        107,
+        101
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        99,
+        93
+      ],
+      "sha256": "4d105e67a2723d45b17e5b4735b80b4a4ef919ab04e113d1cff22bf7ce133a1b",
+      "mask_sha256": "8cd1aaa53fa8b193b19a11fc8b3a0885095b854221ae4e0fcc074337ec46d1d0"
+    },
+    {
+      "sheet": "app",
+      "id": "locator_tab",
+      "target": "tabs/locator_tab.webp",
+      "selector": [
+        687,
+        1150,
+        787,
+        1268
+      ],
+      "source_box": [
+        683,
+        1172,
+        768,
+        1258
+      ],
+      "components": [
+        179
+      ],
+      "preserved_core_pixels": 4479,
+      "size": [
+        101,
+        102
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        93,
+        94
+      ],
+      "sha256": "4c1128435b5d063aaf099b0e22424200019032fe255e117cd8000ab6ec6b3859",
+      "mask_sha256": "1dd5cc55abb22d82b2f00611d5f252487199bcf58aecbdd31d94d974d4fe4fcc"
+    },
+    {
+      "sheet": "app",
+      "id": "profile_tab",
+      "target": "tabs/profile_tab.webp",
+      "selector": [
+        801,
+        1150,
+        901,
+        1268
+      ],
+      "source_box": [
+        795,
+        1173,
+        873,
+        1257
+      ],
+      "components": [
+        180
+      ],
+      "preserved_core_pixels": 3338,
+      "size": [
+        94,
+        100
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        86,
+        92
+      ],
+      "sha256": "1ec45f1f37c2070c85aec572f7bfdea8b93a66be162d13e3664899366359c03c",
+      "mask_sha256": "67a1e9ef2ee0d1e5929d8fed15de5281ef04c13bb1d6556b5e8879826056e159"
+    },
+    {
+      "sheet": "app",
+      "id": "chat_tab",
+      "target": "tabs/chat_tab.webp",
+      "selector": [
+        896,
+        1150,
+        996,
+        1268
+      ],
+      "source_box": [
+        902,
+        1176,
+        986,
+        1257
+      ],
+      "components": [
+        181
+      ],
+      "preserved_core_pixels": 3994,
+      "size": [
+        100,
+        97
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        92,
+        89
+      ],
+      "sha256": "a6f5c86888cf0c885064044a6f357b2dc8c97946406df95810ac14abc301376b",
+      "mask_sha256": "e2f49d39caa44ba3734d61bc538fbda6bb89132abe75e44115b8f16ca34c0d23"
+    },
+    {
+      "sheet": "app",
+      "id": "create_tab",
+      "target": "tabs/create_tab.webp",
+      "selector": [
+        1000,
+        1150,
+        1100,
+        1268
+      ],
+      "source_box": [
+        1009,
+        1176,
+        1092,
+        1258
+      ],
+      "components": [
+        182
+      ],
+      "preserved_core_pixels": 4897,
+      "size": [
+        99,
+        98
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        91,
+        90
+      ],
+      "sha256": "0198d67059c2a5f0631f84f3fc6ab81aa4677b912084f21bcb368032409e8ec9",
+      "mask_sha256": "812be0070d136990d68d43b9a104c1d19904a299c2dedf4182fd63a365f63fb5"
+    },
+    {
+      "sheet": "market1",
+      "id": "smartphones",
+      "target": "marketplace/subcategories/smartphones.webp",
+      "selector": [
+        25,
+        111,
+        143,
+        214
+      ],
+      "source_box": [
+        48,
+        117,
+        120,
+        217
+      ],
+      "components": [
+        21
+      ],
+      "preserved_core_pixels": 5584,
+      "size": [
+        88,
+        116
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        80,
+        108
+      ],
+      "sha256": "7f0752bd7af1ea974c6709c1eef02d8ea7f4c5c4d5160b9428fd28f4d4e3e266",
+      "mask_sha256": "eb57e7d9e1d4adb454a1f0f40d06c1824c3e6fb48058a7ac0ee4dc758b067471"
+    },
+    {
+      "sheet": "market1",
+      "id": "computers_tablets",
+      "target": "marketplace/subcategories/computers_tablets.webp",
+      "selector": [
+        157,
+        111,
+        275,
+        214
+      ],
+      "source_box": [
+        146,
+        126,
+        277,
+        216
+      ],
+      "components": [
+        24
+      ],
+      "preserved_core_pixels": 7927,
+      "size": [
+        147,
+        106
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        139,
+        98
+      ],
+      "sha256": "6373b4a0b744496a729f05946641deb904bb28307b4048411eec5444e057d7cb",
+      "mask_sha256": "270eb82b7469407acccfa3a62d3eeeaba62217d7091207ec28c059ee4c0cdff8"
+    },
+    {
+      "sheet": "market1",
+      "id": "tv_video",
+      "target": "marketplace/subcategories/tv_video.webp",
+      "selector": [
+        288,
+        111,
+        406,
+        214
+      ],
+      "source_box": [
+        292,
+        125,
+        399,
+        217
+      ],
+      "components": [
+        25
+      ],
+      "preserved_core_pixels": 7229,
+      "size": [
+        123,
+        108
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        115,
+        100
+      ],
+      "sha256": "c47eb38759f783acafdb10ad9d26a854c69d47e9b41b88026aa318e898491816",
+      "mask_sha256": "d08ddd8cf221c4f2af20d4172cecf3c9eb25430c7701a685712ffc8e61b39372"
+    },
+    {
+      "sheet": "market1",
+      "id": "audio_hifi",
+      "target": "marketplace/subcategories/audio_hifi.webp",
+      "selector": [
+        418,
+        111,
+        536,
+        214
+      ],
+      "source_box": [
+        413,
+        116,
+        517,
+        217
+      ],
+      "components": [
+        19
+      ],
+      "preserved_core_pixels": 4662,
+      "size": [
+        120,
+        117
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        112,
+        109
+      ],
+      "sha256": "dd901e0fb22ee4669054062901f7c836c3056a609c07dde1e482591f1ddacce0",
+      "mask_sha256": "dee6eb206b99bbb62ef8470bf4a43b8973841a085bba17b3f34f4ce924a8a82d"
+    },
+    {
+      "sheet": "market1",
+      "id": "gaming_hardware",
+      "target": "marketplace/subcategories/gaming_hardware.webp",
+      "selector": [
+        550,
+        111,
+        668,
+        214
+      ],
+      "source_box": [
+        528,
+        128,
+        643,
+        211
+      ],
+      "components": [
+        26
+      ],
+      "preserved_core_pixels": 5931,
+      "size": [
+        131,
+        99
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        123,
+        91
+      ],
+      "sha256": "f4748f113c271dfb167959eefeb312532ba74025d6cf7edddb9ffd72321c3444",
+      "mask_sha256": "177916ad607f70c084d2f1e13502af41f2473cd56d32514ad41a353b31a3721c"
+    },
+    {
+      "sheet": "market1",
+      "id": "cameras",
+      "target": "marketplace/subcategories/cameras.webp",
+      "selector": [
+        678,
+        111,
+        796,
+        214
+      ],
+      "source_box": [
+        656,
+        122,
+        756,
+        213
+      ],
+      "components": [
+        23
+      ],
+      "preserved_core_pixels": 6551,
+      "size": [
+        116,
+        107
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        108,
+        99
+      ],
+      "sha256": "1dccf9336afcdf5a22eeb666121aeffb837ffb6709b2d92657121ce929d0ec25",
+      "mask_sha256": "b474ff3b78ab0ec9ffa086257a74e3b7da20baac1ce76e649644d427a71fb853"
+    },
+    {
+      "sheet": "market1",
+      "id": "wearables",
+      "target": "marketplace/subcategories/wearables.webp",
+      "selector": [
+        756,
+        111,
+        874,
+        214
+      ],
+      "source_box": [
+        779,
+        113,
+        853,
+        215
+      ],
+      "components": [
+        18
+      ],
+      "preserved_core_pixels": 5051,
+      "size": [
+        90,
+        118
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        82,
+        110
+      ],
+      "sha256": "606165dcd9f83fd157cc3489f76afdca89e1d44c0e62791d9923c410453c3377",
+      "mask_sha256": "af3750df602744855f18eae1eeb578d9f640c181a8bb28f63741984ecc248812"
+    },
+    {
+      "sheet": "market1",
+      "id": "smart_home",
+      "target": "marketplace/subcategories/smart_home.webp",
+      "selector": [
+        870,
+        111,
+        988,
+        214
+      ],
+      "source_box": [
+        872,
+        118,
+        978,
+        215
+      ],
+      "components": [
+        20
+      ],
+      "preserved_core_pixels": 6154,
+      "size": [
+        122,
+        113
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        114,
+        105
+      ],
+      "sha256": "5450ba468d75e4b6399c90993af2cd08775216640c5a91a23dec5f051651ee67",
+      "mask_sha256": "f146b0f3e8d50915982d5f99073b2e049666d29fa42299b3b8111f4fc3b4a796"
+    },
+    {
+      "sheet": "market1",
+      "id": "networking",
+      "target": "marketplace/subcategories/networking.webp",
+      "selector": [
+        991,
+        111,
+        1109,
+        214
+      ],
+      "source_box": [
+        991,
+        121,
+        1103,
+        212
+      ],
+      "components": [
+        22
+      ],
+      "preserved_core_pixels": 4567,
+      "size": [
+        128,
+        107
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        120,
+        99
+      ],
+      "sha256": "1ec1cb74f11db919944b7b79a216d1b594abb3a7a737fa411e8e9bfb73001f29",
+      "mask_sha256": "fd6a39f42c4fad82ab78ebe6c374fe6f1d1883693b7abc97c0d5fe150dcd45b3"
+    },
+    {
+      "sheet": "market1",
+      "id": "electronic_accessories",
+      "target": "marketplace/subcategories/electronic_accessories.webp",
+      "selector": [
+        26,
+        246,
+        150,
+        330
+      ],
+      "source_box": [
+        41,
+        247,
+        132,
+        333
+      ],
+      "components": [
+        39
+      ],
+      "preserved_core_pixels": 4736,
+      "size": [
+        107,
+        102
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        99,
+        94
+      ],
+      "sha256": "0cabbcc651245f2d4ef265efa0cd7544b294db14c6d30a58a99daa179c9f872e",
+      "mask_sha256": "3fe3774633f527394a123c7b9d0e72648c8d8e48e9306b26707ec7fbb2dfd631"
+    },
+    {
+      "sheet": "market1",
+      "id": "computer_components",
+      "target": "marketplace/subcategories/computer_components.webp",
+      "selector": [
+        157,
+        246,
+        281,
+        330
+      ],
+      "source_box": [
+        162,
+        257,
+        284,
+        330
+      ],
+      "components": [
+        42
+      ],
+      "preserved_core_pixels": 6095,
+      "size": [
+        138,
+        89
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        130,
+        81
+      ],
+      "sha256": "0b1b4189585a0dbb1d6977fad3fa54130835e12c4a24f99b0a78a3a3a8574a16",
+      "mask_sha256": "3d1d918f81a927f221fdb8ae0d9e43935457024e9f02e7a0e70cf2590de5d2ea"
+    },
+    {
+      "sheet": "market1",
+      "id": "chargers_cables",
+      "target": "marketplace/subcategories/chargers_cables.webp",
+      "selector": [
+        291,
+        246,
+        415,
+        330
+      ],
+      "source_box": [
+        317,
+        248,
+        425,
+        333
+      ],
+      "components": [
+        41
+      ],
+      "preserved_core_pixels": 4474,
+      "size": [
+        124,
+        101
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        116,
+        93
+      ],
+      "sha256": "0d8b2a9876d4150c85ff80d31cf41daba171df47abf1f13bf403123c87548099",
+      "mask_sha256": "cd9e558116f3ede88068d90ce92dcf0ab6bae471826c3b13e96079ccaea920da"
+    },
+    {
+      "sheet": "market1",
+      "id": "phone_parts",
+      "target": "marketplace/subcategories/phone_parts.webp",
+      "selector": [
+        427,
+        246,
+        551,
+        330
+      ],
+      "source_box": [
+        469,
+        248,
+        541,
+        334
+      ],
+      "components": [
+        40
+      ],
+      "preserved_core_pixels": 4669,
+      "size": [
+        88,
+        102
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        80,
+        94
+      ],
+      "sha256": "6bac8497f753a2ab765ca5cfd5b13fdf243a0c2ce7d5af6708a374072b4c8791",
+      "mask_sha256": "87bdc0a1461be04a9fcc7ec327e6386953a9d7e76d143b87f9251b599bbd379b"
+    },
+    {
+      "sheet": "market1",
+      "id": "furniture",
+      "target": "marketplace/subcategories/furniture.webp",
+      "selector": [
+        25,
+        394,
+        143,
+        488
+      ],
+      "source_box": [
+        26,
+        408,
+        150,
+        495
+      ],
+      "components": [
+        67
+      ],
+      "preserved_core_pixels": 6290,
+      "size": [
+        140,
+        103
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        132,
+        95
+      ],
+      "sha256": "b5d0ba65fadae04f5d02121465f4d8caef4ae714fdfd7037a0975d9e0d710ed5",
+      "mask_sha256": "ee277444a850d0aa37711720e40e4aa33fc10126b064f1d6b99d2c3c51cefb64"
+    },
+    {
+      "sheet": "market1",
+      "id": "kitchen_household",
+      "target": "marketplace/subcategories/kitchen_household.webp",
+      "selector": [
+        157,
+        394,
+        275,
+        488
+      ],
+      "source_box": [
+        146,
+        408,
+        279,
+        495
+      ],
+      "components": [
+        68
+      ],
+      "preserved_core_pixels": 5372,
+      "size": [
+        149,
+        103
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        141,
+        95
+      ],
+      "sha256": "0e15c85df7dca965ffd29b3fa51461aa18e463eca44952b0a06be49dc6c91bb2",
+      "mask_sha256": "b8046265cc244fd878b92466e6514db9cb7a1a20f806c35a2753f1455a732b08"
+    },
+    {
+      "sheet": "market1",
+      "id": "large_appliances",
+      "target": "marketplace/subcategories/large_appliances.webp",
+      "selector": [
+        288,
+        394,
+        406,
+        488
+      ],
+      "source_box": [
+        303,
+        400,
+        376,
+        495
+      ],
+      "components": [
+        58
+      ],
+      "preserved_core_pixels": 5426,
+      "size": [
+        89,
+        111
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        81,
+        103
+      ],
+      "sha256": "92f99b6cf656701f63d4faee2694fd7b7374266ad4f53c7b927b7d17f557dc89",
+      "mask_sha256": "6e1ad706be7b44048ed0b8356121893bf996e6c01820ee75db868570ca0b7bbc"
+    },
+    {
+      "sheet": "market1",
+      "id": "small_appliances",
+      "target": "marketplace/subcategories/small_appliances.webp",
+      "selector": [
+        418,
+        394,
+        536,
+        488
+      ],
+      "source_box": [
+        423,
+        398,
+        496,
+        495
+      ],
+      "components": [
+        59
+      ],
+      "preserved_core_pixels": 4249,
+      "size": [
+        89,
+        113
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        81,
+        105
+      ],
+      "sha256": "6aa92be917dba9d9d838b1a69fdd27a4fa2d26bd499cae3db3da913b893fb075",
+      "mask_sha256": "edccd354ebaca9cfcab2fa235e3c53cf8b7243ae8c5028fb4d61c166ba8122a5"
+    },
+    {
+      "sheet": "market1",
+      "id": "decoration",
+      "target": "marketplace/subcategories/decoration.webp",
+      "selector": [
+        550,
+        394,
+        668,
+        488
+      ],
+      "source_box": [
+        530,
+        402,
+        634,
+        493
+      ],
+      "components": [
+        64
+      ],
+      "preserved_core_pixels": 6827,
+      "size": [
+        120,
+        107
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        112,
+        99
+      ],
+      "sha256": "461e007aec1def4f112ac10f5902075aa3bdb3956d4d8b7a317a132d6fe6fd9b",
+      "mask_sha256": "a95db8c10bb88838dd7510c772d8405dc9e229989faf822e42983ea4dccf1397"
+    },
+    {
+      "sheet": "market1",
+      "id": "lighting",
+      "target": "marketplace/subcategories/lighting.webp",
+      "selector": [
+        678,
+        394,
+        796,
+        488
+      ],
+      "source_box": [
+        658,
+        399,
+        746,
+        497
+      ],
+      "components": [
+        60
+      ],
+      "preserved_core_pixels": 4189,
+      "size": [
+        104,
+        114
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        96,
+        106
+      ],
+      "sha256": "448472ae8d3fa94d4711f129da01edf5b2ec3b21081ec24a17c462fdcc46a40a",
+      "mask_sha256": "b9a2a61b34bb48e374f16318d256edd247e7d190839901f5dada8e1e98705bc1"
+    },
+    {
+      "sheet": "market1",
+      "id": "garden",
+      "target": "marketplace/subcategories/garden.webp",
+      "selector": [
+        756,
+        394,
+        874,
+        488
+      ],
+      "source_box": [
+        755,
+        404,
+        868,
+        493
+      ],
+      "components": [
+        65
+      ],
+      "preserved_core_pixels": 4740,
+      "size": [
+        129,
+        105
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        121,
+        97
+      ],
+      "sha256": "0d0e16f499aef3339ae0306d3927e2bd1567ab3a0d45539b4aeb5d6df0433f47",
+      "mask_sha256": "b61b257409066c1159a3e778484b0eef2cb4183f6b630c205bbc389959c57ca4"
+    },
+    {
+      "sheet": "market1",
+      "id": "tools",
+      "target": "marketplace/subcategories/tools.webp",
+      "selector": [
+        870,
+        394,
+        988,
+        488
+      ],
+      "source_box": [
+        879,
+        403,
+        985,
+        493
+      ],
+      "components": [
+        66
+      ],
+      "preserved_core_pixels": 4008,
+      "size": [
+        122,
+        106
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        114,
+        98
+      ],
+      "sha256": "6f3a3896d2bf7a567ab0bbe853367fb2e434ec634ab6791aaf0c0937911a5b6d",
+      "mask_sha256": "2cf308e4ad3261fa681e8102ffd44efa04c89fd955cd430e18428a3128b1ba1b"
+    },
+    {
+      "sheet": "market1",
+      "id": "renovation_materials",
+      "target": "marketplace/subcategories/renovation_materials.webp",
+      "selector": [
+        991,
+        394,
+        1109,
+        488
+      ],
+      "source_box": [
+        993,
+        411,
+        1110,
+        491
+      ],
+      "components": [
+        69
+      ],
+      "preserved_core_pixels": 5874,
+      "size": [
+        133,
+        96
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        125,
+        88
+      ],
+      "sha256": "304f2ccefd89cd1a7884c5a8a6e8045d41068e7f9d0c000d8a70b6278e0f6981",
+      "mask_sha256": "c9c8297c9451f9077a9b993545e49b7a617cadb5f50578112dbb628a609b20be"
+    },
+    {
+      "sheet": "market1",
+      "id": "storage",
+      "target": "marketplace/subcategories/storage.webp",
+      "selector": [
+        24,
+        529,
+        152,
+        608
+      ],
+      "source_box": [
+        31,
+        532,
+        138,
+        607
+      ],
+      "components": [
+        85
+      ],
+      "preserved_core_pixels": 5664,
+      "size": [
+        123,
+        91
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        115,
+        83
+      ],
+      "sha256": "6fbf570b37ece112fdcda4beb9aac1fafb4d8fa5c0bc7e89e1c6eff9038fa86d",
+      "mask_sha256": "8e6c46302ec10c5f696791a293218691391de6351f4ecd99d87248b050ededc6"
+    },
+    {
+      "sheet": "market1",
+      "id": "home_textiles",
+      "target": "marketplace/subcategories/home_textiles.webp",
+      "selector": [
+        154,
+        529,
+        282,
+        608
+      ],
+      "source_box": [
+        163,
+        528,
+        270,
+        606
+      ],
+      "components": [
+        86
+      ],
+      "preserved_core_pixels": 5436,
+      "size": [
+        123,
+        94
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        115,
+        86
+      ],
+      "sha256": "f93a5e2ab8450b7b997ac5b245110be3c2bba6d0928f6d75d2e6fdbae225fb20",
+      "mask_sha256": "908207852cdc654af429d9193c0a5cd504ab43cc0785154cddf4d4a02cdfa854"
+    },
+    {
+      "sheet": "market1",
+      "id": "bathroom_accessories",
+      "target": "marketplace/subcategories/bathroom_accessories.webp",
+      "selector": [
+        288,
+        529,
+        416,
+        608
+      ],
+      "source_box": [
+        296,
+        524,
+        405,
+        610
+      ],
+      "components": [
+        83
+      ],
+      "preserved_core_pixels": 4219,
+      "size": [
+        125,
+        102
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        117,
+        94
+      ],
+      "sha256": "1d2af3b58896b84bf4f15cdb4ced6537dc29a7ccf1fc325f8be2d56fe0aa3193",
+      "mask_sha256": "6b6f24123a19aa46ccda80f908acc82fc24623c6cb29d897dd4bfa90bdf9dc9f"
+    },
+    {
+      "sheet": "market1",
+      "id": "cleaning_supplies",
+      "target": "marketplace/subcategories/cleaning_supplies.webp",
+      "selector": [
+        426,
+        529,
+        554,
+        608
+      ],
+      "source_box": [
+        452,
+        525,
+        510,
+        606
+      ],
+      "components": [
+        84
+      ],
+      "preserved_core_pixels": 2772,
+      "size": [
+        74,
+        97
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        66,
+        89
+      ],
+      "sha256": "ce955afbad4fb25e3e13ca513595737b58f9dfb42eb887f142f1c31f5b4924ae",
+      "mask_sha256": "0b59d75f06463a58f93d09482ff34cfe131db02f5b952b5680e936fef22b3def"
+    },
+    {
+      "sheet": "market1",
+      "id": "womens_clothing",
+      "target": "marketplace/subcategories/womens_clothing.webp",
+      "selector": [
+        25,
+        677,
+        143,
+        762
+      ],
+      "source_box": [
+        42,
+        686,
+        130,
+        762
+      ],
+      "components": [
+        125
+      ],
+      "preserved_core_pixels": 3670,
+      "size": [
+        104,
+        92
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        96,
+        84
+      ],
+      "sha256": "75878e7da24221cb4b3ae80974627ccba68966b4d203e21de9fb3eb8b8baba6b",
+      "mask_sha256": "5b9915e9e7653f55b7d22f91e5c93472a68188b6f0907754f05d46cc9f687514"
+    },
+    {
+      "sheet": "market1",
+      "id": "mens_clothing",
+      "target": "marketplace/subcategories/mens_clothing.webp",
+      "selector": [
+        157,
+        677,
+        275,
+        762
+      ],
+      "source_box": [
+        160,
+        674,
+        261,
+        761
+      ],
+      "components": [
+        121
+      ],
+      "preserved_core_pixels": 5025,
+      "size": [
+        117,
+        103
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        109,
+        95
+      ],
+      "sha256": "ed934ffaf79b5f49ef9c6ee824c1b044eaa4df9810c0fb105b864be93d02b2ba",
+      "mask_sha256": "765434beb9ae8481d793c4aa836a6a75fc1edb2ef256d15a1778dc2510f270d6"
+    },
+    {
+      "sheet": "market1",
+      "id": "kids_clothing",
+      "target": "marketplace/subcategories/kids_clothing.webp",
+      "selector": [
+        288,
+        677,
+        406,
+        762
+      ],
+      "source_box": [
+        285,
+        676,
+        388,
+        759
+      ],
+      "components": [
+        123
+      ],
+      "preserved_core_pixels": 4905,
+      "size": [
+        119,
+        99
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        111,
+        91
+      ],
+      "sha256": "9fdab8d3f86a6f54bacad92dd044c97f09c4f37aa90a650520f7183eaa181a20",
+      "mask_sha256": "5aea5899f09176e8fc2aceaafb5179ca89e14f3d3da424d39c86cc6fa85fd19f"
+    },
+    {
+      "sheet": "market1",
+      "id": "shoes",
+      "target": "marketplace/subcategories/shoes.webp",
+      "selector": [
+        418,
+        677,
+        536,
+        762
+      ],
+      "source_box": [
+        405,
+        684,
+        518,
+        752
+      ],
+      "components": [
+        124
+      ],
+      "preserved_core_pixels": 4370,
+      "size": [
+        129,
+        84
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        121,
+        76
+      ],
+      "sha256": "2308a75bb81519ab5c23554144efc0e04ad8b5bce9adbb15fbb1b334d2480ade",
+      "mask_sha256": "20a39a1be217277fe16c6a97ae6f7faa9c3b5fdf8e17c6c3f1f79678cf047143"
+    },
+    {
+      "sheet": "market1",
+      "id": "bags",
+      "target": "marketplace/subcategories/bags.webp",
+      "selector": [
+        550,
+        677,
+        668,
+        762
+      ],
+      "source_box": [
+        534,
+        668,
+        638,
+        763
+      ],
+      "components": [
+        117
+      ],
+      "preserved_core_pixels": 5829,
+      "size": [
+        120,
+        111
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        112,
+        103
+      ],
+      "sha256": "dd7d9e2e46f4d9e022e90c8b4525a8f000b814a7396ac787022d1a1001390252",
+      "mask_sha256": "3c06f6fa046bf264e54672a048f6142f80f644737e55c0c1e06a1800d52b28fe"
+    },
+    {
+      "sheet": "market1",
+      "id": "jewelry",
+      "target": "marketplace/subcategories/jewelry.webp",
+      "selector": [
+        678,
+        677,
+        796,
+        762
+      ],
+      "source_box": [
+        668,
+        671,
+        744,
+        763
+      ],
+      "components": [
+        120
+      ],
+      "preserved_core_pixels": 3001,
+      "size": [
+        92,
+        108
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        84,
+        100
+      ],
+      "sha256": "a872fcc5bdde5fe516a51c82f6bd735b448fd3baa9556c1205137c31eed3c6cc",
+      "mask_sha256": "e86b787bf224733a3edb5858641349734fc4b5fedfca56911b2df7b850019f23"
+    },
+    {
+      "sheet": "market1",
+      "id": "watches",
+      "target": "marketplace/subcategories/watches.webp",
+      "selector": [
+        756,
+        677,
+        874,
+        762
+      ],
+      "source_box": [
+        778,
+        667,
+        856,
+        764
+      ],
+      "components": [
+        118
+      ],
+      "preserved_core_pixels": 4599,
+      "size": [
+        94,
+        113
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        86,
+        105
+      ],
+      "sha256": "41c3341666c1eda8c0b6666542661187287e921bf3dd8362ac1ddbb95282cb57",
+      "mask_sha256": "7e2a36326af7f28af8cbbaaf69a7fe8b80762df9e93006790ca337afc291516c"
+    },
+    {
+      "sheet": "market1",
+      "id": "sportswear",
+      "target": "marketplace/subcategories/sportswear.webp",
+      "selector": [
+        870,
+        677,
+        988,
+        762
+      ],
+      "source_box": [
+        887,
+        673,
+        977,
+        762
+      ],
+      "components": [
+        122
+      ],
+      "preserved_core_pixels": 5530,
+      "size": [
+        106,
+        105
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        98,
+        97
+      ],
+      "sha256": "4a2d07b20ff12c3b44cfef4d49d1f840bf8bc6510fb48b801aabdb4fd1291659",
+      "mask_sha256": "ac999028abbd885965fa2bae3caf3ecdf7ee17f4be16d8946d7e4b09f20c519f"
+    },
+    {
+      "sheet": "market1",
+      "id": "workwear",
+      "target": "marketplace/subcategories/workwear.webp",
+      "selector": [
+        991,
+        677,
+        1109,
+        762
+      ],
+      "source_box": [
+        993,
+        669,
+        1106,
+        759
+      ],
+      "components": [
+        119
+      ],
+      "preserved_core_pixels": 6375,
+      "size": [
+        129,
+        106
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        121,
+        98
+      ],
+      "sha256": "85ba071e8e1a92e56fecbf98206202c38bc7c2f111f83a9cfb1541784d098061",
+      "mask_sha256": "c1d1921c48982d8815b159eae522286170e50e0fde700f8c7c13ccf23a25b183"
+    },
+    {
+      "sheet": "market1",
+      "id": "vintage_designer",
+      "target": "marketplace/subcategories/vintage_designer.webp",
+      "selector": [
+        17,
+        794,
+        143,
+        864
+      ],
+      "source_box": [
+        28,
+        788,
+        134,
+        865
+      ],
+      "components": [
+        137
+      ],
+      "preserved_core_pixels": 5151,
+      "size": [
+        122,
+        93
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        114,
+        85
+      ],
+      "sha256": "4aa5f56e1e9df981dcc009188fb946a88366ba062b1d75b4dc7812be43a21ae7",
+      "mask_sha256": "ba7b28af615492615080c57975156fbb2b84f3d41c13a84b873d5f2732f25dd2"
+    },
+    {
+      "sheet": "market1",
+      "id": "fashion_accessories",
+      "target": "marketplace/subcategories/fashion_accessories.webp",
+      "selector": [
+        148,
+        794,
+        274,
+        864
+      ],
+      "source_box": [
+        159,
+        806,
+        268,
+        854
+      ],
+      "components": [
+        139
+      ],
+      "preserved_core_pixels": 2970,
+      "size": [
+        125,
+        64
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        117,
+        56
+      ],
+      "sha256": "4b9db7ad365747852cf9a0fbcace26426ff37f72529362594c379a84b70d78a0",
+      "mask_sha256": "255e5e8f231427469688e84a26c3208259997b8b08798958b745f1aae448a07f"
+    },
+    {
+      "sheet": "market1",
+      "id": "formal_clothing",
+      "target": "marketplace/subcategories/formal_clothing.webp",
+      "selector": [
+        277,
+        794,
+        403,
+        864
+      ],
+      "source_box": [
+        288,
+        785,
+        391,
+        865
+      ],
+      "components": [
+        138
+      ],
+      "preserved_core_pixels": 5771,
+      "size": [
+        119,
+        96
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        111,
+        88
+      ],
+      "sha256": "365de59035af29c951303c6d033481296ec043e97bfa1fd6e5b9f671f5cbd1d4",
+      "mask_sha256": "579d4497f20ba51c8a3ab3c8e94b0fe08246597121db9bcd14842b3a06bd33de"
+    },
+    {
+      "sheet": "market1",
+      "id": "underwear_hosiery",
+      "target": "marketplace/subcategories/underwear_hosiery.webp",
+      "selector": [
+        405,
+        794,
+        531,
+        864
+      ],
+      "source_box": [
+        424,
+        783,
+        513,
+        836
+      ],
+      "components": [
+        136
+      ],
+      "preserved_core_pixels": 2233,
+      "size": [
+        105,
+        69
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        97,
+        61
+      ],
+      "sha256": "8f9902969bb67c0ac254a889336c7073c1ab1951c81cbcbdce84ef233a30179f",
+      "mask_sha256": "994f02cdae46ae970edf1b7a7fb19ece313056e63ea51715312f9975135de3c2"
+    },
+    {
+      "sheet": "market1",
+      "id": "baby_equipment",
+      "target": "marketplace/subcategories/baby_equipment.webp",
+      "selector": [
+        30,
+        929,
+        128,
+        1008
+      ],
+      "source_box": [
+        35,
+        940,
+        141,
+        1010
+      ],
+      "components": [
+        161
+      ],
+      "preserved_core_pixels": 4499,
+      "size": [
+        122,
+        86
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        114,
+        78
+      ],
+      "sha256": "b1b62440bbe65300d6cffea3066c656cf8e010e053dc6e2e07b99e45ab46a3cb",
+      "mask_sha256": "09d0eca3c929d36da98c7c61c8c5e9488ee5600283ecd5a39e414bb809010437"
+    },
+    {
+      "sheet": "market1",
+      "id": "strollers",
+      "target": "marketplace/subcategories/strollers.webp",
+      "selector": [
+        149,
+        929,
+        247,
+        1008
+      ],
+      "source_box": [
+        9,
+        900,
+        260,
+        1017
+      ],
+      "components": [
+        150
+      ],
+      "preserved_core_pixels": 10745,
+      "size": [
+        267,
+        133
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        259,
+        125
+      ],
+      "sha256": "791507057ce280cf41035ed055932784617c5ce501613ae5ff65f03b4134843d",
+      "mask_sha256": "a573d7a2e9b3772503ce09a207238fdd362a07cbcaa619bfbe0875697ad72ac2"
+    },
+    {
+      "sheet": "market1",
+      "id": "car_seats",
+      "target": "marketplace/subcategories/car_seats.webp",
+      "selector": [
+        262,
+        929,
+        360,
+        1008
+      ],
+      "source_box": [
+        286,
+        928,
+        371,
+        1015
+      ],
+      "components": [
+        157
+      ],
+      "preserved_core_pixels": 5156,
+      "size": [
+        101,
+        103
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        93,
+        95
+      ],
+      "sha256": "8caa20802a7e2b3a87d15fe44c9a9a38e75029a989116f02cf28d442c7d43e15",
+      "mask_sha256": "93a18a7df40b19541f0c927e8261e24809b574c066551f427dd8574f3f3d1e89"
+    },
+    {
+      "sheet": "market1",
+      "id": "nursery_furniture",
+      "target": "marketplace/subcategories/nursery_furniture.webp",
+      "selector": [
+        371,
+        929,
+        469,
+        1008
+      ],
+      "source_box": [
+        390,
+        933,
+        494,
+        1011
+      ],
+      "components": [
+        160
+      ],
+      "preserved_core_pixels": 5588,
+      "size": [
+        120,
+        94
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        112,
+        86
+      ],
+      "sha256": "8408699ab5aa65f2b7e377f63be6354c3f44411b190ef0ab98dfb7b150816a54",
+      "mask_sha256": "72e4b83bc7c91cb533a8f52035da71b8d2439c393250050180edf2259e4502d8"
+    },
+    {
+      "sheet": "market1",
+      "id": "baby_clothing",
+      "target": "marketplace/subcategories/baby_clothing.webp",
+      "selector": [
+        479,
+        929,
+        577,
+        1008
+      ],
+      "source_box": [
+        505,
+        929,
+        602,
+        1010
+      ],
+      "components": [
+        158
+      ],
+      "preserved_core_pixels": 4413,
+      "size": [
+        113,
+        97
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        105,
+        89
+      ],
+      "sha256": "6dc01512718a516a5c71ac025330b2e0b4855756f87b51256e0e840dd0f51127",
+      "mask_sha256": "3e9d4910dd7277812e6946f9178d250e597d6549f4498ed85f8660bdeee0d0cf"
+    },
+    {
+      "sheet": "market1",
+      "id": "toys_learning",
+      "target": "marketplace/subcategories/toys_learning.webp",
+      "selector": [
+        587,
+        929,
+        685,
+        1008
+      ],
+      "source_box": [
+        612,
+        923,
+        701,
+        1010
+      ],
+      "components": [
+        153
+      ],
+      "preserved_core_pixels": 4108,
+      "size": [
+        105,
+        103
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        97,
+        95
+      ],
+      "sha256": "c2a8f118ac4454b411d8dbf965ee1966112c7a8520112f4ffd424580d94407b0",
+      "mask_sha256": "372ed2b8f34ede6ff4b06849e476353d91d50438db2a466617c57b9b6ab4c107"
+    },
+    {
+      "sheet": "market1",
+      "id": "school_supplies",
+      "target": "marketplace/subcategories/school_supplies.webp",
+      "selector": [
+        695,
+        929,
+        793,
+        1008
+      ],
+      "source_box": [
+        719,
+        926,
+        802,
+        1009
+      ],
+      "components": [
+        156
+      ],
+      "preserved_core_pixels": 4589,
+      "size": [
+        99,
+        99
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        91,
+        91
+      ],
+      "sha256": "d8591db66316527e7328fa98329a0c5783bd91f23d74d554c7073f50dcdab3c4",
+      "mask_sha256": "8ad12ce1eef2c444a41cefa8e60d2c02b1fb819c85e76725a9c0b3cee7e996d5"
+    },
+    {
+      "sheet": "market1",
+      "id": "feeding",
+      "target": "marketplace/subcategories/feeding.webp",
+      "selector": [
+        805,
+        929,
+        903,
+        1008
+      ],
+      "source_box": [
+        829,
+        923,
+        884,
+        1011
+      ],
+      "components": [
+        154
+      ],
+      "preserved_core_pixels": 3076,
+      "size": [
+        71,
+        104
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        63,
+        96
+      ],
+      "sha256": "1dbc23b4be99aecf830445ff57eedab63c66da183f6fed2f35828a33e5108586",
+      "mask_sha256": "9a19217d29e72a048105ec1311ab911781f84086ab8eb2e77180e66204f9b62b"
+    },
+    {
+      "sheet": "market1",
+      "id": "baby_safety_care",
+      "target": "marketplace/subcategories/baby_safety_care.webp",
+      "selector": [
+        916,
+        929,
+        1014,
+        1008
+      ],
+      "source_box": [
+        912,
+        923,
+        994,
+        1008
+      ],
+      "components": [
+        155
+      ],
+      "preserved_core_pixels": 4188,
+      "size": [
+        98,
+        101
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        90,
+        93
+      ],
+      "sha256": "724b55924efe7c1c15e2ae48bf19d980b87e5c199c1f921a79a328a5362d5237",
+      "mask_sha256": "4381ec2edb01f98b30c2994f4ea7b76c8635dcd977fc472cafb7427f17ff6742"
+    },
+    {
+      "sheet": "market1",
+      "id": "baby_consumables",
+      "target": "marketplace/subcategories/baby_consumables.webp",
+      "selector": [
+        1017,
+        929,
+        1115,
+        1008
+      ],
+      "source_box": [
+        1010,
+        932,
+        1109,
+        1005
+      ],
+      "components": [
+        159
+      ],
+      "preserved_core_pixels": 5032,
+      "size": [
+        115,
+        89
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        107,
+        81
+      ],
+      "sha256": "a07f2b8c3712cbf14953a12c7eba95e8d9aea277f4eb3f9e51de5eed4864189b",
+      "mask_sha256": "04dfcfcca89c0dea365e3b6e1808ab7c9113d955a58b806e3ae6cc32555cb450"
+    },
+    {
+      "sheet": "market1",
+      "id": "fitness",
+      "target": "marketplace/subcategories/fitness.webp",
+      "selector": [
+        25,
+        1070,
+        143,
+        1144
+      ],
+      "source_box": [
+        32,
+        1079,
+        167,
+        1134
+      ],
+      "components": [
+        215
+      ],
+      "preserved_core_pixels": 2826,
+      "size": [
+        151,
+        71
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        143,
+        63
+      ],
+      "sha256": "3db109bf74e439c8b1e8bb9a6d4346fc8a3629d11d06916b39337d9e83869d38",
+      "mask_sha256": "0e85c38b0e0203a334f58aef31995f8a5af8cdb2a620f8935c7340a535353e82"
+    },
+    {
+      "sheet": "market1",
+      "id": "running",
+      "target": "marketplace/subcategories/running.webp",
+      "selector": [
+        157,
+        1070,
+        275,
+        1144
+      ],
+      "source_box": [
+        163,
+        1073,
+        283,
+        1134
+      ],
+      "components": [
+        214
+      ],
+      "preserved_core_pixels": 3280,
+      "size": [
+        136,
+        77
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        128,
+        69
+      ],
+      "sha256": "4bd6c98176b8a674204f403f0edf85afc8142b9e569d31e30e8015adf825c3fe",
+      "mask_sha256": "89ff355a160acb828e077525ccf0d57d3f2076299253cf42a7b3d2fbe6499d7f"
+    },
+    {
+      "sheet": "market1",
+      "id": "team_sports",
+      "target": "marketplace/subcategories/team_sports.webp",
+      "selector": [
+        288,
+        1070,
+        406,
+        1144
+      ],
+      "source_box": [
+        301,
+        1063,
+        379,
+        1134
+      ],
+      "components": [
+        205
+      ],
+      "preserved_core_pixels": 3537,
+      "size": [
+        94,
+        87
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        86,
+        79
+      ],
+      "sha256": "9408aa3e0294d7675fa900eaafcf5e4ebd6c126bc6e7eae502bfa5d6ccb968ce",
+      "mask_sha256": "6351f98346348204d2d3387908726cfa427368573acf525d67482b7aad010b67"
+    },
+    {
+      "sheet": "market1",
+      "id": "camping_hiking",
+      "target": "marketplace/subcategories/camping_hiking.webp",
+      "selector": [
+        418,
+        1070,
+        536,
+        1144
+      ],
+      "source_box": [
+        401,
+        1069,
+        528,
+        1132
+      ],
+      "components": [
+        206
+      ],
+      "preserved_core_pixels": 4048,
+      "size": [
+        143,
+        79
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        135,
+        71
+      ],
+      "sha256": "054dbbe8c3cd869294ac4b276c846be8f2e5149e08b5de9839e85cf666ce5b1b",
+      "mask_sha256": "be3196f9ca183be3f5a509381369f2ffc1a4b2ba9a81cd49f5d0a9ee0316b376"
+    },
+    {
+      "sheet": "market1",
+      "id": "winter_sports",
+      "target": "marketplace/subcategories/winter_sports.webp",
+      "selector": [
+        550,
+        1070,
+        668,
+        1144
+      ],
+      "source_box": [
+        530,
+        1077,
+        648,
+        1133
+      ],
+      "components": [
+        213
+      ],
+      "preserved_core_pixels": 4160,
+      "size": [
+        134,
+        72
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        126,
+        64
+      ],
+      "sha256": "bd1e251b524cf7dd8f3a3aee66a8fd52cc86f616f31909d406f905f5aeac54c4",
+      "mask_sha256": "433755fdcc3d72fab21e7d3a416eb2eb7186e362eba5e801a8ed3184e987949c"
+    },
+    {
+      "sheet": "market1",
+      "id": "water_sports",
+      "target": "marketplace/subcategories/water_sports.webp",
+      "selector": [
+        656,
+        1070,
+        774,
+        1144
+      ],
+      "source_box": [
+        676,
+        1056,
+        740,
+        1136
+      ],
+      "components": [
+        202
+      ],
+      "preserved_core_pixels": 2978,
+      "size": [
+        80,
+        96
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        72,
+        88
+      ],
+      "sha256": "ca72fd6e8e5c8115cf7275753f7ee7b60e59e5a51ea56cd33d95b481c15385bd",
+      "mask_sha256": "4284b463163d16de57fde383e40fcf0860b4534c985c30a72a1026c600e92f43"
+    },
+    {
+      "sheet": "market1",
+      "id": "racket_sports",
+      "target": "marketplace/subcategories/racket_sports.webp",
+      "selector": [
+        756,
+        1070,
+        874,
+        1144
+      ],
+      "source_box": [
+        770,
+        1059,
+        862,
+        1139
+      ],
+      "components": [
+        203
+      ],
+      "preserved_core_pixels": 3296,
+      "size": [
+        108,
+        96
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        100,
+        88
+      ],
+      "sha256": "1f164a8a5c3ed5e082accd09255ed9d36a2c803d7f635cf77c30b8d3643002a8",
+      "mask_sha256": "7066bbc479f1081c4076ce1041c6270a7d312c71533b19e71e7c901689acd42c"
+    },
+    {
+      "sheet": "market1",
+      "id": "climbing",
+      "target": "marketplace/subcategories/climbing.webp",
+      "selector": [
+        870,
+        1070,
+        988,
+        1144
+      ],
+      "source_box": [
+        899,
+        1062,
+        967,
+        1136
+      ],
+      "components": [
+        204
+      ],
+      "preserved_core_pixels": 2151,
+      "size": [
+        84,
+        90
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        76,
+        82
+      ],
+      "sha256": "6711e51c0a95d095e8f6ac3ac1236c6dbd137fb850728044dd6a12b6d5e68daf",
+      "mask_sha256": "0ffb83b53a06c1ee510e5a1708ac7d2b0fa24192fa47fe8193bf197c6e569323"
+    },
+    {
+      "sheet": "market1",
+      "id": "golf",
+      "target": "marketplace/subcategories/golf.webp",
+      "selector": [
+        991,
+        1070,
+        1109,
+        1144
+      ],
+      "source_box": [
+        995,
+        1051,
+        1087,
+        1138
+      ],
+      "components": [
+        201
+      ],
+      "preserved_core_pixels": 2587,
+      "size": [
+        108,
+        103
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        100,
+        95
+      ],
+      "sha256": "df6c8cbb45ad4d904e2530e02b4fe0dd3085c6f45ad9c9be3c44d5dcb594a9bf",
+      "mask_sha256": "fb26bfeaf6fd231962e060f667dba4e9b5547705608dce10483c2d60530fb298"
+    },
+    {
+      "sheet": "market1",
+      "id": "sports_accessories",
+      "target": "marketplace/subcategories/sports_accessories.webp",
+      "selector": [
+        17,
+        1160,
+        153,
+        1228
+      ],
+      "source_box": [
+        31,
+        1149,
+        149,
+        1216
+      ],
+      "components": [
+        232
+      ],
+      "preserved_core_pixels": 4711,
+      "size": [
+        134,
+        83
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        126,
+        75
+      ],
+      "sha256": "3e22232ab1b6abd8039ddee6ce045f8bcaaf3b6896bc0ec1f6967f0bce75606c",
+      "mask_sha256": "c59fb780425f17b133de48bf5bcef3e369ba4341e829cf5d9dd34a42770c326d"
+    },
+    {
+      "sheet": "market1",
+      "id": "outdoor_clothing",
+      "target": "marketplace/subcategories/outdoor_clothing.webp",
+      "selector": [
+        147,
+        1160,
+        283,
+        1228
+      ],
+      "source_box": [
+        179,
+        1146,
+        286,
+        1219
+      ],
+      "components": [
+        231
+      ],
+      "preserved_core_pixels": 4347,
+      "size": [
+        123,
+        89
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        115,
+        81
+      ],
+      "sha256": "a62603516603f713984a76157516453cdcb97e566e87588d4520e8422263b56f",
+      "mask_sha256": "fadedfadc42da772556feae0e0dfbe8a45a3d2cc68fc64ce25f85a5153757c3d"
+    },
+    {
+      "sheet": "market1",
+      "id": "martial_arts_equipment",
+      "target": "marketplace/subcategories/martial_arts_equipment.webp",
+      "selector": [
+        282,
+        1160,
+        418,
+        1228
+      ],
+      "source_box": [
+        332,
+        1152,
+        431,
+        1216
+      ],
+      "components": [
+        233
+      ],
+      "preserved_core_pixels": 3482,
+      "size": [
+        115,
+        80
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        107,
+        72
+      ],
+      "sha256": "e00e914c39959d3398ec42e78208d1a1c9ecf8b35a32bb50574f836314e99755",
+      "mask_sha256": "a2a50841cded7c99fcaf51d4ec0bcf3cbe4b702b70f035f73d35344e36974206"
+    },
+    {
+      "sheet": "market1",
+      "id": "swimming_equipment",
+      "target": "marketplace/subcategories/swimming_equipment.webp",
+      "selector": [
+        457,
+        1160,
+        593,
+        1228
+      ],
+      "source_box": [
+        473,
+        1168,
+        605,
+        1215
+      ],
+      "components": [
+        234
+      ],
+      "preserved_core_pixels": 3329,
+      "size": [
+        148,
+        63
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        140,
+        55
+      ],
+      "sha256": "c66441dc2852930423a459dc3c7e23cc6f566efc0ec54a4761df8203a17fb64d",
+      "mask_sha256": "a1377f31c5218603cf41871cb204954cebe416fed645443b6a224ea85a639bfa"
+    },
+    {
+      "sheet": "market1",
+      "id": "bicycles",
+      "target": "marketplace/subcategories/bicycles.webp",
+      "selector": [
+        30,
+        1276,
+        146,
+        1352
+      ],
+      "source_box": [
+        24,
+        1285,
+        153,
+        1359
+      ],
+      "components": [
+        267
+      ],
+      "preserved_core_pixels": 5027,
+      "size": [
+        145,
+        90
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        137,
+        82
+      ],
+      "sha256": "503d0913e7e2ac0d1818073f271c474a7cb579d1cb87db82a7a3d9feb8b16a3d",
+      "mask_sha256": "7125e38609cde0022e159c96564256857ead8e94b206cdce1594f6afad65ab49"
+    },
+    {
+      "sheet": "market1",
+      "id": "electric_bikes",
+      "target": "marketplace/subcategories/electric_bikes.webp",
+      "selector": [
+        162,
+        1276,
+        278,
+        1352
+      ],
+      "source_box": [
+        170,
+        1278,
+        306,
+        1357
+      ],
+      "components": [
+        266
+      ],
+      "preserved_core_pixels": 5508,
+      "size": [
+        152,
+        95
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        144,
+        87
+      ],
+      "sha256": "63450e909cf8ee1952dc897b118d48d6c98f15f20e5afbe930974b9366db8ce5",
+      "mask_sha256": "96180a8a9dc160886ce32d619b3b23bee4a632597f6e7a7070ad68fa8399914c"
+    },
+    {
+      "sheet": "market1",
+      "id": "scooters",
+      "target": "marketplace/subcategories/scooters.webp",
+      "selector": [
+        287,
+        1276,
+        403,
+        1352
+      ],
+      "source_box": [
+        327,
+        1272,
+        424,
+        1356
+      ],
+      "components": [
+        254
+      ],
+      "preserved_core_pixels": 2375,
+      "size": [
+        113,
+        100
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        105,
+        92
+      ],
+      "sha256": "ea0476951bdbf2b764e4576793202f3e5e27f3b3fa2c836922986615554de8dd",
+      "mask_sha256": "accdec93042b6c3d53a58c2da186353e42e01fa35becc6ef3ac2e701fff209e0"
+    },
+    {
+      "sheet": "market1",
+      "id": "electric_scooters",
+      "target": "marketplace/subcategories/electric_scooters.webp",
+      "selector": [
+        424,
+        1276,
+        540,
+        1352
+      ],
+      "source_box": [
+        442,
+        1266,
+        544,
+        1356
+      ],
+      "components": [
+        250
+      ],
+      "preserved_core_pixels": 3137,
+      "size": [
+        118,
+        106
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        110,
+        98
+      ],
+      "sha256": "631888826b7d67c41c3f275ae339e9211e4df7f9bd82353d0dc3f4060f806abc",
+      "mask_sha256": "7c51c321304bb46a8cdeffbd6e200bec95f3b1429d2139380c950bf0151dfccd"
+    },
+    {
+      "sheet": "market1",
+      "id": "bike_parts",
+      "target": "marketplace/subcategories/bike_parts.webp",
+      "selector": [
+        554,
+        1276,
+        670,
+        1352
+      ],
+      "source_box": [
+        563,
+        1277,
+        646,
+        1357
+      ],
+      "components": [
+        255
+      ],
+      "preserved_core_pixels": 3274,
+      "size": [
+        99,
+        96
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        91,
+        88
+      ],
+      "sha256": "2934c10012fe098cea90bd43fad40edb2b9c129701440720d22247726d76d952",
+      "mask_sha256": "a8c007f7cff143e1c88fb24793f007d39c81e04209742ccfe532e1e73a6f8895"
+    },
+    {
+      "sheet": "market1",
+      "id": "bike_accessories",
+      "target": "marketplace/subcategories/bike_accessories.webp",
+      "selector": [
+        678,
+        1276,
+        794,
+        1352
+      ],
+      "source_box": [
+        669,
+        1271,
+        756,
+        1355
+      ],
+      "components": [
+        252
+      ],
+      "preserved_core_pixels": 4627,
+      "size": [
+        103,
+        100
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        95,
+        92
+      ],
+      "sha256": "172fe549cac4ed4733d04920490c0b53cfb464d768a0617800c653cf59f243bd",
+      "mask_sha256": "08eca4711fcff594a332d31b6506644bd14205581d1482aaf98ea48c826cb43f"
+    },
+    {
+      "sheet": "market1",
+      "id": "helmets_protection",
+      "target": "marketplace/subcategories/helmets_protection.webp",
+      "selector": [
+        800,
+        1276,
+        916,
+        1352
+      ],
+      "source_box": [
+        769,
+        1274,
+        867,
+        1353
+      ],
+      "components": [
+        256
+      ],
+      "preserved_core_pixels": 3916,
+      "size": [
+        114,
+        95
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        106,
+        87
+      ],
+      "sha256": "752a62a99bfe70450cb59adf96738c7828be40d34fbd153f9e5ac31e74337eee",
+      "mask_sha256": "516af783ef5550628252513b774a920e23c41022cbd558694d76a03bbd838405"
+    },
+    {
+      "sheet": "market1",
+      "id": "child_transport",
+      "target": "marketplace/subcategories/child_transport.webp",
+      "selector": [
+        922,
+        1276,
+        1038,
+        1352
+      ],
+      "source_box": [
+        881,
+        1267,
+        993,
+        1358
+      ],
+      "components": [
+        251
+      ],
+      "preserved_core_pixels": 5021,
+      "size": [
+        128,
+        107
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        120,
+        99
+      ],
+      "sha256": "c7e1dfe43fa51a3734bd3691dee6a5a806c2317e5dda7c8d8f306444e6c07102",
+      "mask_sha256": "82e05965eeaf8932f0feabb4a61ff1494d30d57b6bdc560a1a09e704e3f615c7"
+    },
+    {
+      "sheet": "market1",
+      "id": "scooter_parts",
+      "target": "marketplace/subcategories/scooter_parts.webp",
+      "selector": [
+        1022,
+        1276,
+        1122,
+        1352
+      ],
+      "source_box": [
+        1012,
+        1272,
+        1102,
+        1357
+      ],
+      "components": [
+        253
+      ],
+      "preserved_core_pixels": 4850,
+      "size": [
+        106,
+        101
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        98,
+        93
+      ],
+      "sha256": "70a8c6c41814abe60526ac230e4bd90e020aee6d042e23a5b6a3aaac2e55584f",
+      "mask_sha256": "6a2c381e5a53b19fa516a39276553b3ded4b9c0c065355e445a340af6ae9c98b"
+    },
+    {
+      "sheet": "market2",
+      "id": "books",
+      "target": "marketplace/subcategories/books.webp",
+      "selector": [
+        144,
+        133,
+        236,
+        268
+      ],
+      "source_box": [
+        144,
+        155,
+        250,
+        269
+      ],
+      "components": [
+        67
+      ],
+      "preserved_core_pixels": 8284,
+      "size": [
+        122,
+        130
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        114,
+        122
+      ],
+      "sha256": "18d43732e30bab48002e4df63539555a4dd65e12a1b595f464a0d38a32cc352b",
+      "mask_sha256": "418293037d6ac025b077eae3a90a02cbd1f5e63b3d1026a1bfdd04c559380df6"
+    },
+    {
+      "sheet": "market2",
+      "id": "comics_manga",
+      "target": "marketplace/subcategories/comics_manga.webp",
+      "selector": [
+        242,
+        133,
+        334,
+        268
+      ],
+      "source_box": [
+        246,
+        162,
+        348,
+        258
+      ],
+      "components": [
+        71
+      ],
+      "preserved_core_pixels": 6870,
+      "size": [
+        118,
+        112
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        110,
+        104
+      ],
+      "sha256": "fc28ec4f73a43acc74b42e6750d344f5fbbc88b6e8164817b2d24cb86849481f",
+      "mask_sha256": "ea68d08e7d6cd7a7e735a9bec94589d0b1e7b60f2231bd8ea243c53a389087b8"
+    },
+    {
+      "sheet": "market2",
+      "id": "movies_series",
+      "target": "marketplace/subcategories/movies_series.webp",
+      "selector": [
+        339,
+        133,
+        431,
+        268
+      ],
+      "source_box": [
+        343,
+        149,
+        439,
+        260
+      ],
+      "components": [
+        64
+      ],
+      "preserved_core_pixels": 6879,
+      "size": [
+        112,
+        127
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        104,
+        119
+      ],
+      "sha256": "d1bf4a661c6b70db9473ad1122af141c0c2815de67eb578cfb89fc6fa5564b4f",
+      "mask_sha256": "16e2cd88398785bfcbeafd5f59d694733594b783e2f9f60ce50247c25d0ec97a"
+    },
+    {
+      "sheet": "market2",
+      "id": "cds",
+      "target": "marketplace/subcategories/cds.webp",
+      "selector": [
+        437,
+        133,
+        529,
+        268
+      ],
+      "source_box": [
+        435,
+        160,
+        530,
+        260
+      ],
+      "components": [
+        70
+      ],
+      "preserved_core_pixels": 7242,
+      "size": [
+        111,
+        116
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        103,
+        108
+      ],
+      "sha256": "3fd6c455efe03d3def8909d63e1544fa1c7b74edcba198c749fa826e5261ec70",
+      "mask_sha256": "b7c7550c17fea3337a0d1a98fa3faf310896bad4dfe2c83562a73aca83cb3a76"
+    },
+    {
+      "sheet": "market2",
+      "id": "vinyl",
+      "target": "marketplace/subcategories/vinyl.webp",
+      "selector": [
+        535,
+        133,
+        627,
+        268
+      ],
+      "source_box": [
+        527,
+        154,
+        629,
+        261
+      ],
+      "components": [
+        68
+      ],
+      "preserved_core_pixels": 7155,
+      "size": [
+        118,
+        123
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        110,
+        115
+      ],
+      "sha256": "3414f4231c6cf5d2557e333594790723a859d815bdce28bfc4f4299a9fee4976",
+      "mask_sha256": "c2a95f5bffb2d5e79fe39f0fc551a3dce0653264824c763f067eefde907e2c7f"
+    },
+    {
+      "sheet": "market2",
+      "id": "musical_instruments",
+      "target": "marketplace/subcategories/musical_instruments.webp",
+      "selector": [
+        632,
+        133,
+        724,
+        268
+      ],
+      "source_box": [
+        615,
+        130,
+        710,
+        273
+      ],
+      "components": [
+        62
+      ],
+      "preserved_core_pixels": 5271,
+      "size": [
+        111,
+        159
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        103,
+        151
+      ],
+      "sha256": "6a1486028563fd92b79dde93b0e91c66a7c60251ae09e8f558fb6be718eb8eed",
+      "mask_sha256": "d1914dd2a328c139f9980f20be1abb97f91a33d5c7cd0159d21b0f91dc04a575"
+    },
+    {
+      "sheet": "market2",
+      "id": "studio_dj",
+      "target": "marketplace/subcategories/studio_dj.webp",
+      "selector": [
+        730,
+        133,
+        822,
+        268
+      ],
+      "source_box": [
+        706,
+        167,
+        809,
+        261
+      ],
+      "components": [
+        72
+      ],
+      "preserved_core_pixels": 7705,
+      "size": [
+        119,
+        110
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        111,
+        102
+      ],
+      "sha256": "70bca00c7bd35b9dcc0b392098c765fcf6bf0dc2ebacf8d5b358a424510b5e8b",
+      "mask_sha256": "30929f9eed7b076c12f12aea19682ad83dfa6624af6577b2183d0b6a4b73ff85"
+    },
+    {
+      "sheet": "market2",
+      "id": "sheet_music",
+      "target": "marketplace/subcategories/sheet_music.webp",
+      "selector": [
+        828,
+        133,
+        920,
+        268
+      ],
+      "source_box": [
+        810,
+        159,
+        907,
+        266
+      ],
+      "components": [
+        69
+      ],
+      "preserved_core_pixels": 7847,
+      "size": [
+        113,
+        123
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        105,
+        115
+      ],
+      "sha256": "d812bb7e4e29e399365c7d380e57f4566feb98bbca365ed68d8c6cad9ec4a002",
+      "mask_sha256": "9c4af33a1a2cf8bed82a587a2a4e089810201113627b37b2b389ef700e457954"
+    },
+    {
+      "sheet": "market2",
+      "id": "media_accessories",
+      "target": "marketplace/subcategories/media_accessories.webp",
+      "selector": [
+        925,
+        133,
+        1017,
+        268
+      ],
+      "source_box": [
+        901,
+        152,
+        1005,
+        265
+      ],
+      "components": [
+        65
+      ],
+      "preserved_core_pixels": 6113,
+      "size": [
+        120,
+        129
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        112,
+        121
+      ],
+      "sha256": "8362d9fc4a412128118e6e3bc8922a498e45a788736b20a2b49dba581c112b11",
+      "mask_sha256": "9bce8a58c7e19b3356c91c3c95536951d6721c40506ead83f30c768623ab4dfa"
+    },
+    {
+      "sheet": "market2",
+      "id": "educational_books",
+      "target": "marketplace/subcategories/educational_books.webp",
+      "selector": [
+        1022,
+        133,
+        1114,
+        268
+      ],
+      "source_box": [
+        1000,
+        154,
+        1109,
+        268
+      ],
+      "components": [
+        66
+      ],
+      "preserved_core_pixels": 8095,
+      "size": [
+        125,
+        130
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        117,
+        122
+      ],
+      "sha256": "2ced5884af5353b8c84edcdcecdf261baf7e6346c443c0ed1ffd9e0892b33100",
+      "mask_sha256": "b8d1bfdfa72a695863f0e19cb7dfb8fd36867396ab5ef1c783b9d49284876899"
+    },
+    {
+      "sheet": "market2",
+      "id": "console_games",
+      "target": "marketplace/subcategories/console_games.webp",
+      "selector": [
+        144,
+        330,
+        236,
+        446
+      ],
+      "source_box": [
+        142,
+        356,
+        252,
+        438
+      ],
+      "components": [
+        119
+      ],
+      "preserved_core_pixels": 5454,
+      "size": [
+        126,
+        98
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        118,
+        90
+      ],
+      "sha256": "60f816ed3032ec514b29a08d021a76851384cc6c2d700e10dcbb7ec6b811e491",
+      "mask_sha256": "b3caeff3c3290968683c78e5cc908893623a6318bcf627fc050116caa71c720f"
+    },
+    {
+      "sheet": "market2",
+      "id": "board_games",
+      "target": "marketplace/subcategories/board_games.webp",
+      "selector": [
+        242,
+        330,
+        334,
+        446
+      ],
+      "source_box": [
+        247,
+        351,
+        345,
+        444
+      ],
+      "components": [
+        114
+      ],
+      "preserved_core_pixels": 4633,
+      "size": [
+        114,
+        109
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        106,
+        101
+      ],
+      "sha256": "4fe866e5adfb531f0445f54329104f7ea729889e1aaa5cfb5180b121c5b9e62c",
+      "mask_sha256": "eee9b1b6858b7bd71656f5f29e44aa4c1acb166fc513d9bcce3d541e4b8f79b6"
+    },
+    {
+      "sheet": "market2",
+      "id": "puzzles",
+      "target": "marketplace/subcategories/puzzles.webp",
+      "selector": [
+        339,
+        330,
+        431,
+        446
+      ],
+      "source_box": [
+        344,
+        344,
+        436,
+        446
+      ],
+      "components": [
+        111
+      ],
+      "preserved_core_pixels": 5634,
+      "size": [
+        108,
+        118
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        100,
+        110
+      ],
+      "sha256": "0090c27ef944fef5b1b9155700bb1202179c10c10492aaa6a2e60956962b80ca",
+      "mask_sha256": "78d0bcc5089ca9f33256d0a9fa78a528f59813239f33c7b17981041e6b936867"
+    },
+    {
+      "sheet": "market2",
+      "id": "building_sets",
+      "target": "marketplace/subcategories/building_sets.webp",
+      "selector": [
+        437,
+        330,
+        529,
+        446
+      ],
+      "source_box": [
+        432,
+        349,
+        528,
+        447
+      ],
+      "components": [
+        113
+      ],
+      "preserved_core_pixels": 5996,
+      "size": [
+        112,
+        114
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        104,
+        106
+      ],
+      "sha256": "412703b171e188b9ad75bf9c1ad4acc13e82460a8b1f0e34e3d873e5100e3c99",
+      "mask_sha256": "ef991f2c4724aee4dc2f686639883aebf878a335d6501f6d53cfa1419ecedf76"
+    },
+    {
+      "sheet": "market2",
+      "id": "dolls_figures",
+      "target": "marketplace/subcategories/dolls_figures.webp",
+      "selector": [
+        535,
+        330,
+        627,
+        446
+      ],
+      "source_box": [
+        529,
+        336,
+        625,
+        450
+      ],
+      "components": [
+        108
+      ],
+      "preserved_core_pixels": 6235,
+      "size": [
+        112,
+        130
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        104,
+        122
+      ],
+      "sha256": "3019e2fdcd441f669b52614bd3f6a93b6d3e02452f55799f64b539907c41459e",
+      "mask_sha256": "a9d2bf6b3424c66dc79e5c15ffe7e03c7ba86b589abeb00bf898c8d32ccbede9"
+    },
+    {
+      "sheet": "market2",
+      "id": "educational_toys",
+      "target": "marketplace/subcategories/educational_toys.webp",
+      "selector": [
+        632,
+        330,
+        724,
+        446
+      ],
+      "source_box": [
+        624,
+        340,
+        714,
+        447
+      ],
+      "components": [
+        110
+      ],
+      "preserved_core_pixels": 4972,
+      "size": [
+        106,
+        123
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        98,
+        115
+      ],
+      "sha256": "5c1905cf2b8dc5903f722d65b5f2b575d2ea9eceaaae20edb36d0c02a4e895d9",
+      "mask_sha256": "a78f27967074e6ea61423f573b78a23033b8679676df0ad19368a320bde9c2c9"
+    },
+    {
+      "sheet": "market2",
+      "id": "outdoor_toys",
+      "target": "marketplace/subcategories/outdoor_toys.webp",
+      "selector": [
+        730,
+        330,
+        822,
+        446
+      ],
+      "source_box": [
+        714,
+        352,
+        812,
+        447
+      ],
+      "components": [
+        115
+      ],
+      "preserved_core_pixels": 5807,
+      "size": [
+        114,
+        111
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        106,
+        103
+      ],
+      "sha256": "8524ef8e2caa968e69e37abe2c232ebef7caa591d07cfc4ec33bf99b7e028c70",
+      "mask_sha256": "f80c0a118154790ff31842dde8bceacba5e6f9f302a5a9085e049edb9881d956"
+    },
+    {
+      "sheet": "market2",
+      "id": "remote_controlled",
+      "target": "marketplace/subcategories/remote_controlled.webp",
+      "selector": [
+        828,
+        330,
+        920,
+        446
+      ],
+      "source_box": [
+        807,
+        355,
+        903,
+        448
+      ],
+      "components": [
+        117
+      ],
+      "preserved_core_pixels": 4581,
+      "size": [
+        112,
+        109
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        104,
+        101
+      ],
+      "sha256": "47be442c045f3acce081049dec23fb884d60f3dc1cc94aba16b81f79ab6c3d2a",
+      "mask_sha256": "c520c9cca68148d5647b8cdca029330d1ec5a4753441bb0a1575441b42c204fe"
+    },
+    {
+      "sheet": "market2",
+      "id": "toy_vehicles",
+      "target": "marketplace/subcategories/toy_vehicles.webp",
+      "selector": [
+        925,
+        330,
+        1017,
+        446
+      ],
+      "source_box": [
+        900,
+        355,
+        1015,
+        443
+      ],
+      "components": [
+        118
+      ],
+      "preserved_core_pixels": 5950,
+      "size": [
+        131,
+        104
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        123,
+        96
+      ],
+      "sha256": "08d5d4a53ddd2a73671dba60a45e0c264876761ee236f98aad1d52008fc9f9b3",
+      "mask_sha256": "fa312dc5dcf58b883c5707f7288ef11f393006da602100ea91f86ce9deba0517"
+    },
+    {
+      "sheet": "market2",
+      "id": "board_game_accessories",
+      "target": "marketplace/subcategories/board_game_accessories.webp",
+      "selector": [
+        1022,
+        330,
+        1114,
+        446
+      ],
+      "source_box": [
+        1010,
+        352,
+        1107,
+        448
+      ],
+      "components": [
+        116
+      ],
+      "preserved_core_pixels": 5165,
+      "size": [
+        113,
+        112
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        105,
+        104
+      ],
+      "sha256": "c13b88e7dab10a9a17dd1dd89edb2ae09b725e58ed2e22f0ab754cdbd6c50979",
+      "mask_sha256": "18c2ca95ca53821986d49d3ade35fa12ff2e10b5c95486ea25a3b45ecc813af4"
+    },
+    {
+      "sheet": "market2",
+      "id": "art",
+      "target": "marketplace/subcategories/art.webp",
+      "selector": [
+        144,
+        527,
+        236,
+        648
+      ],
+      "source_box": [
+        142,
+        536,
+        250,
+        653
+      ],
+      "components": [
+        178
+      ],
+      "preserved_core_pixels": 7620,
+      "size": [
+        124,
+        133
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        116,
+        125
+      ],
+      "sha256": "b5b9fb772e590b07e35544d9e65bb03dcdd458838a90cafc8f866c26000e3ef3",
+      "mask_sha256": "7fdd7466fd0478d9ef9ca8d1d15a8f7a9ed9d5e6fd88bb31dfaf8f13006c2e4e"
+    },
+    {
+      "sheet": "market2",
+      "id": "antiques",
+      "target": "marketplace/subcategories/antiques.webp",
+      "selector": [
+        242,
+        527,
+        334,
+        648
+      ],
+      "source_box": [
+        243,
+        532,
+        348,
+        653
+      ],
+      "components": [
+        176
+      ],
+      "preserved_core_pixels": 7412,
+      "size": [
+        121,
+        137
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        113,
+        129
+      ],
+      "sha256": "f3378c0cea0359e6ff63af5437baecd357d3aa1e3b431cdf259ebc899c520fbc",
+      "mask_sha256": "b573811afa29e8672116ddf1e2a89fdba0304635b50991e3cb04b4ec7a746db5"
+    },
+    {
+      "sheet": "market2",
+      "id": "coins_stamps",
+      "target": "marketplace/subcategories/coins_stamps.webp",
+      "selector": [
+        339,
+        527,
+        431,
+        648
+      ],
+      "source_box": [
+        343,
+        545,
+        435,
+        648
+      ],
+      "components": [
+        181
+      ],
+      "preserved_core_pixels": 6969,
+      "size": [
+        108,
+        119
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        100,
+        111
+      ],
+      "sha256": "8237d9583b4c5dcacb7601449343c2f86077904d22c3f8d0905c37e13843956f",
+      "mask_sha256": "f65a8390a439b668f206f23ac2aac8be1a68b4d0232001b375b47db735db9597"
+    },
+    {
+      "sheet": "market2",
+      "id": "trading_cards",
+      "target": "marketplace/subcategories/trading_cards.webp",
+      "selector": [
+        437,
+        527,
+        529,
+        648
+      ],
+      "source_box": [
+        428,
+        537,
+        538,
+        650
+      ],
+      "components": [
+        179
+      ],
+      "preserved_core_pixels": 8657,
+      "size": [
+        126,
+        129
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        118,
+        121
+      ],
+      "sha256": "1e4f6be7854edad09baa9fbac9e734e97bb642cf5cf4e46b002f02ba185c5b7e",
+      "mask_sha256": "976d1f7f79442364bdf4bb1db538d4898e88dd9c1298e485e5a708a7cebe3120"
+    },
+    {
+      "sheet": "market2",
+      "id": "model_building",
+      "target": "marketplace/subcategories/model_building.webp",
+      "selector": [
+        535,
+        527,
+        627,
+        648
+      ],
+      "source_box": [
+        528,
+        531,
+        633,
+        648
+      ],
+      "components": [
+        174
+      ],
+      "preserved_core_pixels": 6435,
+      "size": [
+        121,
+        133
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        113,
+        125
+      ],
+      "sha256": "a59de77fc68d3461b58c0f66740de0a6c24389002220205e758a4f3f4bf88afc",
+      "mask_sha256": "bd39a3b2980958fe95dd2e13ee4029fdb64e20d6304f7564a4d8f5dfaf0563c9"
+    },
+    {
+      "sheet": "market2",
+      "id": "crafts",
+      "target": "marketplace/subcategories/crafts.webp",
+      "selector": [
+        632,
+        527,
+        724,
+        648
+      ],
+      "source_box": [
+        630,
+        532,
+        728,
+        651
+      ],
+      "components": [
+        177
+      ],
+      "preserved_core_pixels": 5684,
+      "size": [
+        114,
+        135
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        106,
+        127
+      ],
+      "sha256": "038a904bc542ada36f7319ff0eb90c8e97775b4c414f64c371690e5eb137a6c7",
+      "mask_sha256": "4d95395159944adad20747cf32147e5e43d6270bf68cca45b220436b10c89a38"
+    },
+    {
+      "sheet": "market2",
+      "id": "collectible_figures",
+      "target": "marketplace/subcategories/collectible_figures.webp",
+      "selector": [
+        730,
+        527,
+        822,
+        648
+      ],
+      "source_box": [
+        719,
+        530,
+        814,
+        648
+      ],
+      "components": [
+        173
+      ],
+      "preserved_core_pixels": 5865,
+      "size": [
+        111,
+        134
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        103,
+        126
+      ],
+      "sha256": "2db7f48b5a87306802dfa981afdc24e70fadb8f9292021a8120ba14a7ebce6c8",
+      "mask_sha256": "d8a088a95538fcac899efdb0daa9dbc46bffb6cfab73a60ff2d57c94bc3ebad9"
+    },
+    {
+      "sheet": "market2",
+      "id": "memorabilia",
+      "target": "marketplace/subcategories/memorabilia.webp",
+      "selector": [
+        828,
+        527,
+        920,
+        648
+      ],
+      "source_box": [
+        809,
+        536,
+        915,
+        652
+      ],
+      "components": [
+        180
+      ],
+      "preserved_core_pixels": 9833,
+      "size": [
+        122,
+        132
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        114,
+        124
+      ],
+      "sha256": "0d6fc051a9b1c36e1a870b5eab8bea8508f61e0fcc7de3e85069064f125f946c",
+      "mask_sha256": "892796951a4ce4c95ac6a8f880f220cafc0d855f7e11d0a54bb08f228b896b1b"
+    },
+    {
+      "sheet": "market2",
+      "id": "other_collectibles",
+      "target": "marketplace/subcategories/other_collectibles.webp",
+      "selector": [
+        925,
+        527,
+        1017,
+        648
+      ],
+      "source_box": [
+        917,
+        547,
+        1015,
+        649
+      ],
+      "components": [
+        182
+      ],
+      "preserved_core_pixels": 6581,
+      "size": [
+        114,
+        118
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        106,
+        110
+      ],
+      "sha256": "046fcf40a9bc48a9df8e9fcb26fd69645e283e9497a7658797c2b03775617aac",
+      "mask_sha256": "6aa996489b15ae66ae75bc41e07435d15c407f907e998491d8d2b42b496dfbca"
+    },
+    {
+      "sheet": "market2",
+      "id": "art_supplies",
+      "target": "marketplace/subcategories/art_supplies.webp",
+      "selector": [
+        1022,
+        527,
+        1114,
+        648
+      ],
+      "source_box": [
+        1018,
+        525,
+        1109,
+        650
+      ],
+      "components": [
+        172
+      ],
+      "preserved_core_pixels": 5661,
+      "size": [
+        107,
+        141
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        99,
+        133
+      ],
+      "sha256": "334fd4d2a8347a3bad26f08d633baa0c17a01d2c657fb5239a751773d9087264",
+      "mask_sha256": "84940855f54e2d90f43da0914c8532cb7aaeddace40e5cf2a6a920d5bddefb61"
+    },
+    {
+      "sheet": "market2",
+      "id": "skincare",
+      "target": "marketplace/subcategories/skincare.webp",
+      "selector": [
+        144,
+        718,
+        218,
+        818
+      ],
+      "source_box": [
+        144,
+        747,
+        239,
+        845
+      ],
+      "components": [
+        212
+      ],
+      "preserved_core_pixels": 5716,
+      "size": [
+        111,
+        114
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        103,
+        106
+      ],
+      "sha256": "7b112b3d39b0139da1b2bd28c67beb723b913f8135a8fb833ec3a2e8057f1037",
+      "mask_sha256": "12c9caaf98d2d251590cd3d5d5bfdb873331978d6bb7595349694ac28018ce05"
+    },
+    {
+      "sheet": "market2",
+      "id": "makeup",
+      "target": "marketplace/subcategories/makeup.webp",
+      "selector": [
+        223,
+        718,
+        297,
+        818
+      ],
+      "source_box": [
+        236,
+        726,
+        288,
+        845
+      ],
+      "components": [
+        204
+      ],
+      "preserved_core_pixels": 3679,
+      "size": [
+        68,
+        135
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        60,
+        127
+      ],
+      "sha256": "d50d7b03595f2e1d4e8f043d9825f499fb964743912e321542427aef0fff3b3b",
+      "mask_sha256": "591cf2d108893de2d7850af22d4978564e39df9f2ffb9fdbcbe589f06cd90fdc"
+    },
+    {
+      "sheet": "market2",
+      "id": "haircare",
+      "target": "marketplace/subcategories/haircare.webp",
+      "selector": [
+        302,
+        718,
+        376,
+        818
+      ],
+      "source_box": [
+        294,
+        724,
+        361,
+        845
+      ],
+      "components": [
+        201
+      ],
+      "preserved_core_pixels": 5317,
+      "size": [
+        83,
+        137
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        75,
+        129
+      ],
+      "sha256": "932b193cea41f3ce79dab62cfff7f018ec9604e543612725e03747e88ec06b7c",
+      "mask_sha256": "3b69f9cd9f52b2f45a1e558e9eb74af97a2f3da91c775d73365ba19a07aa8d3c"
+    },
+    {
+      "sheet": "market2",
+      "id": "hair_styling",
+      "target": "marketplace/subcategories/hair_styling.webp",
+      "selector": [
+        381,
+        718,
+        455,
+        818
+      ],
+      "source_box": [
+        360,
+        737,
+        458,
+        840
+      ],
+      "components": [
+        210
+      ],
+      "preserved_core_pixels": 4337,
+      "size": [
+        114,
+        119
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        106,
+        111
+      ],
+      "sha256": "3cffcf3e3bd09b3ee1deecc29cdc7cd3685ea1e6dc6fe9b644a4f264aed62cb9",
+      "mask_sha256": "c53cda2b5218c9202d7d53b00011b0d90446e03576bddf2c782f254c5692b0bc"
+    },
+    {
+      "sheet": "market2",
+      "id": "fragrances",
+      "target": "marketplace/subcategories/fragrances.webp",
+      "selector": [
+        460,
+        718,
+        534,
+        818
+      ],
+      "source_box": [
+        448,
+        732,
+        533,
+        844
+      ],
+      "components": [
+        207
+      ],
+      "preserved_core_pixels": 5605,
+      "size": [
+        101,
+        128
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        93,
+        120
+      ],
+      "sha256": "2f71453bbeaa5922a185b53f6a23f0e860d7bf388fa98c559bcb8ba10f528a23",
+      "mask_sha256": "9a1346e90a6bbb6cc2ebd44228d926111ffbbc6f526fb7dedb5b365f7007f372"
+    },
+    {
+      "sheet": "market2",
+      "id": "nailcare",
+      "target": "marketplace/subcategories/nailcare.webp",
+      "selector": [
+        539,
+        718,
+        613,
+        818
+      ],
+      "source_box": [
+        532,
+        734,
+        597,
+        844
+      ],
+      "components": [
+        209
+      ],
+      "preserved_core_pixels": 4175,
+      "size": [
+        81,
+        126
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        73,
+        118
+      ],
+      "sha256": "0e370d60a7b2024b029ae84a9c7ff6299c9354fdc65aca2e14aa0401e698d175",
+      "mask_sha256": "f6f71e5aba2723619b38b5ff5815ebe8ed04e37f4be85a3680aba1d04a8e1426"
+    },
+    {
+      "sheet": "market2",
+      "id": "wellness_devices",
+      "target": "marketplace/subcategories/wellness_devices.webp",
+      "selector": [
+        618,
+        718,
+        692,
+        818
+      ],
+      "source_box": [
+        596,
+        739,
+        677,
+        842
+      ],
+      "components": [
+        211
+      ],
+      "preserved_core_pixels": 5392,
+      "size": [
+        97,
+        119
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        89,
+        111
+      ],
+      "sha256": "9b43505ea45f76a8403c70a786de5d58121f0c7075a132b0696702ee7e5b734d",
+      "mask_sha256": "e3841d8a5bb33711210fc8a982e34f00b69a17a7e6111eed743f58863ef718ae"
+    },
+    {
+      "sheet": "market2",
+      "id": "beauty_devices",
+      "target": "marketplace/subcategories/beauty_devices.webp",
+      "selector": [
+        697,
+        718,
+        771,
+        818
+      ],
+      "source_box": [
+        669,
+        726,
+        738,
+        840
+      ],
+      "components": [
+        205
+      ],
+      "preserved_core_pixels": 4197,
+      "size": [
+        85,
+        130
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        77,
+        122
+      ],
+      "sha256": "a02289a806f3dedbb29964df36129609992c3551ed87cb80a20bd103e1a7b19b",
+      "mask_sha256": "988f6d683d1b153e8f3dc730aee1ef4420acf232f13bb01c71daeb2e43cc19e9"
+    },
+    {
+      "sheet": "market2",
+      "id": "personal_care",
+      "target": "marketplace/subcategories/personal_care.webp",
+      "selector": [
+        776,
+        718,
+        850,
+        818
+      ],
+      "source_box": [
+        744,
+        725,
+        820,
+        841
+      ],
+      "components": [
+        203
+      ],
+      "preserved_core_pixels": 5216,
+      "size": [
+        92,
+        132
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        84,
+        124
+      ],
+      "sha256": "dbddf54f4521620f6ed29af5e733971d29f0034f1ea2b2ec2753bdbb259ba3e2",
+      "mask_sha256": "eb5c39eebbc7d360cfbd70f105d645990984f430c5f4182b8e1d1e3df2970b6d"
+    },
+    {
+      "sheet": "market2",
+      "id": "beauty_accessories",
+      "target": "marketplace/subcategories/beauty_accessories.webp",
+      "selector": [
+        855,
+        718,
+        929,
+        818
+      ],
+      "source_box": [
+        812,
+        726,
+        908,
+        841
+      ],
+      "components": [
+        206
+      ],
+      "preserved_core_pixels": 5877,
+      "size": [
+        112,
+        131
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        104,
+        123
+      ],
+      "sha256": "e734e7215d239b653934de1bcce8891d788833171ca19be014346a0fe606336b",
+      "mask_sha256": "1623095593a2d0fdf953646ab0beb1af54fa70b706e36c53959d78556a5756b3"
+    },
+    {
+      "sheet": "market2",
+      "id": "beard_shaving",
+      "target": "marketplace/subcategories/beard_shaving.webp",
+      "selector": [
+        934,
+        718,
+        1008,
+        818
+      ],
+      "source_box": [
+        938,
+        732,
+        1007,
+        841
+      ],
+      "components": [
+        208
+      ],
+      "preserved_core_pixels": 3263,
+      "size": [
+        85,
+        125
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        77,
+        117
+      ],
+      "sha256": "47006036db5714b646d6beaacafb7982a3a37e430e49cd68c1b31b39f5e241f5",
+      "mask_sha256": "e0105d59fb076a627ee1f1b4b33744ebc1978b7359b2898e5d5e704984998b31"
+    },
+    {
+      "sheet": "market2",
+      "id": "professional_haircare",
+      "target": "marketplace/subcategories/professional_haircare.webp",
+      "selector": [
+        1013,
+        718,
+        1087,
+        818
+      ],
+      "source_box": [
+        1026,
+        719,
+        1101,
+        840
+      ],
+      "components": [
+        200
+      ],
+      "preserved_core_pixels": 5718,
+      "size": [
+        91,
+        137
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        83,
+        129
+      ],
+      "sha256": "52cdbefe120d6416f6dbd019572cf2c50addb0943d447d01b8766b6e181560cf",
+      "mask_sha256": "3eed8c8a0683dad276d33f0e754de18142ce5927ed2b9ad5e3512d72c5634651"
+    },
+    {
+      "sheet": "market2",
+      "id": "dog_supplies",
+      "target": "marketplace/subcategories/dog_supplies.webp",
+      "selector": [
+        149,
+        917,
+        213,
+        1010
+      ],
+      "source_box": [
+        142,
+        924,
+        232,
+        1003
+      ],
+      "components": [
+        237
+      ],
+      "preserved_core_pixels": 3661,
+      "size": [
+        106,
+        95
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        98,
+        87
+      ],
+      "sha256": "c6c2b6a882e7f10bd318c599a190f47878b91a0ca7581727f2dd036404d69a4d",
+      "mask_sha256": "d8fac8bc0c6f2743ee5fc763567e7676d4bbb975d5104d08487409360c276e26"
+    },
+    {
+      "sheet": "market2",
+      "id": "cat_supplies",
+      "target": "marketplace/subcategories/cat_supplies.webp",
+      "selector": [
+        218,
+        917,
+        282,
+        1010
+      ],
+      "source_box": [
+        223,
+        931,
+        294,
+        1006
+      ],
+      "components": [
+        242
+      ],
+      "preserved_core_pixels": 3136,
+      "size": [
+        87,
+        91
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        79,
+        83
+      ],
+      "sha256": "ac6da4cb5c1bd3e281c858c289a9a6fe0ba62e048ff910c8cc30935259503eac",
+      "mask_sha256": "bc6828bdd51c23c9e4f3df71b8a08ea163430c030c7004cc04fe0783fb9636ed"
+    },
+    {
+      "sheet": "market2",
+      "id": "small_pet_supplies",
+      "target": "marketplace/subcategories/small_pet_supplies.webp",
+      "selector": [
+        287,
+        917,
+        351,
+        1010
+      ],
+      "source_box": [
+        290,
+        934,
+        360,
+        1002
+      ],
+      "components": [
+        244
+      ],
+      "preserved_core_pixels": 2735,
+      "size": [
+        86,
+        84
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        78,
+        76
+      ],
+      "sha256": "e03c206b4e812a5a92d503387d97506354f12e7ad90b3e1ff73b483b6b6cd58f",
+      "mask_sha256": "4cb0ca0eeff3cb6d4be28cadbd1441d0eee650ab665418f56813d55ea56f6529"
+    },
+    {
+      "sheet": "market2",
+      "id": "bird_supplies",
+      "target": "marketplace/subcategories/bird_supplies.webp",
+      "selector": [
+        356,
+        917,
+        420,
+        1010
+      ],
+      "source_box": [
+        350,
+        915,
+        423,
+        1018
+      ],
+      "components": [
+        231
+      ],
+      "preserved_core_pixels": 3524,
+      "size": [
+        89,
+        119
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        81,
+        111
+      ],
+      "sha256": "10165659c706864f053226503bef84ecc6e4a9b2e749274851cd829f1ab2157d",
+      "mask_sha256": "3809a1ef5f3fe6980d96b8aed7542cf7868ae94f8a5976c1461afbac5879c7d5"
+    },
+    {
+      "sheet": "market2",
+      "id": "aquarium",
+      "target": "marketplace/subcategories/aquarium.webp",
+      "selector": [
+        425,
+        917,
+        489,
+        1010
+      ],
+      "source_box": [
+        414,
+        926,
+        499,
+        1012
+      ],
+      "components": [
+        241
+      ],
+      "preserved_core_pixels": 5010,
+      "size": [
+        101,
+        102
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        93,
+        94
+      ],
+      "sha256": "4dc797249ba9d8052145dd6925e6cbd996ae39b9def86894e658837a32e1f19a",
+      "mask_sha256": "c5ec9f158c4f905516de82de7be4467b230e4125768029c6dc6410a4a20f01aa"
+    },
+    {
+      "sheet": "market2",
+      "id": "terrarium",
+      "target": "marketplace/subcategories/terrarium.webp",
+      "selector": [
+        494,
+        917,
+        558,
+        1010
+      ],
+      "source_box": [
+        494,
+        918,
+        567,
+        1011
+      ],
+      "components": [
+        235
+      ],
+      "preserved_core_pixels": 4428,
+      "size": [
+        89,
+        109
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        81,
+        101
+      ],
+      "sha256": "d544fff9450cfae3fba3f8238b6b1d5152d3f9f60c2cf6171cf4a73645fec205",
+      "mask_sha256": "91b2b03df603759418cca1dc508e434e4ed7821add5ab505dbb31f795c90714a"
+    },
+    {
+      "sheet": "market2",
+      "id": "pet_transport",
+      "target": "marketplace/subcategories/pet_transport.webp",
+      "selector": [
+        563,
+        917,
+        627,
+        1010
+      ],
+      "source_box": [
+        563,
+        927,
+        635,
+        1007
+      ],
+      "components": [
+        238
+      ],
+      "preserved_core_pixels": 3621,
+      "size": [
+        88,
+        96
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        80,
+        88
+      ],
+      "sha256": "0afe15e791501c7ff529a1549904a259eac2810669e03b5dbb5b0a9093761758",
+      "mask_sha256": "bb886989cdf864fd128390e2ac382472a0af3671213fb60fda0783ee43acf7a7"
+    },
+    {
+      "sheet": "market2",
+      "id": "pet_beds_furniture",
+      "target": "marketplace/subcategories/pet_beds_furniture.webp",
+      "selector": [
+        632,
+        917,
+        696,
+        1010
+      ],
+      "source_box": [
+        630,
+        941,
+        711,
+        1006
+      ],
+      "components": [
+        246
+      ],
+      "preserved_core_pixels": 3489,
+      "size": [
+        97,
+        81
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        89,
+        73
+      ],
+      "sha256": "7ed38d11aa77d287b046870bb30edb95cf6f1479aea96f681ba65d7047f89cef",
+      "mask_sha256": "0b19c1e742576e3f84b756fa4d13df74be66412f938e2193883ad5307fd59067"
+    },
+    {
+      "sheet": "market2",
+      "id": "pet_care",
+      "target": "marketplace/subcategories/pet_care.webp",
+      "selector": [
+        701,
+        917,
+        765,
+        1010
+      ],
+      "source_box": [
+        708,
+        914,
+        758,
+        1009
+      ],
+      "components": [
+        232
+      ],
+      "preserved_core_pixels": 2851,
+      "size": [
+        66,
+        111
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        58,
+        103
+      ],
+      "sha256": "3c23b17ef788bd3f64c8e57f7c5d97f40f6374907fb63e5f72bd99f0bd3794ae",
+      "mask_sha256": "2d200d9002b06490ecd4fd7934f106c3939ad2bf1e87db19613ea6b18524446d"
+    },
+    {
+      "sheet": "market2",
+      "id": "pet_training",
+      "target": "marketplace/subcategories/pet_training.webp",
+      "selector": [
+        770,
+        917,
+        834,
+        1010
+      ],
+      "source_box": [
+        757,
+        922,
+        824,
+        999
+      ],
+      "components": [
+        236,
+        239,
+        243,
+        248
+      ],
+      "preserved_core_pixels": 1861,
+      "size": [
+        83,
+        93
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        75,
+        85
+      ],
+      "sha256": "6e33a8d2ce51b9eb4b7eb1fdcab1c7408924e602c7cabdc6f387ecf3ddc3d1c2",
+      "mask_sha256": "2610e03f38f23bbb87ba5dffc51ac859a2dd298d06b26539ade2a82d108a33fd"
+    },
+    {
+      "sheet": "market2",
+      "id": "pet_food",
+      "target": "marketplace/subcategories/pet_food.webp",
+      "selector": [
+        839,
+        917,
+        903,
+        1010
+      ],
+      "source_box": [
+        815,
+        943,
+        895,
+        1006
+      ],
+      "components": [
+        247
+      ],
+      "preserved_core_pixels": 3015,
+      "size": [
+        96,
+        79
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        88,
+        71
+      ],
+      "sha256": "0a2275505b9d115e63f4626cb67d521288ad3df5a625b43042b00c845fb6f1ac",
+      "mask_sha256": "ee94cee40b89d304a3367d5725be211333602471c33b36a128ab22d98f91ccb4"
+    },
+    {
+      "sheet": "market2",
+      "id": "pet_toys",
+      "target": "marketplace/subcategories/pet_toys.webp",
+      "selector": [
+        908,
+        917,
+        972,
+        1010
+      ],
+      "source_box": [
+        889,
+        926,
+        966,
+        1001
+      ],
+      "components": [
+        240
+      ],
+      "preserved_core_pixels": 1900,
+      "size": [
+        93,
+        91
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        85,
+        83
+      ],
+      "sha256": "10f3b790916d0979076e4c16554d4a64b3e90caa987a8394c0503d53c7530c7d",
+      "mask_sha256": "e64816ecceb65aa9487e0bf435aab024f5f6b118d5639aa771c67154008fac15"
+    },
+    {
+      "sheet": "market2",
+      "id": "pet_hygiene",
+      "target": "marketplace/subcategories/pet_hygiene.webp",
+      "selector": [
+        977,
+        917,
+        1041,
+        1010
+      ],
+      "source_box": [
+        957,
+        916,
+        1027,
+        1010
+      ],
+      "components": [
+        233
+      ],
+      "preserved_core_pixels": 2889,
+      "size": [
+        86,
+        110
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        78,
+        102
+      ],
+      "sha256": "37e50f165e4a897fa6965546740216552ca6fb592ebe57d9da0dcb0764e88556",
+      "mask_sha256": "923dfe8b4484f118f92648e617abdeb8f9f2383f3bfe02c568239c3b271356cd"
+    },
+    {
+      "sheet": "market2",
+      "id": "pet_collars_leashes",
+      "target": "marketplace/subcategories/pet_collars_leashes.webp",
+      "selector": [
+        1046,
+        917,
+        1110,
+        1010
+      ],
+      "source_box": [
+        1024,
+        934,
+        1106,
+        1004
+      ],
+      "components": [
+        245
+      ],
+      "preserved_core_pixels": 2964,
+      "size": [
+        98,
+        86
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        90,
+        78
+      ],
+      "sha256": "441137e1ea4a56f6583c7fb2a594d71299b3eb60103cc3819183efda345d848e",
+      "mask_sha256": "30b306d2114e38d5b151cf800ca850737beb0d922d40294932df7688db3e9e6e"
+    },
+    {
+      "sheet": "market2",
+      "id": "office_furniture",
+      "target": "marketplace/subcategories/office_furniture.webp",
+      "selector": [
+        145,
+        1081,
+        275,
+        1192
+      ],
+      "source_box": [
+        167,
+        1093,
+        264,
+        1212
+      ],
+      "components": [
+        278
+      ],
+      "preserved_core_pixels": 5708,
+      "size": [
+        113,
+        135
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        105,
+        127
+      ],
+      "sha256": "c74f6e6b1615b49b9498bbcd21f659a47c773039100d58f270471b97e30700b5",
+      "mask_sha256": "56c8fc650c78b28d8da7e0fbcd1b51baa15917f1f5fe5d41a76434515b351b1a"
+    },
+    {
+      "sheet": "market2",
+      "id": "office_supplies",
+      "target": "marketplace/subcategories/office_supplies.webp",
+      "selector": [
+        287,
+        1081,
+        417,
+        1192
+      ],
+      "source_box": [
+        299,
+        1089,
+        386,
+        1193
+      ],
+      "components": [
+        275
+      ],
+      "preserved_core_pixels": 5239,
+      "size": [
+        103,
+        120
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        95,
+        112
+      ],
+      "sha256": "e13a00afa9d0e90bbac67c6ebd75fc2f3588e6e261026cb772cbfac9fb427827",
+      "mask_sha256": "9827500dc3cc5f1159e9a376021bafd61b331304edcd1eb635d8a70b9f0d3b3f"
+    },
+    {
+      "sheet": "market2",
+      "id": "printers_scanners",
+      "target": "marketplace/subcategories/printers_scanners.webp",
+      "selector": [
+        428,
+        1081,
+        558,
+        1192
+      ],
+      "source_box": [
+        415,
+        1094,
+        541,
+        1191
+      ],
+      "components": [
+        279
+      ],
+      "preserved_core_pixels": 8140,
+      "size": [
+        142,
+        113
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        134,
+        105
+      ],
+      "sha256": "fddb27eb5fd7efcc265867e351e1b9ff7a790ce492dbdead880f759dcc2cc27a",
+      "mask_sha256": "afce69aca7644b401de57dfd5d2d7d10d62aa15721488f87305c6b244ddf5829"
+    },
+    {
+      "sheet": "market2",
+      "id": "retail_equipment",
+      "target": "marketplace/subcategories/retail_equipment.webp",
+      "selector": [
+        570,
+        1081,
+        700,
+        1192
+      ],
+      "source_box": [
+        559,
+        1090,
+        676,
+        1196
+      ],
+      "components": [
+        276
+      ],
+      "preserved_core_pixels": 7584,
+      "size": [
+        133,
+        122
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        125,
+        114
+      ],
+      "sha256": "3374b076245634235c85c8adde939aa611b132a661edee71acf10889eeac7131",
+      "mask_sha256": "1af33259de3c37d34cb7cc03239ae23332d2e2f4a8d8ba3cd06cd60bf8681e0a"
+    },
+    {
+      "sheet": "market2",
+      "id": "restaurant_equipment",
+      "target": "marketplace/subcategories/restaurant_equipment.webp",
+      "selector": [
+        711,
+        1081,
+        841,
+        1192
+      ],
+      "source_box": [
+        691,
+        1086,
+        817,
+        1194
+      ],
+      "components": [
+        274
+      ],
+      "preserved_core_pixels": 6402,
+      "size": [
+        142,
+        124
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        134,
+        116
+      ],
+      "sha256": "dd9ff491a1104a3ab8685533a1fa6de7f23c36cead519deb33db2fbe9a0099a2",
+      "mask_sha256": "6dce79159b06060e1e7c363232da85266de7a05661178a5ff14cc5fc72c7cc21"
+    },
+    {
+      "sheet": "market2",
+      "id": "workshop_equipment",
+      "target": "marketplace/subcategories/workshop_equipment.webp",
+      "selector": [
+        853,
+        1081,
+        983,
+        1192
+      ],
+      "source_box": [
+        832,
+        1095,
+        936,
+        1191
+      ],
+      "components": [
+        280
+      ],
+      "preserved_core_pixels": 4785,
+      "size": [
+        120,
+        112
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        112,
+        104
+      ],
+      "sha256": "028e243ce90f26b7e3bb452a48c32367c15e9bbaf8c73e8ddf9dfd14e3945677",
+      "mask_sha256": "0a7366b7cf3f10fa106be97864db4485eaad2464b3609f4bb28793323b88c1aa"
+    },
+    {
+      "sheet": "market2",
+      "id": "machines",
+      "target": "marketplace/subcategories/machines.webp",
+      "selector": [
+        993,
+        1081,
+        1122,
+        1192
+      ],
+      "source_box": [
+        963,
+        1090,
+        1082,
+        1194
+      ],
+      "components": [
+        277
+      ],
+      "preserved_core_pixels": 7830,
+      "size": [
+        135,
+        120
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        127,
+        112
+      ],
+      "sha256": "d629a636cb08e642b81bff45360eff8b494154b2a98038cdd90941c6b94a2178",
+      "mask_sha256": "8c26499eab0d49b2fcd6f4f09217211e9248e66e183618501a326028224f8637"
+    },
+    {
+      "sheet": "market2",
+      "id": "warehouse_logistics",
+      "target": "marketplace/subcategories/warehouse_logistics.webp",
+      "selector": [
+        135,
+        1230,
+        277,
+        1338
+      ],
+      "source_box": [
+        157,
+        1235,
+        272,
+        1335
+      ],
+      "components": [
+        294
+      ],
+      "preserved_core_pixels": 9088,
+      "size": [
+        131,
+        116
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        123,
+        108
+      ],
+      "sha256": "2347fc4eb3ef6e5d93ab030b616573c1953ce504254cc1e2dc7f39cd7b8af9f8",
+      "mask_sha256": "c960008a9fc6255ab476be42c5d1cce1d0bd2bbaa8c518a25030f4255ba27f48"
+    },
+    {
+      "sheet": "market2",
+      "id": "agriculture",
+      "target": "marketplace/subcategories/agriculture.webp",
+      "selector": [
+        291,
+        1230,
+        433,
+        1338
+      ],
+      "source_box": [
+        295,
+        1238,
+        432,
+        1338
+      ],
+      "components": [
+        296
+      ],
+      "preserved_core_pixels": 8188,
+      "size": [
+        153,
+        116
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        145,
+        108
+      ],
+      "sha256": "4ff80fe49b81c925d4fd45c9d21d8eafc66e3cc9e156077a5531e6351691ea5d",
+      "mask_sha256": "a60b11637c8d04efb20e7c8e02eee094f75c23820757b175817464175774687d"
+    },
+    {
+      "sheet": "market2",
+      "id": "event_equipment",
+      "target": "marketplace/subcategories/event_equipment.webp",
+      "selector": [
+        446,
+        1230,
+        588,
+        1338
+      ],
+      "source_box": [
+        448,
+        1241,
+        591,
+        1338
+      ],
+      "components": [
+        297
+      ],
+      "preserved_core_pixels": 6353,
+      "size": [
+        159,
+        113
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        151,
+        105
+      ],
+      "sha256": "abb9f7caa9557e7360b99cc26b87e20ee6fe18a303fe971bdabe823ead35d8d1",
+      "mask_sha256": "26ca6c915937d984bab2bdb02ceaaccb61dfaa04eeb606e5ba24385769fb02cb"
+    },
+    {
+      "sheet": "market2",
+      "id": "packaging",
+      "target": "marketplace/subcategories/packaging.webp",
+      "selector": [
+        601,
+        1230,
+        743,
+        1338
+      ],
+      "source_box": [
+        597,
+        1242,
+        735,
+        1340
+      ],
+      "components": [
+        298
+      ],
+      "preserved_core_pixels": 7772,
+      "size": [
+        154,
+        114
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        146,
+        106
+      ],
+      "sha256": "3a84c00d8678c749f5b9fa6ca6932b9b65de0edf90478b210cba54b74bb95d6a",
+      "mask_sha256": "7ed4795e6a72b44c5f1dea00e9811b0611665065f031f2499ec46ccc60fd7a26"
+    },
+    {
+      "sheet": "market2",
+      "id": "pos_systems",
+      "target": "marketplace/subcategories/pos_systems.webp",
+      "selector": [
+        758,
+        1230,
+        900,
+        1338
+      ],
+      "source_box": [
+        747,
+        1236,
+        882,
+        1337
+      ],
+      "components": [
+        295
+      ],
+      "preserved_core_pixels": 8995,
+      "size": [
+        151,
+        117
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        143,
+        109
+      ],
+      "sha256": "54e20760eba52a1ea2d76fbc3eee3c69a5879fa9026d65b08218bfaa80ad04e9",
+      "mask_sha256": "31420f727795a14857e503a3a6e96b3132a5b727dfc22e85b7570135e0a13327"
+    },
+    {
+      "sheet": "market2",
+      "id": "professional_cleaning_equipment",
+      "target": "marketplace/subcategories/professional_cleaning_equipment.webp",
+      "selector": [
+        914,
+        1230,
+        1056,
+        1338
+      ],
+      "source_box": [
+        890,
+        1226,
+        1033,
+        1333
+      ],
+      "components": [
+        293
+      ],
+      "preserved_core_pixels": 6739,
+      "size": [
+        159,
+        123
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        151,
+        115
+      ],
+      "sha256": "f5776aca8bd40fab7f7b4186b77d21574a4e917ee3b838e46148a7916160abe7",
+      "mask_sha256": "a998e4ec345873cd7de7c6695c5ce186b2ce86685280e3ad93fac1b70b5a8250"
+    },
+    {
+      "sheet": "market3",
+      "id": "miscellaneous",
+      "target": "marketplace/subcategories/miscellaneous.webp",
+      "selector": [
+        95,
+        145,
+        269,
+        285
+      ],
+      "source_box": [
+        90,
+        155,
+        265,
+        310
+      ],
+      "components": [
+        32
+      ],
+      "preserved_core_pixels": 17632,
+      "size": [
+        191,
+        171
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        183,
+        163
+      ],
+      "sha256": "a978893aebfe089ea61fbf079ad08cc8652b156d5e22ef83ba777b88ff034aef",
+      "mask_sha256": "d11c2519b787f94f0a75e17fd7676a8c9100976e520379b9a19343e36ff223e9"
+    },
+    {
+      "sheet": "market3",
+      "id": "household_clearance",
+      "target": "marketplace/subcategories/household_clearance.webp",
+      "selector": [
+        405,
+        145,
+        579,
+        285
+      ],
+      "source_box": [
+        429,
+        151,
+        582,
+        287
+      ],
+      "components": [
+        31
+      ],
+      "preserved_core_pixels": 13037,
+      "size": [
+        169,
+        152
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        161,
+        144
+      ],
+      "sha256": "675e123971e34d9cb6217e46a66cf9964a162066c4c035d38d008b355c427f25",
+      "mask_sha256": "8fbce62cc9161c88f8ce21377d977e3e1f37b193f2f9857e63bd0a48365cc088"
+    },
+    {
+      "sheet": "market3",
+      "id": "bundles",
+      "target": "marketplace/subcategories/bundles.webp",
+      "selector": [
+        646,
+        145,
+        820,
+        285
+      ],
+      "source_box": [
+        649,
+        144,
+        797,
+        310
+      ],
+      "components": [
+        29
+      ],
+      "preserved_core_pixels": 15561,
+      "size": [
+        164,
+        182
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        156,
+        174
+      ],
+      "sha256": "ca105c6254a11aeeab30353a9cbe8da7a4f32a0f9041dad4b667d26d795c006a",
+      "mask_sha256": "682503f7464af79ac5a58593a1bb4d88b1bba79cd809b2c0039e5bb4328be1d7"
+    },
+    {
+      "sheet": "market3",
+      "id": "uncategorized_parts",
+      "target": "marketplace/subcategories/uncategorized_parts.webp",
+      "selector": [
+        867,
+        145,
+        1041,
+        285
+      ],
+      "source_box": [
+        867,
+        145,
+        1030,
+        288
+      ],
+      "components": [
+        30
+      ],
+      "preserved_core_pixels": 11551,
+      "size": [
+        179,
+        159
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        171,
+        151
+      ],
+      "sha256": "a604aadd757a61ace94de3a309f99aed5dc577f0e0fe968658327d64ab122734",
+      "mask_sha256": "08a77f2ebb04c95ed07a9b961bc4925c963c9740e08d731bfbd3f6a5bd35ca47"
+    },
+    {
+      "sheet": "market3",
+      "id": "passenger_cars",
+      "target": "marketplace/subcategories/passenger_cars.webp",
+      "selector": [
+        26,
+        383,
+        120,
+        480
+      ],
+      "source_box": [
+        13,
+        397,
+        132,
+        485
+      ],
+      "components": [
+        57
+      ],
+      "preserved_core_pixels": 7075,
+      "size": [
+        135,
+        104
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        127,
+        96
+      ],
+      "sha256": "fee4139aa1275258acdf64741f0a9e8fb8fef13adafd896e4bec6295402fbef2",
+      "mask_sha256": "685a7ce8a9bbaf37a05adc13880cc4116de1ecb065298c9554940bc88ff2b0d3"
+    },
+    {
+      "sheet": "market3",
+      "id": "commercial_vehicles",
+      "target": "marketplace/subcategories/commercial_vehicles.webp",
+      "selector": [
+        129,
+        383,
+        223,
+        480
+      ],
+      "source_box": [
+        127,
+        394,
+        265,
+        485
+      ],
+      "components": [
+        56
+      ],
+      "preserved_core_pixels": 8005,
+      "size": [
+        154,
+        107
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        146,
+        99
+      ],
+      "sha256": "0c84d8a7ac29fe39ee5124ae6321838697487b3384c16b1b94be96a8ef23317b",
+      "mask_sha256": "20a3027cdfade3351db0eea085b219985d3b5c7bd6fde6fb76051f4adb1a3df9"
+    },
+    {
+      "sheet": "market3",
+      "id": "motorcycles",
+      "target": "marketplace/subcategories/motorcycles.webp",
+      "selector": [
+        232,
+        383,
+        326,
+        480
+      ],
+      "source_box": [
+        258,
+        392,
+        376,
+        483
+      ],
+      "components": [
+        54
+      ],
+      "preserved_core_pixels": 5508,
+      "size": [
+        134,
+        107
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        126,
+        99
+      ],
+      "sha256": "7bbd748b86721f5be370ad7374449676f2bd230196de07584123de68002730f4",
+      "mask_sha256": "722a1ad804bb59cdc60b413536295575dd981921e5b577eb66b552f3bc1729a1"
+    },
+    {
+      "sheet": "market3",
+      "id": "car_parts",
+      "target": "marketplace/subcategories/car_parts.webp",
+      "selector": [
+        335,
+        383,
+        429,
+        480
+      ],
+      "source_box": [
+        369,
+        387,
+        467,
+        487
+      ],
+      "components": [
+        51
+      ],
+      "preserved_core_pixels": 5879,
+      "size": [
+        114,
+        116
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        106,
+        108
+      ],
+      "sha256": "049282ebba2c2cfefdf0f7cb6abf60f4a1b7cab6ab69f0ee34984ea7d41d4108",
+      "mask_sha256": "4bde64920cdabe0c9a39693bc3d094b83184ef446a6757c7eaf0a7dd05a9c4c3"
+    },
+    {
+      "sheet": "market3",
+      "id": "motorcycle_parts",
+      "target": "marketplace/subcategories/motorcycle_parts.webp",
+      "selector": [
+        438,
+        383,
+        532,
+        480
+      ],
+      "source_box": [
+        462,
+        393,
+        557,
+        485
+      ],
+      "components": [
+        55
+      ],
+      "preserved_core_pixels": 4841,
+      "size": [
+        111,
+        108
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        103,
+        100
+      ],
+      "sha256": "1e81f476df735a5aaf2b2db35ffc0d4e986e0a161036a49d5b276b2aa37598cf",
+      "mask_sha256": "3fef72e265366337fb73bac9251bf8a176ed0c50f9e2ab8c3d4f663480dc83fc"
+    },
+    {
+      "sheet": "market3",
+      "id": "tires_wheels",
+      "target": "marketplace/subcategories/tires_wheels.webp",
+      "selector": [
+        541,
+        383,
+        635,
+        480
+      ],
+      "source_box": [
+        552,
+        386,
+        646,
+        491
+      ],
+      "components": [
+        49
+      ],
+      "preserved_core_pixels": 6452,
+      "size": [
+        110,
+        121
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        102,
+        113
+      ],
+      "sha256": "2193a85509c04d49877970c884c9363ca148471a7a3058bbde37481327253b2d",
+      "mask_sha256": "879884ce5be2ac616c03723c682e8d3752fd47521b3661901101b92dff4d4644"
+    },
+    {
+      "sheet": "market3",
+      "id": "car_accessories",
+      "target": "marketplace/subcategories/car_accessories.webp",
+      "selector": [
+        644,
+        383,
+        738,
+        480
+      ],
+      "source_box": [
+        643,
+        384,
+        732,
+        484
+      ],
+      "components": [
+        48
+      ],
+      "preserved_core_pixels": 4953,
+      "size": [
+        105,
+        116
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        97,
+        108
+      ],
+      "sha256": "35057cfe54f4542a5a6e49d13f4788e40198f6fd7ef8a00713307c2a9955975a",
+      "mask_sha256": "980c0b58b199eaab482bbdb1c4ec9c651f5d655a880fdae410786cb98724130b"
+    },
+    {
+      "sheet": "market3",
+      "id": "motorcycle_accessories",
+      "target": "marketplace/subcategories/motorcycle_accessories.webp",
+      "selector": [
+        747,
+        383,
+        841,
+        480
+      ],
+      "source_box": [
+        727,
+        387,
+        829,
+        486
+      ],
+      "components": [
+        53
+      ],
+      "preserved_core_pixels": 6177,
+      "size": [
+        118,
+        115
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        110,
+        107
+      ],
+      "sha256": "9651e532468231dbdbe4da27b4a6375944cb7a69e0eba09cc001fcfbd0c35f0d",
+      "mask_sha256": "fa2f4e9d421d76433c7e6bb715f663bb7cc66565548a504a2fbb597bbc27c1e4"
+    },
+    {
+      "sheet": "market3",
+      "id": "rider_gear",
+      "target": "marketplace/subcategories/rider_gear.webp",
+      "selector": [
+        850,
+        383,
+        944,
+        480
+      ],
+      "source_box": [
+        822,
+        386,
+        925,
+        486
+      ],
+      "components": [
+        50
+      ],
+      "preserved_core_pixels": 6902,
+      "size": [
+        119,
+        116
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        111,
+        108
+      ],
+      "sha256": "d329ac101db3bca7db6bb0c541950d3125d126712ba8b6c360ca13914f627860",
+      "mask_sha256": "8cf3c699b1066829d63e54656fb2ddc7eb425284d136c2824de3f8f66da731a8"
+    },
+    {
+      "sheet": "market3",
+      "id": "vehicle_care",
+      "target": "marketplace/subcategories/vehicle_care.webp",
+      "selector": [
+        953,
+        383,
+        1047,
+        480
+      ],
+      "source_box": [
+        928,
+        382,
+        999,
+        493
+      ],
+      "components": [
+        47
+      ],
+      "preserved_core_pixels": 4898,
+      "size": [
+        87,
+        127
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        79,
+        119
+      ],
+      "sha256": "968003c1e5c193cc2b2f845117691afb25e835413851cf1ca62d0d78f702832f",
+      "mask_sha256": "56f8a25a3309484a895a2bad738a112753f6b31b39990d93d7635f76b298bd18"
+    },
+    {
+      "sheet": "market3",
+      "id": "vehicle_tools",
+      "target": "marketplace/subcategories/vehicle_tools.webp",
+      "selector": [
+        1034,
+        383,
+        1122,
+        480
+      ],
+      "source_box": [
+        1008,
+        387,
+        1103,
+        485
+      ],
+      "components": [
+        52
+      ],
+      "preserved_core_pixels": 4327,
+      "size": [
+        111,
+        114
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        103,
+        106
+      ],
+      "sha256": "da18ff5915cb782cead512e36ae8e9a05d87f78a2d49edcea86a7bdf5ba5f6de",
+      "mask_sha256": "b64f63e8c6ea7f11c03827d4aa18ed2025f087e1d720e567db193acf03889b68"
+    },
+    {
+      "sheet": "market3",
+      "id": "coffee_tea",
+      "target": "marketplace/subcategories/coffee_tea.webp",
+      "selector": [
+        33,
+        589,
+        137,
+        707
+      ],
+      "source_box": [
+        20,
+        592,
+        148,
+        711
+      ],
+      "components": [
+        86
+      ],
+      "preserved_core_pixels": 7818,
+      "size": [
+        144,
+        135
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        136,
+        127
+      ],
+      "sha256": "9b469a24abcd0c9b3cfe5fa04bb414fd26775195a77432e2457785d8892bfacf",
+      "mask_sha256": "52d121e5528c5e4cba2346c0f68ca6a1308db24d0d04309e3279f9c001f56c98"
+    },
+    {
+      "sheet": "market3",
+      "id": "bakery",
+      "target": "marketplace/subcategories/bakery.webp",
+      "selector": [
+        160,
+        589,
+        264,
+        707
+      ],
+      "source_box": [
+        148,
+        609,
+        276,
+        705
+      ],
+      "components": [
+        92
+      ],
+      "preserved_core_pixels": 6196,
+      "size": [
+        144,
+        112
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        136,
+        104
+      ],
+      "sha256": "a8d83d81ba81f65431b3c232c244a65e8ab87690843cc23abedf03428a5fa0de",
+      "mask_sha256": "17f07e5af6835fbed97012e008dd8ce3b408f2a0ff0c12864c9c77d5f4f5bcad"
+    },
+    {
+      "sheet": "market3",
+      "id": "sweets_snacks",
+      "target": "marketplace/subcategories/sweets_snacks.webp",
+      "selector": [
+        280,
+        589,
+        384,
+        707
+      ],
+      "source_box": [
+        271,
+        608,
+        387,
+        706
+      ],
+      "components": [
+        90
+      ],
+      "preserved_core_pixels": 7516,
+      "size": [
+        132,
+        114
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        124,
+        106
+      ],
+      "sha256": "63058ade30983dba239db3a9bac3ec4f5358a70aa3a608854971fae69cb65863",
+      "mask_sha256": "29b0591a14e9836d3af8f9ac6372ca5f589cad50b1dadac1bcfacdb417a7bdd4"
+    },
+    {
+      "sheet": "market3",
+      "id": "pantry",
+      "target": "marketplace/subcategories/pantry.webp",
+      "selector": [
+        399,
+        589,
+        503,
+        707
+      ],
+      "source_box": [
+        397,
+        594,
+        505,
+        708
+      ],
+      "components": [
+        88
+      ],
+      "preserved_core_pixels": 9133,
+      "size": [
+        124,
+        130
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        116,
+        122
+      ],
+      "sha256": "c929b970922b30df17292cd78b94871a6abd799ebd72d5534675e74173d41c46",
+      "mask_sha256": "e1a3665a0dc5691e9100d213a8fe2f24fa218586291d315e3ddd57398e23f1aa"
+    },
+    {
+      "sheet": "market3",
+      "id": "oils_spices",
+      "target": "marketplace/subcategories/oils_spices.webp",
+      "selector": [
+        507,
+        589,
+        611,
+        707
+      ],
+      "source_box": [
+        514,
+        591,
+        601,
+        712
+      ],
+      "components": [
+        84
+      ],
+      "preserved_core_pixels": 5951,
+      "size": [
+        103,
+        137
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        95,
+        129
+      ],
+      "sha256": "7f0dd907f8951bbd60e0573e1f752de8ab35c1cd8ff517ac3bfe56e26782cb1a",
+      "mask_sha256": "750473272d48971995c91469854e4095edbb55c5649c9f00b5e69b82e1d592ff"
+    },
+    {
+      "sheet": "market3",
+      "id": "fresh_produce",
+      "target": "marketplace/subcategories/fresh_produce.webp",
+      "selector": [
+        626,
+        589,
+        730,
+        707
+      ],
+      "source_box": [
+        609,
+        607,
+        742,
+        710
+      ],
+      "components": [
+        91
+      ],
+      "preserved_core_pixels": 9335,
+      "size": [
+        149,
+        119
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        141,
+        111
+      ],
+      "sha256": "1c52ed767339b0d0444310d4c775f84700bfab15ef1e82e1ed2b2449f91c7933",
+      "mask_sha256": "03869752396565e3e9f273349a75d195ca418951addabf0f36302166ef15b686"
+    },
+    {
+      "sheet": "market3",
+      "id": "dairy_chilled",
+      "target": "marketplace/subcategories/dairy_chilled.webp",
+      "selector": [
+        767,
+        589,
+        871,
+        707
+      ],
+      "source_box": [
+        764,
+        590,
+        873,
+        712
+      ],
+      "components": [
+        85
+      ],
+      "preserved_core_pixels": 7713,
+      "size": [
+        125,
+        138
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        117,
+        130
+      ],
+      "sha256": "ed049fb36ea008a6503d1c6059fb9017cf0b6384309a10dbaa124573eeeddca8",
+      "mask_sha256": "6b59dd5ec5340d1860bd30cffc08a8a22bfb6d2058528d0d0596cfd36844256d"
+    },
+    {
+      "sheet": "market3",
+      "id": "soft_drinks",
+      "target": "marketplace/subcategories/soft_drinks.webp",
+      "selector": [
+        871,
+        589,
+        975,
+        707
+      ],
+      "source_box": [
+        881,
+        595,
+        961,
+        711
+      ],
+      "components": [
+        89
+      ],
+      "preserved_core_pixels": 6851,
+      "size": [
+        96,
+        132
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        88,
+        124
+      ],
+      "sha256": "a419a27729330b205c345a77cc77b514b878f5dbd58fcd0de3e9f397d60086db",
+      "mask_sha256": "3402c57bdedae364b91e109503cc910a549d52ec4cd64891531bb942093fe907"
+    },
+    {
+      "sheet": "market3",
+      "id": "food_gift_sets",
+      "target": "marketplace/subcategories/food_gift_sets.webp",
+      "selector": [
+        987,
+        589,
+        1091,
+        707
+      ],
+      "source_box": [
+        973,
+        593,
+        1105,
+        710
+      ],
+      "components": [
+        87
+      ],
+      "preserved_core_pixels": 10659,
+      "size": [
+        148,
+        133
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        140,
+        125
+      ],
+      "sha256": "4506283076a6fa7166e095a04cd03f36891f073cf219ead3d1d89a19449da835",
+      "mask_sha256": "6c420e07f5940a5f65d036b7293840a712191070980497974fb89a269d28af4e"
+    },
+    {
+      "sheet": "market3",
+      "id": "bouquets",
+      "target": "marketplace/subcategories/bouquets.webp",
+      "selector": [
+        21,
+        792,
+        145,
+        923
+      ],
+      "source_box": [
+        28,
+        798,
+        162,
+        931
+      ],
+      "components": [
+        117
+      ],
+      "preserved_core_pixels": 10253,
+      "size": [
+        150,
+        149
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        142,
+        141
+      ],
+      "sha256": "f63187d67193fb7cc41edc20529b9d29d8c6a2ca6bc120ba6a1f60455d341e74",
+      "mask_sha256": "aa9bc60b5374727b8624d361d5880614da53b6903a79dd5df9aac91d3a620d4c"
+    },
+    {
+      "sheet": "market3",
+      "id": "cut_flowers",
+      "target": "marketplace/subcategories/cut_flowers.webp",
+      "selector": [
+        154,
+        792,
+        278,
+        923
+      ],
+      "source_box": [
+        181,
+        802,
+        278,
+        931
+      ],
+      "components": [
+        120
+      ],
+      "preserved_core_pixels": 5229,
+      "size": [
+        113,
+        145
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        105,
+        137
+      ],
+      "sha256": "6fb297cf888c1546458c8788a1362432436b3d96e4d4067642ed9bff0af82073",
+      "mask_sha256": "72f44aa0f547146f55aa92d4a347c71636b023b92994990c43f2544fc2d767a3"
+    },
+    {
+      "sheet": "market3",
+      "id": "potted_plants",
+      "target": "marketplace/subcategories/potted_plants.webp",
+      "selector": [
+        287,
+        792,
+        411,
+        923
+      ],
+      "source_box": [
+        298,
+        799,
+        422,
+        931
+      ],
+      "components": [
+        118
+      ],
+      "preserved_core_pixels": 8476,
+      "size": [
+        140,
+        148
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        132,
+        140
+      ],
+      "sha256": "61d881a711af6713bb9e0f2c9b02f2d15f511048a1fc634a2cc9207d455123e5",
+      "mask_sha256": "50233ed89064f7eba957d9383d7c9772d38d883bae2de676cda4e7d058583225"
+    },
+    {
+      "sheet": "market3",
+      "id": "gift_items",
+      "target": "marketplace/subcategories/gift_items.webp",
+      "selector": [
+        420,
+        792,
+        544,
+        923
+      ],
+      "source_box": [
+        434,
+        805,
+        563,
+        928
+      ],
+      "components": [
+        121
+      ],
+      "preserved_core_pixels": 11115,
+      "size": [
+        145,
+        139
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        137,
+        131
+      ],
+      "sha256": "d6bd310907d373468f79401224c5207a976abbcc870756398ddab6bfa5d0e237",
+      "mask_sha256": "361ca49484ba33a9eabb29736cb35ca97db26b138eda6acf9ad87461cd26f241"
+    },
+    {
+      "sheet": "market3",
+      "id": "souvenirs",
+      "target": "marketplace/subcategories/souvenirs.webp",
+      "selector": [
+        553,
+        792,
+        677,
+        923
+      ],
+      "source_box": [
+        573,
+        797,
+        687,
+        930
+      ],
+      "components": [
+        119
+      ],
+      "preserved_core_pixels": 10756,
+      "size": [
+        130,
+        149
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        122,
+        141
+      ],
+      "sha256": "83d17e0d9f1178c8edc892bce2ea17e6910bf386c664d32d0af6de300b59accf",
+      "mask_sha256": "6f1b2fc57a6dccbd433af7f06a0856d0357edb67add456376d1939bf52b4ed11"
+    },
+    {
+      "sheet": "market3",
+      "id": "personalized_gifts",
+      "target": "marketplace/subcategories/personalized_gifts.webp",
+      "selector": [
+        686,
+        792,
+        810,
+        923
+      ],
+      "source_box": [
+        699,
+        797,
+        807,
+        929
+      ],
+      "components": [
+        116
+      ],
+      "preserved_core_pixels": 8738,
+      "size": [
+        124,
+        148
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        116,
+        140
+      ],
+      "sha256": "ac85b2e15aa06afa5f080f309313abea7731b0f993044d2070122d92fb226c04",
+      "mask_sha256": "28b381a21d834022cfea815c4bc6abc2a8369ec34804399d86ab28fbb57d34dc"
+    },
+    {
+      "sheet": "market3",
+      "id": "seasonal_items",
+      "target": "marketplace/subcategories/seasonal_items.webp",
+      "selector": [
+        819,
+        792,
+        943,
+        923
+      ],
+      "source_box": [
+        820,
+        807,
+        946,
+        921
+      ],
+      "components": [
+        122
+      ],
+      "preserved_core_pixels": 11081,
+      "size": [
+        142,
+        130
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        134,
+        122
+      ],
+      "sha256": "03bd9ea26542cafd2611e6a0399b613537c172bf935a3c9beca93c31ff5308f2",
+      "mask_sha256": "2b7ce9214a68b56d0172b7cb33b100ecba62c19f5229fdab2b1fba309005b8c5"
+    },
+    {
+      "sheet": "market3",
+      "id": "gift_cards_packaging",
+      "target": "marketplace/subcategories/gift_cards_packaging.webp",
+      "selector": [
+        963,
+        792,
+        1087,
+        923
+      ],
+      "source_box": [
+        965,
+        794,
+        1091,
+        928
+      ],
+      "components": [
+        115
+      ],
+      "preserved_core_pixels": 11222,
+      "size": [
+        142,
+        150
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        134,
+        142
+      ],
+      "sha256": "589aba7a2956884fd35aaa8425b36bea88f4e9bf0e6f2a68eb1bf4f4991ba18a",
+      "mask_sha256": "61d3d88d048575aa155f3c226e22bc4d7f80ee00785779ab67602b6a95bc9fd1"
+    },
+    {
+      "sheet": "market3",
+      "id": "first_aid",
+      "target": "marketplace/subcategories/first_aid.webp",
+      "selector": [
+        21,
+        1040,
+        167,
+        1185
+      ],
+      "source_box": [
+        35,
+        1039,
+        173,
+        1159
+      ],
+      "components": [
+        152
+      ],
+      "preserved_core_pixels": 11508,
+      "size": [
+        154,
+        136
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        146,
+        128
+      ],
+      "sha256": "eb8da565fea4768f32adba2e128e251b17e6918c8d0b6e33ef4310b8d8d5157c",
+      "mask_sha256": "5b064eaa9541147a32d10f4042f7f25881013af90e2cc23b6501afdae3087bcb"
+    },
+    {
+      "sheet": "market3",
+      "id": "home_medical_devices",
+      "target": "marketplace/subcategories/home_medical_devices.webp",
+      "selector": [
+        185,
+        1040,
+        331,
+        1185
+      ],
+      "source_box": [
+        189,
+        1047,
+        333,
+        1154
+      ],
+      "components": [
+        155
+      ],
+      "preserved_core_pixels": 9508,
+      "size": [
+        160,
+        123
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        152,
+        115
+      ],
+      "sha256": "62aac43e40a52831ad4c163090a02d9a6928f3ae1f3ea4b989c46fc85b82faa9",
+      "mask_sha256": "e800dd3e8d1adbc32e7a500556a3a02046c2a753c39fc8c3ea3b8b77a1feeb4f"
+    },
+    {
+      "sheet": "market3",
+      "id": "orthopedic_support",
+      "target": "marketplace/subcategories/orthopedic_support.webp",
+      "selector": [
+        345,
+        1040,
+        491,
+        1185
+      ],
+      "source_box": [
+        348,
+        1031,
+        440,
+        1159
+      ],
+      "components": [
+        149
+      ],
+      "preserved_core_pixels": 7184,
+      "size": [
+        108,
+        144
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        100,
+        136
+      ],
+      "sha256": "8bab53e440048356a2afe77866234826d08f222be388a051226b1a4fa43a9759",
+      "mask_sha256": "c526ce62911bbd1d8c5a81152eb90baee73b0cfbf030c63f9197fc1a5e9cc860"
+    },
+    {
+      "sheet": "market3",
+      "id": "mobility_aids",
+      "target": "marketplace/subcategories/mobility_aids.webp",
+      "selector": [
+        509,
+        1040,
+        655,
+        1185
+      ],
+      "source_box": [
+        469,
+        1034,
+        610,
+        1164
+      ],
+      "components": [
+        150
+      ],
+      "preserved_core_pixels": 9804,
+      "size": [
+        157,
+        146
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        149,
+        138
+      ],
+      "sha256": "446987cb41d900e1d6058bed07fd3e6eef043a656e61c3153e88b42a976e095f",
+      "mask_sha256": "aeddcc853a083a962dab43bfce8395ed1cc102d3b72066a15a0981f3c631855c"
+    },
+    {
+      "sheet": "market3",
+      "id": "hygiene_consumables",
+      "target": "marketplace/subcategories/hygiene_consumables.webp",
+      "selector": [
+        673,
+        1040,
+        819,
+        1185
+      ],
+      "source_box": [
+        622,
+        1030,
+        837,
+        1199
+      ],
+      "components": [
+        148,
+        154,
+        158
+      ],
+      "preserved_core_pixels": 14198,
+      "size": [
+        231,
+        185
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        223,
+        177
+      ],
+      "sha256": "2fe283fa4b88fa2fc281df1f8de052dd166248256605a1b58976cc454cd402e3",
+      "mask_sha256": "d061d4213575252d9df82c5ca0a3a5f7209811f6c686e23d7a6de94b97b581ca"
+    },
+    {
+      "sheet": "market3",
+      "id": "oral_care",
+      "target": "marketplace/subcategories/oral_care.webp",
+      "selector": [
+        829,
+        1040,
+        975,
+        1185
+      ],
+      "source_box": [
+        801,
+        1040,
+        875,
+        1165
+      ],
+      "components": [
+        151
+      ],
+      "preserved_core_pixels": 4944,
+      "size": [
+        90,
+        141
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        82,
+        133
+      ],
+      "sha256": "f5e15e239f1eb14f417edb591f51f2b0cc1978fb9b04870e83c2f0011cdd42f7",
+      "mask_sha256": "8c81fed7943e31a604a85e6b975f30b3d87c5be5dc58ef220368a82502c7e788"
+    },
+    {
+      "sheet": "market3",
+      "id": "home_care_aids",
+      "target": "marketplace/subcategories/home_care_aids.webp",
+      "selector": [
+        967,
+        1040,
+        1113,
+        1185
+      ],
+      "source_box": [
+        909,
+        1041,
+        1089,
+        1163
+      ],
+      "components": [
+        153
+      ],
+      "preserved_core_pixels": 12172,
+      "size": [
+        196,
+        138
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        188,
+        130
+      ],
+      "sha256": "be21e31fea693cd853a46eac7e7495b28c040aecb5617b84dc59137bab6aa5c5",
+      "mask_sha256": "c18799c1d549db940fdc96f01ee7282ca5c44420639766ed011559628d510481"
+    },
+    {
+      "sheet": "market3",
+      "id": "prescription_glasses",
+      "target": "marketplace/subcategories/prescription_glasses.webp",
+      "selector": [
+        15,
+        1230,
+        139,
+        1317
+      ],
+      "source_box": [
+        13,
+        1224,
+        167,
+        1292
+      ],
+      "components": [
+        170
+      ],
+      "preserved_core_pixels": 6373,
+      "size": [
+        170,
+        84
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        162,
+        76
+      ],
+      "sha256": "580897a26bf9405f31070ea45dc06f4f9dbb46dff55efdb568c698dd8a3f87e1",
+      "mask_sha256": "4918afaa791673450851aa5a613da5162c21c3ffb4ea9906b2e2b9368eb530e6"
+    },
+    {
+      "sheet": "market3",
+      "id": "sunglasses",
+      "target": "marketplace/subcategories/sunglasses.webp",
+      "selector": [
+        151,
+        1230,
+        275,
+        1317
+      ],
+      "source_box": [
+        169,
+        1226,
+        307,
+        1287
+      ],
+      "components": [
+        172
+      ],
+      "preserved_core_pixels": 5081,
+      "size": [
+        154,
+        77
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        146,
+        69
+      ],
+      "sha256": "21f63c88b073ddf0a75796891d119a8ab43914131fb7415d29f8cb62e9d49ee4",
+      "mask_sha256": "997099b549ccdad65e471c4d0cd6f896b86ecc646679ae3830905f782c087818"
+    },
+    {
+      "sheet": "market3",
+      "id": "eyeglass_frames",
+      "target": "marketplace/subcategories/eyeglass_frames.webp",
+      "selector": [
+        288,
+        1230,
+        412,
+        1317
+      ],
+      "source_box": [
+        306,
+        1225,
+        447,
+        1337
+      ],
+      "components": [
+        171,
+        175
+      ],
+      "preserved_core_pixels": 4925,
+      "size": [
+        157,
+        128
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        149,
+        120
+      ],
+      "sha256": "c17c92951c14640c88c7e0dba73d5d7415b05120af2d237f1bd160f7a9c5dc80",
+      "mask_sha256": "ae98d56e67ca0c618ea5307602a4f600f8feb70a5989fd1f41ff238ded2977fc"
+    },
+    {
+      "sheet": "market3",
+      "id": "prescription_lenses",
+      "target": "marketplace/subcategories/prescription_lenses.webp",
+      "selector": [
+        424,
+        1230,
+        548,
+        1317
+      ],
+      "source_box": [
+        448,
+        1216,
+        545,
+        1294
+      ],
+      "components": [
+        168
+      ],
+      "preserved_core_pixels": 4405,
+      "size": [
+        113,
+        94
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        105,
+        86
+      ],
+      "sha256": "03544f1887849a6d95d7d4d357c8d2917ea2f7c080a96bab6a2c841e5caf8c40",
+      "mask_sha256": "3918605af911d1fe7c2ec8deb9b4e9e6ec931a014225dc3870e8ffb58e59f689"
+    },
+    {
+      "sheet": "market3",
+      "id": "contact_lenses_solutions",
+      "target": "marketplace/subcategories/contact_lenses_solutions.webp",
+      "selector": [
+        563,
+        1230,
+        687,
+        1317
+      ],
+      "source_box": [
+        544,
+        1223,
+        676,
+        1338
+      ],
+      "components": [
+        169,
+        177
+      ],
+      "preserved_core_pixels": 9517,
+      "size": [
+        148,
+        131
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        140,
+        123
+      ],
+      "sha256": "5b8ea2287cd1036a31913ef894ebd2e1ee1b821e496ade668cf07fe22e0b30ca",
+      "mask_sha256": "5112543b2219d2f8a45b8b48554256426362f9d5d7e25941946e0b28478150bb"
+    },
+    {
+      "sheet": "market3",
+      "id": "lens_wipes_cleaners",
+      "target": "marketplace/subcategories/lens_wipes_cleaners.webp",
+      "selector": [
+        699,
+        1230,
+        823,
+        1317
+      ],
+      "source_box": [
+        689,
+        1215,
+        812,
+        1339
+      ],
+      "components": [
+        166,
+        178
+      ],
+      "preserved_core_pixels": 10109,
+      "size": [
+        139,
+        140
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        131,
+        132
+      ],
+      "sha256": "46cec2c10f1a577e9ef1894a634ff644fbda2580b591a4f2e130ea0093cd613e",
+      "mask_sha256": "a1db5d9ecaa61bf69924689ff372e0a31f3f3430d9bb74ea9ec8ab1657ed9359"
+    },
+    {
+      "sheet": "market3",
+      "id": "eyewear_cases_cloths",
+      "target": "marketplace/subcategories/eyewear_cases_cloths.webp",
+      "selector": [
+        835,
+        1230,
+        959,
+        1317
+      ],
+      "source_box": [
+        825,
+        1213,
+        953,
+        1298
+      ],
+      "components": [
+        167
+      ],
+      "preserved_core_pixels": 8179,
+      "size": [
+        144,
+        101
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        136,
+        93
+      ],
+      "sha256": "923b046f6cf0867a058e2e65f4c9b3405a606e80c24a328961bf8bb20d0fd147",
+      "mask_sha256": "8d0a2737524a5fe7f5c28817b6886c208ccbf3acb85ebe91f9fffe735a6c2736"
+    },
+    {
+      "sheet": "market3",
+      "id": "eyewear_accessories",
+      "target": "marketplace/subcategories/eyewear_accessories.webp",
+      "selector": [
+        973,
+        1230,
+        1097,
+        1317
+      ],
+      "source_box": [
+        963,
+        1210,
+        1104,
+        1300
+      ],
+      "components": [
+        165
+      ],
+      "preserved_core_pixels": 2898,
+      "size": [
+        157,
+        106
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        149,
+        98
+      ],
+      "sha256": "5e645f88bb0695b97a0fefb92f16c7bbac2e90c455cb996dd6aaaf5e5a4f10ae",
+      "mask_sha256": "ee966f3fc194155f598869a32943108a6fe89e66d1784dd57853aa219ad36acb"
+    },
+    {
+      "sheet": "services",
+      "id": "gym_class",
+      "target": "service-modules/gym_class.webp",
+      "selector": [
+        26,
+        111,
+        222,
+        271
+      ],
+      "source_box": [
+        35,
+        139,
+        214,
+        258
+      ],
+      "components": [
+        64
+      ],
+      "preserved_core_pixels": 12180,
+      "size": [
+        195,
+        135
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        187,
+        127
+      ],
+      "sha256": "5d1a3dbf6b02e942ec9a1267f2cc0a0322f8bcb7fad551d4e60a9963a84636a5",
+      "mask_sha256": "0e1214a7ba5693a7506e87ed0d25493ed3c1cb37c35d071bacb2fbbb8f60a4ab"
+    },
+    {
+      "sheet": "services",
+      "id": "gym_session",
+      "target": "service-modules/gym_session.webp",
+      "selector": [
+        247,
+        111,
+        443,
+        271
+      ],
+      "source_box": [
+        279,
+        121,
+        411,
+        272
+      ],
+      "components": [
+        59
+      ],
+      "preserved_core_pixels": 12638,
+      "size": [
+        148,
+        167
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        140,
+        159
+      ],
+      "sha256": "532299f3face57d44f3ad1850b91301363b9889da977038d47af6b008fe9aba9",
+      "mask_sha256": "e20155765641151f6f6886d7efa24647363b0de2075d6ea9fb98b162a4374928"
+    },
+    {
+      "sheet": "services",
+      "id": "gym_membership",
+      "target": "service-modules/gym_membership.webp",
+      "selector": [
+        463,
+        111,
+        659,
+        271
+      ],
+      "source_box": [
+        481,
+        131,
+        641,
+        261
+      ],
+      "components": [
+        63
+      ],
+      "preserved_core_pixels": 15824,
+      "size": [
+        176,
+        146
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        168,
+        138
+      ],
+      "sha256": "7eb8e3124d6885a0ccd166d1b65447a2b0c04013f9969855a178661136aa0982",
+      "mask_sha256": "ff78e365848c0a95f8f860985e636f292a94b417902cef983ed28c6137214aa9"
+    },
+    {
+      "sheet": "services",
+      "id": "gym_pass",
+      "target": "service-modules/gym_pass.webp",
+      "selector": [
+        685,
+        111,
+        881,
+        271
+      ],
+      "source_box": [
+        693,
+        139,
+        860,
+        262
+      ],
+      "components": [
+        65
+      ],
+      "preserved_core_pixels": 12862,
+      "size": [
+        183,
+        139
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        175,
+        131
+      ],
+      "sha256": "ae038eb1588bc7e120c6e6fe685cf1c6b9c17fb7490ac4a76d8885c0f0fcf23e",
+      "mask_sha256": "529a68daed65982e1e96c623f9fff33fc060663b454ec0c625c5281ca0dbe5fb"
+    },
+    {
+      "sheet": "services",
+      "id": "gym_recovery",
+      "target": "service-modules/gym_recovery.webp",
+      "selector": [
+        910,
+        111,
+        1106,
+        271
+      ],
+      "source_box": [
+        917,
+        121,
+        1080,
+        264
+      ],
+      "components": [
+        60,
+        61,
+        62,
+        66
+      ],
+      "preserved_core_pixels": 12250,
+      "size": [
+        179,
+        159
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        171,
+        151
+      ],
+      "sha256": "c60588978f6e616e9a5731238749c147185027456ad955e4319db8d410e4ab99",
+      "mask_sha256": "a6be322f2de97afcbb71046f6131bc8e68902320590fb2e8bc1069143fe7742b"
+    },
+    {
+      "sheet": "services",
+      "id": "salon_appointment",
+      "target": "service-modules/salon_appointment.webp",
+      "selector": [
+        26,
+        305,
+        222,
+        456
+      ],
+      "source_box": [
+        50,
+        322,
+        203,
+        453
+      ],
+      "components": [
+        125
+      ],
+      "preserved_core_pixels": 8172,
+      "size": [
+        169,
+        147
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        161,
+        139
+      ],
+      "sha256": "4a822ad93ae758dd35787feb2cf40de4c5bdc6764e61004113d02d9d4f70cd21",
+      "mask_sha256": "15cc5c42f86c2b66d1cb64f86249566505ede0752e85f95c6b6882e8f47dc061"
+    },
+    {
+      "sheet": "services",
+      "id": "salon_package",
+      "target": "service-modules/salon_package.webp",
+      "selector": [
+        247,
+        305,
+        443,
+        456
+      ],
+      "source_box": [
+        275,
+        314,
+        416,
+        454
+      ],
+      "components": [
+        123
+      ],
+      "preserved_core_pixels": 11360,
+      "size": [
+        157,
+        156
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        149,
+        148
+      ],
+      "sha256": "2ef3a39f7dfd8aa7d72a5d8914aa233182e04938f1e4ee04626f78b036c5b89f",
+      "mask_sha256": "cf80c245093ae429493b52676c31439b81a720bd3a7b6e2723513716a3261195"
+    },
+    {
+      "sheet": "services",
+      "id": "salon_course",
+      "target": "service-modules/salon_course.webp",
+      "selector": [
+        463,
+        305,
+        659,
+        456
+      ],
+      "source_box": [
+        474,
+        328,
+        645,
+        450
+      ],
+      "components": [
+        127
+      ],
+      "preserved_core_pixels": 11289,
+      "size": [
+        187,
+        138
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        179,
+        130
+      ],
+      "sha256": "953bfc53407a81ac35e06f90a3dd6fc99c8faee30e5e9e44309ab324c49b9f41",
+      "mask_sha256": "dfa7a3b2c5f33278f281f1fa9831998829e116df31ab4a551a584231ace81d89"
+    },
+    {
+      "sheet": "services",
+      "id": "pro_consultation",
+      "target": "service-modules/pro_consultation.webp",
+      "selector": [
+        685,
+        305,
+        881,
+        456
+      ],
+      "source_box": [
+        694,
+        319,
+        855,
+        449
+      ],
+      "components": [
+        124,
+        128,
+        129
+      ],
+      "preserved_core_pixels": 9714,
+      "size": [
+        177,
+        146
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        169,
+        138
+      ],
+      "sha256": "9e0ba748b24a26bcbe323de349ffae78d91a6cc8c6983a64c13f47a38e475bc0",
+      "mask_sha256": "4006a8e8dc20124458c68b77a184037735ff14085b517c112a5f7ae2eb2a079d"
+    },
+    {
+      "sheet": "services",
+      "id": "pro_package",
+      "target": "service-modules/pro_package.webp",
+      "selector": [
+        910,
+        305,
+        1106,
+        456
+      ],
+      "source_box": [
+        922,
+        321,
+        1074,
+        451
+      ],
+      "components": [
+        126
+      ],
+      "preserved_core_pixels": 14370,
+      "size": [
+        168,
+        146
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        160,
+        138
+      ],
+      "sha256": "bb06b87c4084459f17304df316e3273a7f04784c99d0cb939edbc835f28ca648",
+      "mask_sha256": "41865a63b750ca594e8e0c4e36ff2de9c6d574341f809f6c486cd1bb5e55ca64"
+    },
+    {
+      "sheet": "services",
+      "id": "pro_retainer",
+      "target": "service-modules/pro_retainer.webp",
+      "selector": [
+        26,
+        491,
+        222,
+        641
+      ],
+      "source_box": [
+        53,
+        502,
+        197,
+        639
+      ],
+      "components": [
+        201
+      ],
+      "preserved_core_pixels": 15375,
+      "size": [
+        160,
+        153
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        152,
+        145
+      ],
+      "sha256": "640a18eda1096643bcbd9de3fc65aafec580d6189780da1cf2a60200ef97b410",
+      "mask_sha256": "5e9f5479f46267cb989613706e649cd83e2c602879aa3bec1a93200b8c3669ee"
+    },
+    {
+      "sheet": "services",
+      "id": "edu_class",
+      "target": "service-modules/edu_class.webp",
+      "selector": [
+        247,
+        491,
+        443,
+        641
+      ],
+      "source_box": [
+        269,
+        511,
+        420,
+        642
+      ],
+      "components": [
+        204
+      ],
+      "preserved_core_pixels": 13915,
+      "size": [
+        167,
+        147
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        159,
+        139
+      ],
+      "sha256": "a4a0a8c7300d3b21fc28478a9d3db9a01a257c2385e23ec7b661cf63f19f42e3",
+      "mask_sha256": "fda8e5096093910cfee575d9f010a2e4d18131d94cf3d9641126722c6f3c4b3f"
+    },
+    {
+      "sheet": "services",
+      "id": "edu_lesson",
+      "target": "service-modules/edu_lesson.webp",
+      "selector": [
+        463,
+        491,
+        659,
+        641
+      ],
+      "source_box": [
+        475,
+        513,
+        646,
+        631
+      ],
+      "components": [
+        205
+      ],
+      "preserved_core_pixels": 16124,
+      "size": [
+        187,
+        134
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        179,
+        126
+      ],
+      "sha256": "6536d32bd7fe1b9dd6cea6fa44d4584da9461a190ea24837739269b51322f749",
+      "mask_sha256": "e314dec190d174dba8e43256b6a444c98eb05156919c46e8fc2164746eb8ef36"
+    },
+    {
+      "sheet": "services",
+      "id": "edu_workshop",
+      "target": "service-modules/edu_workshop.webp",
+      "selector": [
+        685,
+        491,
+        881,
+        641
+      ],
+      "source_box": [
+        705,
+        503,
+        850,
+        638
+      ],
+      "components": [
+        202
+      ],
+      "preserved_core_pixels": 8126,
+      "size": [
+        161,
+        151
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        153,
+        143
+      ],
+      "sha256": "ffa9b08d3884b3bf62cdb6a57c1c94ce304ac0262a21a5f7d4cb5b9ee5fd7543",
+      "mask_sha256": "8e339b29205c7fecca05afb88f19007641a101ba5f6c821107281630df30cc47"
+    },
+    {
+      "sheet": "services",
+      "id": "edu_course",
+      "target": "service-modules/edu_course.webp",
+      "selector": [
+        910,
+        491,
+        1106,
+        641
+      ],
+      "source_box": [
+        912,
+        505,
+        1086,
+        640
+      ],
+      "components": [
+        203
+      ],
+      "preserved_core_pixels": 13573,
+      "size": [
+        190,
+        151
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        182,
+        143
+      ],
+      "sha256": "cf4f1baf5a7233c437309bf80d6c1718513298988ae0e113096ca14afc598021",
+      "mask_sha256": "55f3d4512bf19fc7e1ed34d244b144bd15f263f7201e1c29ed9a8d5cf46ded3e"
+    },
+    {
+      "sheet": "services",
+      "id": "menu_item",
+      "target": "service-modules/menu_item.webp",
+      "selector": [
+        26,
+        683,
+        222,
+        823
+      ],
+      "source_box": [
+        33,
+        691,
+        216,
+        813
+      ],
+      "components": [
+        260
+      ],
+      "preserved_core_pixels": 11886,
+      "size": [
+        199,
+        138
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        191,
+        130
+      ],
+      "sha256": "f1a0bf60ab2a80fe50fcc9b2f1260a3288603d96931ea0ba527c9feb31f93643",
+      "mask_sha256": "a144eaa8a65b95621a54fcac4ecccc0df4619fb14c1440d727810a56dfac0a59"
+    },
+    {
+      "sheet": "services",
+      "id": "table_reservation",
+      "target": "service-modules/table_reservation.webp",
+      "selector": [
+        247,
+        683,
+        443,
+        823
+      ],
+      "source_box": [
+        251,
+        703,
+        438,
+        816
+      ],
+      "components": [
+        264
+      ],
+      "preserved_core_pixels": 12542,
+      "size": [
+        203,
+        129
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        195,
+        121
+      ],
+      "sha256": "639792210362280ae539b87e9af2f3e44ce06307d9bd26c98bc672b5da318b0a",
+      "mask_sha256": "976b54f482e3aa97576dc278cd7cbd8e6cc97a09cb5dad2cb49d6d6779fec8e5"
+    },
+    {
+      "sheet": "services",
+      "id": "vip_package",
+      "target": "service-modules/vip_package.webp",
+      "selector": [
+        463,
+        683,
+        659,
+        823
+      ],
+      "source_box": [
+        483,
+        696,
+        637,
+        810
+      ],
+      "components": [
+        263
+      ],
+      "preserved_core_pixels": 9094,
+      "size": [
+        170,
+        130
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        162,
+        122
+      ],
+      "sha256": "b16e7e224290227c01b308db2f355cf7c1363968862c0826d4ce37a927ffc4e7",
+      "mask_sha256": "b6d3b950c2ec26e658a34b54d39d90ddd96fdd37ca8139e0d3a69fd4e1de94b8"
+    },
+    {
+      "sheet": "services",
+      "id": "ent_booking",
+      "target": "service-modules/ent_booking.webp",
+      "selector": [
+        685,
+        683,
+        881,
+        823
+      ],
+      "source_box": [
+        685,
+        692,
+        870,
+        820
+      ],
+      "components": [
+        261
+      ],
+      "preserved_core_pixels": 15231,
+      "size": [
+        201,
+        144
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        193,
+        136
+      ],
+      "sha256": "5f27ca60229d1399d11e5a147ad9c6fed5c4d5450e89f4a7ea2de38dd8c39a15",
+      "mask_sha256": "3ae4380acb162a10a7ad2ae6ad226e126feb08451918f4dcb607f35c5ec5d668"
+    },
+    {
+      "sheet": "services",
+      "id": "ent_performance",
+      "target": "service-modules/ent_performance.webp",
+      "selector": [
+        910,
+        683,
+        1106,
+        823
+      ],
+      "source_box": [
+        908,
+        692,
+        1089,
+        819
+      ],
+      "components": [
+        262
+      ],
+      "preserved_core_pixels": 18564,
+      "size": [
+        197,
+        143
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        189,
+        135
+      ],
+      "sha256": "83c1703d0e3259c1d06582448fde2c05459b95d7100bf68494c1e23d953aaa9b",
+      "mask_sha256": "9295a091fc3e25dec872c2dea51ed087c2acf66e670e3fb5e1657b4f938d4295"
+    },
+    {
+      "sheet": "services",
+      "id": "retail_product",
+      "target": "service-modules/retail_product.webp",
+      "selector": [
+        26,
+        855,
+        222,
+        989
+      ],
+      "source_box": [
+        48,
+        856,
+        197,
+        988
+      ],
+      "components": [
+        332
+      ],
+      "preserved_core_pixels": 12331,
+      "size": [
+        165,
+        148
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        157,
+        140
+      ],
+      "sha256": "7b0855638dcc9c3d9bf07f9ed0ce0d2e666d64bd00919fb88e1af1e196d7e225",
+      "mask_sha256": "a949ea38e1dcbfbc4ec68c96a637ca4b072b4f9816f3f9de392372b3adf242c7"
+    },
+    {
+      "sheet": "services",
+      "id": "retail_custom",
+      "target": "service-modules/retail_custom.webp",
+      "selector": [
+        247,
+        855,
+        443,
+        989
+      ],
+      "source_box": [
+        272,
+        867,
+        414,
+        989
+      ],
+      "components": [
+        335
+      ],
+      "preserved_core_pixels": 7941,
+      "size": [
+        158,
+        138
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        150,
+        130
+      ],
+      "sha256": "2d36c9925fe54c98696714a0111d897fad03db6037eb4f1b6acbf0ea3a5d8b12",
+      "mask_sha256": "27dfad65d47bbc88952139454e0e214ff284ff499e24b637173709d041c841e9"
+    },
+    {
+      "sheet": "services",
+      "id": "tailoring_alteration",
+      "target": "service-modules/tailoring_alteration.webp",
+      "selector": [
+        463,
+        855,
+        659,
+        989
+      ],
+      "source_box": [
+        478,
+        862,
+        643,
+        987
+      ],
+      "components": [
+        333
+      ],
+      "preserved_core_pixels": 11958,
+      "size": [
+        181,
+        141
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        173,
+        133
+      ],
+      "sha256": "2813b7681efe54f9c5a36c619c47eeed5c67d294915027eeefdca2308d475b61",
+      "mask_sha256": "5bd63595f1b0ff6e250a56663bd365e9deb41222b736e4223b027ad679677c55"
+    },
+    {
+      "sheet": "services",
+      "id": "custom_order",
+      "target": "service-modules/custom_order.webp",
+      "selector": [
+        685,
+        855,
+        881,
+        989
+      ],
+      "source_box": [
+        702,
+        863,
+        856,
+        990
+      ],
+      "components": [
+        334
+      ],
+      "preserved_core_pixels": 13581,
+      "size": [
+        170,
+        143
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        162,
+        135
+      ],
+      "sha256": "bf057ec8be61eef773200d454ec7a480c6ac6bb4ff77acf7f987f377180891e7",
+      "mask_sha256": "804cb104985178633df8331487c46891da0034e94b32e7b5214042cc48292f89"
+    },
+    {
+      "sheet": "services",
+      "id": "auto_vehicle",
+      "target": "service-modules/auto_vehicle.webp",
+      "selector": [
+        910,
+        855,
+        1106,
+        989
+      ],
+      "source_box": [
+        916,
+        869,
+        1084,
+        984
+      ],
+      "components": [
+        336
+      ],
+      "preserved_core_pixels": 13137,
+      "size": [
+        184,
+        131
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        176,
+        123
+      ],
+      "sha256": "41f5602b3ad2a625cdb5d8e0c83bb03b828d7160d4fbf222fa0455491e30fd87",
+      "mask_sha256": "e9efa973d42e99a75f7166bbe353cb6d2b3b9a41b121b22cb826efc9d798274b"
+    },
+    {
+      "sheet": "services",
+      "id": "auto_rental",
+      "target": "service-modules/auto_rental.webp",
+      "selector": [
+        26,
+        1031,
+        222,
+        1157
+      ],
+      "source_box": [
+        50,
+        1033,
+        212,
+        1155
+      ],
+      "components": [
+        415
+      ],
+      "preserved_core_pixels": 8962,
+      "size": [
+        178,
+        138
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        170,
+        130
+      ],
+      "sha256": "c1a02b189bbaec5813bbc5dab092eea6c07d627b7d1bea038f59b99644d7bf3d",
+      "mask_sha256": "8ab61e3f5e3c9f52d10057414b4ce2d28c95e741ef10151a006ac71f16110da7"
+    },
+    {
+      "sheet": "services",
+      "id": "auto_repair",
+      "target": "service-modules/auto_repair.webp",
+      "selector": [
+        247,
+        1031,
+        443,
+        1157
+      ],
+      "source_box": [
+        274,
+        1033,
+        406,
+        1154
+      ],
+      "components": [
+        417
+      ],
+      "preserved_core_pixels": 6967,
+      "size": [
+        148,
+        137
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        140,
+        129
+      ],
+      "sha256": "04de88585916608c354f6dd63c01de7d2c5e77abc72ea5640c05a0bbd1a162b3",
+      "mask_sha256": "1b245fad809ac9493055b3e41507dd3995eb9e3ac79a56db60f1cd32ab6a5c52"
+    },
+    {
+      "sheet": "services",
+      "id": "auto_wash",
+      "target": "service-modules/auto_wash.webp",
+      "selector": [
+        463,
+        1031,
+        659,
+        1157
+      ],
+      "source_box": [
+        466,
+        1032,
+        645,
+        1160
+      ],
+      "components": [
+        416,
+        419,
+        420,
+        421,
+        422,
+        423
+      ],
+      "preserved_core_pixels": 13130,
+      "size": [
+        195,
+        144
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        187,
+        136
+      ],
+      "sha256": "c1bcf3a30411c02ad3ec550c10d2663023a314b66b51786ad0daef5c845e5bbd",
+      "mask_sha256": "ead53cf7594a552911c1c5885cdafe5aa26914e88d241ee8508282b2ee8ff833"
+    },
+    {
+      "sheet": "services",
+      "id": "health_appointment",
+      "target": "service-modules/health_appointment.webp",
+      "selector": [
+        685,
+        1031,
+        881,
+        1157
+      ],
+      "source_box": [
+        705,
+        1034,
+        846,
+        1153
+      ],
+      "components": [
+        418
+      ],
+      "preserved_core_pixels": 12629,
+      "size": [
+        157,
+        135
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        149,
+        127
+      ],
+      "sha256": "c126938fc481234951d3093a8b0a3c1dc14a607236d69ab378c23af2c56750cf",
+      "mask_sha256": "4b7eda3ffb63dbadc1cb5f1106c2c6db13297b51491f09ba1b9168bee260742d"
+    },
+    {
+      "sheet": "services",
+      "id": "health_procedure",
+      "target": "service-modules/health_procedure.webp",
+      "selector": [
+        910,
+        1031,
+        1106,
+        1157
+      ],
+      "source_box": [
+        906,
+        1027,
+        1084,
+        1154
+      ],
+      "components": [
+        414
+      ],
+      "preserved_core_pixels": 9974,
+      "size": [
+        194,
+        143
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        186,
+        135
+      ],
+      "sha256": "36ad9fd2d48fa7953ae5b65c5dc3601e3de5d2104cc7b189d618e1255f7e5767",
+      "mask_sha256": "b1f6ab85b66d7603e313c42e541535148a9c225312cc45fb736a617f2f7564d8"
+    },
+    {
+      "sheet": "services",
+      "id": "health_test",
+      "target": "service-modules/health_test.webp",
+      "selector": [
+        26,
+        1191,
+        222,
+        1327
+      ],
+      "source_box": [
+        44,
+        1206,
+        210,
+        1317
+      ],
+      "components": [
+        494
+      ],
+      "preserved_core_pixels": 12512,
+      "size": [
+        182,
+        127
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        174,
+        119
+      ],
+      "sha256": "29decb65753a42f2e6a2a33a34c2ce38bc181c841110d808216de87aaca0ba08",
+      "mask_sha256": "3f8301dc5121fb8499f7b45b584147a8b29ee4cea7d155f7e8a76adf924b5e6e"
+    },
+    {
+      "sheet": "services",
+      "id": "pet_appointment",
+      "target": "service-modules/pet_appointment.webp",
+      "selector": [
+        247,
+        1191,
+        443,
+        1327
+      ],
+      "source_box": [
+        274,
+        1203,
+        409,
+        1316
+      ],
+      "components": [
+        493
+      ],
+      "preserved_core_pixels": 9389,
+      "size": [
+        151,
+        129
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        143,
+        121
+      ],
+      "sha256": "237ff2d198bf4934aa12e6346f5f7afa45a6c304625881dcbc359b55237f10fd",
+      "mask_sha256": "73f5ac7bb1006498c133fa7bf88f8a957ac442fc9f48943230793b018376763e"
+    },
+    {
+      "sheet": "services",
+      "id": "pet_product",
+      "target": "service-modules/pet_product.webp",
+      "selector": [
+        463,
+        1191,
+        659,
+        1327
+      ],
+      "source_box": [
+        473,
+        1199,
+        641,
+        1320
+      ],
+      "components": [
+        492
+      ],
+      "preserved_core_pixels": 12621,
+      "size": [
+        184,
+        137
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        176,
+        129
+      ],
+      "sha256": "663ba29769ba4b0526e051cdd56292ca18e4b0a348da422857c0d8089f4614da",
+      "mask_sha256": "c28b9e8f9686cb0ab37fceb40b5af323ad078c729650c8e251f1d3b817ccb78b"
+    },
+    {
+      "sheet": "services",
+      "id": "rental_property",
+      "target": "service-modules/rental_property.webp",
+      "selector": [
+        685,
+        1191,
+        881,
+        1327
+      ],
+      "source_box": [
+        692,
+        1195,
+        853,
+        1317
+      ],
+      "components": [
+        491
+      ],
+      "preserved_core_pixels": 12893,
+      "size": [
+        177,
+        138
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        169,
+        130
+      ],
+      "sha256": "2aa4c8a4baaa3e38b4ec4f17a365711536ae1ce5ed444fd0cd55ec5e663f8230",
+      "mask_sha256": "850003b13eae8dd1f48eea858dffe454ea569bce959b681d10398f66059e0ff0"
+    },
+    {
+      "sheet": "services",
+      "id": "hotel_room",
+      "target": "service-modules/hotel_room.webp",
+      "selector": [
+        910,
+        1191,
+        1106,
+        1327
+      ],
+      "source_box": [
+        897,
+        1205,
+        1089,
+        1319
+      ],
+      "components": [
+        495
+      ],
+      "preserved_core_pixels": 15110,
+      "size": [
+        208,
+        130
+      ],
+      "alpha_bbox": [
+        8,
+        8,
+        200,
+        122
+      ],
+      "sha256": "bc792a48e808acb5f139d09128229a428ee220b2b469d5725dea50961c9c8f12",
+      "mask_sha256": "bcef97ff7ce7c7d31534c5af43f0fe011ed238c7760a0e055c711bbd085c3d2a"
+    }
+  ],
+  "pending": "Dedicated business group/subcategory artwork absent from supplied app overview; existing unmatched assets retained.",
+  "profile": "user-selected-full-contours-v2",
+  "status": "Preferred baseline; some captions remain. Do not promote automatically or apply aggressive global cleanup."
+}

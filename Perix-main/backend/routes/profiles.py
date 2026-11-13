@@ -721,6 +721,22 @@ async def update_gallery(
         update_data["video_items"] = [item for item in current_v_items if item.get("url") not in payload.remove_videos]
 
     if update_data:
+        # Φ5 (policy v18 D11): plan gallery limits with automatic replacement
+        # of the oldest item; flag-gated, avatar/cover are never touched.
+        from utils.content_policy import GALLERY_LIMITS_ENFORCEMENT, GALLERY_PHOTO_LIMITS, GALLERY_VIDEO_LIMITS, apply_gallery_limits, personal_plan
+        if GALLERY_LIMITS_ENFORCEMENT:
+            plan = personal_plan(existing_user)
+            images = update_data.get("gallery_images", existing_images)
+            videos = update_data.get("gallery_videos", existing_videos)
+            kept_images, kept_videos = apply_gallery_limits(images, videos, plan)
+            if "gallery_images" in update_data:
+                update_data["gallery_images"] = kept_images
+            if "gallery_videos" in update_data:
+                update_data["gallery_videos"] = kept_videos
+            if "gallery_items" in update_data:
+                update_data["gallery_items"] = update_data["gallery_items"][-GALLERY_PHOTO_LIMITS[plan]:]
+            if "video_items" in update_data:
+                update_data["video_items"] = update_data["video_items"][-GALLERY_VIDEO_LIMITS[plan]:]
         await db.users.update_one(
             {"user_id": current_user.user_id}, {"$set": update_data}
         )

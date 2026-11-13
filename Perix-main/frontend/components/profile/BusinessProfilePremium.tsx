@@ -370,10 +370,10 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   const privateTabs: TabDefinition[] = useMemo(() => {
     const tabs: TabDefinition[] = [];
     tabs.push({ key: "media", label: t("profile.media", "Media"), icon: "images-outline", count: galleryImages.length + galleryVideos.length });
-    tabs.push({ key: "posts", label: t("profile.posts", "Posts"), icon: "newspaper-outline", count: businessPosts.length });
-    if (canAddItems || businessListings.length > 0) {
-      tabs.push({ key: "items", label: t("marketplace.items", "Shop"), icon: "storefront-outline", count: businessListings.length });
-    }
+    tabs.push({ key: "posts", label: t("profile.posts", "Posts"), iconSource: illustratedIconSource("home", "posts"), icon: "newspaper-outline", count: businessPosts.length });
+    // Shop tab is always visible for the owner (Business / Event Pro have
+    // products + real estate; empty state guides to add the first one).
+    tabs.push({ key: "items", label: t("marketplace.items", "Shop"), iconSource: illustratedIconSource("home", "products"), icon: "storefront-outline", count: businessListings.length });
     // 2. Service type tabs Ã¢â‚¬â€ one per categoryKey:serviceType
     const rootCat = detail.business.root_category || "";
     const hasModule = hasServiceModules(rootCat);
@@ -410,13 +410,13 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
       }
     }
     // 3. Events Ã¢â‚¬â€ always visible for owner
-    tabs.push({ key: "events", label: t("events.title", "Events"), icon: "sparkles", count: events.length });
+    tabs.push({ key: "events", label: t("events.title", "Events"), iconSource: illustratedIconSource("home", "events"), icon: "sparkles", count: events.length });
     // 4. Jobs Ã¢â‚¬â€ always visible for owner
-    tabs.push({ key: "jobs", label: t("jobs.title", "Jobs"), icon: "briefcase", count: jobs.length });
+    tabs.push({ key: "jobs", label: t("jobs.title", "Jobs"), iconSource: illustratedIconSource("home", "jobs"), icon: "briefcase", count: jobs.length });
     // 5. Bookings Ã¢â‚¬â€ always visible for owner
-    tabs.push({ key: "bookings", label: t("services.myBookings", "My Bookings"), icon: "calendar", count: pendingBookingsCount });
+    tabs.push({ key: "bookings", label: t("services.myBookings", "My Bookings"), icon: "calendar-outline", count: pendingBookingsCount });
     return tabs;
-  }, [businessPosts.length, galleryImages.length, galleryVideos.length, events.length, jobs.length, services, detail.business.enabled_modules, detail.business.root_category, t, businessListings, canAddItems, pendingBookingsCount]);
+  }, [businessPosts.length, galleryImages.length, galleryVideos.length, events.length, jobs.length, services, detail.business.enabled_modules, detail.business.root_category, t, businessListings, pendingBookingsCount]);
 
   useEffect(() => {
     if (!requestedSection || privateTabs.length === 0) return;
@@ -575,6 +575,19 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
             : undefined
         }
       />
+      {!isOwnProfile ? null : (
+        <Pressable
+          style={[styles.plansBanner, { borderColor: primaryColor }]}
+          onPress={() => router.push("/plans" as any)}
+          accessibilityRole="button"
+        >
+          <Ionicons name="layers-outline" size={18} color={primaryColor} />
+          <Text style={[styles.plansBannerText, { color: textColor }]}>
+            {t("profile.viewPlans", "Δες τα πλάνα — Free, Premium, Business")}
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color={primaryColor} />
+        </Pressable>
+      )}
       {detail.business.root_category && (
         <View style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -1043,6 +1056,23 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  plansBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    backgroundColor: "rgba(255,255,255,0.7)",
+  },
+  plansBannerText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "700",
   },
   scrollContent: {
     flexGrow: 1,

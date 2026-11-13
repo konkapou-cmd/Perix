@@ -1,0 +1,1552 @@
+{
+  "policy_version": "services-review-18",
+  "status": "approved_specification_not_implemented",
+  "approval_basis": "Explicit owner answers in the sector-by-sector Services review",
+  "base_business_professional_service_limit": 10,
+  "quota_scope": "business_id_across_all_approved_specialties",
+  "counted_publication_state": "active_published",
+  "specialty_permissions": "union_of_approved_specialties_with_applicable_professional_verification",
+  "taxonomy_phase_1_v18": {
+    "status": "activated_in_working_tree_not_deployed",
+    "activated_roots": {
+      "food_beverages": [
+        "coffee_tea",
+        "bakery",
+        "sweets_snacks",
+        "pantry",
+        "oils_spices",
+        "fresh_produce",
+        "dairy_chilled",
+        "soft_drinks",
+        "food_gift_sets"
+      ],
+      "flowers_gifts": [
+        "bouquets",
+        "cut_flowers",
+        "potted_plants",
+        "gift_items",
+        "souvenirs",
+        "personalized_gifts",
+        "seasonal_items",
+        "gift_cards_packaging"
+      ],
+      "vehicles_parts": [
+        "passenger_cars",
+        "commercial_vehicles",
+        "motorcycles",
+        "car_parts",
+        "motorcycle_parts",
+        "tires_wheels",
+        "car_accessories",
+        "motorcycle_accessories",
+        "rider_gear",
+        "vehicle_care",
+        "vehicle_tools"
+      ],
+      "health_medical_supplies": [
+        "first_aid",
+        "home_medical_devices",
+        "orthopedic_support",
+        "mobility_aids",
+        "hygiene_consumables",
+        "oral_care",
+        "home_care_aids",
+        "prescription_glasses",
+        "sunglasses",
+        "eyeglass_frames",
+        "prescription_lenses",
+        "contact_lenses_solutions",
+        "lens_wipes_cleaners",
+        "eyewear_cases_cloths",
+        "eyewear_accessories"
+      ]
+    },
+    "moved_paths": {
+      "bikes_mobility/mobility_aids": "health_medical_supplies/mobility_aids"
+    },
+    "retail_permissions_activated": {
+      "florists": {
+        "flowers_gifts": [
+          "bouquets",
+          "cut_flowers",
+          "potted_plants",
+          "seasonal_items"
+        ]
+      },
+      "gifts-souvenirs": {
+        "flowers_gifts": [
+          "gift_items",
+          "souvenirs",
+          "personalized_gifts",
+          "gift_cards_packaging"
+        ]
+      }
+    },
+    "phase_2": "remaining proposed paths stay inactive until explicitly activated"
+  },
+  "closed_decisions_v18": {
+    "D01_personal_and_business": {
+      "decision": "separate_entitlements",
+      "detail": "Personal Free/Premium is independent from the Business entitlement. Buying Business does not automatically make the personal account Premium."
+    },
+    "D02_free_classified_ad": {
+      "decision": "classified_ad_kind_3_active_30_days",
+      "detail": "item_kind=classified_ad: photo + description, optional price, no commercial fields (stock/condition/product categories). Up to 3 active per Free user, 30 days retention each."
+    },
+    "D03_premium_personal_products": {
+      "decision": "10_active_products",
+      "detail": "Premium private persons publish up to 10 active personal products in allowed Marketplace categories, without commercial or regulated goods."
+    },
+    "D04_fourth_free_post": {
+      "decision": "3_active_posts_oldest_replaced_v19",
+      "supersedes": "reject_with_limit_message",
+      "detail": "Free users keep up to 3 active posts. A new post replaces the oldest of the 3 (no rejection). Media of the replaced post is cleaned up only when not referenced elsewhere."
+    },
+    "D05_business_posts": {
+      "decision": "24_active_oldest_replaced_and_media_removed",
+      "detail": "Up to 24 active Business posts. The 25th replaces the oldest of the 24, deleting it and its media (safe cleanup if not referenced elsewhere). Posts remain on the profile up to 1 year and are then removed."
+    },
+    "D07_messages": {
+      "calendar_month_zone": "Europe/Berlin_server_period_key",
+      "media_window": "15_latest_media_files_per_conversation",
+      "group_chats": "same_quota_and_retention_rules",
+      "after_case_close": "return_to_30_day_rule_from_message_creation",
+      "holds": "pending_reports_and_legal_obligations_protected_separately"
+    },
+    "D08_city_ads_impressions": {
+      "valid_impression": "at_least_50_percent_visible_in_viewport_for_at_least_1_second",
+      "dedupe": "once_per_visitor_per_ad_per_city_per_local_day",
+      "anti_refresh": "no_recount_within_10_minutes",
+      "rotation_state": "shared_daily_state_across_home_and_results_per_visitor_and_city",
+      "reset": "local_date_of_the_advertising_city"
+    },
+    "D09_pricing_and_payments": {
+      "trial_prices": "adopted_as_design_target_not_activated",
+      "plans": {
+        "free": 0,
+        "premium_monthly": "9.90",
+        "premium_yearly": "99",
+        "business_monthly": "39.90_plus_tax",
+        "business_yearly": "399_plus_tax",
+        "event_pro_patch_monthly_add": "50",
+        "event_pro_patch_events": 15,
+        "event_pro_total_monthly": "89.90",
+        "organizer": "temporarily_removed"
+      },
+      "city_ads": {
+        "3d": "7.90",
+        "7d": "14.90",
+        "14d": "26.90",
+        "30d": "44.90",
+        "video_surcharge_percent": 20
+      },
+      "provider_and_tax": "selected_in_phase_8_sandbox_first",
+      "organizer_positioning": {
+        "model": "patches_on_business",
+        "description": "Event Pro is presented as a selectable plan option (like Business) that only increases the total price: Business 39.90 EUR/month + tax, Event Pro 89.90 EUR/month + tax (= Business + 50 EUR patch). Organizer is temporarily removed.",
+        "event_pro": {
+          "price_add_monthly": "50",
+          "total_monthly": "89.90_plus_tax",
+          "events": "15_per_month",
+          "map_views": "more_frequent",
+          "posts": "24_visible_per_month",
+          "suits_who": "organizers, venues, promoters, event agencies",
+          "suits_categories": [
+            "entertainment-events",
+            "nightlife-social",
+            "sports-fitness-wellness",
+            "food-dining"
+          ]
+        },
+        "organizer": "temporarily_removed",
+        "ui": {
+          "selectable_card": true,
+          "patch_chip": true,
+          "soon_badge": false,
+          "tax_display": "small_suffix_text",
+          "free_posts_label": "3_without_replacement_mention"
+        },
+        "activation": "selectable_in_ui_payment_not_activated",
+        "decided": "2026-11-11"
+      }
+    },
+    "D10_taxonomy": {
+      "decision": "17_roots_184_paths_in_two_phases_with_aliases",
+      "phase_1": "paths needed by approved permissions: food_beverages, flowers_gifts, vehicles_parts, health_medical_supplies plus additions to existing roots",
+      "phase_2": "remaining proposed paths",
+      "optical_specialties": "opticians, ophthalmologists, optical-stores added to healthcare without verification gate (controlled entries)",
+      "legacy_aliases": "preserved_and_readable"
+    },
+    "D11_gallery_overflow": {
+      "decision": "automatic_replacement_of_oldest",
+      "detail": "Photos and videos overflow replaces the oldest item of the same kind. Avatar and cover remain separate and untouched."
+    },
+    "D12_active_case_states": {
+      "booking": "pending/confirmed active; declined/cancelled/completed/expired closed",
+      "activity_event": "active until end date",
+      "service": "active while published and active",
+      "item_listing": "active while published and not sold/rented",
+      "job": "active while published and not closed",
+      "reports_legal_holds": "protected separately"
+    },
+    "D13_artists": {
+      "decision": "retire_artist_identity_with_controlled_migration",
+      "detail": "The separate artist actor type is removed because the Business category already includes artists-performers specialties. Existing artist profiles, events and references migrate to Business (artists-performers) via a controlled, non-destructive migration; no new paid Artist plan."
+    },
+    "D14_verification": {
+      "decision": "superseded_no_gate_for_now",
+      "detail": "Free publication without verification because entries are controlled; registry mapping retained as reference."
+    },
+    "D15_job_applications": {
+      "decision": "everyone_applies_business_posts_jobs",
+      "applications": {
+        "free": "3_per_month",
+        "premium": "unlimited",
+        "business": "can_apply_as_user_identity"
+      },
+      "job_posts": {
+        "business": "10_positions_per_year",
+        "free": "cannot_post_jobs",
+        "premium": "cannot_post_jobs"
+      },
+      "activation": "spec_only_enforcement_off",
+      "decided": "2026-11-11"
+    },
+    "D16_redemption_codes": {
+      "decision": "interim_access_codes_no_payment",
+      "codes": {
+        "User100": {
+          "plan": "premium_user",
+          "max_uses": 100
+        },
+        "Pro100": {
+          "plan": "business",
+          "max_uses": 100,
+          "applied_at_business_creation": true
+        }
+      },
+      "profile_deadline_days": 2,
+      "trust_tip": "??? ?????????? ?? ???????? ??????, ???? ???????? ????????????.",
+      "future": "replaced_by_stripe_billing",
+      "activation": "live_no_payment",
+      "decided": "2026-11-12",
+      "auto_revert": {
+        "window_days": 2,
+        "condition": "profile_incomplete_past_deadline",
+        "premium_profile_complete": "photo + bio + cover + 3 gallery photos + 1 post + verified email",
+        "business_profile_complete": "photo + cover + category + address + opening hours + 6 gallery photos + 1 post",
+        "premium_effect": "account_plan back to free_user",
+        "business_effect": "business_plan_grant cleared only — NO founder downgrade (business keeps its plan)",
+        "trigger": "lazy_on_entitlement_snapshot"
+      },
+      "no_reuse_by_email": {
+        "rule": "same code cannot be redeemed twice by the same email (across accounts)",
+        "effect": "permanent_even_after_revert"
+      }
+    },
+    "D17_email_verification": {
+      "decision": "verified_email_required_for_all_additions",
+      "window_hours": 6,
+      "applies_to": "every new registration (resend refreshes the window)",
+      "rule": "no content addition on perix.eu without a verified email",
+      "enforced_on": [
+        "posts",
+        "activities",
+        "events",
+        "jobs",
+        "listings",
+        "services",
+        "businesses"
+      ],
+      "legacy_accounts": "treated as verified (default)",
+      "decided": "2026-11-12"
+    }
+  },
+  "regulated_verification_policy": {
+    "status": "superseded_kept_as_reference",
+    "effective_decision": "no_verification_gate_for_now_controlled_entries",
+    "superseded_gate": true,
+    "supersession_basis": "Owner decision: entries are controlled at the door (existing business access code, one business per owner, controlled imports), therefore no publication verification is required for these businesses for now. Registry mapping is retained as future reference in case a gate is reintroduced.",
+    "reintroduction_condition": "Only with a new explicit owner decision and an approved implementation plan.",
+    "scope": [
+      "healthcare_publications_where_required",
+      "veterinary_publications",
+      "regulated_beauty_acts"
+    ],
+    "method": "manual_internal_review_queue",
+    "automated_or_third_party_verification": "not_activated",
+    "future_extension": "architecture_must_allow_per_country_registry_integrations_without_redesign",
+    "granularity": "capability_per_business_and_specialty_and_country",
+    "capability_reuse": "one_verified_capability_authorizes_all_in_scope_services_of_that_business_specialty",
+    "service_publish_rule": "superseded_for_now_services_publish_without_verification_because_entries_are_controlled",
+    "evidence_handling": {
+      "upload": "temporary_document_upload_for_review_only",
+      "retention": "metadata_only_after_decision",
+      "document_lifecycle": "deleted_after_review_decision_per_defined_policy",
+      "public_exposure": "never_public_never_on_profile_never_public_url",
+      "metadata_fields": [
+        "authority_or_issuer",
+        "reference_number_if_provided",
+        "country",
+        "specialty",
+        "scope",
+        "verified_at",
+        "verified_by",
+        "result",
+        "expiry_or_review_due"
+      ]
+    },
+    "capability_lifecycle": {
+      "states": [
+        "pending_verification",
+        "verified",
+        "rejected",
+        "expired",
+        "revoked"
+      ],
+      "on_expiry_or_revocation": "dependent_published_services_return_to_inactive_without_deletion_of_records_or_bookings",
+      "renewal": "re-verification_required_according_to_approved_review_schedule"
+    },
+    "admin_and_audit": {
+      "roles": "internal_perix_verification_team_only",
+      "audit_log": "who_reviewed_when_with_what_result_without_exposing_documents",
+      "customer_facing": "clear_status_without_document_details"
+    },
+    "jurisdictions": {
+      "design": "multi_country_from_the_start",
+      "per_country_evidence_mapping": "draft_in_progress",
+      "activation_rule": "no_country_is_enabled_until_its_authority_document_and_scope_mapping_is_approved",
+      "initial_country_list": [
+        "GR",
+        "DE",
+        "IT",
+        "ES",
+        "RS"
+      ],
+      "initial_country_names": [
+        "Greece",
+        "Germany",
+        "Italy",
+        "Spain",
+        "Serbia"
+      ],
+      "doctors_registry_mapping_verified_sources": {
+        "GR": {
+          "authority": "Ιατρικοί Σύλλογοι / Εθνικό Μητρώο Ιατρών",
+          "lookup": "pis.gr Εθνικό Μητρώο Ιατρών + regional medical association member search (e.g. ΙΣΑ)"
+        },
+        "DE": {
+          "authority": "Landesärztekammern (Bundesärztekammer Arztsuche)",
+          "lookup": "regional chamber Arztsuche; some regions phone-only"
+        },
+        "IT": {
+          "authority": "FNOMCeO — Albi Unici Nazionali",
+          "lookup": "albounico.fnomceo.it search by name/surname/registration number"
+        },
+        "ES": {
+          "authority": "CGCOM — Registro de Colegiados",
+          "lookup": "cgcom.es consulta pública by name/surname or número de colegiado"
+        },
+        "RS": {
+          "authority": "Lekarska komora Srbije",
+          "lookup": "lks.org.rs registry of doctors with valid licence (Евиденција лекара са важећом лиценцом)"
+        }
+      },
+      "dentists_registry_mapping_verified_sources": {
+        "GR": {
+          "authority": "Οδοντιατρικοί Σύλλογοι (ΕΟΟ / ΟΣΑ, ΟΣΘ κ.λπ.)",
+          "lookup": "regional dental association member lists"
+        },
+        "DE": {
+          "authority": "(Landes)Zahnärztekammern",
+          "lookup": "Zahnarztsuche per chamber (BZÄK Zahnarztsuche index); mandatory chamber membership"
+        },
+        "IT": {
+          "authority": "FNOMCeO — Albo Odontoiatri (Albi Unici Nazionali)",
+          "lookup": "albounico.fnomceo.it search"
+        },
+        "ES": {
+          "authority": "Consejo General de Colegios de Dentistas",
+          "lookup": "guiadentistas.es buscador de dentistas colegiados"
+        },
+        "RS": {
+          "authority": "Stomatološka komora Srbije",
+          "lookup": "stomkoms.org.rs member/licence database (БАЗА ПОДАТАКА)"
+        }
+      },
+      "pharmacists_registry_mapping_verified_sources": {
+        "GR": {
+          "authority": "Φαρμακευτικοί Σύλλογοι (ΠΦΣ)",
+          "lookup": "άδεια άσκησης επαγγέλματος + εγγραφή σε σύλλογο· σχετική βεβαίωση gov.gr"
+        },
+        "DE": {
+          "authority": "Landesapothekerkammern",
+          "lookup": "Approbation/Berufserlaubnis + mandatory chamber membership; regional search"
+        },
+        "IT": {
+          "authority": "FOFI — Albo Unico Nazionale dei Farmacisti",
+          "lookup": "fofiruf.it albo-professionale search by surname"
+        },
+        "ES": {
+          "authority": "Consejo General de Colegios Farmacéuticos",
+          "lookup": "farmaceuticos.com ventanilla única buscador de colegiados"
+        },
+        "RS": {
+          "authority": "Farmaceutska komora Srbije",
+          "lookup": "farmkom.rs registar farmaceuta (javna evidencija sa važećom licencom)"
+        }
+      },
+      "veterinarians_registry_mapping_verified_sources": {
+        "GR": {
+          "authority": "Κτηνιατρικός Σύλλογος / άδεια άσκησης επαγγέλματος",
+          "lookup": "άδεια/βεβαίωση άσκησης + εγγραφή σε αναγνωρισμένο Κτηνιατρικό Σύλλογο"
+        },
+        "DE": {
+          "authority": "(Landes)Tierärztekammern",
+          "lookup": "Approbation + chamber membership; Bundestierärztekammer approbationsbehörden list, regional Tierarztsuche"
+        },
+        "IT": {
+          "authority": "FNOVI — Ordini dei Medici Veterinari",
+          "lookup": "fnovi.it ricerca iscritti"
+        },
+        "ES": {
+          "authority": "Consejo General de Colegios Veterinarios",
+          "lookup": "vucolvet.org ventanilla única buscador de colegiados"
+        },
+        "RS": {
+          "authority": "Veterinarska komora Srbije",
+          "lookup": "vetks.org.rs — obavezno licenciranje (licenca prema Zakonu o veterinarstvu)"
+        }
+      },
+      "psychologists_psychotherapists_registry_mapping": {
+        "GR": {
+          "authority": "Άδεια/βεβαίωση άσκησης επαγγέλματος ψυχολόγου· Πανελλήνιος Σύλλογος Ψυχολόγων (ν.π.δ.δ., Εθνικό Μητρώο Ψυχολόγων υπό σύσταση)",
+          "lookup": "άδεια άσκησης/βεβαίωση + εγγραφή συλλόγου"
+        },
+        "DE": {
+          "authority": "Landespsychotherapeutenkammern",
+          "lookup": "Approbation + chamber membership; Psychotherapeutensuche (PTK/DPTV). Psychologists without psychotherapy approbation are not regulated the same way"
+        },
+        "IT": {
+          "authority": "CNOP — Albo degli Psicologi",
+          "lookup": "regional online albo search / Albo Nazionale"
+        },
+        "ES": {
+          "authority": "Consejo General de la Psicología (COP)",
+          "lookup": "buscopsicologo.es / colegios' listados by número de colegiado"
+        },
+        "RS": {
+          "authority": "No unified state register: Savez psihoterapeuta (Nacionalni sertifikat za psihoterapiju registar)",
+          "lookup": "savezpsihoterapeuta.org registar; requires special per-country policy"
+        }
+      },
+      "clinics_and_regulated_beauty_laser_mapping_status": "draft_requires_per_country_legal_review"
+    },
+    "disclaimer_scope": "perix_verifies_evidence_presence_and_specialty_match_not_medical_competence_or_legal_certification",
+    "restrictions": [
+      "Category selection, Business plan purchase or a self-declared specialty does not grant verified status.",
+      "A verified capability is scoped to the approved business, specialty and country and cannot be borrowed by another business.",
+      "Each newly published regulated service is automatically checked against the verified capability scope before it can become active.",
+      "Rejection, expiry or revocation does not delete historical records, bookings or conversations; it only deactivates dependent publications.",
+      "Verification evidence is never shown publicly and document retention follows the approved temporary, metadata-only policy."
+    ]
+  },
+  "sectors": {
+    "sports-fitness-wellness": {
+      "status": "approved_specification",
+      "quota_bucket": "professional_service",
+      "membership_and_pass_count_toward_limit": true,
+      "restrictions": [
+        "Each separately published service, membership package or pass consumes one of the shared 10 positions.",
+        "Drafts, availability slots, bookings and customers do not consume additional service positions.",
+        "Membership and pass permissions apply to offerings actually provided by that business; no online checkout or membership activation is implied.",
+        "Every service must match an approved business specialty. A generic module key must not grant unrelated activities.",
+        "Recovery and wellness require specialty-appropriate labels, fields and scope; gym_recovery alone must not grant clinical permissions.",
+        "Therapeutic or regulated offerings still require specialty-appropriate scope; no verification gate applies for now because entries are controlled.",
+        "Existing records and bookings are reviewed separately without automatic deletion.",
+        "Equipment rental, resource or court rental, and independent Events are not authorized by these service permissions."
+      ],
+      "module_groups": [
+        {
+          "subcategories": [
+            "gyms",
+            "crossfit",
+            "functional-training",
+            "pilates",
+            "yoga",
+            "team-sports",
+            "racket-sports",
+            "swimming",
+            "martial-arts",
+            "climbing",
+            "cycling",
+            "running-clubs",
+            "water-sports",
+            "winter-sports",
+            "extreme-sports",
+            "meditation"
+          ],
+          "allowed_modules": [
+            "gym_class",
+            "gym_session",
+            "gym_membership",
+            "gym_pass"
+          ]
+        },
+        {
+          "subcategories": [
+            "personal-training"
+          ],
+          "allowed_modules": [
+            "gym_class",
+            "gym_session"
+          ]
+        },
+        {
+          "subcategories": [
+            "group-fitness"
+          ],
+          "allowed_modules": [
+            "gym_class",
+            "gym_membership",
+            "gym_pass"
+          ]
+        },
+        {
+          "subcategories": [
+            "physiotherapy",
+            "rehabilitation",
+            "sports-massage",
+            "recovery-centers",
+            "wellness-centers"
+          ],
+          "allowed_modules": [
+            "gym_recovery"
+          ]
+        }
+      ]
+    },
+    "fashion-accessories": {
+      "status": "approved_specification",
+      "quota_bucket": "mixed_by_module",
+      "module_quota_buckets": {
+        "retail_product": "catalog_product",
+        "tailoring_alteration": "professional_service",
+        "custom_order": "professional_service"
+      },
+      "catalog_product_limit": 50,
+      "special_repairs": "deferred_separate_future_work",
+      "restrictions": [
+        "Product permissions remain restricted to relevant approved product categories; retail_product does not grant every product category.",
+        "Ready-made or specific product offers consume the shared business product quota of 50, not the 10 professional service positions.",
+        "Separately published alteration or custom-manufacturing service offers consume the shared 10 professional service positions.",
+        "Customer inquiries, bookings and orders do not create additional published service positions.",
+        "An optional personalization choice on a specific product does not automatically require a duplicate service record or independent product record.",
+        "Clothing alteration and made-to-measure clothing require the approved tailoring-custom specialty.",
+        "Custom jewelry and leather-goods manufacture or personalization require a recorded relevant business capability and a specialty-scoped offer; custom_order is conditional, not a blanket grant.",
+        "Shoe, watch, jewelry and leather-goods repairs require separate future design, not relabeling as clothing alterations or custom manufacture.",
+        "Sunglasses retail does not grant optical, optometry or medical services.",
+        "Existing product-like Services, URLs, records and bookings remain compatible; no destructive migration or immediate data duplication is authorized.",
+        "Current tailoring_alteration request-mode bookings and custom_order non-booking inquiry behavior are preserved; no checkout or fulfillment system is implied."
+      ],
+      "module_groups": [
+        {
+          "subcategories": [
+            "casual-wear",
+            "formal-wear",
+            "sportswear",
+            "childrens-clothing",
+            "vintage-thrift",
+            "sneakers",
+            "formal-shoes",
+            "athletic-footwear",
+            "watches",
+            "sunglasses",
+            "fashion-accessories",
+            "luxury-fashion"
+          ],
+          "allowed_modules": [
+            "retail_product"
+          ]
+        },
+        {
+          "subcategories": [
+            "tailoring-custom"
+          ],
+          "allowed_modules": [
+            "retail_product",
+            "tailoring_alteration",
+            "custom_order"
+          ]
+        },
+        {
+          "subcategories": [
+            "jewelry",
+            "bags-leather-goods"
+          ],
+          "allowed_modules": [
+            "retail_product",
+            "custom_order"
+          ],
+          "module_conditions": {
+            "custom_order": [
+              "requires_recorded_relevant_manufacturing_or_personalization_capability",
+              "offer_must_match_approved_specialty",
+              "repairs_are_not_authorized"
+            ]
+          }
+        }
+      ]
+    },
+    "entertainment-events": {
+      "status": "approved_specification",
+      "quota_bucket": "professional_service",
+      "booking_mode_policy": "preserve_existing_time_slots_no_new_request_mode",
+      "module_booking_modes": {
+        "ent_booking": "time_slot",
+        "ent_performance": "time_slot"
+      },
+      "capacity_status": "audit_required_not_proven_multi_party_or_multi_resource_inventory",
+      "restrictions": [
+        "Each separately published experience, venue-use or artistic performance service offer consumes one of the shared 10 business service positions.",
+        "Availability dates, time slots, inquiries and bookings do not consume additional service positions.",
+        "Public performances or independently scheduled public events use the Events flow and its separate quota; a Service must not bypass Event limits.",
+        "Venue or experience specialties grant ent_booking, not automatic artist-hire ent_performance; performer specialties grant ent_performance, not automatic venue rental.",
+        "For cinema, theatre, stand-up-comedy, cultural-events and exhibitions, ent_booking requires an actually offered private-use, group-visit, guided-visit or comparable specialty-related service, not a relabeled public event.",
+        "Approved additional specialties combine their rights while keeping the same shared service quota.",
+        "Existing time-slot booking modes and existing bookings remain compatible; request-for-quote mode, ticket sales, payments and seat assignment are not authorized as implemented features by this approval.",
+        "Physical capacity, resources and cross-offer calendar conflicts need separate technical validation; service quota is not physical capacity or unlimited inventory.",
+        "Legacy Services, Events, Artist identities and bookings are reviewed without automatic deletion or forced conversion."
+      ],
+      "module_groups": [
+        {
+          "subcategories": [
+            "cinema",
+            "theatre",
+            "stand-up-comedy",
+            "cultural-events",
+            "exhibitions"
+          ],
+          "allowed_modules": [
+            "ent_booking"
+          ],
+          "module_conditions": {
+            "ent_booking": [
+              "requires_actual_private_use_or_group_or_guided_visit_service",
+              "offer_must_match_approved_specialty",
+              "public_event_quota_bypass_is_not_authorized"
+            ]
+          }
+        },
+        {
+          "subcategories": [
+            "escape-rooms",
+            "vr-gaming",
+            "arcades",
+            "bowling",
+            "billiards",
+            "indoor-playgrounds",
+            "family-activity-centers",
+            "event-venues",
+            "concert-halls"
+          ],
+          "allowed_modules": [
+            "ent_booking"
+          ]
+        },
+        {
+          "subcategories": [
+            "djs",
+            "bands",
+            "singers",
+            "comedians",
+            "magicians",
+            "dancers",
+            "actors",
+            "mcs-hosts",
+            "cultural-groups"
+          ],
+          "allowed_modules": [
+            "ent_performance"
+          ]
+        }
+      ]
+    },
+    "nightlife-social": {
+      "status": "approved_specification",
+      "quota_bucket": "professional_service",
+      "booking_mode_policy": "preserve_table_time_slot_and_vip_request_modes",
+      "module_booking_modes": {
+        "table_reservation": "time_slot",
+        "vip_package": "request"
+      },
+      "overnight_booking_design": "approved_for_handoff_not_implemented",
+      "capacity_status": "shared_table_inventory_and_cross_offer_conflicts_require_technical_validation",
+      "restrictions": [
+        "Each separately published table-reservation offer or genuinely distinct VIP package consumes one of the shared 10 business service positions.",
+        "Physical tables, availability slots, customer requests and bookings are not additional published service positions and are not assumed to be unlimited inventory.",
+        "Table reservation requires actual reservable tables or zones provided by the business; standing admission or a ticket must not be relabeled as table reservation.",
+        "VIP requires a recorded real package with clear inclusions, guest count and terms; it is not automatically enabled for every nightlife specialty.",
+        "Public scheduled performances use Events and its separate quota; an Event-linked table or VIP offer does not eliminate the Event or bypass its quota.",
+        "Standard and VIP offers using the same physical table must share conflict-aware inventory; shared resources are not assumed to be implemented by separate Service records.",
+        "Preserve existing table time-slot and VIP request booking modes and existing bookings. A pending VIP request is not proof of payment, confirmation or a guaranteed physical table allocation.",
+        "Include overnight booking design in the handoff: true start/end dates and times, business IANA timezone, UTC instants, overlaps, recurrence and DST handling with backward-compatible migration and tests.",
+        "Do not implement overnight support by merely allowing end_time to be less than start_time, silently reinterpreting legacy bookings or splitting a booking into unrelated records.",
+        "The overnight design approval does not authorize application changes, new payment flows, ticketing or a production rollout."
+      ],
+      "module_groups": [
+        {
+          "subcategories": [
+            "cocktail-bars",
+            "wine-bars",
+            "beer-bars",
+            "sports-bars",
+            "rock-bars",
+            "jazz-bars",
+            "live-folk-music",
+            "live-music-venues",
+            "dj-clubs",
+            "dance-clubs",
+            "after-hours-clubs"
+          ],
+          "allowed_modules": [
+            "table_reservation",
+            "vip_package"
+          ],
+          "module_conditions": {
+            "table_reservation": [
+              "requires_actual_reservable_tables_or_zones",
+              "standing_admission_or_ticket_is_not_table_reservation"
+            ],
+            "vip_package": [
+              "requires_recorded_real_vip_offer",
+              "requires_clear_inclusions_guest_count_and_terms",
+              "not_automatic_for_every_nightlife_business"
+            ]
+          }
+        }
+      ]
+    },
+    "professional-services": {
+      "status": "approved_specification",
+      "quota_bucket": "professional_service",
+      "booking_mode_policy": "preserve_consultation_time_slots_and_non_booking_package_retainer_inquiries",
+      "module_booking_modes": {
+        "pro_consultation": "time_slot",
+        "pro_package": "none",
+        "pro_retainer": "none"
+      },
+      "professional_property_listing_requirement": {
+        "status": "approved_specification_not_implemented",
+        "subcategories": [
+          "real-estate-agents",
+          "property-management"
+        ],
+        "requires_ownership_or_relevant_authorization": true,
+        "property_quota": 20,
+        "quota_bucket": "rental_inventory",
+        "quota_scope": "business_id_across_all_authorized_property_types_and_legacy_sources",
+        "allowed_property_types": [
+          "apartment",
+          "house",
+          "studio",
+          "room"
+        ],
+        "policy_ref": "sectors.rentals",
+        "requires_capability_aware_integration": true,
+        "requires_root_category_change": false,
+        "grants_rental_property_module_now": false,
+        "uses_personal_one_home_limit": false
+      },
+      "restrictions": [
+        "Each separately published consultation, package or retainer offer consumes one of the shared 10 business professional-service positions.",
+        "Clients, inquiries, appointments and individual assignments or matters are not additional published service positions.",
+        "Each offer must match the actual approved specialty and services genuinely provided by that business; applicable regulated professional scope remains relevant, while no verification gate applies for now.",
+        "Consulting does not automatically grant legal, tax or insurance permissions; general translation does not automatically grant certified-translation status.",
+        "Insurance-service offers are not insurance policies, policy checkout or automatic recurring premium collection.",
+        "pro_consultation remains time_slot booking; pro_package and pro_retainer remain non-booking request-for-quote offers.",
+        "A quote inquiry or published retainer is not an automatically accepted contract, completed assignment, recurring payment or Perix account subscription.",
+        "Real-estate and property-management services are distinct from specific professional property listings. The approved Rentals specification gives the latter a separate shared quota of 20 per business, with ownership or relevant authorization and the Rentals privacy policy.",
+        "The future professional property design must not require destructive root changes, use the personal one-home limit or grant unlimited properties by default.",
+        "No rental_property module or additional property publication rights are activated by this sector approval; existing records, IDs, inquiries and bookings remain compatible."
+      ],
+      "module_groups": [
+        {
+          "subcategories": [
+            "law-firms",
+            "accounting",
+            "tax-services",
+            "insurance",
+            "consulting",
+            "marketing-digital",
+            "translation-services",
+            "it-services",
+            "software-development",
+            "web-design",
+            "real-estate-agents",
+            "property-management"
+          ],
+          "allowed_modules": [
+            "pro_consultation",
+            "pro_package",
+            "pro_retainer"
+          ],
+          "module_conditions": {
+            "pro_consultation": [
+              "offer_must_match_approved_specialty",
+              "requires_actually_provided_service",
+              "offer_must_respect_applicable_professional_scope"
+            ],
+            "pro_package": [
+              "offer_must_match_approved_specialty",
+              "requires_actually_provided_defined_work_package",
+              "offer_must_respect_applicable_professional_scope"
+            ],
+            "pro_retainer": [
+              "offer_must_match_approved_specialty",
+              "requires_actually_provided_ongoing_cooperation_offer",
+              "offer_must_respect_applicable_professional_scope",
+              "does_not_activate_recurring_billing_or_contract"
+            ]
+          }
+        }
+      ]
+    },
+    "beauty-care": {
+      "status": "approved_specification",
+      "quota_bucket": "professional_service",
+      "booking_mode_policy": "preserve_appointment_package_time_slots_and_course_initial_request",
+      "module_booking_modes": {
+        "salon_appointment": "time_slot",
+        "salon_package": "time_slot",
+        "salon_course": "request"
+      },
+      "course_meaning": "series_of_care_appointments_not_educational_training",
+      "course_lifecycle_scope": "preserve_initial_request_no_new_multi_visit_scheduling_or_redemption_system",
+      "regulated_publication_policy": {
+        "effective_decision": "no_verification_gate_for_now_controlled_entries",
+        "superseded_gate": true,
+        "healthcare_cross_sector_mapping": "review_with_healthcare_without_destructive_root_change",
+        "legacy_records_and_bookings": "separate_review_without_automatic_deletion"
+      },
+      "restrictions": [
+        "Each separately published appointment, combined same-visit package or series of care sessions consumes one of the shared 10 business service positions.",
+        "Clients, individual visits, customer requests and bookings are not additional published service positions.",
+        "Every offering and each included package component must match an approved business specialty and an actually provided service; mixed-specialty packages require the respective approved specialties.",
+        "salon_course means a genuine series of care appointments, not an educational seminar or training course. Existing IDs and type keys remain unchanged; user-facing labels must avoid that ambiguity.",
+        "salon_appointment and salon_package retain time_slot bookings; salon_course retains the initial request mode without required time slots.",
+        "Session-count and duration fields do not establish automatic scheduling, remaining-session tracking or redemption. No new multi-visit management or redemption system is included in this approval.",
+        "A beauty profile, dermatology-laser category or paid Business plan does not establish a professional license or clinical permission.",
+        "New therapeutic, medical or otherwise regulated offerings follow specialty-scoped publishing without a verification gate for now because entries are controlled.",
+        "Routine non-regulated care must not be subjected to an unrelated medical-verification requirement merely because the root is beauty-care.",
+        "Review clinical and healthcare cross-sector permissions with the Healthcare sector without destructive root changes, automatic conversion or deletion of legacy records and bookings.",
+        "Care products for sale require separate product permissions and quotas; they must not be relabeled as services to bypass product restrictions.",
+        "No payment, automatic subscription, clinical workflow, staff/resource capacity guarantee or complete series-fulfillment system is implied by these generic Service types."
+      ],
+      "module_groups": [
+        {
+          "subcategories": [
+            "hair-salons",
+            "barbershops",
+            "nail-salons",
+            "dermatology-laser",
+            "facial-body-treatments",
+            "spas",
+            "makeup-services",
+            "tanning-salons"
+          ],
+          "allowed_modules": [
+            "salon_appointment",
+            "salon_package",
+            "salon_course"
+          ],
+          "module_conditions": {
+            "salon_appointment": [
+              "offer_must_match_approved_specialty",
+              "requires_actually_provided_service",
+              "no_verification_gate_for_now_entries_controlled"
+            ],
+            "salon_package": [
+              "all_components_must_match_approved_specialties",
+              "requires_actual_combined_same_visit_offer",
+              "no_verification_gate_for_now_entries_controlled"
+            ],
+            "salon_course": [
+              "offer_must_match_approved_specialty",
+              "requires_actual_series_of_care_sessions",
+              "not_educational_training",
+              "no_verification_gate_for_now_entries_controlled"
+            ]
+          }
+        }
+      ]
+    },
+    "education-creativity": {
+      "status": "approved_specification",
+      "quota_bucket": "professional_service",
+      "booking_mode_policy": "preserve_class_lesson_workshop_time_slots_and_non_booking_course_inquiry",
+      "module_booking_modes": {
+        "edu_class": "time_slot",
+        "edu_lesson": "time_slot",
+        "edu_workshop": "time_slot",
+        "edu_course": "none"
+      },
+      "course_lifecycle_scope": "no_new_enrollment_attendance_tuition_or_full_course_scheduling_system",
+      "event_boundary_policy": "purpose_based_instruction_vs_public_performance_or_exhibition",
+      "restrictions": [
+        "Each separately published group class, individual lesson, instructional workshop or complete educational program consumes one of the shared 10 business service positions.",
+        "Students, weekly availability times and bookings are not additional published service positions; physical class capacity remains a separate technical concern.",
+        "All offers must match the approved educational specialty and actually provided instructional subject and format.",
+        "School registration or an edu_course record does not automatically grant accreditation, recognized qualifications or certification rights; such claims must match actual provider entitlements.",
+        "edu_class, edu_lesson and edu_workshop retain time_slot bookings; edu_course retains non-booking inquiry behavior with booking mode none, not the salon_course request mode.",
+        "No new enrollment registry, attendance tracking, tuition management or automatic scheduling of every session in a course is added by this approval.",
+        "A genuine instructional workshop remains a Service even when scheduled on one specific date; date alone is not the Event classification rule.",
+        "Student concerts, public dance performances and public exhibitions use the Events flow and separate Event quota, not an educational workshop label used for quota bypass.",
+        "Existing group-capacity concerns in SVC-013 remain subject to technical validation; an educational Service approval does not certify multi-student booking inventory.",
+        "Existing age, privacy and account policies remain unchanged; this approval does not add child accounts or new student-data collection flows.",
+        "Existing IDs, classes, inquiries and bookings remain compatible without destructive category changes or automatic conversion of course inquiries into bookings."
+      ],
+      "module_groups": [
+        {
+          "subcategories": [
+            "tutoring",
+            "language-schools",
+            "music-schools",
+            "dance-schools",
+            "art-workshops"
+          ],
+          "allowed_modules": [
+            "edu_class",
+            "edu_lesson",
+            "edu_workshop",
+            "edu_course"
+          ],
+          "module_conditions": {
+            "edu_class": [
+              "instruction_must_match_approved_specialty",
+              "requires_actually_provided_group_instruction",
+              "accreditation_claims_require_actual_entitlement"
+            ],
+            "edu_lesson": [
+              "instruction_must_match_approved_specialty",
+              "requires_actually_provided_individual_instruction",
+              "accreditation_claims_require_actual_entitlement"
+            ],
+            "edu_workshop": [
+              "instruction_must_match_approved_specialty",
+              "requires_genuine_instructional_workshop",
+              "not_public_performance_or_exhibition_quota_bypass",
+              "accreditation_claims_require_actual_entitlement"
+            ],
+            "edu_course": [
+              "instruction_must_match_approved_specialty",
+              "requires_actually_provided_multi_lesson_educational_program",
+              "accreditation_claims_require_actual_entitlement",
+              "does_not_activate_enrollment_tuition_or_course_scheduling"
+            ]
+          }
+        }
+      ]
+    },
+    "food-dining": {
+      "status": "approved_specification",
+      "quota_bucket": "mixed_by_module",
+      "module_quota_buckets": {
+        "menu_item": "menu_entry",
+        "table_reservation": "professional_service"
+      },
+      "quota_limits": {
+        "menu_entry": 100
+      },
+      "quota_scope": "business_id_across_all_food_and_drink_entries_and_approved_cuisines",
+      "booking_mode_policy": "preserve_non_booking_menu_and_table_time_slots",
+      "module_booking_modes": {
+        "menu_item": "none",
+        "table_reservation": "time_slot"
+      },
+      "restrictions": [
+        "The base Business plan allows 100 active published menu entries per business in total, including both food and drinks, separate from the 10 professional services and 50 product quota.",
+        "Each separately published menu record counts once; multiple cuisine specialties do not multiply limits or create independent copies of the same menu record.",
+        "Each genuinely distinct published table-reservation offer consumes one of the shared 10 business service positions; physical tables, times, customers and bookings are not extra published services.",
+        "Menus must describe items actually provided by the specific business; a food-court business does not automatically control other businesses' menus or shared seating.",
+        "Table reservation requires actual reservable tables or zones and authority to allocate them, not automatic permission for every cafe, bakery or take-away business.",
+        "menu_item remains non-booking browse-only catalog behavior; table_reservation preserves its current time-slot mode.",
+        "No new ordering, delivery, checkout, payment or product-variant system is introduced by this approval.",
+        "Price, description, allergens and dietary information must be accurate and comply with applicable obligations; dietary tags alone are not certification.",
+        "Packaged products sold through the Marketplace require separate product permissions and quotas; menu entries must not bypass those requirements.",
+        "Independent public music or other scheduled events remain Events with the separate Event quota.",
+        "Capacity, common tables, cross-offer resource conflicts and overnight availability remain subject to the existing technical audit and approved design, not assumed implemented features.",
+        "Existing menu records, service IDs and bookings remain compatible; imposing the new quota does not authorize destructive truncation of legacy menus."
+      ],
+      "module_groups": [
+        {
+          "subcategories": [
+            "casual-dining",
+            "fine-dining",
+            "fast-casual",
+            "buffet",
+            "food-courts",
+            "italian",
+            "asian",
+            "greek",
+            "balkan",
+            "german",
+            "african",
+            "american",
+            "arabic",
+            "japanese",
+            "chinese",
+            "korean",
+            "thai",
+            "mexican",
+            "indian",
+            "mediterranean",
+            "seafood",
+            "steakhouse",
+            "vegan",
+            "vegetarian",
+            "brunch",
+            "pizza",
+            "burger",
+            "cafes",
+            "coffee-shops",
+            "bakeries"
+          ],
+          "allowed_modules": [
+            "menu_item",
+            "table_reservation"
+          ],
+          "module_conditions": {
+            "menu_item": [
+              "requires_item_actually_provided_by_this_business",
+              "requires_authority_over_published_menu",
+              "no_automatic_ordering_delivery_or_payment"
+            ],
+            "table_reservation": [
+              "requires_actual_reservable_tables_or_zones",
+              "requires_authority_to_allocate_the_resource",
+              "shared_food_court_seating_is_not_automatically_reservable"
+            ]
+          }
+        }
+      ]
+    },
+    "rentals": {
+      "status": "approved_specification",
+      "quota_bucket": "rental_inventory",
+      "quota_limits": {
+        "rental_inventory": 20
+      },
+      "quota_scope": "business_id_across_all_authorized_property_types_and_legacy_sources",
+      "quota_count_unit": "distinct_canonical_active_published_professional_property_listing",
+      "personal_premium_active_property_limit": 1,
+      "booking_mode_policy": "preserve_rental_property_request_and_existing_home_rental_inquiries",
+      "module_booking_modes": {
+        "rental_property": "request"
+      },
+      "scope": "existing_residential_rental_flows_no_property_sales_or_hotel_stays",
+      "legacy_root_aliases": [
+        "rental-real-estate"
+      ],
+      "property_type_by_specialty": {
+        "apartments": "apartment",
+        "houses": "house",
+        "studios": "studio",
+        "rooms": "room"
+      },
+      "public_location_policy": {
+        "default": "approximate",
+        "exact_location": "explicit_choice_by_authorized_manager_only",
+        "location_source": "specific_property_not_business_office_fallback",
+        "public_surfaces": "consistent_list_map_detail_service_and_other_public_api_redaction",
+        "legacy_transition": "safe_compatible_migration_without_new_silent_exact_disclosure"
+      },
+      "restrictions": [
+        "The base Business plan allows 20 active published professional residential rentals per business in total, separate from 10 professional services, 50 products and the personal Premium one-home quota.",
+        "The same canonical property listing counts once across profile, map, results and compatible Service/Listing adapters; no automatic bulk duplication or destructive source conversion is authorized.",
+        "Rental specialties authorize the corresponding apartment, house, studio or room type; approved additional specialties combine without multiplying the shared limit.",
+        "Professional real-estate agents and property managers may represent the four approved residential property types with ownership or relevant authorization for each property, under the same Rentals quota and privacy policy without changing their professional-services root.",
+        "Each property stores its own property_type and location; neither is inferred solely from business category or replaced with the business office location.",
+        "rental_property retains request-mode bookings and existing home_rental Listings retain their inquiry flow; no automatic conversion to hotel date-range bookings is authorized.",
+        "A request is not a lease contract, payment or guaranteed property allocation. No property-sales, hotel-stay, lease-execution or payment system is added.",
+        "Public property location defaults to approximate; exact exposure requires an explicit authorized choice and must be applied consistently across public adapters and APIs.",
+        "Existing IDs, svc_ rental adapters, listing links, inquiries, booking contexts and legacy rental-real-estate aliases remain compatible.",
+        "Enforce the shared professional property quota across both legacy sources and reactivation paths without erasing existing over-limit portfolios or merging distinct properties merely because they share an address."
+      ],
+      "module_groups": [
+        {
+          "subcategories": [
+            "apartments",
+            "houses",
+            "studios",
+            "rooms"
+          ],
+          "allowed_modules": [
+            "rental_property"
+          ],
+          "module_conditions": {
+            "rental_property": [
+              "requires_ownership_or_relevant_property_authorization",
+              "property_type_must_match_approved_specialty",
+              "requires_specific_property_location",
+              "public_location_approximate_by_default_exact_requires_authorized_choice"
+            ]
+          }
+        }
+      ]
+    },
+    "local-hotels": {
+      "status": "approved_specification",
+      "quota_bucket": "hospitality_inventory",
+      "quota_limits": {
+        "hospitality_inventory": 10,
+        "hospitality_units": 100
+      },
+      "quota_scope": "business_id_across_active_published_hotel_room_types",
+      "quota_count_unit": "canonical_active_published_hotel_room_type",
+      "additional_quota_constraints": [
+        {
+          "module": "hotel_room",
+          "bucket": "hospitality_units",
+          "limit": 100,
+          "aggregation": "sum",
+          "field": "inventory_count",
+          "record_scope": "active_published_room_types_for_same_business",
+          "reserved_units_reduce_commercial_usage": false
+        }
+      ],
+      "booking_mode_policy": "preserve_existing_hotel_date_range_engine",
+      "module_booking_modes": {
+        "hotel_room": "date_range"
+      },
+      "physical_inventory_policy": "declared_room_type_pools_must_not_independently_duplicate_same_physical_stock",
+      "restrictions": [
+        "The base hotel Business plan allows both at most 10 active published room types and at most 100 physical units in total across those types; both constraints apply simultaneously per business.",
+        "Room types and physical units are separate from 10 professional services, 20 residential rentals and 50 product quotas; similar numbers do not imply shared buckets.",
+        "Commercial physical-unit usage is based on declared inventory_count across active published room types, not remaining nightly availability. Occupied or temporarily held rooms do not disappear from declared commercial usage.",
+        "Bookings and nights do not create additional published room-type records or commercial inventory positions.",
+        "Preserve the existing date-range flow, nightly inventory checks, pending holds, confirmed bookings, date blocks, cancellation and release behavior, guest limits and server-computed quote amounts, subject to regression and concurrency testing.",
+        "A computed quote or booking status does not establish payment. No new checkout or payment functionality is approved here.",
+        "The same physical stock must not be independently advertised under duplicated service_ids, for example breakfast and non-breakfast rate offers, because the current engine scopes inventory to service_id.",
+        "No new rate-plan system, multi-hotel management, ticketing or allocation of a specific room number is introduced by this approval.",
+        "The published technical model bound of inventory_count up to 1000 per record is not a commercial entitlement and does not replace the aggregate business limit of 100.",
+        "Do not automatically apply the residential-property approximate-location policy to all hotel/business address surfaces; preserve existing authorized business/hotel location behavior.",
+        "Existing hotel_service IDs, pending and confirmed bookings, inventory holds and legacy over-limit data require compatible migration, not destructive truncation or conversion to time slots or rental requests."
+      ],
+      "module_groups": [
+        {
+          "subcategories": [
+            "hotels"
+          ],
+          "allowed_modules": [
+            "hotel_room"
+          ],
+          "module_conditions": {
+            "hotel_room": [
+              "requires_actual_hotel_room_type_and_authority_over_declared_stock",
+              "requires_both_room_type_count_and_aggregate_physical_unit_limits",
+              "same_physical_stock_must_not_be_independently_duplicated",
+              "preserve_date_range_booking_and_existing_reservations"
+            ]
+          }
+        }
+      ]
+    },
+    "shopping-retail": {
+      "status": "approved_specification",
+      "approval_scope": "service_module_mapping_and_quotas_not_final_new_product_paths",
+      "quota_bucket": "mixed_by_module",
+      "module_quota_buckets": {
+        "retail_product": "catalog_product",
+        "retail_custom": "professional_service"
+      },
+      "catalog_product_limit": 50,
+      "booking_mode_policy": "preserve_non_booking_product_catalog_and_custom_quote_inquiries",
+      "module_booking_modes": {
+        "retail_product": "none",
+        "retail_custom": "none"
+      },
+      "product_permission_completion": {
+        "status": "approved_work_exact_new_paths_pending",
+        "requires_explicit_product_path_approval_before_new_path_activation": true,
+        "missing_mapping_is_not_unrestricted_permission": true,
+        "approves_whole_proposed_17_184_taxonomy": false,
+        "approved_new_product_paths": {},
+        "priority_specialties": [
+          "gifts-souvenirs",
+          "florists"
+        ],
+        "requires_frontend_backend_and_legacy_alias_compatibility": true
+      },
+      "repairs_and_technical_installations": "deferred_separate_future_work_not_retail_custom",
+      "restrictions": [
+        "Specific canonical products consume the shared 50 active-product positions; separately published actual custom-manufacturing or personalization service offers consume the shared 10 professional-service positions.",
+        "Every product and custom offer must match its approved retail specialty and actually provided goods or capabilities; retail_custom requires a recorded relevant manufacturing or personalization capability.",
+        "Customer inquiries and clients are not additional published offers. Optional personalization of a specific product does not automatically require a duplicate service or product record.",
+        "One canonical product must serve profile and Marketplace views with compatible legacy Service references; no automatic bulk copying or deletion is authorized.",
+        "retail_product remains non-booking browse-only catalog behavior and retail_custom remains a non-booking request-for-quote offer.",
+        "Repair and technical-installation services are deferred as separate future work, not authorized by relabeling them retail_custom.",
+        "Complete the exact product-permission matrix for all six retail specialties, especially gifts-souvenirs and florists, with explicit detailed path approval before activating new product paths.",
+        "A missing mapping, an icon, a root wildcard or a paid Business plan does not authorize all product categories or the entire proposed 17-root/184-path taxonomy.",
+        "Existing valid product permissions and legacy IDs remain compatible; incomplete proposed paths stay gated rather than silently broadened.",
+        "No new checkout, payment, order fulfillment, product-variant system or booking workflow is introduced by this approval."
+      ],
+      "module_groups": [
+        {
+          "subcategories": [
+            "electronics",
+            "home-goods",
+            "furniture",
+            "books-stationery",
+            "florists",
+            "gifts-souvenirs"
+          ],
+          "allowed_modules": [
+            "retail_product",
+            "retail_custom"
+          ],
+          "module_conditions": {
+            "retail_product": [
+              "requires_currently_valid_approved_product_permission_path",
+              "product_must_match_approved_specialty",
+              "new_product_paths_require_explicit_approval_before_activation"
+            ],
+            "retail_custom": [
+              "offer_must_match_approved_specialty",
+              "requires_recorded_relevant_manufacturing_or_personalization_capability",
+              "repairs_and_technical_installations_are_not_authorized"
+            ]
+          }
+        }
+      ]
+    },
+    "automotive": {
+      "status": "approved_specification",
+      "quota_bucket": "mixed_by_module",
+      "module_quota_buckets": {
+        "auto_vehicle": "vehicle_inventory",
+        "auto_rental": "professional_service",
+        "auto_repair": "professional_service",
+        "auto_wash": "professional_service"
+      },
+      "quota_limits": {
+        "vehicle_inventory": 50
+      },
+      "quota_scope": "business_id_across_approved_automotive_specialties",
+      "quota_count_unit": "distinct_active_published_offer",
+      "vehicle_inventory_count_unit": "distinct_active_published_vehicle_for_sale_offer",
+      "booking_mode_policy": "preserve_time_slot_rental_repair_wash_and_non_booking_vehicle_catalog",
+      "module_booking_modes": {
+        "auto_vehicle": "none",
+        "auto_rental": "time_slot",
+        "auto_repair": "time_slot",
+        "auto_wash": "time_slot"
+      },
+      "deferred_workflows": {
+        "driving_lessons": "no_current_automotive_service_module",
+        "motor_insurance_products": "regulated_not_activated_via_auto_modules",
+        "leasing_or_financing_intermediation": "regulated_not_activated_via_auto_modules",
+        "roadside_assistance": "no_current_automotive_service_module",
+        "moto_parts_catalog": "products_require_own_permissions",
+        "tire_product_catalog": "products_require_own_permissions_pending_taxonomy"
+      },
+      "restrictions": [
+        "Each active published vehicle-for-sale offer counts toward the separate vehicle_inventory quota of 50 per business, not the shared 10 professional services.",
+        "Each distinct active published rental, repair or wash offer consumes one of the shared 10 professional-service positions; physical vehicles, fleet capacity, times and bookings are not additional published offers.",
+        "Sales, rental, repair and wash permissions are specialty-scoped; the deferred specialties must not relabel their regulated or future services as vehicle sales, repairs or washes.",
+        "auto_vehicle remains non-booking browse-only catalog behavior; auto_rental, auto_repair and auto_wash preserve time-slot bookings.",
+        "A vehicle listing, quote or booking is not an accepted purchase, lease contract, insurance policy or payment. No new checkout, financing, insurance or payment flows are authorized.",
+        "Moto parts and tires require their own product permissions and taxonomy; they are not vehicle-for-sale offers and must not bypass product policy.",
+        "Commercial vehicle inventory is based on declared active published vehicle offers, not remaining availability or reservations.",
+        "Existing IDs, Services, bookings, inquiries and any legacy over-limit data require compatible migration without destructive conversion or automatic deletion.",
+        "No new booking workflow, rate or contract system is introduced by this approval."
+      ],
+      "module_groups": [
+        {
+          "subcategories": [
+            "car-dealers",
+            "used-cars",
+            "moto-dealers",
+            "moto-used"
+          ],
+          "allowed_modules": [
+            "auto_vehicle"
+          ],
+          "module_conditions": {
+            "auto_vehicle": [
+              "vehicle_must_match_approved_specialty_and_actually_offered_vehicle",
+              "no_purchase_contract_payment_or_financing_activation",
+              "parts_and_products_require_their_own_permissions"
+            ]
+          }
+        },
+        {
+          "subcategories": [
+            "car-rentals",
+            "moto-rentals"
+          ],
+          "allowed_modules": [
+            "auto_rental"
+          ],
+          "module_conditions": {
+            "auto_rental": [
+              "requires_actual_rental_operation",
+              "distinct_published_offer_counts_once_not_per_physical_vehicle",
+              "fleet_capacity_is_a_separate_technical_concern"
+            ]
+          }
+        },
+        {
+          "subcategories": [
+            "repair-shops",
+            "moto-repair",
+            "tire-shops"
+          ],
+          "allowed_modules": [
+            "auto_repair"
+          ],
+          "module_conditions": {
+            "auto_repair": [
+              "requires_actual_specialty_appropriate_repair_service",
+              "tire_products_require_their_own_pending_taxonomy"
+            ]
+          }
+        },
+        {
+          "subcategories": [
+            "car-washes",
+            "vehicle-washes"
+          ],
+          "allowed_modules": [
+            "auto_wash"
+          ],
+          "module_conditions": {
+            "auto_wash": [
+              "requires_actual_wash_service"
+            ]
+          }
+        },
+        {
+          "subcategories": [
+            "moto-parts",
+            "driving-schools",
+            "insurance-agencies",
+            "leasing-financing",
+            "roadside-assistance"
+          ],
+          "allowed_modules": []
+        }
+      ]
+    },
+    "healthcare": {
+      "status": "approved_specification",
+      "quota_bucket": "professional_service",
+      "booking_mode_policy": "preserve_time_slot_appointment_procedure_test",
+      "module_booking_modes": {
+        "health_appointment": "time_slot",
+        "health_procedure": "time_slot",
+        "health_test": "time_slot"
+      },
+      "regulated_publication_policy": {
+        "effective_decision": "no_verification_gate_for_now_controlled_entries",
+        "superseded_gate": true,
+        "legacy_records_and_bookings": "separate_review_without_automatic_deletion",
+        "optical_proposed_specialties": "pending_separate_taxonomy_approval_not_activated"
+      },
+      "deferred_workflows": {
+        "medical_records_and_prescriptions": "not_added",
+        "telemedicine": "not_added",
+        "emergency_flows": "not_added",
+        "payments_and_checkout": "not_added",
+        "pharmacy_medicine_catalog": "regulated_products_require_own_permissions_not_service_offers"
+      },
+      "restrictions": [
+        "Each distinct active published appointment, procedure or test offer consumes one of the shared 10 business professional-service positions; patients, availability and bookings are not additional published offers.",
+        "Doctors, dentists and clinics receive the three types only for services genuinely provided within the actual specialty or clinic scope; a dentist does not publish general medical acts and a clinic does not publish services it does not provide.",
+        "Pharmacies receive health_appointment only for consultation or measurement services actually provided; medicines and regulated products require their own permissions and are not service offers.",
+        "Mental-health receives health_appointment for genuine therapy sessions; no arbitrary general procedure is authorized without an approved verified intervention.",
+        "New healthcare publications follow specialty-scoped publishing without a verification gate for now because entries are controlled.",
+        "A category, a paid Business plan, a self-declared specialty or the word clinic does not prove a professional license or permission.",
+        "Bookings, inquiries and quotes are organizational functions, not medical records, prescriptions, diagnoses, treatment guarantees or health-data processing for clinical purposes.",
+        "All three modules preserve time-slot booking. No telemedicine, medical-record, emergency, checkout or payment flow is added by this approval.",
+        "The three proposed optical specialties remain pending separate taxonomy approval and are not activated, counted or wired into this sector.",
+        "The beauty-care dermatology-laser policy stays consistent with this healthcare policy; cross-sector clinical mapping requires no destructive root change.",
+        "Existing IDs, Services, bookings and legacy records are reviewed separately without automatic deletion; legacy protection does not authorize continuing a non-permitted regulated act."
+      ],
+      "module_groups": [
+        {
+          "subcategories": [
+            "doctors",
+            "dentists",
+            "clinics"
+          ],
+          "allowed_modules": [
+            "health_appointment",
+            "health_procedure",
+            "health_test"
+          ],
+          "module_conditions": {
+            "health_appointment": [
+              "offer_must_match_actual_specialty_and_scope",
+              "requires_actually_provided_service",
+              "no_verification_gate_for_now_entries_controlled",
+              "booking_is_organizational_not_medical_record"
+            ],
+            "health_procedure": [
+              "offer_must_match_actual_specialty_and_scope",
+              "requires_actually_performed_approved_procedure",
+              "no_verification_gate_for_now_entries_controlled",
+              "no_general_procedure_from_other_specialty"
+            ],
+            "health_test": [
+              "offer_must_match_actual_specialty_and_scope",
+              "requires_actually_provided_diagnostic_test",
+              "no_verification_gate_for_now_entries_controlled"
+            ]
+          }
+        },
+        {
+          "subcategories": [
+            "pharmacies"
+          ],
+          "allowed_modules": [
+            "health_appointment"
+          ],
+          "module_conditions": {
+            "health_appointment": [
+              "requires_actually_provided_consultation_or_measurement_service",
+              "medicines_and_regulated_products_are_not_service_offers",
+              "no_verification_gate_for_now_entries_controlled"
+            ]
+          }
+        },
+        {
+          "subcategories": [
+            "mental-health"
+          ],
+          "allowed_modules": [
+            "health_appointment"
+          ],
+          "module_conditions": {
+            "health_appointment": [
+              "requires_genuine_therapy_session_service",
+              "no_arbitrary_general_procedure_without_approved_verified_intervention",
+              "no_verification_gate_for_now_entries_controlled",
+              "booking_is_organizational_not_medical_record"
+            ]
+          }
+        }
+      ]
+    },
+    "pets": {
+      "status": "approved_specification",
+      "quota_bucket": "mixed_by_module",
+      "module_quota_buckets": {
+        "pet_appointment": "professional_service",
+        "pet_product": "catalog_product"
+      },
+      "catalog_product_limit": 50,
+      "booking_mode_policy": "preserve_time_slot_appointments_and_non_booking_pet_products",
+      "module_booking_modes": {
+        "pet_appointment": "time_slot",
+        "pet_product": "none"
+      },
+      "veterinary_regulated_policy": {
+        "effective_decision": "no_verification_gate_for_now_controlled_entries",
+        "superseded_gate": true,
+        "legacy_records_and_bookings": "separate_review_without_automatic_deletion"
+      },
+      "deferred_workflows": {
+        "animal_medical_records": "not_added",
+        "prescriptions_for_animals": "not_added",
+        "payments_and_checkout": "not_added"
+      },
+      "restrictions": [
+        "Each distinct active published pet appointment consumes one of the shared 10 professional-service positions; pet clients, availability, slots and bookings are not additional published offers.",
+        "pet_product is the current product-like Service form: it counts toward the shared 50 product positions and must converge on one canonical product for profile and Marketplace views, not two independent records.",
+        "Veterinarians receive pet_appointment for genuine veterinary services; no verification gate applies for now because entries are controlled.",
+        "Pet-grooming receives appointments for grooming services only and products only within its approved product policy; it does not receive veterinary appointment rights.",
+        "Pet-supplies receives products within the approved pet product policy; appointments require an additional approved specialty or a recorded genuine pet-care capability and are never veterinary examinations by default.",
+        "A pet-supplies shop or grooming salon does not acquire veterinary appointment rights from the shared pets root.",
+        "pet_appointment preserves time-slot booking and pet_product preserves non-booking browse-only catalog behavior.",
+        "No animal medical records, prescriptions, checkout or payment flows are added by this approval.",
+        "Existing IDs, product-like Services, bookings and legacy records require compatible handling without automatic deletion or duplication."
+      ],
+      "module_groups": [
+        {
+          "subcategories": [
+            "veterinarians"
+          ],
+          "allowed_modules": [
+            "pet_appointment"
+          ],
+          "module_conditions": {
+            "pet_appointment": [
+              "requires_genuine_veterinary_service",
+              "no_verification_gate_for_now_entries_controlled",
+              "booking_is_organizational_not_animal_medical_record"
+            ]
+          }
+        },
+        {
+          "subcategories": [
+            "pet-grooming"
+          ],
+          "allowed_modules": [
+            "pet_appointment",
+            "pet_product"
+          ],
+          "module_conditions": {
+            "pet_appointment": [
+              "requires_genuine_grooming_service",
+              "no_veterinary_appointment_rights_from_grooming"
+            ],
+            "pet_product": [
+              "only_approved_pet_care_product_paths",
+              "converge_to_canonical_product_not_duplicate_records"
+            ]
+          }
+        },
+        {
+          "subcategories": [
+            "pet-supplies"
+          ],
+          "allowed_modules": [
+            "pet_product"
+          ],
+          "module_conditions": {
+            "pet_product": [
+              "only_approved_pet_supplies_product_paths",
+              "new_paths_require_explicit_approval",
+              "converge_to_canonical_product_not_duplicate_records"
+            ]
+          }
+        }
+      ]
+    },
+    "mobility-transport": {
+      "status": "approved_specification",
+      "quota_bucket": "no_service_modules",
+      "public_visibility": "hidden_from_public_category_selection_and_business_creation",
+      "management": "internal_perix_admin_managed",
+      "module_booking_modes": {},
+      "restrictions": [
+        "Mobility-transport specialties remain without Service types and are not publicly selectable or creatable by external businesses.",
+        "Public category pickers, registration flows, business creation UI and public listings must not expose public-transport or taxi-services as selectable business categories.",
+        "Visibility is enforced server-side, not only by hiding UI: unauthenticated or non-admin creation requests for these specialties are rejected.",
+        "Perix-internal administrators manage these records through controlled internal flows; this approval does not define the internal management tooling or any paid public plan.",
+        "Existing mobility data, businesses, stops, routes and related public-services features remain accessible per their current product surface and are not deleted by this visibility decision.",
+        "No service modules, quotas, bookings or new public publication rights are introduced for this root."
+      ],
+      "module_groups": [
+        {
+          "subcategories": [
+            "public-transport",
+            "taxi-services"
+          ],
+          "allowed_modules": []
+        }
+      ]
+    }
+  }
+}

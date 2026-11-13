@@ -5,27 +5,614 @@
   "label_en": "Public Services & Authorities",
   "icon": "business-outline",
   "children": [
-    {"id":"citizen-services","label_el":"Εξυπηρέτηση Πολιτών & Απολεσθέντα","label_de":"Bürgerservice & Fundbüro","label_en":"Citizen Services & Lost Property","icon":"people-outline"},
-    {"id":"immigration-citizenship","label_el":"Μετανάστευση, Διαμονή & Ιθαγένεια","label_de":"Migration, Aufenthalt & Einbürgerung","label_en":"Immigration, Residence & Citizenship","icon":"earth-outline"},
-    {"id":"civil-registry","label_el":"Ληξιαρχείο & Προσωπική Κατάσταση","label_de":"Standesamt & Personenstand","label_en":"Civil Registry & Vital Records","icon":"document-text-outline"},
-    {"id":"business-licensing","label_el":"Επιχειρήσεις & Αδειοδοτήσεις","label_de":"Gewerbe & Genehmigungen","label_en":"Business & Licensing","icon":"briefcase-outline"},
-    {"id":"family-youth","label_el":"Οικογένεια, Παιδιά & Νεολαία","label_de":"Familie, Kinder & Jugend","label_en":"Family, Children & Youth","icon":"people-outline"},
-    {"id":"social-housing","label_el":"Κοινωνική Στήριξη & Στέγαση","label_de":"Soziales & Wohnen","label_en":"Social Support & Housing","icon":"home-outline"},
-    {"id":"public-health","label_el":"Δημόσια Υγεία & Υγειονομικός Έλεγχος","label_de":"Gesundheitsamt & Gesundheitsschutz","label_en":"Public Health & Health Inspection","icon":"medkit-outline"},
-    {"id":"mobility-transport","label_el":"Οδήγηση, Οχήματα & Μεταφορές","label_de":"Führerschein, Fahrzeuge & Verkehr","label_en":"Driving, Vehicles & Transport","icon":"car-outline"},
-    {"id":"building-infrastructure","label_el":"Δόμηση, Υποδομές & Δημόσια Περιουσία","label_de":"Bau, Infrastruktur & Liegenschaften","label_en":"Building, Infrastructure & Public Property","icon":"construct-outline"},
-    {"id":"education-culture","label_el":"Εκπαίδευση, Βιβλιοθήκες & Πολιτισμός","label_de":"Bildung, Bibliotheken & Kultur","label_en":"Education, Libraries & Culture","icon":"school-outline"},
-    {"id":"waste-recycling","label_el":"Απορρίμματα & Ανακύκλωση","label_de":"Abfall & Recycling","label_en":"Waste & Recycling","icon":"leaf-outline"},
-    {"id":"government-administration","label_el":"Δήμος, Κρατική Διοίκηση & Υπουργεία","label_de":"Rathaus, Landesverwaltung & Ministerien","label_en":"City Hall, State Administration & Ministries","icon":"business-outline"},
-    {"id":"employment-careers","label_el":"Εργασία, Εύρεση Απασχόλησης & Καριέρα","label_de":"Arbeit, Jobsuche & Berufsberatung","label_en":"Employment, Job Search & Careers","icon":"briefcase-outline"},
-    {"id":"courts-justice","label_el":"Δικαστήρια & Δικαιοσύνη","label_de":"Gerichte & Justiz","label_en":"Courts & Justice","icon":"scale-outline"},
-    {"id":"tax-finance","label_el":"Εφορία & Δημόσιες Οικονομικές Υπηρεσίες","label_de":"Finanzamt & Öffentliche Finanzen","label_en":"Tax & Public Finance","icon":"cash-outline"},
-    {"id":"police-security","label_el":"Αστυνομία & Δημόσια Ασφάλεια","label_de":"Polizei & Öffentliche Sicherheit","label_en":"Police & Public Safety","icon":"shield-outline"},
-    {"id":"ps:sos","label_el":"Έκτακτη ανάγκη – SOS","label_de":"Notfall – SOS","label_en":"Emergency – SOS","icon":"warning-outline","children":[
-      {"id":"ps:sos:police","label_el":"Αστυνομία","label_de":"Polizei","label_en":"Police"},
-      {"id":"ps:sos:fire-rescue","label_el":"Πυροσβεστική / Διασώστες","label_de":"Feuerwehr / Rettungsdienst","label_en":"Fire & Rescue"},
-      {"id":"ps:sos:emergency-hospitals","label_el":"Νοσοκομεία / Επείγοντα","label_de":"Krankenhäuser / Notfallversorgung","label_en":"Hospitals / Emergency Care"},
-      {"id":"ps:sos:helplines","label_el":"Γραμμές 110 / 112 / 116117","label_de":"Rufnummern 110 / 112 / 116117","label_en":"Helplines 110 / 112 / 116117"}
-    ]}
+    {
+      "id": "civic-admin",
+      "label_el": "Διοίκηση και εξυπηρέτηση πολίτη",
+      "label_de": "Bürgerdienste & Verwaltung",
+      "label_en": "Civic administration & citizen services",
+      "icon": "business-outline",
+      "children": [
+        {
+          "id": "town-halls",
+          "label_el": "Δημαρχεία",
+          "label_de": "Rathäuser",
+          "label_en": "Town halls",
+          "icon": "business-outline"
+        },
+        {
+          "id": "citizen-offices",
+          "label_el": "Κέντρα εξυπηρέτησης",
+          "label_de": "Bürgerbüros",
+          "label_en": "Citizen offices",
+          "icon": "people-outline"
+        },
+        {
+          "id": "population-registry",
+          "label_el": "Δημοτολόγια",
+          "label_de": "Melderegister",
+          "label_en": "Population registry",
+          "icon": "book-outline"
+        },
+        {
+          "id": "civil-registry",
+          "label_el": "Ληξιαρχεία",
+          "label_de": "Standesämter",
+          "label_en": "Civil registry offices",
+          "icon": "document-text-outline"
+        },
+        {
+          "id": "residence-declarations",
+          "label_el": "Δηλώσεις κατοικίας",
+          "label_de": "Wohnsitzmeldungen",
+          "label_en": "Residence declarations",
+          "icon": "clipboard-outline"
+        },
+        {
+          "id": "immigration-citizenship",
+          "label_el": "Μετανάστευση/ιθαγένεια",
+          "label_de": "Migration & Einbürgerung",
+          "label_en": "Immigration & citizenship",
+          "icon": "globe-outline"
+        },
+        {
+          "id": "complaints-ombudsman",
+          "label_el": "Παράπονα/διαμεσολάβηση",
+          "label_de": "Beschwerden/Vermittlung",
+          "label_en": "Complaints/ombudsman",
+          "icon": "chatbox-outline"
+        },
+        {
+          "id": "regional-state-bodies",
+          "label_el": "Περιφερειακοί/κρατικοί φορείς",
+          "label_de": "Regionale & staatliche Stellen",
+          "label_en": "Regional & state bodies",
+          "icon": "flag-outline"
+        }
+      ]
+    },
+    {
+      "id": "social-support",
+      "label_el": "Κοινωνική υποστήριξη και φροντίδα",
+      "label_de": "Soziales & Fürsorge",
+      "label_en": "Social support & care",
+      "icon": "heart-outline",
+      "children": [
+        {
+          "id": "social-services",
+          "label_el": "Κοινωνικές υπηρεσίες",
+          "label_de": "Sozialdienste",
+          "label_en": "Social services",
+          "icon": "hands-outline"
+        },
+        {
+          "id": "family-support",
+          "label_el": "Οικογενειακή υποστήριξη",
+          "label_de": "Familienhilfe",
+          "label_en": "Family support",
+          "icon": "people-outline"
+        },
+        {
+          "id": "benefits-housing",
+          "label_el": "Επιδόματα/στέγαση",
+          "label_de": "Leistungen & Wohnen",
+          "label_en": "Benefits & housing",
+          "icon": "home-outline"
+        },
+        {
+          "id": "senior-centers",
+          "label_el": "ΚΑΠΗ/κέντρα ηλικιωμένων",
+          "label_de": "Seniorenzentren",
+          "label_en": "Senior centers",
+          "icon": "accessibility-outline"
+        },
+        {
+          "id": "daycare",
+          "label_el": "Ημερήσια φροντίδα",
+          "label_de": "Tagespflege",
+          "label_en": "Day care",
+          "icon": "sunny-outline"
+        },
+        {
+          "id": "home-care",
+          "label_el": "Βοήθεια στο σπίτι",
+          "label_de": "Häusliche Pflege",
+          "label_en": "Home care",
+          "icon": "hand-left-outline"
+        },
+        {
+          "id": "disability-support",
+          "label_el": "Αναπηρία",
+          "label_de": "Behindertenhilfe",
+          "label_en": "Disability support",
+          "icon": "accessibility-outline"
+        },
+        {
+          "id": "food-banks",
+          "label_el": "Τρόφιμα/βασικά αγαθά",
+          "label_de": "Lebensmittel & Grundbedarf",
+          "label_en": "Food & basic goods",
+          "icon": "basket-outline"
+        },
+        {
+          "id": "social-pharmacies",
+          "label_el": "Κοινωνικά φαρμακεία",
+          "label_de": "Sozialapotheken",
+          "label_en": "Social pharmacies",
+          "icon": "medkit-outline"
+        },
+        {
+          "id": "counseling",
+          "label_el": "Συμβουλευτική",
+          "label_de": "Beratung",
+          "label_en": "Counseling",
+          "icon": "chatbubbles-outline"
+        }
+      ]
+    },
+    {
+      "id": "health",
+      "label_el": "Υγεία",
+      "label_de": "Gesundheit",
+      "label_en": "Health",
+      "icon": "medkit-outline",
+      "children": [
+        {
+          "id": "health-centers",
+          "label_el": "Κέντρα υγείας/δημόσια ιατρεία",
+          "label_de": "Gesundheitszentren",
+          "label_en": "Health centers",
+          "icon": "medkit-outline"
+        },
+        {
+          "id": "hospitals",
+          "label_el": "Νοσοκομεία",
+          "label_de": "Krankenhäuser",
+          "label_en": "Hospitals",
+          "icon": "business-outline"
+        },
+        {
+          "id": "health-admin",
+          "label_el": "Υγειονομική διοίκηση",
+          "label_de": "Gesundheitsverwaltung",
+          "label_en": "Health administration",
+          "icon": "clipboard-outline"
+        },
+        {
+          "id": "prevention-public-health",
+          "label_el": "Πρόληψη/δημόσια υγεία",
+          "label_de": "Prävention & Gesundheitsschutz",
+          "label_en": "Prevention & public health",
+          "icon": "shield-checkmark-outline"
+        }
+      ]
+    },
+    {
+      "id": "education-culture-sport",
+      "label_el": "Παιδεία, πολιτισμός και αθλητισμός",
+      "label_de": "Bildung, Kultur & Sport",
+      "label_en": "Education, culture & sports",
+      "icon": "school-outline",
+      "children": [
+        {
+          "id": "education-admin",
+          "label_el": "Διοίκηση παιδείας",
+          "label_de": "Bildungsverwaltung",
+          "label_en": "Education administration",
+          "icon": "clipboard-outline"
+        },
+        {
+          "id": "schools",
+          "label_el": "Σχολεία",
+          "label_de": "Schulen",
+          "label_en": "Schools",
+          "icon": "school-outline"
+        },
+        {
+          "id": "kindergartens",
+          "label_el": "Παιδικοί σταθμοί",
+          "label_de": "Kindergärten",
+          "label_en": "Kindergartens",
+          "icon": "happy-outline"
+        },
+        {
+          "id": "creative-activities",
+          "label_el": "Δημιουργική απασχόληση",
+          "label_de": "Kreativangebote",
+          "label_en": "Creative activities",
+          "icon": "color-palette-outline"
+        },
+        {
+          "id": "lifelong-learning",
+          "label_el": "Διά βίου μάθηση",
+          "label_de": "Lebenslanges Lernen",
+          "label_en": "Lifelong learning",
+          "icon": "book-outline"
+        },
+        {
+          "id": "libraries",
+          "label_el": "Βιβλιοθήκες",
+          "label_de": "Bibliotheken",
+          "label_en": "Libraries",
+          "icon": "library-outline"
+        },
+        {
+          "id": "archives",
+          "label_el": "Αρχεία",
+          "label_de": "Archive",
+          "label_en": "Archives",
+          "icon": "archive-outline"
+        },
+        {
+          "id": "museums-galleries",
+          "label_el": "Μουσεία/πινακοθήκες",
+          "label_de": "Museen & Galerien",
+          "label_en": "Museums & galleries",
+          "icon": "image-outline"
+        },
+        {
+          "id": "cultural-centers",
+          "label_el": "Πολιτιστικά κέντρα",
+          "label_de": "Kulturzentren",
+          "label_en": "Cultural centers",
+          "icon": "people-outline"
+        },
+        {
+          "id": "sports-facilities",
+          "label_el": "Αθλητικές εγκαταστάσεις/προγράμματα",
+          "label_de": "Sportanlagen & -angebote",
+          "label_en": "Sports facilities & programs",
+          "icon": "football-outline"
+        }
+      ]
+    },
+    {
+      "id": "employment",
+      "label_el": "Εργασία και κοινωνική ασφάλιση",
+      "label_de": "Arbeit & Sozialversicherung",
+      "label_en": "Employment & social insurance",
+      "icon": "briefcase-outline",
+      "children": [
+        {
+          "id": "employment-services",
+          "label_el": "Υπηρεσίες απασχόλησης",
+          "label_de": "Arbeitsvermittlung",
+          "label_en": "Employment services",
+          "icon": "briefcase-outline"
+        },
+        {
+          "id": "career-guidance",
+          "label_el": "Επαγγελματικός προσανατολισμός",
+          "label_de": "Berufsberatung",
+          "label_en": "Career guidance",
+          "icon": "compass-outline"
+        },
+        {
+          "id": "employment-benefits",
+          "label_el": "Εργασιακές παροχές",
+          "label_de": "Arbeitsleistungen",
+          "label_en": "Employment benefits",
+          "icon": "card-outline"
+        },
+        {
+          "id": "insurance-pensions",
+          "label_el": "Ασφάλιση/συντάξεις",
+          "label_de": "Versicherung & Rente",
+          "label_en": "Insurance & pensions",
+          "icon": "shield-checkmark-outline"
+        }
+      ]
+    },
+    {
+      "id": "economy-business",
+      "label_el": "Οικονομικά και επαγγελματική δραστηριότητα",
+      "label_de": "Finanzen & Gewerbe",
+      "label_en": "Finance & business activity",
+      "icon": "cash-outline",
+      "children": [
+        {
+          "id": "tax-services",
+          "label_el": "Φορολογικές υπηρεσίες",
+          "label_de": "Steuerangelegenheiten",
+          "label_en": "Tax services",
+          "icon": "calculator-outline"
+        },
+        {
+          "id": "municipal-fees",
+          "label_el": "Δημοτικά τέλη",
+          "label_de": "Kommunalabgaben",
+          "label_en": "Municipal fees",
+          "icon": "receipt-outline"
+        },
+        {
+          "id": "customs",
+          "label_el": "Τελωνεία",
+          "label_de": "Zoll",
+          "label_en": "Customs",
+          "icon": "cube-outline"
+        },
+        {
+          "id": "chambers",
+          "label_el": "Επιμελητήρια",
+          "label_de": "Kammern",
+          "label_en": "Chambers",
+          "icon": "business-outline"
+        },
+        {
+          "id": "business-licenses",
+          "label_el": "Επαγγελματικές άδειες",
+          "label_de": "Gewerbeerlaubnisse",
+          "label_en": "Business licenses",
+          "icon": "document-text-outline"
+        }
+      ]
+    },
+    {
+      "id": "environment",
+      "label_el": "Περιβάλλον και δημοτική καθημερινότητα",
+      "label_de": "Umwelt & Stadtsauberkeit",
+      "label_en": "Environment & city services",
+      "icon": "leaf-outline",
+      "children": [
+        {
+          "id": "cleaning",
+          "label_el": "Καθαριότητα",
+          "label_de": "Stadtreinigung",
+          "label_en": "Cleaning",
+          "icon": "trash-outline"
+        },
+        {
+          "id": "recycling-waste",
+          "label_el": "Ανακύκλωση/απόβλητα",
+          "label_de": "Recycling & Abfall",
+          "label_en": "Recycling & waste",
+          "icon": "refresh-outline"
+        },
+        {
+          "id": "greenery",
+          "label_el": "Πράσινο",
+          "label_de": "Grünflächen",
+          "label_en": "Greenery",
+          "icon": "leaf-outline"
+        },
+        {
+          "id": "lighting",
+          "label_el": "Φωτισμός",
+          "label_de": "Beleuchtung",
+          "label_en": "Lighting",
+          "icon": "bulb-outline"
+        },
+        {
+          "id": "municipal-works",
+          "label_el": "Δημοτικά έργα",
+          "label_de": "Kommunale Bauvorhaben",
+          "label_en": "Municipal works",
+          "icon": "construct-outline"
+        },
+        {
+          "id": "water-sewage",
+          "label_el": "Ύδρευση/αποχέτευση",
+          "label_de": "Wasser & Abwasser",
+          "label_en": "Water & sewage",
+          "icon": "water-outline"
+        },
+        {
+          "id": "animal-welfare",
+          "label_el": "Μέριμνα ζώων",
+          "label_de": "Tierschutz",
+          "label_en": "Animal welfare",
+          "icon": "paw-outline"
+        },
+        {
+          "id": "forestry",
+          "label_el": "Δασικές υπηρεσίες",
+          "label_de": "Forstamt",
+          "label_en": "Forestry services",
+          "icon": "tree-outline"
+        },
+        {
+          "id": "cemeteries",
+          "label_el": "Κοιμητήρια",
+          "label_de": "Friedhöfe",
+          "label_en": "Cemeteries",
+          "icon": "flower-outline"
+        }
+      ]
+    },
+    {
+      "id": "construction-property-transport",
+      "label_el": "Δόμηση, ακίνητα και μεταφορές",
+      "label_de": "Bau, Immobilien & Verkehr",
+      "label_en": "Construction, property & transport",
+      "icon": "construct-outline",
+      "children": [
+        {
+          "id": "urban-planning",
+          "label_el": "Πολεοδομία/άδειες δόμησης",
+          "label_de": "Bauordnung & Genehmigungen",
+          "label_en": "Urban planning & permits",
+          "icon": "map-outline"
+        },
+        {
+          "id": "land-registry",
+          "label_el": "Κτηματολόγιο",
+          "label_de": "Kataster",
+          "label_en": "Land registry",
+          "icon": "layers-outline"
+        },
+        {
+          "id": "public-real-estate",
+          "label_el": "Δημόσια ακίνητα",
+          "label_de": "Öffentliche Immobilien",
+          "label_en": "Public real estate",
+          "icon": "business-outline"
+        },
+        {
+          "id": "vehicles",
+          "label_el": "Οχήματα",
+          "label_de": "Fahrzeuge",
+          "label_en": "Vehicles",
+          "icon": "car-outline"
+        },
+        {
+          "id": "driving-licenses",
+          "label_el": "Άδειες οδήγησης",
+          "label_de": "Fahrerlaubnisse",
+          "label_en": "Driving licenses",
+          "icon": "card-outline"
+        },
+        {
+          "id": "traffic-transport",
+          "label_el": "Κυκλοφορία/μεταφορές",
+          "label_de": "Verkehr & ÖPNV",
+          "label_en": "Traffic & transport",
+          "icon": "bus-outline"
+        },
+        {
+          "id": "port-services",
+          "label_el": "Λιμενικές υπηρεσίες",
+          "label_de": "Hafendienste",
+          "label_en": "Port services",
+          "icon": "boat-outline"
+        }
+      ]
+    },
+    {
+      "id": "justice-safety",
+      "label_el": "Δικαιοσύνη και ασφάλεια",
+      "label_de": "Justiz & Sicherheit",
+      "label_en": "Justice & safety",
+      "icon": "shield-outline",
+      "children": [
+        {
+          "id": "courts",
+          "label_el": "Δικαστήρια",
+          "label_de": "Gerichte",
+          "label_en": "Courts",
+          "icon": "business-outline"
+        },
+        {
+          "id": "prosecutors",
+          "label_el": "Εισαγγελίες",
+          "label_de": "Staatsanwaltschaften",
+          "label_en": "Prosecutors' offices",
+          "icon": "scale-outline"
+        },
+        {
+          "id": "justice-support",
+          "label_el": "Υποστήριξη δικαιοσύνης",
+          "label_de": "Justiznahe Hilfen",
+          "label_en": "Justice support",
+          "icon": "hand-left-outline"
+        },
+        {
+          "id": "police",
+          "label_el": "Αστυνομία",
+          "label_de": "Polizei",
+          "label_en": "Police",
+          "icon": "shield-outline"
+        },
+        {
+          "id": "municipal-police",
+          "label_el": "Δημοτική αστυνομία",
+          "label_de": "Ordnungsamt",
+          "label_en": "Municipal police",
+          "icon": "eye-outline"
+        },
+        {
+          "id": "fire-brigade",
+          "label_el": "Πυροσβεστική",
+          "label_de": "Feuerwehr",
+          "label_en": "Fire brigade",
+          "icon": "flame-outline"
+        },
+        {
+          "id": "civil-protection",
+          "label_el": "Πολιτική προστασία",
+          "label_de": "Bevölkerungsschutz",
+          "label_en": "Civil protection",
+          "icon": "umbrella-outline"
+        }
+      ]
+    },
+    {
+      "id": "ps:sos",
+      "label_el": "Έκτακτη ανάγκη – SOS",
+      "label_de": "Notfall – SOS",
+      "label_en": "Emergency – SOS",
+      "icon": "warning-outline"
+    },
+    {
+      "id": "locations",
+      "label_el": "Τοποθεσίες",
+      "label_de": "Orte",
+      "label_en": "Places",
+      "icon": "location-outline",
+      "hidden": true,
+      "children": [
+        {
+          "id": "churches",
+          "label_el": "Εκκλησίες",
+          "label_de": "Kirchen",
+          "label_en": "Churches",
+          "icon": "home-outline"
+        },
+        {
+          "id": "parks-gardens",
+          "label_el": "Πάρκα & Κήποι",
+          "label_de": "Parks & Gärten",
+          "label_en": "Parks & gardens",
+          "icon": "leaf-outline"
+        },
+        {
+          "id": "squares",
+          "label_el": "Πλατείες",
+          "label_de": "Plätze",
+          "label_en": "Squares",
+          "icon": "square-outline"
+        },
+        {
+          "id": "sports-grounds",
+          "label_el": "Αθλητικοί χώροι",
+          "label_de": "Sportstätten",
+          "label_en": "Sports grounds",
+          "icon": "football-outline"
+        },
+        {
+          "id": "memorials",
+          "label_el": "Μνημεία",
+          "label_de": "Denk- & Mahnmale",
+          "label_en": "Memorials",
+          "icon": "ribbon-outline"
+        },
+        {
+          "id": "historic-buildings",
+          "label_el": "Ιστορικά κτίρια",
+          "label_de": "Historische Gebäude",
+          "label_en": "Historic buildings",
+          "icon": "business-outline"
+        },
+        {
+          "id": "playgrounds",
+          "label_el": "Παιδικές χαρές",
+          "label_de": "Spielplätze",
+          "label_en": "Playgrounds",
+          "icon": "happy-outline"
+        },
+        {
+          "id": "beaches",
+          "label_el": "Παραλίες",
+          "label_de": "Strände",
+          "label_en": "Beaches",
+          "icon": "umbrella-outline"
+        },
+        {
+          "id": "natural-landmarks",
+          "label_el": "Φυσικά τοπόσημα",
+          "label_de": "Naturdenkmäler",
+          "label_en": "Natural landmarks",
+          "icon": "leaf-outline"
+        }
+      ]
+    }
   ]
 }

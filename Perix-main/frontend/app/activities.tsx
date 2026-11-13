@@ -496,7 +496,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
             </Text>
             <Pressable 
               style={styles.mapPromptButton}
-              onPress={() => router.navigate('/(tabs)/locator' as any)}
+              onPress={() => router.navigate({pathname:'/(tabs)/home',params:{tab:'activities'}} as any)}
               data-testid="go-to-map-btn-activities"
             >
               <Ionicons name="navigate" size={20} color="#fff" />

@@ -1,0 +1,8 @@
+{
+  "changed_files": [
+    "app/(tabs)/_layout.tsx",
+    "components/navigation/TabArtworkButton.tsx",
+    "lib/navigation/tabLayout.ts"
+  ],
+  "unrelated_source_and_assets_preserved": true
+}

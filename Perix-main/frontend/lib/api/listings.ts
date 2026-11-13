@@ -39,6 +39,9 @@ export type Listing = {
   status: ListingStatus;
   is_active: boolean;
   created_at: string;
+  // Φ6 (policy v18 D02): classified_ad is the Free-user kind of a product.
+  item_kind?: string | null;
+  expires_at?: string | null;
   seller_type: SellerType;
   seller_id?: string;
   business_id?: string;
@@ -83,6 +86,8 @@ export type ListingCreatePayload = {
   business_id?: string | null;
   publication_scope?: PublicationScope;
   status?: ListingStatus;
+  // Φ6 (policy v18 D02)
+  item_kind?: string | null;
   condition?: string | null;
   brand?: string | null;
   delivery_method?: string | null;

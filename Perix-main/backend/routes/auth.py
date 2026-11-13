@@ -80,8 +80,14 @@ async def register_user(payload: RegisterInput, response: Response):
         "longitude": payload.longitude,
         "friends": [],
         "role": payload.role,
+        # Entitlements (policy v18): the plan is always server-assigned.
+        # Clients can never choose or fake their own plan.
+        "account_plan": "free_user",
+        "account_plan_set_at": now_utc(),
         "email_verified": False,
         "email_verification_token": secrets.token_urlsafe(32),
+        # v19: 6-hour confirmation window for every new registration.
+        "email_verify_deadline": now_utc() + timedelta(hours=6),
     }
     await db.users.insert_one(user_doc)
 
@@ -370,9 +376,14 @@ async def verify_email(token: str):
     user_doc = await db.users.find_one({"email_verification_token": token})
     if not user_doc:
         raise HTTPException(status_code=400, detail="Invalid or expired verification link")
+    # v19: the confirmation link is valid for 6 hours after registration
+    # (or after the last resend).
+    deadline = user_doc.get("email_verify_deadline")
+    if isinstance(deadline, datetime) and deadline < now_utc():
+        raise HTTPException(status_code=400, detail="Verification link expired (6-hour window)")
     await db.users.update_one(
         {"user_id": user_doc["user_id"]},
-        {"$set": {"email_verified": True, "email_verification_token": None}},
+        {"$set": {"email_verified": True, "email_verification_token": None, "email_verify_deadline": None}},
     )
     return {"status": "verified", "email": user_doc.get("email")}
 
@@ -387,7 +398,8 @@ async def resend_verification(current_user: UserPublic = Depends(get_current_use
     token = user_doc.get("email_verification_token") or secrets.token_urlsafe(32)
     await db.users.update_one(
         {"user_id": current_user.user_id},
-        {"$set": {"email_verification_token": token}},
+        # v19: every resend opens a fresh 6-hour window.
+        {"$set": {"email_verification_token": token, "email_verify_deadline": now_utc() + timedelta(hours=6)}},
     )
     from utils.email_utils import send_verification_email, email_configured
     sent = await send_verification_email(current_user.email, token)

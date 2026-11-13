@@ -4,9 +4,9 @@ const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
 function load(file,deps={}){const exports={};vm.runInNewContext(ts.transpileModule(read(file),{
   compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React}}).outputText,{exports,require:name=>deps[name]});return exports;}
 const layout=load('lib/city/mapLayout.ts');
-const React={createElement:(type,props,...children)=>({type,props:{...props,children}}),useMemo:fn=>fn()};
+const React={createElement:(type,props,...children)=>({type,props:{...props,children}}),useMemo:fn=>fn(),useState:initial=>[typeof initial==='function'?initial():initial,()=>{}],useEffect:()=>{}};
 let viewportWidth=1280;
-const rn={View:'View',Text:'Text',Pressable:'Button',StyleSheet:{create:value=>value},useWindowDimensions:()=>({width:viewportWidth,height:800})};
+const rn={View:'View',Text:'Text',Image:'Image',Pressable:'Button',Platform:{OS:'web'},StyleSheet:{create:value=>value},useWindowDimensions:()=>({width:viewportWidth,height:800})};
 function nodes(tree){if(!tree || typeof tree!=='object')return[];if(Array.isArray(tree))return tree.flatMap(nodes);return[tree,...nodes(tree.props?.children)];}
 const style=value=>Object.assign({},...(Array.isArray(value)?value.flat(Infinity).filter(Boolean):[value]));
 
@@ -28,7 +28,7 @@ test('ultrawide station view stays bounded while leaving room for a 150 m boardi
   assert.ok(shortSpan>=299&&shortSpan<400);
 });
 
-test('App/Members keep their fixed slots while Locator replaces them with one centered Explore item',()=>{
+test('desktop keeps fixed App/Members slots and mobile removes all top navigation links',()=>{
   let pathname='/app',user=null,label='Members';
   const Header=load('components/city/MapScreenHeader.tsx',{react:{default:React},'react-native':rn,
     'expo-router':{usePathname:()=>pathname,useRouter:()=>({navigate(){}})},
@@ -52,13 +52,14 @@ test('App/Members keep their fixed slots while Locator replaces them with one ce
   assert.equal(geometry[0].membersX,623);assert.equal(geometry[0].membersWidth,104);assert.equal(geometry[0].height,44);
   pathname='/locator';
   const locator=Header({exploreOnly:true}),all=nodes(locator),nav=all.find(n=>n.props.testID==='map-primary-navigation');
-  const explore=all.find(n=>n.props.testID==='map-nav-explore');
-  assert.ok(explore);assert.equal(explore.props.accessibilityState.selected,true);
-  assert.deepEqual(nodes(nav).filter(n=>n.type==='Button').map(n=>n.props.testID),['map-nav-explore']);
-  assert.equal(style(nav.props.style).justifyContent,'center');
-  assert.equal(style(explore.props.style).width,layout.mapHeaderMetrics(viewportWidth).primaryWidth);
-  assert.equal(all.find(n=>n.props.testID==='map-nav-app'),undefined);
-  assert.equal(all.find(n=>n.props.testID==='map-nav-members'),undefined);
+  assert.equal(all.find(n=>n.props.testID==='map-nav-explore'),undefined);
+  assert.deepEqual(nodes(nav).filter(n=>n.type==='Button').map(n=>n.props.testID),['map-nav-app','map-nav-members']);
+  const savedWidth=viewportWidth;
+  for(const width of [320,375,768,1023]){
+    viewportWidth=width;
+    assert.equal(nodes(Header({})).find(n=>n.props.testID==='map-screen-navigation'),undefined);
+  }
+  viewportWidth=savedWidth;
 });
 
 test('one desktop frame and 16px gutter define equal map/card/header edges even on narrow screens',()=>{
@@ -74,7 +75,7 @@ test('one desktop frame and 16px gutter define equal map/card/header edges even 
 });
 
 test('map callers remove renderer insets so they cannot double the card gutter on web or native',()=>{
-  for(const file of ['components/city/CityGatewayScreen.tsx','components/home/MapSection.tsx','app/(tabs)/locator.tsx'])assert.match(read(file),/horizontalInset=\{0\}/);
+  for(const file of ['components/city/CityGatewayScreen.tsx','components/home/MapSection.tsx','components/locator/LegacyLocatorScreen.tsx'])assert.match(read(file),/horizontalInset=\{0\}/);
   assert.match(read('components/BusinessMap.web.tsx'),/marginHorizontal:horizontalInset/);
   assert.match(read('components/BusinessMap.native.tsx'),/marginHorizontal:horizontalInset/);
   assert.match(read('components/city/CityGatewayScreen.tsx'),/mapBorder: \{[^}]*left: 0, right: 0/);
@@ -87,7 +88,8 @@ test('map callers remove renderer insets so they cannot double the card gutter o
 test('Home map gets the same outside gutter while the shared renderer receives no extra horizontal inset',()=>{
   const MapSection=load('components/home/MapSection.tsx',{react:{...React,default:React},'react-native':rn,
     'expo-router':{useRouter:()=>({})},'react-i18next':{useTranslation:()=>({t:(key,fallback)=>fallback})},'@expo/vector-icons':{Ionicons:'Icon'},
-    '../../components/BusinessMap':{default:'Map'},'../../lib/designTokens':{COLORS:{}},'../../lib/navigation/entityRoutes':{},'../../lib/city/mapLayout':layout,
+    '../../components/BusinessMap':{default:'Map'},'../locator/LocatorCard':{default:'Card'},
+    '../../lib/designTokens':{COLORS:{},FONT_SIZES:{bodySmall:15,small:13},FONT_WEIGHTS:{semibold:'600'}},'../../lib/navigation/entityRoutes':{},'../../lib/city/mapLayout':layout,
   }).MapSection;
   const tree=MapSection({mapBounds:{minLat:52,maxLat:53,minLng:11,maxLng:12,centerLat:52.5,centerLng:11.5},businesses:[],events:[],activities:[],rentals:[],jobs:[],services:[],onRegionChange(){}});
   assert.equal(style(tree.props.style).marginHorizontal,16);assert.equal(nodes(tree).find(n=>n.type==='Map').props.horizontalInset,0);
@@ -104,7 +106,7 @@ test('white background includes the page behind /app cards and the desktop margi
 });
 
 test('mobile safe-area and hidden visual scrollbars keep the brand and horizontal bounds consistent',()=>{
-  const app=read('components/city/CityGatewayScreen.tsx'),home=read('app/(tabs)/home.tsx'),locator=read('app/(tabs)/locator.tsx');
+  const app=read('components/city/CityGatewayScreen.tsx'),home=read('app/(tabs)/home.tsx'),locator=read('components/locator/LegacyLocatorScreen.tsx');
   assert.match(app,/<SafeAreaView style=\{styles.page\} edges=\{\['top'\]\}/);
   for(const source of [app,home,locator])assert.match(source,/showsVerticalScrollIndicator=\{false\}/);
   assert.match(app,/searchBar: \{[^}]*marginHorizontal: 0/);
@@ -142,7 +144,7 @@ test('long user/area names are constrained and cannot force the Home header beyo
 });
 
 test('desktop Locator sidebar is positioned over, not in front of the map layout flow',()=>{
-  const sidebar=read('components/locator/LocatorSidebar.tsx'),screen=read('app/(tabs)/locator.tsx');
+  const sidebar=read('components/locator/LocatorSidebar.tsx'),screen=read('components/locator/LegacyLocatorScreen.tsx');
   assert.match(sidebar,/overlayContainer: \{position:"absolute",top:0,bottom:0,left:0,zIndex:110/);
   assert.match(screen,/testID="locator-sidebar-layout" style=\{styles\.sidebarLayout\}/);
   assert.match(screen,/overlay=\{Platform\.OS === "web"\}/);
@@ -164,7 +166,8 @@ test('Home/Locator hide below-map stop lists; App uses an origin-stable 150 m st
   const app=read('components/city/CityGatewayScreen.tsx');assert.match(app,/testID="city-origin-gate"/);
   assert.match(app,/<NearbyTransitSection collapsible initialExpanded hideWhenEmpty/);
   assert.match(app,/getNearbyMap\(null,queryOrigin,nearbyQueryBounds/);
-  assert.match(app,/radiusM:APP_NEARBY_STOP_RADIUS_M/);assert.doesNotMatch(app,/nearbyViewportKey/);
+  assert.match(app,/radiusM:nearbyScopeRadiusM/);assert.match(app,/selectedStopId\?NEARBY_STOP_RADIUS_M:APP_NEARBY_STOP_RADIUS_M/);
+  assert.doesNotMatch(app,/nearbyViewportKey/);
   assert.match(app,/getTransitStops\(null\)/);
   assert.doesNotMatch(app,/getV2Map\(null/);
   assert.match(app,/current && <View style=\{styles\.row\}/);

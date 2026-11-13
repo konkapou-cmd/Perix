@@ -1,0 +1,38 @@
+{
+  "components/city/CityGatewayScreen.tsx": {
+    "before": "a691e999bee80b8fd63f9b376047b0d8f028631966272ce0b68359fc4d78ba4d",
+    "after": "6fd606a085f6f0acaa1f462b9cc749d86c94c5228c53b63140ac94b865a60701"
+  },
+  "components/city/CityInlineDetails.tsx": {
+    "before": "246a7dda093b596a4472574e678c3f81f5c3436a281b8a6129d5972aa6848989",
+    "after": "ed977ba358a546d21b90423de766f28b6e42679756d9bc48fe919a9282405472"
+  },
+  "components/city/GatewayResultCard.tsx": {
+    "before": "688a3fcdee11a1280fa8680c0b98cdce84c03750a398ce270fbaf62652446e66",
+    "after": "91911c2c05076c4c387ee3100eb6966048c54d4cee4cec95e1da751d95eb31b2"
+  },
+  "components/city/PublicServiceCard.tsx": {
+    "before": "ebc7f40c3a28e556bc9f9d98cdad06c2d491cbdd475cc0a80439e0fdc8cc9bde",
+    "after": "69ba0339bb5486400b2aea6bcf38fd825ce73ddf5437fffd89326f23cf054993"
+  },
+  "components/BusinessMap.web.tsx": {
+    "before": "cc72c75b20393974f4a018640192bc2e3e6505482762a7d6fb487edf2d6b9214",
+    "after": "2c51004d8612301ddd40d0158b20dd02ce71c4fc2d07c91b0683e2349cb1014a"
+  },
+  "components/BusinessMap.native.tsx": {
+    "before": "ce6371e88d72f8563c2e813e0108090b4606ee2697da2c6e9cb360b194f7ebdc",
+    "after": "b739faaaabadba59112416815842bc0c86c1c3314dd06f1a9ac11b0319b37370"
+  },
+  "components/BusinessMap.d.ts": {
+    "before": "41beffb69227c86d1c979fc306ba8d36d95705b7eba63b124427bf857fd9e2db",
+    "after": "a2bab7c4d2185b62fb5f65fce88604745f5b3dc472e44e29ac286002d55b4127"
+  },
+  "lib/city/mapPresentation.ts": {
+    "before": "08a12a8030881c1076e39ef9cef024a6eeadf16872a99210aea79bd676308301",
+    "after": "5e4513d2f680cf2e7d675a452367818af79c479dfafd4dcbd424fe6269f699f9"
+  },
+  "lib/city/landmarks.ts": {
+    "before": "eafc35263771a73ed7acdf59205d4817198886efe79ad1f6e58975f6f1bb5b76",
+    "after": "57898063ffd326b0130d5f439e2565159a3e48e025e78961f129d36039c72366"
+  }
+}

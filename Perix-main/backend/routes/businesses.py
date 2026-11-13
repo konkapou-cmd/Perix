@@ -21,6 +21,7 @@ from routes.jobs import job_response
 from models.service import ServiceResponse
 from routes.rentals import service_to_rental, RENTAL_SERVICE_TYPES
 from utils.helpers import generate_id, now_utc, parse_datetime, normalize_datetime
+from utils.verification import require_verified_email
 from routes.dependencies import get_current_user, get_current_user_optional, build_user_public
 
 
@@ -208,6 +209,7 @@ def _valid_access_code(code: Optional[str]) -> bool:
 async def create_business(
     payload: BusinessCreate, current_user: UserPublic = Depends(get_current_user)
 ):
+    await require_verified_email(current_user)
     if not _valid_access_code(payload.access_code):
         raise HTTPException(
             status_code=400,
@@ -222,8 +224,22 @@ async def create_business(
     infos = _resolve_subcategories(payload.root_category, requested_subs)
     category_info = infos[0]
 
+    # Mobility-transport is managed internally (decision v18): public
+    # business creation for this root is rejected server-side.
+    if category_info["root_slug"] == "mobility-transport" and not current_user.is_admin:
+        raise HTTPException(
+            status_code=403,
+            detail="Mobility-transport businesses are not publicly available",
+        )
+
     trial_expires_at = now_utc() + timedelta(days=365)
     modules = category_info.get("modules", {})
+    # v19: a redeemed Pro100 code grants the Business plan at creation time;
+    # otherwise the founder trial applies as before.
+    owner_doc = await db.users.find_one(
+        {"user_id": current_user.user_id}, {"business_plan_grant": 1}
+    )
+    granted_plan = (owner_doc or {}).get("business_plan_grant")
     business_doc = {
         "business_id": generate_id("biz"),
         "owner_id": current_user.user_id,
@@ -257,10 +273,10 @@ async def create_business(
         "created_at": now_utc(),
         "enabled_modules": modules,
         "subscription_status": "active",
-        "plan_type": "founder",
+        "plan_type": granted_plan or "founder",
         "access_code_used": BUSINESS_ACCESS_CODE,
-        "free_until": now_utc() + timedelta(days=365),
-        "trial_expires_at": trial_expires_at,
+        "free_until": None if granted_plan else now_utc() + timedelta(days=365),
+        "trial_expires_at": None if granted_plan else trial_expires_at,
         "subscription_expires_at": None,
         "favorites": [],
     }
@@ -297,6 +313,13 @@ async def update_business(
         if requested_subs:
             root = update_data.get("root_category") or business.get("root_category")
             infos = _resolve_subcategories(root, requested_subs)
+            # Mobility-transport is managed internally (decision v18): public
+            # category changes into this root are rejected server-side.
+            if infos[0]["root_slug"] == "mobility-transport" and not current_user.is_admin:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Mobility-transport businesses are not publicly available",
+                )
             update_data["subcategory"] = infos[0]["slug"]
             update_data["subcategories"] = [i["slug"] for i in infos]
             update_data["root_category"] = infos[0]["root_slug"]
@@ -313,27 +336,15 @@ async def update_business(
             "coordinates": [longitude, latitude],
         }
 
-    # Root category change is destructive: category-dependent data is removed.
+    # Root category change is NON-DESTRUCTIVE (handoff SVC-001, Φ0, decision v18):
+    # category-dependent data is never deleted or blanked on a root change.
+    # Existing jobs, services, bookings, events, listings, posts and media stay
+    # as-is and are flagged for a controlled review instead.
     new_root = update_data.get("root_category")
     if new_root and new_root != business.get("root_category"):
-        job_ids = [
-            j["job_id"]
-            for j in await db.jobs.find({"business_id": business_id}, {"job_id": 1}).to_list(1000)
-        ]
-        if job_ids:
-            await db.job_applications.delete_many({"job_id": {"$in": job_ids}})
-        await db.jobs.delete_many({"business_id": business_id})
-        await db.services.delete_many({"business_id": business_id})
-        await db.bookings.delete_many({"business_id": business_id})
-        await db.events.delete_many({"business_id": business_id})
-        await db.listings.delete_many({"business_id": business_id})
-        await db.posts.delete_many({"actor_type": "business", "actor_id": business_id})
-        update_data["gallery_images"] = []
-        update_data["gallery_videos"] = []
-        update_data["video_url"] = None
-        update_data["opening_hours"] = None
-        update_data["description"] = None
-        update_data["tags"] = []
+        update_data["category_change_review_required"] = True
+        update_data["previous_root_category"] = business.get("root_category")
+        update_data["category_changed_at"] = now_utc()
 
     if update_data:
         await db.businesses.update_one({"business_id": business_id}, {"$set": update_data})
@@ -768,6 +779,17 @@ async def update_business_gallery(
         update_data["gallery_videos"] = [vid for vid in current_videos if vid not in payload.remove_videos]
 
     if update_data:
+        # Φ5 (policy v18 D11): business gallery limits with automatic
+        # replacement of the oldest item; flag-gated.
+        from utils.content_policy import GALLERY_LIMITS_ENFORCEMENT, apply_gallery_limits
+        if GALLERY_LIMITS_ENFORCEMENT:
+            images = update_data.get("gallery_images", existing_images)
+            videos = update_data.get("gallery_videos", existing_videos)
+            kept_images, kept_videos = apply_gallery_limits(images, videos, "business")
+            if "gallery_images" in update_data:
+                update_data["gallery_images"] = kept_images
+            if "gallery_videos" in update_data:
+                update_data["gallery_videos"] = kept_videos
         await db.businesses.update_one({"business_id": business_id}, {"$set": update_data})
         business.update(update_data)
 

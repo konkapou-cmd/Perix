@@ -16,6 +16,7 @@ from models.service import (
     StayAvailabilityResponse, DateBlockCreate, DateBlockResponse,
 )
 from utils.helpers import generate_id, now_utc
+from utils.verification import require_verified_email
 from routes.dependencies import get_current_user
 from routes.businesses import is_subscription_active
 from routes.ws import ws_broadcast_new_message, ws_broadcast_conversation_update
@@ -165,6 +166,7 @@ def validate_date_range_service_for_publish(service_data: dict) -> None:
 
 @router.post("", response_model=ServiceResponse)
 async def create_service(payload: ServiceCreate, current_user: UserPublic = Depends(get_current_user)):
+    await require_verified_email(current_user)
     business = await db.businesses.find_one({"business_id": payload.business_id})
     if not business or business["owner_id"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
@@ -181,6 +183,10 @@ async def create_service(payload: ServiceCreate, current_user: UserPublic = Depe
         enabled_modules = {}
 
     root_category = business.get("root_category") or getattr(payload, "root_category", None) or ""
+
+    # SVC-002: the stored service always carries the server-canonical business
+    # root/subcategory — never the client-provided values.
+    canonical_subcategory = business.get("subcategory") or getattr(payload, "subcategory", None) or ""
 
     if not enabled_modules:
         allowed_types = ROOT_SERVICE_TYPES.get(root_category, [])
@@ -205,7 +211,14 @@ async def create_service(payload: ServiceCreate, current_user: UserPublic = Depe
                 {"business_id": payload.business_id},
                 {"$set": {"enabled_modules.service_types": allowed_types}}
             )
-    if allowed_types and payload.type not in allowed_types:
+    # SVC-003: fail closed — services enabled with an empty/unknown type list
+    # must deny new publications instead of allowing any type.
+    if not allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail="No service types are enabled for this business category",
+        )
+    if payload.type not in allowed_types:
         raise HTTPException(status_code=400, detail=f"Service type '{payload.type}' not allowed for this business category")
 
     publish_status = getattr(payload, "status", None) or "published"
@@ -213,6 +226,21 @@ async def create_service(payload: ServiceCreate, current_user: UserPublic = Depe
         raise HTTPException(
             status_code=400,
             detail="A cover photo is required before publishing this service."
+        )
+
+    # Φ3 quota enforcement (policy v18): feature-flagged, OFF by default.
+    # Only active published records count; drafts never consume quota.
+    if publish_status == "published":
+        from utils.business_quotas import assert_quota, bucket_for_type
+        bucket = bucket_for_type(payload.type)
+        extra_units_delta = 0
+        if payload.type == "hotel_room":
+            extra_units_delta = int(payload.inventory_count or 0)
+        await assert_quota(
+            payload.business_id,
+            bucket,
+            adding=1,
+            extra_units_delta=extra_units_delta,
         )
 
     # Extract slots before building doc
@@ -245,6 +273,11 @@ async def create_service(payload: ServiceCreate, current_user: UserPublic = Depe
         "service_id": generate_id("svc"),
         "is_active": True,
         "created_at": now_utc(),
+        # SVC-002/SVC-004: server-canonical classification and normalized status
+        # override anything the client sent.
+        "root_category": root_category,
+        "subcategory": canonical_subcategory,
+        "status": publish_status,
     }
 
     if booking_mode == "date_range":
@@ -361,6 +394,15 @@ async def create_booking(payload: BookingCreate, current_user: UserPublic = Depe
     svc_type = service.get("type", "")
     resolved_cat = "rentals" if root_cat == "rental-real-estate" else root_cat
     type_config = ROOT_SERVICE_BOOKING_CONFIG.get(resolved_cat, {}).get(svc_type, None)
+
+    # SVC-007: unknown booking configuration fails closed for services that
+    # declare a type; only legacy docs without a type keep the historical
+    # time-slot fallback.
+    if type_config is None and svc_type:
+        raise HTTPException(
+            status_code=400,
+            detail="Booking configuration unavailable for this service type",
+        )
 
     if type_config is not None and not type_config["booking"]:
         raise HTTPException(status_code=400, detail="This service does not accept bookings.")
@@ -635,7 +677,38 @@ async def send_service_inquiry(
         "read": False,
         "created_at": now_utc(),
     }
+    # Φ4 (policy v18): inquiries follow the same message policy (context,
+    # retention metadata, monthly quota when enforcement is enabled).
+    from utils.messages_policy import (
+        MESSAGE_QUOTA_ENFORCEMENT,
+        context_is_active,
+        message_policy_fields,
+    )
+    from utils.quota import consume_usage, get_usage, period_key_for_month
+    from utils.messages_policy import personal_message_limit
+
+    service_active = context_is_active("service", service)
+    message_doc.update(message_policy_fields(
+        sender_identity_type="user",
+        sender_identity_id=current_user.user_id,
+        conversation_id=business_id,
+        context_type="service",
+        context_id=service_id,
+        context_active=service_active,
+    ))
+
+    if MESSAGE_QUOTA_ENFORCEMENT:
+        period_key = period_key_for_month()
+        used = await get_usage("user", current_user.user_id, period_key)
+        user_doc = await db.users.find_one({"user_id": current_user.user_id}, {"account_plan": 1})
+        limit = personal_message_limit(user_doc)
+        if limit is not None and used >= limit:
+            raise HTTPException(status_code=403, detail="Monthly message limit reached")
+
     await db.messages.insert_one(message_doc)
+
+    if MESSAGE_QUOTA_ENFORCEMENT:
+        await consume_usage("user", current_user.user_id, period_key_for_month(), message_doc["message_id"])
 
     asyncio.create_task(
         send_message_notification(
@@ -783,10 +856,20 @@ async def update_service(service_id: str, payload: ServiceUpdate, current_user: 
     if not is_subscription_active(business):
         raise HTTPException(status_code=403, detail="Active subscription required")
 
-    payload_data = payload.model_dump()
+    # SVC-006: only fields actually provided by the client are updated; omitted
+    # fields (and their model defaults) must never overwrite stored data.
+    payload_data = payload.model_dump(exclude_unset=True)
     incoming_slots = payload_data.pop("availability_slots", None)
 
     update_data = {k: v for k, v in payload_data.items() if v is not None}
+
+    # SVC-005: root/subcategory are server-canonical; client attempts to change
+    # them on update are ignored (stored/business values remain authoritative).
+    update_data.pop("root_category", None)
+    update_data.pop("subcategory", None)
+    # SVC-004: keep the stored status consistent with the validated publish state.
+    if "status" in update_data:
+        update_data["status"] = update_data.get("status") or service.get("status") or "published"
 
     existing_slots = await db.service_slots.find(
         {"service_id": service_id},
@@ -823,6 +906,29 @@ async def update_service(service_id: str, payload: ServiceUpdate, current_user: 
     booking_config = get_service_booking_config(effective_root_category, effective_type)
     from services.date_range_booking import booking_mode_from_config
     booking_mode = booking_mode_from_config(booking_config)
+
+    # Φ3 quota enforcement (policy v18): feature-flagged, OFF by default.
+    # Runs on publish/reactivation and on hotel inventory increases so the
+    # business-wide limits can never be exceeded through updates.
+    if publish_status == "published" and (
+        service.get("status") != "published"
+        or "inventory_count" in update_data
+        or "type" in update_data
+    ):
+        from utils.business_quotas import assert_quota, bucket_for_type
+        bucket = bucket_for_type(effective_type)
+        adding = 1 if service.get("status") != "published" else 0
+        extra_units_delta = 0
+        if effective_type == "hotel_room" and "inventory_count" in update_data:
+            new_units = int(update_data.get("inventory_count") or 0)
+            old_units = int(service.get("inventory_count") or 0)
+            extra_units_delta = max(0, new_units - old_units)
+        await assert_quota(
+            business_id,
+            bucket,
+            adding=adding,
+            extra_units_delta=extra_units_delta,
+        )
 
     if booking_mode == "date_range":
         incoming_slots = None

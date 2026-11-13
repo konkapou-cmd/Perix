@@ -1,0 +1,84 @@
+{
+  "map_area_css_px": [
+    361,
+    271
+  ],
+  "ui_language": "de",
+  "style": "Same app basemap colours/hidden POIs",
+  "centres": {
+    "Mykonos/Matogianni": [
+      37.4464,
+      25.3285
+    ],
+    "Syros/Ermoupoli": [
+      37.4451,
+      24.9428
+    ]
+  },
+  "ordinary_town_street_reference_zoom": 17,
+  "finer_named_lane_reference_zoom": 18,
+  "observed_examples": {
+    "17": [
+      "Apollonos",
+      "Roidi",
+      "Chios"
+    ],
+    "18": [
+      "Florou Zouganeli",
+      "Nikis"
+    ]
+  },
+  "captures": [
+    {
+      "zoom": 15,
+      "actual_zoom": [
+        15,
+        15
+      ],
+      "sha256": "df15b16bc86e383d0ec104e05e4597f128b90a14e6ddacee0ed981f180cee5db"
+    },
+    {
+      "zoom": 16,
+      "actual_zoom": [
+        16,
+        16
+      ],
+      "sha256": "2a4f0248145d4f7d525d8864190dc89309c3b99c87f52109f10cc0642d5ec98e"
+    },
+    {
+      "zoom": 17,
+      "actual_zoom": [
+        17,
+        17
+      ],
+      "sha256": "6ccb272b39616fd16fa4e503fa9d2655c14c4ebc19446f75f5c490d1fc1383f6"
+    },
+    {
+      "zoom": 18,
+      "actual_zoom": [
+        18,
+        18
+      ],
+      "sha256": "c02ab3a8f2c2d383550900d80809c9ce7198181d0356eb1edf7d01b830f4bed9"
+    },
+    {
+      "zoom": 19,
+      "actual_zoom": [
+        19,
+        19
+      ],
+      "sha256": "48508d67f9d63076cfe9b5de7f21a2885dfb352b9cf58f964b7fbc8cb67d8c2a"
+    },
+    {
+      "zoom": 20,
+      "actual_zoom": [
+        20,
+        20
+      ],
+      "sha256": "26209b9deef17be09f680dee52cb98cfa4f3365141289c265921b8dc4132bbb1"
+    }
+  ],
+  "provider_settings_changed": false,
+  "runtime_label_detection": false,
+  "limitation": "Observed mobile-size town-centre references; tile data, centre, language and viewport can change label placement."
+}

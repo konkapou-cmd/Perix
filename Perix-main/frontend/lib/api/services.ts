@@ -13,7 +13,8 @@ export const getNearbyServices = async (
   bounds?: { minLat?: number; maxLat?: number; minLng?: number; maxLng?: number },
   location?: { latitude?: number; longitude?: number },
   skip?: number,
-  limit?: number
+  limit?: number,
+  type?: string
 ): Promise<{ services: Service[]; total: number }> => {
   const params = new URLSearchParams();
   if (bounds) {
@@ -28,6 +29,7 @@ export const getNearbyServices = async (
   }
   if (skip !== undefined) params.append("skip", String(skip));
   if (limit !== undefined) params.append("limit", String(limit));
+  if (type) params.append("type", type);
   return apiRequest<{ services: Service[]; total: number }>(`/services?${params.toString()}`, "GET", token);
 };
 

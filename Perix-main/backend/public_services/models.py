@@ -46,17 +46,17 @@ class PublicService(SourceAttribution):
     # Public coordinates are populated only after per-record source and map review.
     latitude: float | None = None
     longitude: float | None = None
-    candidate_latitude: float | None = None
-    candidate_longitude: float | None = None
+    candidate_latitude: float | None = Field(default=None, exclude=True)
+    candidate_longitude: float | None = Field(default=None, exclude=True)
     coordinate_review_status: Literal["pending", "review_required", "approved", "rejected"] | None = None
     coordinate_review_note: str | None = None
-    geo_status: str | None = None
+    geo_status: str | None = Field(default=None, exclude=True)
     coordinate_match_type: str | None = None
     coordinate_osm_id: str | None = None
     coordinate_source_url: str | None = None
     coordinate_source_license: str | None = None
     coordinate_manual_review_required: str | None = None
-    source_geo_manual_review_note: str | None = None
+    source_geo_manual_review_note: str | None = Field(default=None, exclude=True)
     coordinate_crs: str | None = None
     official_address_source: str | None = None
     phone: str | None = None

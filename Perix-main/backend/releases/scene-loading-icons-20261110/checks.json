@@ -1,0 +1,19 @@
+{
+  "frontend_tests": 339,
+  "typescript": "passed",
+  "icon_pixel_source_margin_checks": 22,
+  "browser": {
+    "qa_origin": "http://127.0.0.1:8115",
+    "loaded_results": 50,
+    "building_nodes_before_zoom": 126,
+    "building_nodes_after_zoom": 126,
+    "same_building_dom_nodes": true,
+    "additional_public_directory_requests_on_zoom": 0,
+    "civic_category_images_loaded": 17,
+    "broken_civic_category_images": 0
+  },
+  "scope_radius_m": 10000,
+  "backend_code_changed": false,
+  "public_services_records_changed": false,
+  "mobile_release": false
+}

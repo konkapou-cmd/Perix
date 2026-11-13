@@ -23,6 +23,7 @@ import { ensureWebPushSubscription } from "../lib/webPush";
 import { useDeepLinkHandler } from "../hooks/useDeepLinkHandler";
 import i18n from "../i18n";
 import { applyDefaultFontFamily } from "../lib/defaultFont";
+import { applyStoredFontScale } from "../lib/fontScale";
 import { useFonts, Quicksand_400Regular, Quicksand_500Medium, Quicksand_600SemiBold, Quicksand_700Bold } from "@expo-google-fonts/quicksand";
 import GlobalWebChrome from "../components/GlobalWebChrome";
 import InstallBanner from "../components/InstallBanner";
@@ -181,19 +182,16 @@ function AuthGuard() {
       }
       return;
     }
-    // Guest browsing: allow the auth group, email verification/reset pages,
-    // and the public home + locator tabs. Everything else requires login.
+    // Guest browsing: the App gateway and public entity pages stay public.
+    // Home, the retired Locator route and all other member tabs require login.
     const publicTopLevel = ["verify-email", "reset-password", "forgot-password", "privacy-policy", "terms-of-service", "share", "mobility"];
     const isTopLevelPublic = segs.length > 0 && publicTopLevel.includes(segs[0]);
-    const isPublicTab =
-      segs[0] === "(tabs)" &&
-      segs[1] === "locator";
     const isPublicServiceRead = segs[0] === "public-services" &&
       (segs.length === 1 || (segs.length === 2 && (segs[1] === "index" || segs[1] === "[id]")));
     const isGateway = segs.length === 0 || (segs.length === 1 && (segs[0] === "index" || segs[0] === "app"));
     const isPublicEntity = segs.length === 2 && segs[1] === "[id]" &&
       ["business", "event", "activity", "artist", "user", "job", "service", "rental", "listing", "post"].includes(segs[0]);
-    const allowed = inAuthGroup || isTopLevelPublic || isPublicTab || isPublicServiceRead || isGateway || isPublicEntity;
+    const allowed = inAuthGroup || isTopLevelPublic || isPublicServiceRead || isGateway || isPublicEntity;
     if (!allowed) {
       router.replace("/login");
     }  }, [user, loading, segments]);
@@ -401,6 +399,9 @@ export default function RootLayout() {
     } catch (error) {
       console.error('Error initializing notifications:', error);
     }
+    try {
+      void applyStoredFontScale();
+    } catch {}
   }, []);
 
   return (

@@ -13,6 +13,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, BORDER_RADIUS, SPACING } from "../../lib/designTokens";
+import { resolveCreationActions } from "../../lib/creation/creationActions";
+import type { EntitlementSnapshot } from "../../lib/api/account";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -42,20 +44,57 @@ type Props = {
   listingsCount?: number;
   onClose: () => void;
   onAction: (action: BusinessAction) => void;
+  /** Optional server entitlements (phase 1 shadow snapshot). */
+  entitlements?: EntitlementSnapshot | null;
 };
 
-export default function BusinessActionsModal({ visible, loading, businessProductsEnabled, listingsCount, onClose, onAction }: Props) {
+export default function BusinessActionsModal({ visible, loading, businessProductsEnabled, listingsCount, onClose, onAction, entitlements }: Props) {
   const { t } = useTranslation();
 
   const showCreateProduct = !loading && businessProductsEnabled;
   const showManageProducts = !loading && (businessProductsEnabled || (listingsCount ?? 0) > 0);
 
-  const createActions: ActionItem[] = [
-    ...(showCreateProduct ? [{ key: "create-product", label: t("marketplace.addProduct", "Produkt hinzufügen"), icon: "pricetag-outline" as const }] : []),
-    { key: "create-service", label: t("services.addService", "Dienst hinzufügen"), icon: "construct-outline" as const },
-    { key: "create-event", label: t("business.createEvent", "Veranstaltung erstellen"), icon: "sparkles" as const },
-    { key: "create-job", label: t("business.createJob", "Job erstellen"), icon: "briefcase" as const },
-  ];
+  // Business creation actions come from the shared resolver (decision v18).
+  // When no entitlement snapshot is provided yet, the resolver defaults keep
+  // the current behavior; the backend remains the enforcement authority.
+  // Remaining quotas become row badges when the snapshot is available.
+  const remainingProducts = entitlements?.remaining?.catalog_product;
+  const remainingServices = entitlements?.remaining?.professional_service;
+  const remainingEvents = entitlements?.remaining?.events;
+
+  const createActions: ActionItem[] = resolveCreationActions("business", entitlements)
+    .filter((entry) => entry.allowed)
+    .map((entry): ActionItem | null => {
+      switch (entry.key) {
+        case "product":
+          if (!showCreateProduct) return null;
+          return {
+            key: "create-product",
+            label: t("marketplace.addProduct", "Produkt hinzufügen"),
+            icon: "pricetag-outline",
+            count: typeof remainingProducts === "number" ? remainingProducts : undefined,
+          };
+        case "service":
+          return {
+            key: "create-service",
+            label: t("services.addService", "Dienst hinzufügen"),
+            icon: "construct-outline",
+            count: typeof remainingServices === "number" ? remainingServices : undefined,
+          };
+        case "event":
+          return {
+            key: "create-event",
+            label: t("business.createEvent", "Veranstaltung erstellen"),
+            icon: "sparkles",
+            count: typeof remainingEvents === "number" ? remainingEvents : undefined,
+          };
+        case "job":
+          return { key: "create-job", label: t("business.createJob", "Job erstellen"), icon: "briefcase" };
+        default:
+          return null;
+      }
+    })
+    .filter((item): item is ActionItem => item !== null);
 
   const bookingsAction: ActionItem = {
     key: "manage-bookings",

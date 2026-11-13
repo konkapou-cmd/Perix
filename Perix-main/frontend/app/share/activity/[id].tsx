@@ -135,7 +135,7 @@ export default function ShareActivityPage() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Header */}
       <View style={styles.header}>
-        <Image source={require("../../../assets/brand/perix-watercolor-wordmark.png")} resizeMode="contain" style={styles.logo} />
+        <Image source={require("../../../assets/brand/perix-carved-compass.png")} resizeMode="contain" style={styles.logo} />
       </View>
 
       {/* Activity Preview Card */}

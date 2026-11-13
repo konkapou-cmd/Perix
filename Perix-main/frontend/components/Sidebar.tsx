@@ -37,18 +37,18 @@ export default function Sidebar() {
 
   const navItems: NavItem[] = [
     {
-      key: "home",
-      label: t("nav.home") || "Home",
+      key: "app",
+      label: "APP",
       icon: "home-outline",
       iconActive: "home",
-      path: "/(tabs)/home",
+      path: "/app",
     },
     {
-      key: "explore",
-      label: t("nav.explore") || "Explore",
+      key: "home",
+      label: t("nav.members", "Members"),
       icon: "compass-outline",
       iconActive: "compass",
-      path: "/(tabs)/locator",
+      path: "/(tabs)/home",
     },
     {
       key: "messages",
@@ -75,7 +75,6 @@ export default function Sidebar() {
 
   const isActive = (path: string) => {
     if (path.includes("/home")) return pathname.includes("/home");
-    if (path.includes("/locator")) return pathname.includes("/locator");
     if (path.includes("/messages")) return pathname.includes("/messages");
     if (path.includes("/profile")) return pathname.includes("/profile");
     return pathname.startsWith(path);

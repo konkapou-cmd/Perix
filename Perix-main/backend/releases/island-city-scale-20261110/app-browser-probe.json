@@ -1,0 +1,122 @@
+{
+  "qa_kind": "Isolated final frontend, real Google Map, 393x852 viewport, manual Mykonos test origin; no authenticated account",
+  "records": [
+    {
+      "step": 14,
+      "zoom": 14,
+      "count": 89,
+      "drawn": 89,
+      "independent": true,
+      "sameNodes": true,
+      "sizes": [
+        115
+      ],
+      "opacity": "1",
+      "filter": "drop-shadow(rgba(10, 20, 60, 0.3) 0px 2px 3px)",
+      "directoryRequests": 1
+    },
+    {
+      "step": 15,
+      "zoom": 15,
+      "count": 89,
+      "drawn": 89,
+      "independent": true,
+      "sameNodes": true,
+      "sizes": [
+        90.66666666666667
+      ],
+      "opacity": "1",
+      "filter": "drop-shadow(rgba(10, 20, 60, 0.3) 0px 2px 3px)",
+      "directoryRequests": 1
+    },
+    {
+      "step": 16,
+      "zoom": 16,
+      "count": 89,
+      "drawn": 89,
+      "independent": true,
+      "sameNodes": true,
+      "sizes": [
+        66.33333333333334
+      ],
+      "opacity": "1",
+      "filter": "drop-shadow(rgba(10, 20, 60, 0.3) 0px 2px 3px)",
+      "directoryRequests": 1
+    },
+    {
+      "step": 17,
+      "zoom": 17,
+      "count": 89,
+      "drawn": 89,
+      "independent": true,
+      "sameNodes": true,
+      "sizes": [
+        42
+      ],
+      "opacity": "1",
+      "filter": "drop-shadow(rgba(10, 20, 60, 0.3) 0px 2px 3px)",
+      "directoryRequests": 1
+    },
+    {
+      "step": 17.5,
+      "zoom": 17.5,
+      "count": 89,
+      "drawn": 89,
+      "independent": true,
+      "sameNodes": true,
+      "sizes": [
+        42
+      ],
+      "opacity": "1",
+      "filter": "drop-shadow(rgba(10, 20, 60, 0.3) 0px 2px 3px)",
+      "directoryRequests": 1
+    },
+    {
+      "step": 18,
+      "zoom": 18,
+      "count": 89,
+      "drawn": 89,
+      "independent": true,
+      "sameNodes": true,
+      "sizes": [
+        42
+      ],
+      "opacity": "0.3",
+      "filter": "drop-shadow(rgba(10, 20, 60, 0.3) 0px 2px 3px) blur(1.2px)",
+      "directoryRequests": 1
+    },
+    {
+      "step": 19,
+      "zoom": 19,
+      "count": 89,
+      "drawn": 89,
+      "independent": true,
+      "sameNodes": true,
+      "sizes": [
+        42
+      ],
+      "opacity": "0.3",
+      "filter": "drop-shadow(rgba(10, 20, 60, 0.3) 0px 2px 3px) blur(1.8px)",
+      "directoryRequests": 1
+    },
+    {
+      "step": 23,
+      "zoom": 22,
+      "count": 89,
+      "drawn": 89,
+      "independent": true,
+      "sameNodes": true,
+      "sizes": [
+        42
+      ],
+      "opacity": "0.3",
+      "filter": "drop-shadow(rgba(10, 20, 60, 0.3) 0px 2px 3px) blur(2.4px)",
+      "directoryRequests": 1
+    }
+  ],
+  "all_scoped_buildings_independent": true,
+  "same_dom_nodes_across_zoom": true,
+  "additional_directory_requests": 0,
+  "actual_provider_maximum_observed": 22,
+  "initial_failed_probe_explanation": "The earlier probe assumed a fixed initial zoom. The app starts at a fractional nearby zoom; the corrected probe reads the public Map instance and explicitly sets/records actual zooms."
+}

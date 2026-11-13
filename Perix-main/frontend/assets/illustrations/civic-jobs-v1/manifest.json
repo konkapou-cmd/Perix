@@ -1,0 +1,499 @@
+{
+ "sources": {
+  "public": {
+   "file": "Handcrafted Public Services Icon Sheet.png",
+   "sha256": "0e984d231c2f1ffc1613867bf3b0c8589f42291cf015f79911e41f5e175a894b"
+  },
+  "jobs": {
+   "file": "Handcrafted Civic Services and Jobs Icons.png",
+   "sha256": "e1eaacb36e4d747bf9ee133c54f1222918ce64439695ec8b446bc2619cb89af6"
+  }
+ },
+ "method": "caption-free hand-reviewed crop; edge-connected white removal; original RGB artwork preserved",
+ "icons": [
+  {
+   "id": "locations",
+   "sheet": "public",
+   "box": [
+    4,
+    230,
+    191,
+    460
+   ],
+   "trim": [
+    17,
+    18,
+    185,
+    222
+   ],
+   "file": "public-services/citizen-services.webp",
+   "size": [
+    188,
+    224
+   ],
+   "sha256": "71d60a33601904555e89bd6ac09fa229788fbe881d91359478eb97dd0981dfb9"
+  },
+  {
+   "id": "immigration-citizenship",
+   "sheet": "public",
+   "box": [
+    185,
+    230,
+    345,
+    460
+   ],
+   "trim": [
+    5,
+    29,
+    158,
+    218
+   ],
+   "file": "public-services/immigration-citizenship.webp",
+   "size": [
+    173,
+    209
+   ],
+   "sha256": "c4b23488cf70e8aaa52aadb0738f643f35f9088b23b91a4f86f06e0420f69f4b"
+  },
+  {
+   "id": "civil-registry",
+   "sheet": "public",
+   "box": [
+    345,
+    230,
+    488,
+    460
+   ],
+   "trim": [
+    7,
+    29,
+    134,
+    217
+   ],
+   "file": "public-services/civil-registry.webp",
+   "size": [
+    147,
+    208
+   ],
+   "sha256": "088ff23129e3a45a673957c629385ccb28d18086cee9b3e71f13ec71d31b1abf"
+  },
+  {
+   "id": "economy-business",
+   "sheet": "public",
+   "box": [
+    488,
+    230,
+    648,
+    460
+   ],
+   "trim": [
+    6,
+    28,
+    157,
+    218
+   ],
+   "file": "public-services/business-licensing.webp",
+   "size": [
+    171,
+    210
+   ],
+   "sha256": "a99ee4da2ed70bffe8d39afb37a15337c46187506dcdc58ac16d6fa6272f100e"
+  },
+  {
+   "id": "social-support",
+   "sheet": "public",
+   "box": [
+    648,
+    230,
+    804,
+    460
+   ],
+   "trim": [
+    5,
+    35,
+    148,
+    213
+   ],
+   "file": "public-services/family-youth.webp",
+   "size": [
+    163,
+    198
+   ],
+   "sha256": "d4ee6c12fd989d83869bc719fb329e61198f0952db6d40e92352ad0967b7c14f"
+  },
+  {
+   "id": "social-housing",
+   "sheet": "public",
+   "box": [
+    804,
+    230,
+    964,
+    460
+   ],
+   "trim": [
+    2,
+    19,
+    150,
+    211
+   ],
+   "file": "public-services/social-housing.webp",
+   "size": [
+    168,
+    212
+   ],
+   "sha256": "4bffcb8c74e26e5eed0734515827574f706c2dd9e3c0a4aebef35fedf0c58a69"
+  },
+  {
+   "id": "health",
+   "sheet": "public",
+   "box": [
+    964,
+    230,
+    1118,
+    460
+   ],
+   "trim": [
+    5,
+    16,
+    139,
+    219
+   ],
+   "file": "public-services/public-health.webp",
+   "size": [
+    154,
+    223
+   ],
+   "sha256": "d57bfa7b102c224e05c5a53e958c33d9621bc4a7fdfc011201f512d02ae9b94e"
+  },
+  {
+   "id": "mobility-transport",
+   "sheet": "public",
+   "box": [
+    1103,
+    230,
+    1278,
+    460
+   ],
+   "trim": [
+    12,
+    29,
+    154,
+    200
+   ],
+   "file": "public-services/mobility-transport.webp",
+   "size": [
+    162,
+    191
+   ],
+   "sha256": "2194cc3d7664edd74df4779785b93b1292f395698edead04c2c0d0c54780ceaa"
+  },
+  {
+   "id": "construction-property-transport",
+   "sheet": "public",
+   "box": [
+    1268,
+    230,
+    1448,
+    460
+   ],
+   "trim": [
+    1,
+    12,
+    156,
+    217
+   ],
+   "file": "public-services/building-infrastructure.webp",
+   "size": [
+    174,
+    224
+   ],
+   "sha256": "d3fcb935252fb5af8b7371b47a342b6910a33c24c28e000be159a1e9370952aa"
+  },
+  {
+   "id": "education-culture-sport",
+   "sheet": "public",
+   "box": [
+    4,
+    618,
+    211,
+    870
+   ],
+   "trim": [
+    13,
+    29,
+    196,
+    243
+   ],
+   "file": "public-services/education-culture.webp",
+   "size": [
+    194,
+    224
+   ],
+   "sha256": "26980f9f07780e8e71f58e98a975ca72156327a659b81bcd58db88230ee61d63"
+  },
+  {
+   "id": "environment",
+   "sheet": "public",
+   "box": [
+    196,
+    618,
+    360,
+    870
+   ],
+   "trim": [
+    18,
+    43,
+    156,
+    236
+   ],
+   "file": "public-services/waste-recycling.webp",
+   "size": [
+    158,
+    213
+   ],
+   "sha256": "6b1a928301d049a3cab1e6fd045ed7dbea7181ad901e66decf3ca060effc6f73"
+  },
+  {
+   "id": "civic-admin",
+   "sheet": "public",
+   "box": [
+    360,
+    618,
+    540,
+    870
+   ],
+   "trim": [
+    1,
+    10,
+    178,
+    235
+   ],
+   "file": "public-services/government-administration.webp",
+   "size": [
+    180,
+    224
+   ],
+   "sha256": "5c373ea13b45fff4aedd0f81cb24c03e42462bbcfa43a95f793cc628026407b6"
+  },
+  {
+   "id": "employment",
+   "sheet": "public",
+   "box": [
+    540,
+    618,
+    720,
+    870
+   ],
+   "trim": [
+    10,
+    45,
+    164,
+    242
+   ],
+   "file": "public-services/employment-careers.webp",
+   "size": [
+    174,
+    217
+   ],
+   "sha256": "ea4cef87b898322e06b468f7075816e893601ede9c0547db5105ce1827d8131c"
+  },
+  {
+   "id": "justice-safety",
+   "sheet": "public",
+   "box": [
+    720,
+    618,
+    891,
+    870
+   ],
+   "trim": [
+    1,
+    29,
+    169,
+    235
+   ],
+   "file": "public-services/courts-justice.webp",
+   "size": [
+    186,
+    224
+   ],
+   "sha256": "bd31569ef1026032862f1fc5b6a477d8eff0fb16b756eafdecb02a16a1085faf"
+  },
+  {
+   "id": "tax-finance",
+   "sheet": "public",
+   "box": [
+    891,
+    618,
+    1070,
+    870
+   ],
+   "trim": [
+    12,
+    47,
+    179,
+    237
+   ],
+   "file": "public-services/tax-finance.webp",
+   "size": [
+    187,
+    210
+   ],
+   "sha256": "5ecea7dc38a823cd68619cacc53080c33162c63e596c3dfc90e02b2c8b1f32ff"
+  },
+  {
+   "id": "police-security",
+   "sheet": "public",
+   "box": [
+    1063,
+    618,
+    1250,
+    870
+   ],
+   "trim": [
+    7,
+    40,
+    178,
+    234
+   ],
+   "file": "public-services/police-security.webp",
+   "size": [
+    191,
+    214
+   ],
+   "sha256": "b896e8eae31282eee0fb9ef775efc035a561c5308ecef1b3d38d289e218d971b"
+  },
+  {
+   "id": "ps-sos",
+   "sheet": "public",
+   "box": [
+    1241,
+    618,
+    1448,
+    870
+   ],
+   "trim": [
+    14,
+    28,
+    188,
+    233
+   ],
+   "file": "public-services/ps-sos.webp",
+   "size": [
+    193,
+    224
+   ],
+   "sha256": "0ee7a2b1d78f3f7a8c5fbe4900aa57aa7f3de8150d49519835dfbf3209ebb633"
+  },
+  {
+   "id": "Vollzeit",
+   "sheet": "jobs",
+   "box": [
+    80,
+    385,
+    445,
+    664
+   ],
+   "trim": [
+    19,
+    18,
+    346,
+    279
+   ],
+   "file": "jobs/Vollzeit.webp",
+   "size": [
+    140,
+    143
+   ],
+   "sha256": "4f42965dbb0f0db4a4ae342cc8c52bbdf152b39e2ebfd7eb1c38c917907cf24b"
+  },
+  {
+   "id": "Teilzeit",
+   "sheet": "jobs",
+   "box": [
+    464,
+    385,
+    799,
+    664
+   ],
+   "trim": [
+    15,
+    27,
+    324,
+    279
+   ],
+   "file": "jobs/Teilzeit.webp",
+   "size": [
+    139,
+    150
+   ],
+   "sha256": "f828f8f0431b0fa2751c4fbd2f37ea2c6ea292f707aa3d0f4f55b5e50effc127"
+  },
+  {
+   "id": "Vertrag",
+   "sheet": "jobs",
+   "box": [
+    814,
+    385,
+    1170,
+    664
+   ],
+   "trim": [
+    34,
+    22,
+    327,
+    279
+   ],
+   "file": "jobs/Vertrag.webp",
+   "size": [
+    136,
+    158
+   ],
+   "sha256": "8984ff95163071811e2855241d8725c71ee8587ef29fb4b1461fdb797b7c984a"
+  },
+  {
+   "id": "Praktikum",
+   "sheet": "jobs",
+   "box": [
+    1175,
+    385,
+    1530,
+    664
+   ],
+   "trim": [
+    25,
+    32,
+    314,
+    276
+   ],
+   "file": "jobs/Praktikum.webp",
+   "size": [
+    115,
+    158
+   ],
+   "sha256": "27218900f93aea648e9caf8a25b6453ffdfbb58ba6bc416a7b0f4119ab30f419"
+  },
+  {
+   "id": "Remote",
+   "sheet": "jobs",
+   "box": [
+    1535,
+    385,
+    1970,
+    664
+   ],
+   "trim": [
+    9,
+    12,
+    355,
+    277
+   ],
+   "file": "jobs/Remote.webp",
+   "size": [
+    137,
+    148
+   ],
+   "sha256": "ede0034131df1c92a4349953e1a447c17a167e285aede40d64a799444c762f99"
+  }
+ ]
+}

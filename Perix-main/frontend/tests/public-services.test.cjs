@@ -13,7 +13,9 @@ function loadAdapter() {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
   }).outputText;
   const exports = {};
-  vm.runInNewContext(code, { exports, URLSearchParams, require: () => ({ apiRequest: (...args) => { calls.push(args); return Promise.resolve({ items: [], next_cursor: null }); } }) });
+  vm.runInNewContext(code, { exports, URLSearchParams, require: (name) => name.includes("civicIllustrations")
+    ? { PUBLIC_SERVICE_ILLUSTRATIONS: { "government-administration": "gov-art" } }
+    : ({ apiRequest: (...args) => { calls.push(args); return Promise.resolve({ items: [], next_cursor: null }); } }) });
   return { adapter: exports, calls };
 }
 
@@ -41,6 +43,7 @@ test("markers are derived from the same records, exclude missing/invalid coordin
   const markers = adapter.publicServiceMarkers(rows);
   assert.equal(markers.length, 1); assert.equal(markers[0].id, "a");
   assert.equal(markers[0].latitude, rows[0].latitude);
+  assert.equal(markers[0].emblem, "gov-art");
 });
 
 test("shared Gateway result merge preserves distinct entity types and deduplicates IDs", () => {
@@ -65,8 +68,8 @@ test("root and app share one screen; Home is protected without blocking public e
   assert.match(fs.readFileSync(path.join(root, "app/index.tsx"), "utf8"), /components\/city\/CityGatewayScreen/);
   assert.match(fs.readFileSync(path.join(root, "app/app.tsx"), "utf8"), /components\/city\/CityGatewayScreen/);
   const layout = fs.readFileSync(path.join(root, "app/_layout.tsx"), "utf8");
-  const publicTab = layout.match(/const isPublicTab =[\s\S]*?;/)[0];
-  assert.doesNotMatch(publicTab, /home/);
+  assert.doesNotMatch(layout, /const isPublicTab/);
+  assert.match(fs.readFileSync(path.join(root, "app/(tabs)/_layout.tsx"), "utf8"), /if \(!user \|\| !sessionToken\) return <Redirect href="\/login"/);
   assert.match(layout, /isPublicEntity/);
   assert.match(layout, /\[user, loading, segments\]/);
 });

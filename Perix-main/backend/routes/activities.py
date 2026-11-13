@@ -18,6 +18,7 @@ from models.activity import (
 )
 from models.message import MessageResponse, ChatMessageResponse, ChatMessageCreate
 from utils.helpers import generate_id, now_utc
+from utils.verification import require_verified_email
 from routes.dependencies import get_current_user, get_current_user_optional, build_user_public
 from routes.ws import ws_broadcast_channel_message, ws_broadcast_notification
 
@@ -131,6 +132,7 @@ async def get_activity_themes():
 async def create_activity(
     payload: ActivityCreate, current_user: UserPublic = Depends(get_current_user)
 ):
+    await require_verified_email(current_user)
     from routes.notifications import notify_users
     
     invites = []

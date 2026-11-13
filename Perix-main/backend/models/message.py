@@ -28,6 +28,12 @@ class MessageCreate(BaseModel):
     to_artist_id: Optional[str] = None
     entity_type: str = "user"  # "user" | "business" | "artist"
     text: str
+    # Φ4 (policy v18): verified sender identity + context links + idempotency
+    sender_type: Optional[str] = None  # "user" | "business"
+    sender_business_id: Optional[str] = None
+    context_type: Optional[str] = None
+    context_id: Optional[str] = None
+    client_request_id: Optional[str] = None
 
 
 class MessageEdit(BaseModel):
@@ -48,6 +54,16 @@ class MessageResponse(BaseModel):
     read_at: Optional[datetime] = None
     media_url: Optional[str] = None
     media_type: Optional[str] = None  # "image", "video", "audio"
+    # Φ4 (policy v18): verified sender identity + context + retention metadata
+    sender_identity_type: Optional[str] = None
+    sender_identity_id: Optional[str] = None
+    conversation_id: Optional[str] = None
+    context_type: Optional[str] = None
+    context_id: Optional[str] = None
+    retention_exempt: Optional[bool] = None
+    media_retired: Optional[bool] = None
+    expires_at: Optional[datetime] = None
+    client_request_id: Optional[str] = None
 
 
 class ConversationResponse(BaseModel):

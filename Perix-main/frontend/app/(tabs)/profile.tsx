@@ -30,6 +30,9 @@ import { SkeletonBox } from "../../components/shared";
 import { COLORS } from "../../lib/designTokens";
 import { confirmAction } from "../../lib/confirm";
 import LocationPickerModal from "../../components/LocationPickerModal";
+import MapScreenHeader from "../../components/city/MapScreenHeader";
+import CityLanguagePicker from "../../components/city/CityLanguagePicker";
+import useResponsiveLayout from "../../hooks/useResponsiveLayout";
 import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
 import {
   Business,
@@ -275,6 +278,7 @@ export default function ProfileScreen() {
   const { clearMapBounds } = useMapBounds();
   const { track: trackUpload } = useUploads();
   const insets = useSafeAreaInsets();
+  const { isDesktop } = useResponsiveLayout();
   const params = useLocalSearchParams<{ openEvent?: string; openJob?: string; openService?: string; openBookings?: string; openProduct?: string; openActivity?: string; section?: string; createBusiness?: string }>();
   const googleKey =
     Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
@@ -2580,6 +2584,9 @@ try {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {!(isDesktop && Platform.OS === "web") && (
+        <MapScreenHeader right={<CityLanguagePicker />} />
+      )}
       <View style={{ flex: 1 }}>
         {!user && (
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.backgroundPage }}>

@@ -19,6 +19,8 @@ import { COLORS } from "../../lib/designTokens";
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { User, UserPublic, GalleryItem, Post, APP_URL, ActivityItem, updateProfileMedia } from "../../lib/api";
+import { fetchEntitlements, resendVerification } from "../../lib/api/account";
+import { illustratedIconSource } from "../icons/IllustratedIcon";
 import { ActivitiesSection } from "../business";
 
 import {
@@ -225,6 +227,42 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   const [showCoverReposition, setShowCoverReposition] = useState(false);
   const [coverViewer, setCoverViewer] = useState<{ items: { uri: string; type: "image"; id: string }[]; index: number } | null>(null);
   const [pendingBookingsCount, setPendingBookingsCount] = useState(0);
+  // Plan gate for the owner's tabs: default "free_user" keeps premium tabs locked
+  // until the entitlement snapshot arrives (same rule as the CreationSheet).
+  const [plan, setPlan] = useState<string>("free_user");
+  const [redemptionDeadline, setRedemptionDeadline] = useState<string | null>(null);
+  const [resendingEmail, setResendingEmail] = useState(false);
+  const [emailResendState, setEmailResendState] = useState<string | null>(null);
+
+  const onResendEmail = async () => {
+    if (!sessionToken || resendingEmail) return;
+    setResendingEmail(true);
+    setEmailResendState(null);
+    try {
+      const res = await resendVerification(sessionToken);
+      setEmailResendState(res.status);
+    } catch (e) {
+      setEmailResendState("error");
+    } finally {
+      setResendingEmail(false);
+    }
+  };
+
+  useEffect(() => {
+    if (readOnly || !sessionToken) return;
+    let cancelled = false;
+    fetchEntitlements(sessionToken, "user")
+      .then((snapshot) => {
+        if (cancelled) return;
+        if (snapshot.effective_plan) setPlan(snapshot.effective_plan);
+        const deadline = snapshot.redemption?.profile_complete_deadline;
+        if (deadline) setRedemptionDeadline(deadline);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [readOnly, sessionToken]);
   const scrollRef = useRef<ScrollView>(null);
   const tabsYRef = useRef(0);
 
@@ -240,33 +278,64 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   }, [sessionToken, onOpenBookings, isScreenFocused]);
 
   const handleTabChange = useCallback((tab: ProfileTab) => {
+    const def = tabsRef.current.find((td) => td.key === tab);
+    if (def?.locked) {
+      router.push("/plans" as any);
+      return;
+    }
     setActiveTab(tab);
     setTimeout(() => {
       scrollRef.current?.scrollTo({ y: tabsYRef.current, animated: true });
     }, 50);
-  }, []);
+  }, [router]);
+
+  const isPremiumPlan = plan === "premium_user";
+  const isBusinessPlan = plan === "business" || plan === "event_pro";
+  const premiumUnlocked = isPremiumPlan || isBusinessPlan;
 
   const tabs: TabDefinition[] = useMemo(() => {
     const base: TabDefinition[] = [];
-    if (galleryImages.length + galleryVideos.length > 0) {
-      base.push({ key: "media", label: t("profile.media", "Media"), icon: "images-outline", count: galleryImages.length + galleryVideos.length });
+    if (readOnly) {
+      // Public profile: only tabs that already have content (data connections unchanged).
+      if (galleryImages.length + galleryVideos.length > 0) {
+        base.push({ key: "media", label: t("profile.media", "Media"), icon: "images-outline", count: galleryImages.length + galleryVideos.length });
+      }
+      base.push({ key: "posts", label: t("profile.posts", "Posts"), iconSource: illustratedIconSource("home", "posts"), icon: "newspaper-outline", count: userPosts.length });
+      if (userActivities.length > 0) {
+        base.push({ key: "activities", label: t("userProfile.activities", "Activities"), iconSource: illustratedIconSource("home", "activities"), icon: "people-outline", count: userActivities.length });
+      }
+      if (userHomeListings.length > 0) {
+        base.push({ key: "homes", label: t("marketplace.listings", "Listings"), iconSource: illustratedIconSource("home", "homes-nearby"), icon: "home-outline", count: userHomeListings.length });
+      }
+      if (userListings.length > 0) {
+        base.push({ key: "items", label: t("marketplace.items", "Items"), iconSource: illustratedIconSource("home", "products"), icon: "list-outline", count: userListings.length });
+      }
+      return base;
     }
-    base.push({ key: "posts", label: t("profile.posts", "Posts"), icon: "newspaper-outline", count: userPosts.length });
-    base.push({ key: "activities", label: t("userProfile.activities", "Activities"), icon: "people-outline", count: userActivities.length });
-    if (userHomeListings.length > 0) {
-      base.push({ key: "homes", label: t("marketplace.listings", "Listings"), icon: "home-outline", count: userHomeListings.length });
-    }
-    if (userListings.length > 0 || onAddItem) {
-      base.push({ key: "items", label: t("marketplace.items", "Items"), icon: "list-outline", count: userListings.length });
-    }
+    // Owner: every possible tab is visible — plan-gated ones are locked with
+    // an upgrade hint (same split rule as the CreationSheet: Free locks
+    // Activities / Items / Homes, Premium & Business unlock them).
+    base.push({ key: "media", label: t("profile.media", "Media"), icon: "images-outline", count: galleryImages.length + galleryVideos.length });
+    base.push({ key: "posts", label: t("profile.posts", "Posts"), iconSource: illustratedIconSource("home", "posts"), icon: "newspaper-outline", count: userPosts.length });
+    base.push({ key: "activities", label: t("userProfile.activities", "Activities"), iconSource: illustratedIconSource("home", "activities"), icon: "people-outline", count: userActivities.length, locked: !premiumUnlocked });
+    base.push({ key: "items", label: t("marketplace.items", "Items"), iconSource: illustratedIconSource("home", "products"), icon: "list-outline", count: userListings.length, locked: !premiumUnlocked });
+    base.push({ key: "homes", label: t("marketplace.listings", "Listings"), iconSource: illustratedIconSource("home", "homes-nearby"), icon: "home-outline", count: userHomeListings.length, locked: !premiumUnlocked });
     if (onOpenBookings) {
-      base.push({ key: "bookings", label: t("services.myBookings", "My Bookings"), icon: "calendar", count: pendingBookingsCount });
+      base.push({ key: "bookings", label: t("services.myBookings", "My Bookings"), icon: "calendar-outline", count: pendingBookingsCount });
     }
-    if (!readOnly) {
-      base.push({ key: "applications", label: t("jobs.myApplications", "Meine Bewerbungen"), icon: "briefcase" });
-    }
+    base.push({ key: "applications", label: t("jobs.myApplications", "Meine Bewerbungen"), icon: "document-text-outline" });
     return base;
-  }, [userActivities.length, userPosts.length, galleryImages.length, galleryVideos.length, onOpenBookings, t, userListings.length, userHomeListings.length, onAddItem, pendingBookingsCount]);
+  }, [readOnly, t, userPosts.length, userActivities.length, galleryImages.length, galleryVideos.length, userListings.length, userHomeListings.length, onOpenBookings, pendingBookingsCount, premiumUnlocked]);
+
+  // If the plan arrives late and the active tab is locked, fall back to posts.
+  useEffect(() => {
+    if (readOnly) return;
+    const def = tabs.find((td) => td.key === activeTab);
+    if (def?.locked) setActiveTab("posts");
+  }, [tabs, activeTab, readOnly]);
+
+  const tabsRef = useRef(tabs);
+  tabsRef.current = tabs;
 
   const theme = user.theme;
   const { themeStyles } = useThemeStyles(theme);
@@ -373,7 +442,55 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
               ]
             : undefined
         }
+        completenessTip={
+          !readOnly
+            ? t("profile.trustTip", "Δεν χρειάζεται να δείχνετε ωραίοι, αλλά άνθρωποι εμπιστοσύνης.")
+            : undefined
+        }
+        profileDeadline={
+          !readOnly && redemptionDeadline
+            ? `${t("profile.completeProfileDeadline", "Ολοκλήρωσε το προφίλ σου έως")} ${new Date(redemptionDeadline).toLocaleDateString("el-GR")}`
+            : undefined
+        }
       />
+
+      {!readOnly && (
+        <Pressable
+          style={[styles.plansBanner, { borderColor: primaryColor }]}
+          onPress={() => router.push("/plans" as any)}
+          accessibilityRole="button"
+        >
+          <Ionicons name="layers-outline" size={18} color={primaryColor} />
+          <Text style={[styles.plansBannerText, { color: textColor }]}>
+            {t("profile.viewPlans", "Δες τα πλάνα — Free, Premium, Business")}
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color={primaryColor} />
+        </Pressable>
+      )}
+
+      {!readOnly && user.email_verified === false && (
+        <View style={styles.emailBanner}>
+          <Ionicons name="mail-unread-outline" size={18} color="#264348" />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.emailBannerText}>
+              {t("profile.verifyEmail", "Επιβεβαίωσε το email σου (έχεις 6 ώρες) για να προσθέτεις περιεχόμενο.")}
+            </Text>
+            {emailResendState === "sent" ? (
+              <Text style={styles.emailSentText}>{t("profile.emailSent", "Στάλθηκε! Τσέκαρε τα εισερχόμενά σου.")}</Text>
+            ) : null}
+          </View>
+          <Pressable
+            onPress={onResendEmail}
+            disabled={resendingEmail}
+            style={styles.emailResendBtn}
+            accessibilityRole="button"
+          >
+            <Text style={styles.emailResendText}>
+              {resendingEmail ? "…" : t("profile.resendEmail", "Αποστολή ξανά")}
+            </Text>
+          </Pressable>
+        </View>
+      )}
 
       <ProfileAboutInline
         data={aboutData}
@@ -395,6 +512,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           bgColor={cardColor}
         borderColor={borderColor}
         themeStyles={themeStyles}
+          onLockedPress={() => router.push("/plans" as any)}
       />
       </View>
       {coverViewer ? (
@@ -651,6 +769,58 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  plansBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    backgroundColor: "rgba(255,255,255,0.7)",
+  },
+  plansBannerText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  emailBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.warning ?? "#FFC400",
+    backgroundColor: COLORS.warningLight ?? "#FFF1B8",
+  },
+  emailBannerText: {
+    fontSize: 12,
+    color: "#264348",
+    lineHeight: 17,
+  },
+  emailSentText: {
+    fontSize: 11,
+    color: COLORS.success ?? "#22C55E",
+    fontWeight: "700",
+    marginTop: 2,
+  },
+  emailResendBtn: {
+    backgroundColor: "#59ABE3",
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  emailResendText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
   },
   scrollContent: {
     flexGrow: 1,

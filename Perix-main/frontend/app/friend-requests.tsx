@@ -335,7 +335,7 @@ export default function FriendRequestsScreen() {
           {activeTab === "received" && (
             <Pressable 
               style={styles.findFriendsButton}
-              onPress={() => router.navigate("/(tabs)/locator" as any)}
+              onPress={() => router.navigate("/(tabs)/home" as any)}
             >
               <LinearGradient
                 colors={[COLORS.primaryDark, "#FFD700"]}

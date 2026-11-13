@@ -55,7 +55,7 @@ function nodes(tree) {
   if (Array.isArray(tree)) return tree.flatMap(nodes);
   return [tree, ...nodes(tree.props?.children)];
 }
-function previewHost({ key = 'test-browser-key', platform = 'web', point = origin } = {}) {
+function previewHost({ key = 'test-browser-key', platform = 'web', point = origin, initiallyOpen = false, onClose } = {}) {
   const slots = [], effects = []; let index = 0, tree, currentOrigin = point;
   let locationCalls = 0; const opened = [];
   const React = {
@@ -80,7 +80,7 @@ function previewHost({ key = 'test-browser-key', platform = 'web', point = origi
     '../../lib/city/mapLayout': layout,
   }, { process: { env: {} } }).default;
   const host = {
-    render() { index = 0; tree = component({ destination, origin: currentOrigin, onLocate: () => { locationCalls++; }, locating: false });
+    render() { index = 0; tree = component({ destination, origin: currentOrigin, onLocate: () => { locationCalls++; }, locating: false, initiallyOpen,onClose });
       effects.splice(0).forEach(fn => fn()); return tree; },
     get: id => nodes(tree).find(node => node.props?.testID === id),
     frame: () => nodes(tree).find(node => node.type === 'Frame'),
@@ -100,6 +100,21 @@ test('preview loads only after user action, switches modes and closes without lo
   h.press('google-directions-external'); assert.equal(h.opened.length, 1);
   h.press('google-directions-toggle'); assert.equal(h.frame(), undefined);
   assert.equal(h.locationCalls(), 0);
+});
+
+test('landmark selection can open the Google directions preview immediately', () => {
+  const h = previewHost({ initiallyOpen: true });
+  h.render();
+  assert.ok(h.frame());
+  assert.equal(new URL(h.frame().props.src).searchParams.get('destination'), '52.1256,11.6342');
+  assert.equal(h.get('google-directions-toggle').props.accessibilityState.expanded, true);
+});
+
+test('closing the actual open preview notifies its owner to clear the destination compass',()=>{
+  let closed=0;const h=previewHost({initiallyOpen:true,onClose:()=>closed++});
+  h.render();assert.ok(h.frame());h.press('google-directions-toggle');
+  assert.equal(closed,1);assert.equal(h.frame(),undefined);
+  h.press('google-directions-toggle');assert.equal(closed,1,'opening must not clear the selection');
 });
 
 test('Go is the sole collapsed action; preview is white without a border and pills share APP/Members colors', () => {

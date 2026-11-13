@@ -19,6 +19,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { MESSAGE_ILLUSTRATIONS } from "../../../lib/messageIcons";
 import { useAuth } from "../../../context/AuthContext";
 import { useNotifications } from "../../../context/NotificationContext";
 import { useBadge } from "../../../context/BadgeContext";
@@ -42,6 +43,9 @@ import {
 } from "../../../lib/api";
 import { confirmAction } from "../../../lib/confirm";
 import NotificationBar from "../../../components/NotificationBar";
+import MapScreenHeader from "../../../components/city/MapScreenHeader";
+import CityLanguagePicker from "../../../components/city/CityLanguagePicker";
+import useResponsiveLayout from "../../../hooks/useResponsiveLayout";
 import { SkeletonBox, Avatar } from "../../../components/shared";
 import EmptyState from "../../../components/ui/EmptyState";
 import {
@@ -61,6 +65,7 @@ export default function MessagesScreen() {
   const { refreshUnreadCount } = useBadge();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isDesktop } = useResponsiveLayout();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [allConversations, setAllConversations] = useState<ExtendedConversation[]>([]);
 
@@ -404,6 +409,9 @@ export default function MessagesScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {!(isDesktop && Platform.OS === "web") && (
+        <MapScreenHeader right={<CityLanguagePicker />} />
+      )}
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
@@ -413,7 +421,7 @@ export default function MessagesScreen() {
           <View style={styles.headerRow}>
             <View style={styles.headerTitleWrap}>
               <View style={styles.headerTitleIcon}>
-                <Ionicons name="chatbubbles-outline" size={16} color="#59ABE3" />
+                <Image source={MESSAGE_ILLUSTRATIONS.chat} resizeMode="contain" style={{ width: 22, height: 22 }} />
               </View>
               <Text style={styles.title}>{t("messages.title")}</Text>
             </View>
@@ -580,7 +588,7 @@ export default function MessagesScreen() {
 
           if (unified.length === 0) {
             return (
-              <EmptyState icon="chatbubbles-outline" message={t("messages.noConversations", "No conversations yet")} />
+              <EmptyState iconSource={MESSAGE_ILLUSTRATIONS.inbox} icon="chatbubbles-outline" message={t("messages.noConversations", "No conversations yet")} />
             );
           }
 

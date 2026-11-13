@@ -372,7 +372,45 @@ async def send_rental_inquiry(
         "read": False,
         "created_at": now_utc(),
     }
+    # Φ4 (policy v18): rental inquiries follow the same message policy
+    # (context, retention metadata, monthly quota when enforcement is on).
+    from utils.messages_policy import (
+        MESSAGE_QUOTA_ENFORCEMENT,
+        context_is_active,
+        message_policy_fields,
+        personal_message_limit,
+    )
+    from utils.quota import consume_usage, get_usage, period_key_for_month
+
+    inquiry_context_type = "service" if service_id else "listing"
+    inquiry_context_id = service_id if service_id else listing_id
+    context_doc = None
+    if service_id and business_id:
+        context_doc = await db.services.find_one({"service_id": service_id}, {"_id": 0})
+    elif listing_id:
+        context_doc = await db.listings.find_one({"listing_id": listing_id}, {"_id": 0})
+
+    message_doc.update(message_policy_fields(
+        sender_identity_type="user",
+        sender_identity_id=current_user.user_id,
+        conversation_id=conv_id,
+        context_type=inquiry_context_type,
+        context_id=inquiry_context_id,
+        context_active=context_is_active(inquiry_context_type, context_doc),
+    ))
+
+    if MESSAGE_QUOTA_ENFORCEMENT:
+        period_key = period_key_for_month()
+        used = await get_usage("user", current_user.user_id, period_key)
+        user_doc = await db.users.find_one({"user_id": current_user.user_id}, {"account_plan": 1})
+        limit = personal_message_limit(user_doc)
+        if limit is not None and used >= limit:
+            raise HTTPException(status_code=403, detail="Monthly message limit reached")
+
     await db.messages.insert_one(message_doc)
+
+    if MESSAGE_QUOTA_ENFORCEMENT:
+        await consume_usage("user", current_user.user_id, period_key_for_month(), message_doc["message_id"])
 
     # Send notification
     asyncio.create_task(

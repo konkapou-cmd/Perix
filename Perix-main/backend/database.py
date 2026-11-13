@@ -127,6 +127,44 @@ async def create_indexes():
     # Conversation-list queries sort by created_at per participant
     await _safe_create_index(db.messages, [("from_user_id", 1), ("created_at", -1)])
     await _safe_create_index(db.messages, [("to_user_id", 1), ("created_at", -1)])
+    # Φ4 (policy v18): idempotent sends, per-conversation media window and
+    # retention lookups. No TTL index is created so legacy data can never be
+    # deleted implicitly by index creation.
+    await _safe_create_index(db.messages, [("from_user_id", 1), ("client_request_id", 1)])
+    await _safe_create_index(db.messages, [("conversation_id", 1), ("created_at", -1)])
+    await _safe_create_index(db.messages, [("expires_at", 1)])
+    await _safe_create_index(db.messages, [("context_type", 1), ("context_id", 1)])
+
+    # Entitlements / monthly usage (policy v18, shadow mode)
+    # The unique indexes are what make usage counting idempotent.
+    await _safe_create_index(
+        db.monthly_usage,
+        [("actor_type", 1), ("actor_id", 1), ("period_key", 1)],
+        unique=True,
+    )
+    await _safe_create_index(
+        db.usage_operations,
+        [("actor_type", 1), ("actor_id", 1), ("period_key", 1), ("operation_key", 1)],
+        unique=True,
+    )
+    await _safe_create_index(db.subscriptions, "subscriber_id")
+    # Φ8 (policy v18): City Ads campaigns, reservations, impressions.
+    await _safe_create_index(db.promotion_campaigns, "business_id")
+    await _safe_create_index(db.promotion_campaigns, [("city_id", 1), ("status", 1)])
+    await _safe_create_index(
+        db.ad_slot_reservations,
+        [("city_id", 1), ("local_date", 1), ("reservation_status", 1)],
+    )
+    await _safe_create_index(
+        db.ad_impressions,
+        [("viewer_key", 1), ("city_id", 1), ("local_date", 1), ("campaign_id", 1)],
+        unique=True,
+    )
+    await _safe_create_index(
+        db.ad_viewer_rotation,
+        [("viewer_key", 1), ("city_id", 1), ("local_date", 1), ("pair", 1)],
+        unique=True,
+    )
     
     # Businesses collection indexes
     await db.businesses.create_index("business_id", unique=True)
@@ -285,6 +323,21 @@ async def create_indexes():
     await _safe_create_index(
         db.bus_network_versions,
         [("region_id", 1), ("network_id", 1), ("active", 1)],
+    )
+    await _safe_create_index(
+        db.bus_network_route_blocks,
+        [("version_id", 1), ("route_index", 1)],
+        unique=True,
+    )
+    await _safe_create_index(
+        db.bus_network_trip_times_blocks,
+        [("version_id", 1), ("route_index", 1)],
+        unique=True,
+    )
+    await _safe_create_index(
+        db.bus_network_trip_windows_blocks,
+        [("version_id", 1), ("route_index", 1)],
+        unique=True,
     )
     await _safe_create_index(
         db.mobility_realtime,

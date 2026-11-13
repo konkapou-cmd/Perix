@@ -1,0 +1,15 @@
+{
+  "frontend_tests": 340,
+  "typescript": "passed",
+  "runtime_source_files_changed": 1,
+  "island_full_art_label_zoom": 15,
+  "small_street_reference_zoom": 16,
+  "art_size_at_street_px": 320,
+  "maximum_art_size_px": 360,
+  "street_image_blur_px": 1.2,
+  "maximum_image_blur_px": 2.4,
+  "source_positions_changed": false,
+  "assets_changed": false,
+  "magdeburg_curve_changed": false,
+  "static_scene_cache_changed": false
+}

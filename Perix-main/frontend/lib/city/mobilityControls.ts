@@ -1,6 +1,6 @@
 import type { TransitStopMarker } from "../api/mobility";
 
-export type MobilityMode = "all" | "bus" | "tram" | "taxi";
+export type MobilityMode = "all" | "bus" | "tram" | "subway" | "s-bahn" | "rail" | "ferry" | "taxi";
 
 // Physical modes survive a dated timetable change; no parallel stop catalogue.
 export function stopMatchesMode(stop: TransitStopMarker, mode: MobilityMode): boolean {

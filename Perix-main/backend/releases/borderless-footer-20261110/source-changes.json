@@ -1,0 +1,14 @@
+{
+  "components/navigation/TabArtworkButton.tsx": {
+    "before": "b1dd79657632a8f7fe5bc216deee566b2c12178be4c045bce20129384fd319ae",
+    "after": "2117e7a92577668879a286981b1eaeb01be8093e007d72f1bffa1b0c3789b9af"
+  },
+  "lib/navigation/tabLayout.ts": {
+    "before": "b7cfaf50aebf3629c56d96b996898f0456abc168eade1d1dfa8ff37d6ba13b8d",
+    "after": "146e9fc10024b8f1d1ac7f79e72c4d823c618c7f40ce54d2f6fa34e9cbbdafe0"
+  },
+  "app/(tabs)/_layout.tsx": {
+    "before": "7261cb1ccd75eee9d96b9d328ab16196097bd00327b273dfbd358d81ddc792ee",
+    "after": "d5947b01c86b719c122c08469f29964aa23af3b053f27c09ad8c8e04683770b0"
+  }
+}

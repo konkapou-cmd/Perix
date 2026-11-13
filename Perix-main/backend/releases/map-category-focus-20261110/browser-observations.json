@@ -1,0 +1,27 @@
+{
+  "address_pin_revision": {
+    "origin": "http://127.0.0.1:8114",
+    "group_width_px": 33,
+    "single_width_px": 33,
+    "first_profiles_observed": [
+      "Stra?enverkehrsabteilung Magdeburg",
+      "Arbeitsgericht Magdeburg"
+    ],
+    "count_badges_observed": [
+      4,
+      5
+    ],
+    "scope": "Isolated final staging frontend, same source as production with staging API origin"
+  },
+  "earlier_focus_revision": {
+    "category_blur_px": 3,
+    "background_pointer_events": "none",
+    "nearby_cards_visible": false,
+    "result_precedes_route_preview": true,
+    "island_overview_labels": 0,
+    "landmark_tap_destination": "???? ??????"
+  },
+  "tests_passed": 333,
+  "typecheck_passed": true,
+  "production_html_and_bundle_verified": true
+}

@@ -36,9 +36,66 @@ export default function TopNavbar({ onCreatePress }: { onCreatePress?: () => voi
     getMyBusinesses(sessionToken).then(setBusinesses).catch(() => setBusinesses([]));
   }, [sessionToken]);
 
+  const isApp = pathname === "/" || pathname === "/app" || pathname === "/index";
+  const isMembers = pathname === "/home" || pathname === "/(tabs)/home";
+  const isProfile = pathname === "/(tabs)/profile" || pathname === "/profile";
+  const isMessages = pathname.startsWith("/(tabs)/messages") || pathname === "/messages";
+  const iconColor = (active: boolean) => (active ? "#59ABE3" : "#064472");
+  const go = (path: string) => router.navigate(path as any);
+
   return (
-    <MapScreenHeader hideExplore={isHome} exploreOnly={isLocator} logoVariant={isHome || isLocator ? "english" : undefined} right={
+    <MapScreenHeader hideExplore logoVariant={isHome || isLocator ? "english" : undefined} right={
         <View style={styles.rightSection}>
+          {/* Desktop: App / Members / Profile / Messages / Create gathered top-right */}
+          <View style={styles.navPill}>
+            <Pressable
+              style={styles.navIcon}
+              onPress={() => go("/app")}
+              data-testid="navbar-app"
+              accessibilityRole="button"
+              accessibilityLabel="APP"
+            >
+              <Ionicons name={isApp ? "compass" : "compass-outline"} size={22} color={iconColor(isApp)} />
+              <Text style={[styles.navIconText, isApp && styles.navIconTextActive]}>APP</Text>
+            </Pressable>
+            <Pressable
+              style={styles.navIcon}
+              onPress={() => go(sessionToken ? "/(tabs)/home" as any : "/login" as any)}
+              data-testid="navbar-members"
+              accessibilityRole="button"
+              accessibilityLabel={t("nav.members", "Members")}
+            >
+              <Ionicons name={isMembers ? "people" : "people-outline"} size={22} color={iconColor(isMembers)} />
+              <Text style={[styles.navIconText, isMembers && styles.navIconTextActive]}>{t("nav.members", "Members")}</Text>
+            </Pressable>
+            <Pressable
+              style={styles.navIcon}
+              onPress={() => go(sessionToken ? "/(tabs)/profile" as any : "/login" as any)}
+              data-testid="navbar-profile"
+              accessibilityRole="button"
+              accessibilityLabel={t("nav.profile", "Profile")}
+            >
+              <Ionicons name={isProfile ? "person" : "person-outline"} size={22} color={iconColor(isProfile)} />
+              <Text style={[styles.navIconText, isProfile && styles.navIconTextActive]}>{t("nav.profile", "Profile")}</Text>
+            </Pressable>
+            <Pressable
+              style={styles.navIcon}
+              onPress={() => go(sessionToken ? "/(tabs)/messages" as any : "/login" as any)}
+              data-testid="navbar-messages"
+              accessibilityRole="button"
+              accessibilityLabel={t("nav.messages", "Messages")}
+            >
+              <Ionicons name={isMessages ? "chatbubble" : "chatbubble-outline"} size={22} color={iconColor(isMessages)} />
+              <Text style={[styles.navIconText, isMessages && styles.navIconTextActive]}>{t("nav.messages", "Messages")}</Text>
+            </Pressable>
+            {unreadMessageCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {unreadMessageCount > 9 ? "9+" : unreadMessageCount}
+                </Text>
+              </View>
+            )}
+          </View>
           {/* Create Button — mirrors the app's bottom-bar create tab */}
           <Pressable
             style={[
@@ -50,33 +107,9 @@ export default function TopNavbar({ onCreatePress }: { onCreatePress?: () => voi
             onHoverOut={() => setHoveredItem(null)}
             data-testid="navbar-create"
           >
-            <Ionicons name="sparkles" size={18} color={COLORS.background} />
+            <Ionicons name="add-circle-outline" size={18} color={COLORS.background} />
             <Text style={styles.createButtonText}>{t("common.create", "Create")}</Text>
           </Pressable>
-
-          {/* Messages */}
-          <Pressable
-            style={[
-              styles.iconButton,
-              hoveredItem === "messages" && styles.iconButtonHover,
-            ]}
-            onPress={() => router.navigate("/(tabs)/messages" as any)}
-            onHoverIn={() => setHoveredItem("messages")}
-            onHoverOut={() => setHoveredItem(null)}
-            data-testid="navbar-messages"
-          >
-            <Ionicons name="chatbubble-outline" size={22} color="#59ABE3" />
-            {unreadMessageCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>
-                  {unreadMessageCount > 9 ? "9+" : unreadMessageCount}
-                </Text>
-              </View>
-            )}
-          </Pressable>
-
-          {/* Create Post — removed from the desktop navbar; the home page
-              covers posting via the unified bar. */}
 
           {/* User Menu / account type switcher */}
           <IdentityDropdown compact businesses={businesses}
@@ -180,7 +213,41 @@ const styles = StyleSheet.create({
   rightSection: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
+  },
+  navPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    backgroundColor: "#F6F8FC",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 24,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    position: "relative",
+  },
+  navIcon: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    minWidth: 56,
+    ...Platform.select({
+      web: {
+        cursor: "pointer" as any,
+      },
+    }),
+  },
+  navIconText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#064472",
+    marginTop: 1,
+  },
+  navIconTextActive: {
+    color: "#59ABE3",
   },
   createButton: {
     flexDirection: "row",

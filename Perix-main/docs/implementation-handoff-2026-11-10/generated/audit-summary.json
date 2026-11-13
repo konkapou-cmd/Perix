@@ -1,0 +1,76 @@
+{
+  "scope": "Offline static working-tree snapshot, not deployed database or end-to-end verification",
+  "approved_service_policy_version": "services-review-18",
+  "approved_service_sectors": [
+    "automotive",
+    "beauty-care",
+    "education-creativity",
+    "entertainment-events",
+    "fashion-accessories",
+    "food-dining",
+    "healthcare",
+    "local-hotels",
+    "mobility-transport",
+    "nightlife-social",
+    "pets",
+    "professional-services",
+    "rentals",
+    "shopping-retail",
+    "sports-fitness-wellness"
+  ],
+  "approved_service_specialties": 164,
+  "pending_service_specialties": 0,
+  "retail_product_policy_review_rows": 6,
+  "retail_specialties_without_current_product_mapping": [],
+  "retail_invalid_current_product_paths": [],
+  "approved_service_decisions_sha256": "7034b34afc5fef88fa7acdcbf50b9bad4b97919499943b90afd89e32e880d745",
+  "source_sha256": {
+    "backend/database.py": "0fa6f17cd7d7574a29c6a88b35d714039aea1b89c08e62960ac70be8516cf7cc",
+    "backend/routes/listings.py": "3c3c69de06a6c51b3758693bc4454292a62ca7f662facaa6cd2486cd836d1bbc",
+    "backend/models/service.py": "1f81735cb64718cefcb5f83dd7f91c436f3d2e623b97f8d2af8ffe75451caa36",
+    "backend/utils/product_permissions.py": "5907eb8b78d0392097edfe58dca578b428d1b4aff74a2ec4cf8809437b3005ef",
+    "frontend/lib/marketplace/marketplaceTaxonomy.ts": "94cb00f5e011f3f4568fb3436f68cc622226b9c3fb6be03ea844c7e3e4d33a1a",
+    "frontend/lib/config/serviceModules.ts": "e4bcffbc15b0380d63c081e3b758edf98d3e0659df26b3ec1bd974cc7fc91845",
+    "frontend/lib/config/serviceCategoryMatrix.ts": "f4e55889bba9f96dcc1110bacd7923c8566f9a97ddcd92c235ff32b1e296db13",
+    "frontend/lib/illustrationSources.generated.ts": "2bb24620bf65d3e66217b0c9d1a3d9f53f96f3c6e9937d6a11a719072fcf41f5"
+  },
+  "business_roots": 15,
+  "business_subcategories": 164,
+  "frontend_product_roots": 17,
+  "frontend_product_subcategories": 164,
+  "backend_product_roots": 17,
+  "backend_product_paths": 165,
+  "proposed_product_roots": 17,
+  "proposed_product_paths": 184,
+  "backend_only_product_paths": [
+    "baby_kids/kids_clothing"
+  ],
+  "frontend_only_product_paths": [],
+  "service_root_entries": 15,
+  "service_unique_types": 35,
+  "service_root_diffs": {},
+  "service_mode_mismatches": [],
+  "module_root_mismatches": [],
+  "business_roots_without_service_types": [
+    "mobility-transport"
+  ],
+  "illustration_counts": {
+    "HOME_ILLUSTRATIONS": 14,
+    "ROOT_CATEGORY_ILLUSTRATIONS": 15,
+    "CATEGORY_GROUP_ILLUSTRATIONS": 38,
+    "SUBCATEGORY_ILLUSTRATIONS": 174,
+    "MARKETPLACE_PARENT_ILLUSTRATIONS": 17,
+    "MARKETPLACE_SUBCATEGORY_ILLUSTRATIONS": 187,
+    "SERVICE_MODULE_ILLUSTRATIONS": 35,
+    "TAB_BAR_ILLUSTRATIONS": 5,
+    "EMPTY_STATE_ILLUSTRATIONS": 3
+  },
+  "missing_assets": [],
+  "proposed_business_icons_without_artwork": [
+    "opticians",
+    "ophthalmologists",
+    "optical-stores"
+  ],
+  "invalid_current_glyphs": [],
+  "service_field_contract_gaps": []
+}

@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Marker } from "react-native-maps";
 import { View } from "react-native";
 import type { MotionPreview } from "../lib/api/mobility";
 import { authorizePreview, sampleAuthorizedPreview } from "../lib/city/transitPublication";
 import { visualPathCumulative } from "../lib/city/transitPath";
 import type { QueueOffset } from "../lib/city/stationQueue";
-import { vehicleMobilityViewAngle } from "../lib/mobilityViewSources.generated";
+import { vehicleKindViewAngle } from "../lib/mobilityViewSources.generated";
+import { MAP_LAYERS } from '../lib/city/mapPresentation';
 
 export type VisualMarkerInput = {
   id: string; latitude: number; longitude: number; type?: string; estimated?: boolean;
@@ -24,19 +25,21 @@ function segmentBearing(a:{latitude:number;longitude:number},b:{latitude:number;
 }
 
 /** Native uses the same bounded schema-2 equations as web, no extrapolation. */
-export default function VisualTransitMarker({ marker, onPress, children, renderIcon, queueOffset, iconSizePx=20 }: {
+export default function VisualTransitMarker({ marker, onPress, children, renderIcon, queueOffset, iconSizePx=20, cameraHeading=0 }: {
   marker: VisualMarkerInput; onPress?: () => void; children?: React.ReactNode; renderIcon?:(viewAngle:number)=>React.ReactNode;
-  queueOffset?: QueueOffset; iconSizePx?: number;
+  queueOffset?: QueueOffset; iconSizePx?: number; cameraHeading?:number;
 }) {
   const [coordinate, setCoordinate] = useState({ latitude: marker.latitude, longitude: marker.longitude });
-  const [viewAngle,setViewAngle]=useState(()=>vehicleMobilityViewAngle(marker.heading ?? 0));
+  const [travelBearing,setTravelBearing]=useState(marker.heading ?? 0);
+  const headingRef=useRef(cameraHeading);headingRef.current=cameraHeading;
+  const viewAngle=vehicleKindViewAngle(marker.type || "bus",travelBearing,headingRef.current);
   const [visible,setVisible] = useState(false);
   const geometry = useMemo(() => {
     const points = marker.path || [];
     const cum = visualPathCumulative(points);
     return { points, cum };
   }, [marker.path]);
-  useEffect(()=>setViewAngle(vehicleMobilityViewAngle(marker.heading ?? 0)),[marker.heading,marker.type]);
+  useEffect(()=>setTravelBearing(marker.heading ?? 0),[marker.heading,marker.type]);
   useEffect(() => {
     setCoordinate({ latitude: marker.latitude, longitude: marker.longitude });
     if (marker.publicationStatus !== "READY" || marker.motionPreview?.schema !== 2) {setVisible(false);return;}
@@ -60,8 +63,8 @@ export default function VisualTransitMarker({ marker, onPress, children, renderI
         const ratio = Math.max(0, Math.min(1, (sample.progressM-cum[i])/Math.max(0.001, cum[i+1]-cum[i])));
         setCoordinate({ latitude: points[i].latitude+(points[i+1].latitude-points[i].latitude)*ratio,
           longitude: points[i].longitude+(points[i+1].longitude-points[i].longitude)*ratio });
-        const nextView=vehicleMobilityViewAngle(segmentBearing(points[i],points[i+1]));
-        setViewAngle(previous=>previous===nextView?previous:nextView);
+        const bearing=segmentBearing(points[i],points[i+1]);
+        setTravelBearing(previous=>previous===bearing?previous:bearing);
         break;
       }
       if (!sample.expired) frame = requestAnimationFrame(tick);
@@ -73,7 +76,8 @@ export default function VisualTransitMarker({ marker, onPress, children, renderI
   // Keep the native anchor within [0,1] on Android: the transparent layout
   // canvas contains the displaced symbol, not displaced geographic progress.
   const x=queueOffset?.x || 0,y=queueOffset?.y || 0;
-  return <Marker coordinate={coordinate} anchor={{x:0.5,y:0.5}} onPress={onPress}>
+  return <Marker coordinate={coordinate} anchor={{x:0.5,y:0.5}}
+    onPress={event=>{event.stopPropagation();onPress?.();}} zIndex={MAP_LAYERS.vehicle}>
     <View style={{width:iconSizePx+Math.abs(x)*2,height:iconSizePx+Math.abs(y)*2,alignItems:'center',justifyContent:'center'}}>
       <View style={{transform:[{translateX:x},{translateY:y}]}}>{renderIcon ? renderIcon(viewAngle) : children}</View>
     </View>

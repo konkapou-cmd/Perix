@@ -7,6 +7,7 @@ from database import db
 from models.user import UserPublic
 from models.listing import ListingCreate, ListingUpdate, ListingResponse, LocationVisibility, CATEGORY_ALIASES
 from utils.helpers import generate_id, now_utc
+from utils.verification import require_verified_email
 from routes.dependencies import get_current_user
 
 router = APIRouter(prefix="/listings", tags=["Listings"])
@@ -26,7 +27,7 @@ MARKETPLACE_SUBCATEGORIES: dict[str, list[str]] = {
     "fashion": ["womens_clothing", "mens_clothing", "kids_clothing", "shoes", "bags", "jewelry", "watches", "sportswear", "workwear", "vintage_designer", "fashion_accessories"],
     "baby_kids": ["baby_equipment", "strollers", "car_seats", "nursery_furniture", "baby_clothing", "kids_clothing", "toys_learning", "school_supplies", "feeding", "baby_safety_care"],
     "sports_outdoor": ["fitness", "running", "team_sports", "camping_hiking", "winter_sports", "water_sports", "racket_sports", "climbing", "golf", "sports_accessories", "outdoor_clothing"],
-    "bikes_mobility": ["bicycles", "electric_bikes", "scooters", "electric_scooters", "bike_parts", "bike_accessories", "helmets_protection", "child_transport", "mobility_aids"],
+    "bikes_mobility": ["bicycles", "electric_bikes", "scooters", "electric_scooters", "bike_parts", "bike_accessories", "helmets_protection", "child_transport"],
     "media_music": ["books", "comics_manga", "movies_series", "cds", "vinyl", "musical_instruments", "studio_dj", "sheet_music", "media_accessories"],
     "toys_games": ["console_games", "board_games", "puzzles", "building_sets", "dolls_figures", "educational_toys", "outdoor_toys", "remote_controlled", "toy_vehicles"],
     "hobbies_collectibles": ["art", "antiques", "coins_stamps", "trading_cards", "model_building", "crafts", "collectible_figures", "memorabilia", "other_collectibles"],
@@ -34,6 +35,11 @@ MARKETPLACE_SUBCATEGORIES: dict[str, list[str]] = {
     "pet_supplies": ["dog_supplies", "cat_supplies", "small_pet_supplies", "bird_supplies", "aquarium", "terrarium", "pet_transport", "pet_beds_furniture", "pet_care", "pet_training"],
     "office_business": ["office_furniture", "office_supplies", "printers_scanners", "retail_equipment", "restaurant_equipment", "workshop_equipment", "machines", "warehouse_logistics", "agriculture", "event_equipment", "packaging"],
     "other": ["miscellaneous", "household_clearance", "bundles", "uncategorized_parts"],
+    # Φ6 (policy v18 D10 phase 1): newly activated product roots.
+    "food_beverages": ["coffee_tea", "bakery", "sweets_snacks", "pantry", "oils_spices", "fresh_produce", "dairy_chilled", "soft_drinks", "food_gift_sets"],
+    "flowers_gifts": ["bouquets", "cut_flowers", "potted_plants", "gift_items", "souvenirs", "personalized_gifts", "seasonal_items", "gift_cards_packaging"],
+    "vehicles_parts": ["passenger_cars", "commercial_vehicles", "motorcycles", "car_parts", "motorcycle_parts", "tires_wheels", "car_accessories", "motorcycle_accessories", "rider_gear", "vehicle_care", "vehicle_tools"],
+    "health_medical_supplies": ["first_aid", "home_medical_devices", "orthopedic_support", "mobility_aids", "hygiene_consumables", "oral_care", "home_care_aids", "prescription_glasses", "sunglasses", "eyeglass_frames", "prescription_lenses", "contact_lenses_solutions", "lens_wipes_cleaners", "eyewear_cases_cloths", "eyewear_accessories"],
 }
 
 ALL_VALID_ATTRIBUTE_KEYS: set[str] = {
@@ -127,8 +133,11 @@ def validate_coordinates(lat, lng):
         raise HTTPException(status_code=400, detail="Invalid longitude.")
 
 
-def validate_location(status, listing_type="product", category=None, subcategory=None):
+def validate_location(status, listing_type="product", category=None, subcategory=None, item_kind=None):
     if status != "published":
+        return
+    if listing_type == "product" and item_kind == "classified_ad":
+        # Φ6 (v18 D02): classified ads carry no commercial product taxonomy.
         return
     if listing_type == "product" and (not category or not category.strip()):
         raise HTTPException(status_code=400, detail="A category is required to publish.")
@@ -147,6 +156,7 @@ async def create_listing(
     payload: ListingCreate,
     current_user: UserPublic = Depends(get_current_user),
 ):
+    await require_verified_email(current_user)
     if payload.listing_type not in ("product", "home_rental"):
         raise HTTPException(status_code=400, detail="listing_type must be 'product' or 'home_rental'")
 
@@ -166,10 +176,40 @@ async def create_listing(
             from utils.product_permissions import validate_business_product_category
             cat = normalize_category(payload.category) if payload.category else None
             validate_business_product_category(biz, cat, payload.subcategory)
+            # Φ3 quota enforcement (policy v18): one shared product quota
+            # across canonical listings and legacy product-like Services.
+            from utils.business_quotas import assert_quota
+            await assert_quota(payload.business_id, "catalog_product", adding=1)
     else:
         seller_type_val = "user"
         seller_id_val = current_user.user_id
         business_id_val = None
+
+    # Φ6 (policy v18 D02/D03): Free users publish classified ads (3 active,
+    # 30 days); Premium personal products (10) and one home are limited.
+    # Business product quota was added in Φ3. All feature-flagged OFF.
+    from utils.marketplace_policy import (
+        assert_classified_ad_ok,
+        assert_personal_home_ok,
+        assert_personal_product_ok,
+        classified_ad_expiry,
+    )
+    user_policy_extra = {}
+    if seller_type_val == "user":
+        user_doc = await db.users.find_one(
+            {"user_id": current_user.user_id}, {"_id": 0, "user_id": 1, "account_plan": 1}
+        )
+        if payload.listing_type == "product":
+            kind = payload.item_kind or "product"
+            if kind == "classified_ad":
+                await assert_classified_ad_ok(current_user.user_id)
+                user_policy_extra["item_kind"] = "classified_ad"
+                user_policy_extra["expires_at"] = classified_ad_expiry()
+            else:
+                await assert_personal_product_ok(user_doc)
+                user_policy_extra["item_kind"] = "product"
+        elif payload.listing_type == "home_rental":
+            await assert_personal_home_ok(current_user.user_id)
 
     validate_coordinates(payload.latitude, payload.longitude)
 
@@ -180,13 +220,20 @@ async def create_listing(
     ):
         effective_status = "draft"
 
-    validate_location(effective_status, payload.listing_type, payload.category, payload.subcategory)
+    validate_location(
+        effective_status,
+        payload.listing_type,
+        payload.category,
+        payload.subcategory,
+        item_kind=user_policy_extra.get("item_kind"),
+    )
 
     dump = payload.model_dump()
     dump["status"] = effective_status
     dump["seller_type"] = seller_type_val
     dump["seller_id"] = seller_id_val
     dump["business_id"] = business_id_val
+    dump.update(user_policy_extra)
     if payload.listing_type == "product" and dump.get("category"):
         dump["category"] = normalize_category(dump["category"])
 

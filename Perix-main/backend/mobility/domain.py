@@ -54,7 +54,8 @@ def pattern_source_for_trip(route: dict, trip: dict) -> dict:
     if not isinstance(hint, list) or len(hint) < 3:
         hint = route.get('shape')
     return dict(route_number=str(route.get('route_number')),
-        mode=route.get('mode') if route.get('mode') in ('bus','tram','trolleybus') else 'bus',
+        mode=route.get('mode') if route.get('mode') in (
+            'bus', 'tram', 'trolleybus', 'subway', 's-bahn', 'rail', 'ferry') else 'bus',
         direction=str(trip.get('headsign') or ''), stop_ids=[str(x) for x in trip.get('stop_ids') or []],
         shape_id=shape_id, points=[[float(p[0]),float(p[1])] for p in hint] if isinstance(hint,list) and len(hint)>2 else [])
 
@@ -152,7 +153,9 @@ def _physical_stops(network: dict) -> List[dict]:
     for route in _physical_catalogue_routes(network):
         mode = (
             route.get("mode")
-            if route.get("mode") in ("bus", "tram", "trolleybus")
+            if route.get("mode") in (
+                "bus", "tram", "trolleybus", "subway", "s-bahn", "rail", "ferry"
+            )
             else "bus"
         )
         rn = str(route.get("route_number"))
@@ -467,7 +470,9 @@ def build_domain(network_doc: dict, network_id: str = NETWORK_ID, overrides: Opt
         rn = str(route.get("route_number"))
         mode = (
             route.get("mode")
-            if route.get("mode") in ("bus", "tram", "trolleybus")
+            if route.get("mode") in (
+                "bus", "tram", "trolleybus", "subway", "s-bahn", "rail", "ferry"
+            )
             else "bus"
         )
         stop_by_id = {str(s.get("stop_id")): s for s in route.get("stops", []) if s.get("stop_id") is not None}

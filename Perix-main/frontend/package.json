@@ -103,7 +103,9 @@
     "uuid@<11.1.1": "file:vendor/uuid-compat",
     "deepmerge": "file:vendor/deepmerge-safe"
   },
-  "engines": { "node": "^20.19.4 || ^22.13.0 || >=24.0.0" },
+  "engines": {
+    "node": "^20.19.4 || ^22.13.0 || >=24.0.0"
+  },
   "private": true,
   "packageManager": "npm@11.10.0"
 }

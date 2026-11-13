@@ -125,7 +125,7 @@ export default function ShareBusinessPage() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Image source={require("../../../assets/brand/perix-watercolor-wordmark.png")} resizeMode="contain" style={styles.logo} />
+        <Image source={require("../../../assets/brand/perix-carved-compass.png")} resizeMode="contain" style={styles.logo} />
       </View>
 
       <View style={styles.previewCard}>

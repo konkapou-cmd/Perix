@@ -1,7 +1,7 @@
-import { View, Text, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { View, Text, StyleSheet, Image } from "react-native";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES } from "../../lib/designTokens";
+import { EMPTY_STATE_ILLUSTRATIONS } from "../../lib/illustrationSources.generated";
 
 type Props = {
   type: "no-results" | "no-location";
@@ -12,10 +12,10 @@ export default function DiscoveryEmptyState({ type }: Props) {
 
   return (
     <View style={styles.container}>
-      <Ionicons
-        name={type === "no-location" ? "navigate-outline" : "search-outline"}
-        size={48}
-        color="#264348"
+      <Image
+        source={type === "no-location" ? EMPTY_STATE_ILLUSTRATIONS.no_content : EMPTY_STATE_ILLUSTRATIONS.no_businesses_found}
+        style={{ width: 96, height: 96 }}
+        resizeMode="contain"
       />
       <Text style={styles.title}>
         {type === "no-location"

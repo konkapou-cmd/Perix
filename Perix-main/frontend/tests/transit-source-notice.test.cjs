@@ -14,5 +14,5 @@ test("both web map screens expose source terms without relabeling estimates as G
   assert.match(source, /OpenStreetMap contributors/);
   assert.match(source, /accessibilityRole="link"/);
   assert.match(fs.readFileSync(path.join(root,"components/city/CityGatewayScreen.tsx"),"utf8"), /<TransitSourceNotice/);
-  assert.match(fs.readFileSync(path.join(root,"app/(tabs)/locator.tsx"),"utf8"), /<TransitSourceNotice osm=\{hasOsmTransitRouting\(transitMapLines\)\}/);
+  assert.match(fs.readFileSync(path.join(root,"components/locator/LegacyLocatorScreen.tsx"),"utf8"), /<TransitSourceNotice osm=\{hasOsmTransitRouting\(transitMapLines\)\}/);
 });

@@ -11,13 +11,15 @@ import JourneyDirectionsCard from "./JourneyDirectionsCard";
 export type NearbyJourney = { destinationId?: string; journey: GatewayJourneyState & { retry: () => void } };
 
 export default function NearbyStopCard({ stop,distanceM,target,origin,closest,liveVehicles,transitLines,onArrivalsUpdate,onDirections,activeJourney,onSelectStop,
-  progressiveDepartures=false,pairOppositeSides=false,fleetBatchLoadedKey="" }: {
+  progressiveDepartures=false,pairOppositeSides=false,arrivalRounds=false,arrivalPlatformIds,fleetBatchLoadedKey="" }: {
   stop:TransitStopMarker; distanceM:number; target:OriginPoint & {platform_id?:string}; origin:OriginPoint & {kind?:"live"|"manual"}; closest:boolean;
   liveVehicles?:LiveVehicle[];transitLines?:V2MapLine[];
   onArrivalsUpdate?:(key:string,rows:ServingBus[],visibleCount?:number)=>void;
   onDirections?:(stop:TransitStopMarker)=>void; activeJourney?:NearbyJourney;
   onSelectStop?:(stop:TransitStopMarker)=>void;
   progressiveDepartures?:boolean;pairOppositeSides?:boolean;fleetBatchLoadedKey?:string;
+  arrivalRounds?:boolean;
+  arrivalPlatformIds?:string[];
 }) {
   const {t}=useTranslation();
   const [directionsOpen,setDirectionsOpen]=useState(false);
@@ -47,10 +49,12 @@ export default function NearbyStopCard({ stop,distanceM,target,origin,closest,li
       </Pressable>
     </View>
     <CityInlineDetails entity={{id:`stop:${stop.stop_id}`,type:'stop',title:stop.name,
-      facts:target.platform_id ? {platform_id:target.platform_id} : undefined}}
+      facts:target.platform_id ? {platform_id:target.platform_id,
+        ...(arrivalRounds?{platform_ids:(stop.stop_ids || stop.platforms?.map(p=>p.platform_id) || [target.platform_id])
+          .filter(id=>!arrivalPlatformIds || arrivalPlatformIds.includes(id)).join('|')}: {})} : undefined}}
       bounds={{minLat:origin.latitude-0.01,maxLat:origin.latitude+0.01,minLng:origin.longitude-0.01,maxLng:origin.longitude+0.01}}
-      onSelect={()=>{}} compactStopBoard initialDepartureLimit={progressiveDepartures?2:3} progressiveDepartures={progressiveDepartures}
-      pairOppositeSides={pairOppositeSides}
+      onSelect={()=>{}} compactStopBoard initialDepartureLimit={arrivalRounds?10:progressiveDepartures?2:3} progressiveDepartures={progressiveDepartures}
+      pairOppositeSides={pairOppositeSides} arrivalRounds={arrivalRounds}
       fleetBatchLoadedKey={fleetBatchLoadedKey} liveVehicles={liveVehicles} transitLines={transitLines}
       onArrivalsUpdate={onArrivalsUpdate} />
     {expanded && journey && <View style={styles.plan}><JourneyDirectionsCard journey={journey}

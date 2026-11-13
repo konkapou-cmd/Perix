@@ -1,0 +1,37 @@
+{
+  "target": "production",
+  "origin": "https://app.perix.eu",
+  "total": 82,
+  "categories": {
+    "building-infrastructure": 3,
+    "business-licensing": 1,
+    "citizen-services": 5,
+    "civil-registry": 1,
+    "courts-justice": 9,
+    "education-culture": 6,
+    "employment-careers": 4,
+    "family-youth": 10,
+    "government-administration": 13,
+    "immigration-citizenship": 2,
+    "mobility-transport": 5,
+    "police-security": 5,
+    "public-health": 7,
+    "social-housing": 2,
+    "tax-finance": 1,
+    "waste-recycling": 8
+  },
+  "details_verified": 82,
+  "excluded_not_public": 8,
+  "pagination": [
+    50,
+    32
+  ],
+  "default_map_bounds_count": 82,
+  "source_sha256": "6687ce55eac6b7637fd961b9caf59d5d5b8af57f0a64de53e6332cb364ce9ae3",
+  "patch_hashes": {
+    "public_services/models.py": "cdd3b28093ded510f0bfa0fa70ffc835758272267f2d50c1027f6c8a50f577ab",
+    "public_services/repository.py": "46aa4b6a574ee5000324325b5b276e2a64860830e6ec79b3dd3073129e830e96",
+    "public_services/taxonomy.json": "469210f25651f01a79ee13782afbe2e772c70909e0e248501e71adb15629711e",
+    "routes/public_services.py": "bbe414fb5eb06d116a73018de63194abd54f9c1a37ab89037fd03cb270a83ee0"
+  }
+}

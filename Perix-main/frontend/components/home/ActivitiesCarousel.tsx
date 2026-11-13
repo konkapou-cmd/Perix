@@ -85,7 +85,7 @@ export function ActivitiesCarousel({ activities, savedActivityIds, filter, onFil
           icon="people"
           title={t("home.activities", "Activities")}
           accent={COLORS.primaryDark}
-          onSeeAll={() => router.navigate({ pathname: "/(tabs)/locator" as any, params: { tab: "activities" } })}
+          onSeeAll={() => router.navigate({ pathname: "/(tabs)/home" as any, params: { tab: "activities" } })}
           style={{ marginBottom: 0, flex: 1 }}
         />
         <Pressable style={styles.calendarButton} onPress={onCalendarOpen}>

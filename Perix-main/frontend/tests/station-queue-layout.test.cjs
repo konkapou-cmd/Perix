@@ -54,7 +54,7 @@ test('web applies only an SVG anchor offset, not displaced coordinates or rewrit
   assert.match(web,/rec\.marker\.setPosition\(\{lat:point\.lat,lng:point\.lng\}\)/);
   const layout=web.slice(web.indexOf('const queueOffsets = stationQueueOffsets'),web.indexOf('if (active) {'));
   assert.doesNotMatch(layout,/setPosition|progNow\s*=|countdown_seconds\s*=|authorizedPreview\s*=/);
-  for(const file of ['components/city/CityInlineDetails.tsx','app/(tabs)/locator.tsx'])assert.match(read(file),/countdownPresentation/);
+  for(const file of ['components/city/CityInlineDetails.tsx','components/locator/LegacyLocatorScreen.tsx'])assert.match(read(file),/countdownPresentation/);
   assert.match(read('components/BusinessMap.native.tsx'),/useNativeStationQueue\(mapMarkers/);
   const native=read('components/VisualTransitMarker.native.tsx');
   assert.match(native,/anchor=\{\{x:0\.5,y:0\.5\}\}/);

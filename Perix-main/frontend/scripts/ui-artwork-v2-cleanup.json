@@ -1,0 +1,25 @@
+{
+  "base_profile": "user-selected-full-contours-v2",
+  "note": "Individually reviewed caption/divider selections only; no global subject re-segmentation.",
+  "edits": [
+    {"target":"categories/root/shopping-retail.webp","remove_core":[17],"expected_boxes":{"17":[12,104,117,26]}},
+    {"target":"categories/root/fashion-accessories.webp","remove_core":[2],"expected_boxes":{"2":[11,101,145,26]}},
+    {"target":"categories/root/nightlife-social.webp","remove_core":[3],"expected_boxes":{"3":[16,105,71,25]}},
+    {"target":"empty/empty_marketplace.webp","erase_polygons":[[[131,0],[143,0],[143,122],[131,122]]]},
+    {"target":"marketplace/subcategories/furniture.webp","erase_polygons":[[[0,0],[140,0],[140,11],[0,11]]]},
+    {"target":"marketplace/subcategories/kitchen_household.webp","erase_polygons":[[[0,0],[149,0],[149,11],[0,11]]]},
+    {"target":"marketplace/subcategories/fitness.webp","keep_soft":[5]},
+    {"target":"marketplace/subcategories/running.webp","keep_soft":[4]},
+    {"target":"marketplace/subcategories/bicycles.webp","erase_polygons":[[[0,0],[145,0],[145,9],[0,9]]]},
+    {"target":"marketplace/subcategories/electric_bikes.webp","keep_soft":[2]},
+    {"target":"marketplace/subcategories/strollers.webp","remove_core":[1],"expected_boxes":{"1":[12,14,193,31]}},
+    {"target":"marketplace/subcategories/office_furniture.webp","erase_ink_polygons":[[[26,109],[85,109],[85,129],[26,129]]]},
+    {"target":"marketplace/subcategories/professional_cleaning_equipment.webp","erase_ink_polygons":[[[10,110],[149,110],[149,123],[10,123]]]},
+    {"target":"marketplace/subcategories/miscellaneous.webp","erase_ink_polygons":[[[13,140],[179,140],[179,164],[13,164]]]},
+    {"target":"marketplace/subcategories/bundles.webp","remove_core":[2],"expected_boxes":{"2":[45,152,76,18]}},
+    {"target":"marketplace/subcategories/hygiene_consumables.webp","keep_soft":[1,2]},
+    {"target":"marketplace/subcategories/eyeglass_frames.webp","keep_soft":[1]},
+    {"target":"marketplace/subcategories/contact_lenses_solutions.webp","keep_core":[1]},
+    {"target":"marketplace/subcategories/lens_wipes_cleaners.webp","keep_core":[1]}
+  ]
+}

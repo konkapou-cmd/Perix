@@ -117,7 +117,7 @@ export default function GlobalWebChrome({ children }: { children: React.ReactNod
   const routeSegments = segments as string[];
   const isCityGateway = routeSegments.length === 0 || routeSegments[0] === "index" || routeSegments[0] === "app" || routeSegments[0] === "public-services";
   const isLocator = routeSegments[0]==='locator' || (routeSegments[0]==='(tabs)' && routeSegments[1]==='locator');
-  const showTopNavbar = isDesktop && Platform.OS === "web" && (!!sessionToken || isLocator) && segments[0] !== "(auth)" && !isCityGateway;
+  const showTopNavbar = isDesktop && Platform.OS === "web" && !!sessionToken && segments[0] !== "(auth)" && !isCityGateway;
 
   const createFlowValue = useMemo(
     () => ({

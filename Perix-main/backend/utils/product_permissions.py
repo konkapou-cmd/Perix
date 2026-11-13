@@ -75,6 +75,13 @@ BUSINESS_PRODUCT_POLICY: dict[str, dict[str, dict[str, str | list[str] | None]]]
         },
         "florists": {
             "home_garden_diy": ["garden", "decoration"],
+            # Φ6 (policy v18 D10 phase 1): newly activated flowers_gifts root.
+            "flowers_gifts": ["bouquets", "cut_flowers", "potted_plants", "seasonal_items"],
+        },
+        # Φ6 (v18 D10 phase 1): gifts-souvenirs was previously unmapped
+        # (SVC-019). Fail-closed until now; activated with explicit paths.
+        "gifts-souvenirs": {
+            "flowers_gifts": ["gift_items", "souvenirs", "personalized_gifts", "gift_cards_packaging"],
         },
     },
     "fashion-accessories": {

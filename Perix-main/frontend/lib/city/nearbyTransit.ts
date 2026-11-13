@@ -34,12 +34,14 @@ function meters(a: OriginPoint,b: OriginPoint) {
 }
 /** Rank physical places by their real boarding platforms, not map bounds or
  * a parent's possibly remote centroid. Preserve source IDs for arrivals reads. */
-export function nearestTransitStops(stops: TransitStopMarker[],origin: OriginPoint | null,limit=5,radiusM=NEARBY_STOP_RADIUS_M) {
+export function nearestTransitStops<T extends TransitStopMarker>(stops: T[],origin: OriginPoint | null,limit=5,radiusM=NEARBY_STOP_RADIUS_M,
+  preferredStopId?:string|null) {
   if (!validOrigin(origin)) return [];
   return stops.map(stop => {
     const candidates=transitStopPins([stop]).filter(validOrigin).map(point=>({point,distanceM:meters(origin,point)}));
     const closest=candidates.reduce<typeof candidates[number] | null>((best,value)=>!best || value.distanceM<best.distanceM ? value : best,null);
     return {stop,distanceM:closest?.distanceM ?? Infinity,target:closest?.point};
   }).filter(row => row.distanceM<=radiusM)
-    .sort((a,b)=>a.distanceM-b.distanceM || a.stop.stop_id.localeCompare(b.stop.stop_id)).slice(0,limit);
+    .sort((a,b)=>(a.stop.stop_id===preferredStopId?-1:0)-(b.stop.stop_id===preferredStopId?-1:0)
+      || a.distanceM-b.distanceM || a.stop.stop_id.localeCompare(b.stop.stop_id)).slice(0,limit);
 }

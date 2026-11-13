@@ -1,0 +1,166 @@
+{
+  "components/city/CityGatewayScreen.tsx": {
+    "before": "6fd606a085f6f0acaa1f462b9cc749d86c94c5228c53b63140ac94b865a60701",
+    "after": "2aef435fc0d2928878b977af9334e4d098679d32caa15f9f52b4aaf3a5dfdddf"
+  },
+  "components/BusinessMap.web.tsx": {
+    "before": "2c51004d8612301ddd40d0158b20dd02ce71c4fc2d07c91b0683e2349cb1014a",
+    "after": "1562dade19d5c8d90a7e7c9c069309d74597db7495bfd570be15480063ee8c44"
+  },
+  "components/BusinessMap.native.tsx": {
+    "before": "b739faaaabadba59112416815842bc0c86c1c3314dd06f1a9ac11b0319b37370",
+    "after": "6de039e8e884e06999356a25631d3d68e28c7e39dc88daa35389ad259399d4df"
+  },
+  "components/BusinessMap.d.ts": {
+    "before": "a2bab7c4d2185b62fb5f65fce88604745f5b3dc472e44e29ac286002d55b4127",
+    "after": "56fbd272e35ae0b5eda1f2338aad18c77dd158809c09fa9a3e280818b4e7206a"
+  },
+  "components/icons/IllustratedIcon.tsx": {
+    "before": "ee97ed86e74a63c22fa15f3cdcfb27660d495b101ca104de5c4861e7d8c3f126",
+    "after": "fdc2586a75d4b4e5e43e1b3cd0d70a5381bc9df1f88103c8e320c0476d29e270"
+  },
+  "hooks/city/useCityDiscovery.ts": {
+    "before": "bc8e1217be7377ba8c488969bd86d785e4087c254d6ad81c55dd5962e13bfa1f",
+    "after": "b7e46cf35117ad42691d0c30836b810e7542b008a6612323df7af9bf776afacb"
+  },
+  "lib/city/mapPresentation.ts": {
+    "before": "5e4513d2f680cf2e7d675a452367818af79c479dfafd4dcbd424fe6269f699f9",
+    "after": "b2d06b52fa6312781e51ca421598618f56750073a69fa90a7ef64d0bf02b8737"
+  },
+  "lib/city/sceneScope.ts": {
+    "before": null,
+    "after": "75c649166479f6bc8aab7b141587bd542b57c8d49397515c9aec9714b5eb5226"
+  },
+  "lib/civicIllustrations.ts": {
+    "before": null,
+    "after": "b8c3955c36e453cb47e7731caff39337e441941f34c6e9ec2ff296091c0859a2"
+  },
+  "assets/illustrations/civic-jobs-v1/manifest.json": {
+    "before": null,
+    "after": "432a179b543df478ddf5ac3307d0d0863f2591c18e84ef98c9c9beff2bbd8471"
+  },
+  "assets/illustrations/civic-jobs-v1/jobs/Praktikum.webp": {
+    "before": null,
+    "after": "fef1ed6c59e426b2435514d8323afcae6a2813f5b8d22214d5f91f8b320d9a68"
+  },
+  "assets/illustrations/civic-jobs-v1/jobs/Remote.webp": {
+    "before": null,
+    "after": "fb6a50a11060d26a664e032f2174d734d73175ca7d5f6304958ed055d5c2768f"
+  },
+  "assets/illustrations/civic-jobs-v1/jobs/Teilzeit.webp": {
+    "before": null,
+    "after": "6a4e27c2268f9bcf815aa04a42df4aa3bf8b28560e92afef2e872f337c026a3e"
+  },
+  "assets/illustrations/civic-jobs-v1/jobs/Vertrag.webp": {
+    "before": null,
+    "after": "51fc4c37c04bf8bf4932905789b8a56c8910470d1037d49ae23378ebb8e1b284"
+  },
+  "assets/illustrations/civic-jobs-v1/jobs/Vollzeit.webp": {
+    "before": null,
+    "after": "6fd817b29ad63938446c216c209840fe15a61058c70e96ca7db684191e45e9b0"
+  },
+  "assets/illustrations/civic-jobs-v1/public-services/building-infrastructure.webp": {
+    "before": null,
+    "after": "8273bb6c54d96e4dfe12cfb0371593fa29447e766414c0bd28613dc90f51dfe4"
+  },
+  "assets/illustrations/civic-jobs-v1/public-services/business-licensing.webp": {
+    "before": null,
+    "after": "436c39e7564b8f447c4a6b0299e0d6b2ad9c45dd0c476c157313e559f78f94a2"
+  },
+  "assets/illustrations/civic-jobs-v1/public-services/citizen-services.webp": {
+    "before": null,
+    "after": "a9dff7080d320ca5424026d0e263c97ccfbc19f35ccdf54f5dc654b1e80d72a1"
+  },
+  "assets/illustrations/civic-jobs-v1/public-services/civil-registry.webp": {
+    "before": null,
+    "after": "c0df3204f937a13645bef1b9996efec8c33b82a8b9b6f9ebadc1657897e68e4b"
+  },
+  "assets/illustrations/civic-jobs-v1/public-services/courts-justice.webp": {
+    "before": null,
+    "after": "a63ce77a2bd390adb45b590a5454ef9baeb88adabd4eee38626046faa22d4d2b"
+  },
+  "assets/illustrations/civic-jobs-v1/public-services/education-culture.webp": {
+    "before": null,
+    "after": "2d58ef21a88383b00c148a6fcc371b85a87a2c11446be354b4801e06401090f9"
+  },
+  "assets/illustrations/civic-jobs-v1/public-services/employment-careers.webp": {
+    "before": null,
+    "after": "00ebeede2868741ad11dd0b40076fee7a087eec846d53388470d96bf64559e86"
+  },
+  "assets/illustrations/civic-jobs-v1/public-services/family-youth.webp": {
+    "before": null,
+    "after": "f52a962f054a725af0473e7fae36c17bade8d6529ed82440b53cb2725cc50ea6"
+  },
+  "assets/illustrations/civic-jobs-v1/public-services/government-administration.webp": {
+    "before": null,
+    "after": "7a3d584d77ddc8052a1ab1cf63b43368b6575d4d92753b3eb4aa28eacc1ed423"
+  },
+  "assets/illustrations/civic-jobs-v1/public-services/immigration-citizenship.webp": {
+    "before": null,
+    "after": "13e840715c407114b6b60dfaa8ccd1bb4de6cd85f5f24146fdf5b25fa821911b"
+  },
+  "assets/illustrations/civic-jobs-v1/public-services/mobility-transport.webp": {
+    "before": null,
+    "after": "2995e0d34b20420c91979ad37ee42eff4a3c9cbf3f76ff6e869f4b9035f86867"
+  },
+  "assets/illustrations/civic-jobs-v1/public-services/police-security.webp": {
+    "before": null,
+    "after": "55d8363d29f1c7fcb56c09b8d8da45c69e18e461742689e2acf5f1e2ca7b5e45"
+  },
+  "assets/illustrations/civic-jobs-v1/public-services/ps-sos.webp": {
+    "before": null,
+    "after": "9f30732ebc84fc8c501bbaf0698663c2770666cd58ffe9382f3c089f74877035"
+  },
+  "assets/illustrations/civic-jobs-v1/public-services/public-health.webp": {
+    "before": null,
+    "after": "5e84adfe9d8c1888ce994033c836bfbf4cf829b77dac41c5e465e98fcf96dbe4"
+  },
+  "assets/illustrations/civic-jobs-v1/public-services/social-housing.webp": {
+    "before": null,
+    "after": "afa3408c67662782fb87918a0ef8c50e71d5e59dbc362964593f6f77779eb28a"
+  },
+  "assets/illustrations/civic-jobs-v1/public-services/tax-finance.webp": {
+    "before": null,
+    "after": "e1bfa8da9eb71de218f571c9c8b1d0b50b89e3182196843ce71b8e742b8a114e"
+  },
+  "assets/illustrations/civic-jobs-v1/public-services/waste-recycling.webp": {
+    "before": null,
+    "after": "13c1b48f7fb62a913d265272417238ef9c4566a92477c1aac4a630478a1cb18a"
+  },
+  "assets/illustrations/categories/sub/apartment.webp": {
+    "before": "b80add97ab7ce35cef3e0dccaf5e426e161a3e1221949e8451f773a7f4cc417b",
+    "after": "b80add97ab7ce35cef3e0dccaf5e426e161a3e1221949e8451f773a7f4cc417b"
+  },
+  "assets/illustrations/categories/sub/house.webp": {
+    "before": "911489833b1cbfbc45c8065a0156e3dacfee8f7fc423acaae5c1158c1cb4de6b",
+    "after": "911489833b1cbfbc45c8065a0156e3dacfee8f7fc423acaae5c1158c1cb4de6b"
+  },
+  "assets/illustrations/categories/sub/studio.webp": {
+    "before": "3bbff18e3f87a581eb4c811f690a98d519d5731e1edfb100cd47bf3ef221403f",
+    "after": "3bbff18e3f87a581eb4c811f690a98d519d5731e1edfb100cd47bf3ef221403f"
+  },
+  "assets/illustrations/categories/sub/room.webp": {
+    "before": "3f6443764b461e506b0f17ab6c93643e01efc7d3fb0f91573ee36d312785f564",
+    "after": "3f6443764b461e506b0f17ab6c93643e01efc7d3fb0f91573ee36d312785f564"
+  },
+  "assets/illustrations/categories/sub/commercial.webp": {
+    "before": "4d171cf48c150a2959e52b530a6a7360aee4b1f699705f4044f079ec658b329a",
+    "after": "4d171cf48c150a2959e52b530a6a7360aee4b1f699705f4044f079ec658b329a"
+  },
+  "assets/illustrations/categories/home/hotels.webp": {
+    "before": "295620e942e78a70577d48e3c5f0c090b77187f65c54dfa2cb03676fa4e8eddb",
+    "after": "565fedb7c055b79cd7aa38b2740f31e718526a145a13726cfa96fd529e38eaf0"
+  },
+  "assets/illustrations/categories/home/homes-nearby.webp": {
+    "before": "4d89facd19b2c1355a27b6bf0bc9ab53eca2e0997fc96ee73a3709869c94c34a",
+    "after": "4d89facd19b2c1355a27b6bf0bc9ab53eca2e0997fc96ee73a3709869c94c34a"
+  },
+  "assets/illustrations/categories/home/rentals.webp": {
+    "before": "6c5c169d6edbd568c8af8c5f0a3339d44c34bf19959f418ce0009cb8662a0ce4",
+    "after": "64694955859861737ed324079433793bde0ddb98e25c7e6e71d5db94190e89b3"
+  },
+  "assets/illustrations/categories/home/mobility.webp": {
+    "before": "bffe2b731c959d22b4b56e305d7b42871aedffb49c256a8ff0063df5823b74f1",
+    "after": "bffe2b731c959d22b4b56e305d7b42871aedffb49c256a8ff0063df5823b74f1"
+  }
+}

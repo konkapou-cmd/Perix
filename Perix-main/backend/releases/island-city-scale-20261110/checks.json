@@ -1,0 +1,17 @@
+{
+  "frontend_tests": 343,
+  "typescript": "passed",
+  "runtime_source_files_changed": 1,
+  "assets_changed": false,
+  "source_positions_changed": false,
+  "magdeburg_presentation_changed": false,
+  "footer_retained": true,
+  "ordinary_town_street_zoom": 17,
+  "finer_lane_zoom": 18,
+  "distant_size_at_14_px": 115,
+  "size_from_17_px": 42,
+  "all_island_artwork_drawn": true,
+  "proximity_composites": false,
+  "backend_code_changed": false,
+  "public_directory_changed": false
+}

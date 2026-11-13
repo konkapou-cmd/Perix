@@ -1,0 +1,15 @@
+{
+  "changed_files": [
+    "components/BusinessMap.d.ts",
+    "components/BusinessMap.native.tsx",
+    "components/BusinessMap.web.tsx",
+    "components/city/CityGatewayScreen.tsx",
+    "components/city/CityInlineDetails.tsx",
+    "components/city/GatewayResultCard.tsx",
+    "components/city/PublicServiceCard.tsx",
+    "lib/city/landmarks.ts",
+    "lib/city/mapPresentation.ts"
+  ],
+  "unrelated_source_and_assets_preserved": true,
+  "tests_passed": 333
+}
