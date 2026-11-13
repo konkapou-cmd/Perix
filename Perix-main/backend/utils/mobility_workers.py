@@ -221,7 +221,12 @@ async def _realtime_worker():
             alert_scope = build_alert_scope(active_network or {})
             trip_ids = {tid for _, index in dated_indexes.values() for tid in index}
 
-            async with httpx.AsyncClient(timeout=60) as client:
+            # Some RT publishers (e.g. production.gtfsrt.vbb.de) reject
+            # clients without a recognizable User-Agent with 403.
+            async with httpx.AsyncClient(timeout=60, headers={
+                "User-Agent": "PerixMobility/1.0 (app.perixapp.com)",
+                "Accept": "application/protobuf, application/x-protobuf, */*",
+            }) as client:
                 resp = await client.get(REALTIME_URL)
                 resp.raise_for_status()
                 raw = resp.content

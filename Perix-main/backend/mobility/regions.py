@@ -127,7 +127,10 @@ _PRESETS: Dict[str, MobilityRegion] = {
         static_transit_type="GTFS",
         static_gtfs_url="https://unternehmen.vbb.de/gtfs",
         realtime_type="GTFS_RT",
-        realtime_url="https://realtime.gtfs.de/realtime-free.pb",
+        # VBB's own RT feed matches the VBB static trip ids. The DELFI free
+        # feed matches the GTFS-DE static feeds (Magdeburg/Gardelegen), NOT
+        # the VBB static; verified 2026-11-14: zero trip-id intersection.
+        realtime_url="https://production.gtfsrt.vbb.de/data",
         realtime_interval_seconds=15.0,
         traffic_adapter="normalized_csv",
         # VBB ships no feed_info.txt; publisher is declared by the region so
