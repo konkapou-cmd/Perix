@@ -38,6 +38,17 @@ export const AREAS: Area[] = [
     mobilityEnabled: false,
   },
   {
+    id: "berlin",
+    countryCode: "DE",
+    cityId: "de-berlin-vbb",
+    label: { el: "Βερολίνο", de: "Berlin", en: "Berlin" },
+    shortLabel: { el: "BER", de: "BER", en: "BER" },
+    bounds: { minLat: 52.35, maxLat: 52.70, minLng: 13.05, maxLng: 13.80 },
+    initialRegion: { latitude: 52.52, longitude: 13.405, latitudeDelta: 0.09, longitudeDelta: 0.09 },
+    isHomeArea: false,
+    mobilityEnabled: true,
+  },
+  {
     id: "acharnes",
     countryCode: "GR",
     cityId: "gr-acharnes",
