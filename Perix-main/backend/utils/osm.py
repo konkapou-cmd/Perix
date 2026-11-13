@@ -16,7 +16,46 @@ OVERPASS_URLS = [
 ]
 
 # Magdeburg + surroundings (trams reach Barleben, buses reach the edge towns)
+# Kept as fallback; active regions resolve their own bbox via mobility.regions.
 MAGDEBURG_BBOX = (52.02, 11.50, 52.25, 11.76)  # south, west, north, east
+
+
+def _active_bbox_and_modes():
+    """Region bbox + OSM route filter for the active mobility region.
+
+    Magdeburg resolves to the legacy MAGDEBURG_BBOX + bus|tram so current
+    behaviour is byte-identical. Other regions use their configured bbox
+    and extend the filter only for modes they declare.
+    """
+    try:
+        from mobility.regions import get_active_region
+
+        region = get_active_region()
+        bbox = tuple(region.bbox)
+        modes = {str(m).strip().lower() for m in (region.modes or ())}
+        if region.region_id == "magdeburg":
+            return MAGDEBURG_BBOX, "bus|tram"
+        # Other regions query exactly the modes they declare, keeping
+        # Overpass load minimal (Gardelegen bus-only -> "bus").
+        filt = []
+        if "bus" in modes:
+            filt.append("bus")
+        if "tram" in modes:
+            filt.append("tram")
+        if "subway" in modes or "u-bahn" in modes or "metro" in modes:
+            filt.append("subway")
+        if "s-bahn" in modes or "s Bahn" in modes or "rail" in modes:
+            filt.extend(["light_rail", "rail", "train"])
+        if "ferry" in modes:
+            filt.append("ferry")
+        if "trolleybus" in modes:
+            filt.append("trolleybus")
+        # de-duplicate while keeping order
+        seen = set()
+        filt = [x for x in filt if not (x in seen or seen.add(x))]
+        return bbox, "|".join(filt)
+    except Exception:
+        return MAGDEBURG_BBOX, "bus|tram"
 
 _cache: dict = {}
 
@@ -53,15 +92,31 @@ def _chain_ways(members: list) -> list:
     return chains[0]
 
 
-async def fetch_route_shape(ref: str) -> list:
-    """Geometry for a bus/tram line (e.g. ref='52') as [[lat, lng], ...]."""
+async def fetch_route_shape(ref: str, route_mode: str = "") -> list:
+    """Geometry for a line (e.g. ref='52') as [[lat, lng], ...].
+
+    Uses the active region bbox/modes; magdeburg behaviour is unchanged.
+    Cache is namespaced by region so Berlin/Gardelegen shapes never leak
+    into the Magdeburg network.
+    """
     ref = str(ref).strip()
-    if ref in _cache:
-        return _cache[ref]
     south, west, north, east = MAGDEBURG_BBOX
+    route_filter = "bus|tram"
+    region_id = "magdeburg"
+    try:
+        bbox, route_filter = _active_bbox_and_modes()
+        south, west, north, east = bbox
+        from mobility.regions import get_active_region
+
+        region_id = get_active_region().region_id
+    except Exception:
+        pass
+    cache_key = f"{region_id}:{route_filter}:{ref}:{str(route_mode or '').lower()}"
+    if cache_key in _cache:
+        return _cache[cache_key]
     query = (
         f'[out:json][timeout:60];'
-        f'relation["route"]["ref"="{ref}"]["route"~"bus|tram"]'
+        f'relation["route"]["ref"="{ref}"]["route"~"{route_filter}"]'
         f'({south},{west},{north},{east});'
         f'out geom;'
     )
@@ -92,10 +147,10 @@ async def fetch_route_shape(ref: str) -> list:
             chain = _chain_ways(el.get("members", []))
             if len(chain) > len(best):
                 best = chain
-        _cache[ref] = best
+        _cache[cache_key] = best
         logger.info(f"[osm] route {ref}: {len(best)} points")
         return best
     except Exception as e:
         logger.warning(f"[osm] route {ref} failed: {e}")
-        _cache[ref] = []
+        _cache[cache_key] = []
         return []

@@ -1,0 +1,74 @@
+{
+ "trips": [
+  {
+   "trip_id": "FERRY_001",
+   "direction": "0",
+   "origin": "GR_PIR",
+   "destination": "GR_MYK",
+   "intermediates_estimated": [
+    "GR_SYR",
+    "GR_TIN"
+   ],
+   "flags": [
+    "INTERMEDIATE_TIMES_ESTIMATED_EQUAL_SPLIT_NOT_PRINTED",
+    "DATASET_YEAR_2023"
+   ]
+  },
+  {
+   "trip_id": "FERRY_002",
+   "direction": "0",
+   "origin": "GR_PIR",
+   "destination": "GR_MYK",
+   "intermediates_estimated": [
+    "GR_SYR",
+    "GR_TIN"
+   ],
+   "flags": [
+    "INTERMEDIATE_TIMES_ESTIMATED_EQUAL_SPLIT_NOT_PRINTED",
+    "DATASET_YEAR_2023"
+   ]
+  },
+  {
+   "trip_id": "FERRY_003",
+   "direction": "1",
+   "origin": "GR_MYK",
+   "destination": "GR_PIR",
+   "intermediates_estimated": [
+    "GR_TIN",
+    "GR_SYR"
+   ],
+   "flags": [
+    "INTERMEDIATE_TIMES_ESTIMATED_EQUAL_SPLIT_NOT_PRINTED",
+    "DATASET_YEAR_2023"
+   ]
+  }
+ ],
+ "notes": [
+  "Static reference only: the NAP dataset year is 2023 and covers 4 operators (Blue Star/Hellenic, Anek, Zante, Minoan).",
+  "Only rows whose origin, destination and intermediate ports resolve to OSM ferry terminals are included.",
+  "Intermediate arrivals (Σύρος, Τήνος) are not printed in the dataset; they are equal-split estimates over the printed duration.",
+  "Syros-Lavrio line exists in the dataset (via Kythnos/Kea) but Kythnos has no tagged OSM ferry terminal, so it is omitted.",
+  "Minoan Heraklion-Mykonos row exists but Heraklion is outside the current port set.",
+  "Live arrivals/departures require an AIS/operator realtime source, which is not open/free; this layer is schedule-only."
+ ],
+ "schema_version": 1,
+ "status": "REVIEW_ARTIFACT_NOT_ACTIVATED",
+ "runtime_eligible": false,
+ "public_release_allowed": false,
+ "source_dataset": "data.nap.gov.gr - Information about maritime transport in Greece (2023)",
+ "source_url": "https://data.nap.gov.gr/dataset/f1829566-388d-4bde-afc7-b9a6498b701b",
+ "attribution": "Hellenic Institute of Transport / CERTH; OpenStreetMap contributors, ODbL",
+ "fetched": "2026-11-12",
+ "activation_blockers": [
+  "DATASET_2023_STALE_VERIFY_CURRENT_OPERATOR_TIMETABLES",
+  "INTERMEDIATE_PORT_TIMES_NOT_PRINTED_EQUAL_SPLIT_ESTIMATE",
+  "CALENDAR_END_ASSUMED_REFERENCE_WINDOW",
+  "COMPANIES_PARTIAL_4_OF_OPERATORS",
+  "LIVE_AIS_NOT_INCLUDED"
+ ],
+ "coverage": {
+  "ports": 5,
+  "trips": 3,
+  "stop_times": 12
+ }
+}

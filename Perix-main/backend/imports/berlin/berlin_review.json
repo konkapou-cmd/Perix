@@ -1,0 +1,64 @@
+{
+ "schema_version": 1,
+ "status": "REVIEW_ARTIFACT_NOT_ACTIVATED",
+ "runtime_eligible": false,
+ "public_release_allowed": false,
+ "region": "berlin",
+ "network_id": "de-berlin-vbb",
+ "fetched": "2026-11-12",
+ "attribution": "VBB Verkehrsverbund Berlin-Brandenburg GmbH (open data, CC BY 4.0); GTFS-DE realtime via DELFI e.V. (CC BY-SA); OpenStreetMap contributors, ODbL",
+ "feeds": {
+  "static": {
+   "source_url": "https://unternehmen.vbb.de/gtfs",
+   "raw_size_bytes": 83945091,
+   "agencies_total": 32,
+   "routes_raw_total": 1289,
+   "route_type_histogram": {
+    "100": 57,
+    "700": 1067,
+    "900": 48,
+    "1000": 8,
+    "106": 14,
+    "3": 33,
+    "109": 53,
+    "400": 9
+   },
+   "parsed_routes": 327,
+   "parsed_modes": {
+    "bus": 227,
+    "ferry": 3,
+    "rail": 49,
+    "s-bahn": 18,
+    "subway": 9,
+    "tram": 21
+   },
+   "parsed_trips": 46152,
+   "parsed_stop_entries": 15648,
+   "dry_run_date": "2026-11-12",
+   "unmapped_route_types": [],
+   "artwork_missing": [],
+   "motion_missing": [],
+   "fresh_for_today": true
+  },
+  "realtime": {
+   "source_url": "https://realtime.gtfs.de/realtime-free.pb",
+   "type": "GTFS_RT",
+   "notes": "Shared DELFI free feed covers the VBB area (same pipeline as Magdeburg)."
+  }
+ },
+ "parser_changes": [
+  "Extended VBB route types are folded into the standard modes before routing (100/106->rail, 109->s-bahn, 400->subway, 700->bus, 900->tram, 1000->ferry); gated by the region's modes so Magdeburg stays frozen."
+ ],
+ "activation_blockers": [
+  "REGION_INACTIVE_UNTIL_EXPLICIT_FINAL_DEPLOYMENT_STEP",
+  "MAGDEBURG_MUST_STAY_DEFAULT_REGION"
+ ],
+ "notes": [
+  "Depth test run on the fresh feed fetched 2026-11-12; SHA256 identical to the 2026-11-11 snapshot (publisher has not shipped a newer feed yet).",
+  "Calendar covers today: 46152 active trips parsed for 2026-11-12.",
+  "All parsed modes have turntable artwork (12 angles) and motion profiles; frontend illustrated-icons tests verify the view-source registry (4/4).",
+  "rail (49 routes, DB Regio/ODEG/NEB regional trains) has its own turntable sheet (Weathered Wooden Regional Train, sliced 2026-11-12); no visual substitution remains.",
+  "Standard GTFS type 2 (rail) is folded into s-bahn per the frozen parser; Berlin regional rail arrives via extended types 100/106 -> rail.",
+  "No DB writes, no worker activation, no deployment during this test."
+ ]
+}

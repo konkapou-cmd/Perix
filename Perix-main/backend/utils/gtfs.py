@@ -13,8 +13,18 @@ from zoneinfo import ZoneInfo
 from mobility.regions import get_active_region
 
 TRAM_TYPES = {"0"}
+SUBWAY_TYPES = {"1"}
+RAIL_TYPES = {"2"}
 BUS_TYPES = {"3"}
+FERRY_TYPES = {"4"}
 TROLLEYBUS_TYPES = {"11"}
+# VBB/NeTEX-derived extended route types (e.g. VBB GTFS static feed).
+VBB_TRAM_TYPES = {"900"}
+VBB_SUBWAY_TYPES = {"400"}
+VBB_SBAHN_TYPES = {"109"}
+VBB_RAIL_TYPES = {"100", "106"}
+VBB_BUS_TYPES = {"700"}
+VBB_FERRY_TYPES = {"1000"}
 
 
 def _rows(zf: zipfile.ZipFile, name: str) -> list:
@@ -152,24 +162,54 @@ def _parse_zip(source, service_date, agency_regex, timezone) -> dict:
             raise ValueError(f"No agency matched /{resolved_agency_regex}/ in agency.txt")
 
         feed_info = _feed_info(zf)
+        # Region-declared publisher only when the archive itself supplies no
+        # usable feed_info (e.g. VBB). Magdeburg declares none -> unchanged.
+        if not feed_info and isinstance(getattr(region, "static_publisher", None), dict):
+            candidate = region.static_publisher
+            if isinstance(candidate.get("publisher_name"), str) \
+                    and isinstance(candidate.get("publisher_url"), str) \
+                    and candidate["publisher_name"].strip() and candidate["publisher_url"].strip():
+                feed_info = {"publisher_name": candidate["publisher_name"].strip(),
+                             "publisher_url": candidate["publisher_url"].strip()}
 
         service_ids = _active_service_ids(zf, sd)
         if not service_ids:
             raise ValueError(f"No active services for {sd}")
 
         selected_routes = {}
+        allowed_modes = {str(m).strip().lower() for m in (region.modes or ())}
+        # agency_id is conditionally required by the GTFS spec: optional when
+        # the feed defines a single agency (e.g. OASA road feed). A route with
+        # no agency_id is accepted only when exactly one agency matched.
         for r in _rows(zf, "routes.txt"):
-            if r.get("agency_id", "") not in agency_ids:
+            route_agency = str(r.get("agency_id") or "").strip()
+            if route_agency and route_agency not in agency_ids:
+                continue
+            if not route_agency and len(agency_ids) > 1:
                 continue
             rt = str(r.get("route_type", "")).strip()
-            if rt not in TRAM_TYPES | BUS_TYPES | TROLLEYBUS_TYPES:
-                continue
-            if rt in TRAM_TYPES:
+            if rt in TRAM_TYPES or rt in VBB_TRAM_TYPES:
                 mode = "tram"
             elif rt in TROLLEYBUS_TYPES:
                 mode = "trolleybus"
-            else:
+            elif rt in SUBWAY_TYPES or rt in VBB_SUBWAY_TYPES:
+                mode = "subway"
+            elif rt in RAIL_TYPES:
+                mode = "s-bahn"
+            elif rt in VBB_SBAHN_TYPES:
+                mode = "s-bahn"
+            elif rt in VBB_RAIL_TYPES:
+                mode = "rail"
+            elif rt in FERRY_TYPES or rt in VBB_FERRY_TYPES:
+                mode = "ferry"
+            elif rt in BUS_TYPES or rt in VBB_BUS_TYPES:
                 mode = "bus"
+            else:
+                continue
+            # Magdeburg (bus,tram) behaviour is unchanged: extra GTFS types
+            # are only accepted when the active region declares that mode.
+            if mode not in allowed_modes:
+                continue
             selected_routes[r["route_id"]] = {
                 "route_number": (r.get("route_short_name") or r.get("route_long_name") or r["route_id"]).strip(),
                 "name": (r.get("route_long_name") or "").strip(),

@@ -283,7 +283,7 @@ async def driver_location(payload: DriverLocationUpdate):
     if vehicle["mode"] == "bus" and live.get("route_number"):
         from mobility.map_match import assign_trip
         matches = []
-        for dated in await networks_for_journey_window():
+        for dated in await networks_for_journey_window(include_times=True):
             candidate_route = next((r for r in dated.get("routes", [])
                 if str(r.get("route_number")) == str(live["route_number"])), None)
             if candidate_route is None:
@@ -563,6 +563,12 @@ def _epoch_to_service_seconds(epoch_value, service_date: str) -> Optional[int]:
 def _predicted_stop_timeline(route: dict, trip: dict, realtime: Optional[dict]) -> List[dict]:
     """One canonical scheduled/predicted timeline for marker, ETA and motion."""
     realtime = realtime or {}
+    # Split networks precompute the realtime-free timeline at import; the
+    # 'stop' dicts are reconstructed from the route's own stops.
+    if not realtime and isinstance(trip.get("base_timeline"), list):
+        by_id = {str(s.get("stop_id")): s for s in route.get("stops", []) if s.get("stop_id") is not None}
+        return [{**entry, "stop": by_id.get(str(entry.get("stop_id")))}
+                for entry in trip["base_timeline"]]
     trip_rel = str(realtime.get("trip_schedule_relationship") or "SCHEDULED").upper()
     if trip_rel in ("CANCELED", "DELETED"):
         return []
@@ -1428,13 +1434,12 @@ REALTIME_FRESH_SECONDS = int(os.getenv("MOBILITY_REALTIME_FRESH_SECONDS", "420")
 MOTION_ENGINE_ENABLED = os.getenv("MOBILITY_MOTION_ENABLED", "false").lower() == "true"
 
 
-def _trip_window(route: dict, trip: dict, realtime: Optional[dict] = None) -> Optional[dict]:
-    """Predicted window + exact ordered stops for one trip."""
-    timeline = _predicted_stop_timeline(route, trip, realtime)
+def _window_from_timeline(timeline: List[dict]) -> Optional[dict]:
+    """Window derived from one computed timeline (shared by runtime + import)."""
     if len(timeline) < 2:
         return None
-    ordered = [(e["stop"], e["predicted_arrival"]) for e in timeline]
     from mobility.motion.visual_runtime import enabled as visual_enabled
+
     return {
         "start": timeline[0]["predicted_arrival"],
         "end": timeline[-1]["predicted_departure"] if visual_enabled() else timeline[-1]["predicted_arrival"],
@@ -1442,8 +1447,34 @@ def _trip_window(route: dict, trip: dict, realtime: Optional[dict] = None) -> Op
         "last_stop": timeline[-1]["stop"],
         "first_stop_id": timeline[0]["stop_id"],
         "last_stop_id": timeline[-1]["stop_id"],
-        "ordered": ordered,
+        "ordered": [(e["stop"], e["predicted_arrival"]) for e in timeline],
     }
+
+
+def _trip_window(route: dict, trip: dict, realtime: Optional[dict] = None) -> Optional[dict]:
+    """Predicted window + exact ordered stops for one trip."""
+    # Split networks precompute the base (realtime-free) window at import;
+    # delayed trips always fall through to the full computation (their raw
+    # times are attached by the caller).
+    if not realtime and isinstance(trip.get("window"), dict):
+        win = trip["window"]
+        by_id = {str(s.get("stop_id")): s for s in route.get("stops", []) if s.get("stop_id") is not None}
+        ordered = []
+        for pair in win.get("ordered") or []:
+            sid, sep, arr = str(pair).partition("|")
+            if not sep:
+                continue
+            ordered.append((by_id.get(sid) or {"stop_id": sid}, int(arr)))
+        return {
+            "start": win.get("start"),
+            "end": win.get("end"),
+            "first_stop": by_id.get(str(win.get("first_stop_id"))),
+            "last_stop": by_id.get(str(win.get("last_stop_id"))),
+            "first_stop_id": win.get("first_stop_id"),
+            "last_stop_id": win.get("last_stop_id"),
+            "ordered": ordered,
+        }
+    return _window_from_timeline(_predicted_stop_timeline(route, trip, realtime))
 
 
 def _iso_is_fresh(ts: str, seconds: int) -> bool:
@@ -1644,6 +1675,7 @@ async def _estimated_transit_vehicles(network: Optional[dict] = None, *, initial
     from mobility.realtime_trip_identity import _service_date
 
     if network is None:
+        # Light by default: the compute path hydrates windows/times selectively.
         network = await _get_active_network()
     if not network:
         return []
@@ -1721,6 +1753,30 @@ async def _compute_estimated_transit_vehicles(network: dict, *, initial_sync: bo
     ]
     # Preserve strict region/version/service-date matching and feed freshness.
     delays = await _realtime_delays_for(trip_ids, network=network)
+    # Split networks: hydrate the precomputed compact windows for every route
+    # (run chaining only needs start/end/anchors) and the raw times + base
+    # timeline only for realtime-delayed trips. Selected-trip timelines are
+    # attached per route lazily below - never the whole 196MB times payload.
+    split_version_id = str(network.get("version_id") or "") if network.get("routes_split") else None
+    if split_version_id:
+        from mobility.network_store import attach_route_times as _attach_times
+        from mobility.network_store import attach_route_windows as _attach_windows
+
+        network_routes = network.get("routes") or []
+        await _attach_windows(network_routes, split_version_id)
+        if delays:
+            await _attach_times(network_routes, split_version_id, trip_ids=set(delays.keys()))
+        attached_route_numbers = set()
+
+        async def ensure_route_times(route):
+            rn = str(route.get("route_number") or "")
+            if rn in attached_route_numbers:
+                return
+            attached_route_numbers.add(rn)
+            await _attach_times([route], split_version_id)
+    else:
+        async def ensure_route_times(route):
+            return None
     # Operator overrides: canceled trips produce no vehicle at all.
     canceled_ids: set = set()
     try:
@@ -1748,8 +1804,12 @@ async def _compute_estimated_transit_vehicles(network: dict, *, initial_sync: bo
     if initial_sync and visual_enabled():
         from mobility.motion.config import motion_config_for
         initial_budget = max(0.1, float(motion_config_for('bus', region)['visual']['initial_preparation_budget_s']))
-        prioritized = [(route, run) for route, runs in route_runs for run in runs
-                       if _select_visual_run_trip(route, run, delays, now_sec, visual_rule_version)[0] is not None]
+        prioritized = []
+        for route, runs in route_runs:
+            await ensure_route_times(route)
+            for run in runs:
+                if _select_visual_run_trip(route, run, delays, now_sec, visual_rule_version)[0] is not None:
+                    prioritized.append((route, run))
         prioritized.sort(key=lambda pair: _initial_arrival_priority(pair[0], pair[1], delays, now_sec, visual_rule_version))
         route_runs = [(route, [run]) for route, run in prioritized]
     for route, runs in route_runs:
@@ -1770,6 +1830,7 @@ async def _compute_estimated_transit_vehicles(network: dict, *, initial_sync: bo
                 continue
             # Determine the trip the vehicle is on RIGHT NOW first (window
             # check), so suppression can be trip-scoped.
+            await ensure_route_times(route)
             active, selection_basis = _select_visual_run_trip(route, run, delays, now_sec, visual_rule_version)
             if visual_enabled() and active is None:
                 continue  # No invented visual turnaround before/after source service.
@@ -1987,12 +2048,12 @@ def _vehicle_in_network(vehicle: dict, network: dict) -> bool:
 _NETWORK_READS = {}
 
 
-async def _get_active_network() -> Optional[dict]:
+async def _get_active_network(*, include_times: bool = False) -> Optional[dict]:
     region = get_active_region()
-    key = (region.region_id, region.network_id, "active")
+    key = (region.region_id, region.network_id, "active", include_times)
     task = _NETWORK_READS.get(key)
     if task is None or task.done():
-        task = asyncio.create_task(_load_active_network())
+        task = asyncio.create_task(_load_active_network(include_times=include_times))
         _NETWORK_READS[key] = task
         def finished(done):
             if _NETWORK_READS.get(key) is done:
@@ -2003,7 +2064,9 @@ async def _get_active_network() -> Optional[dict]:
     return await asyncio.shield(task)
 
 
-async def _load_active_network() -> Optional[dict]:
+async def _load_active_network(*, include_times: bool = False) -> Optional[dict]:
+    from mobility.network_store import assemble_network_routes
+
     region = get_active_region()
     network = await db.bus_network_versions.find_one(
         {
@@ -2014,7 +2077,7 @@ async def _load_active_network() -> Optional[dict]:
         {"_id": 0},
     )
     if network:
-        return network
+        return await assemble_network_routes(network, include_times=include_times)
 
     # One-time compatibility bridge only for the pre-existing Magdeburg
     # deployment. Never claim a legacy network when another city is active.
@@ -2039,20 +2102,22 @@ async def _load_active_network() -> Optional[dict]:
             {"version_id": version_id},
             {"$set": fields},
         )
-    return {**legacy, **fields}
+    return await assemble_network_routes({**legacy, **fields}, include_times=include_times)
 
 
-async def networks_for_journey_window(network: Optional[dict] = None, *, now: Optional[datetime] = None) -> List[dict]:
+async def networks_for_journey_window(network: Optional[dict] = None, *, now: Optional[datetime] = None,
+                                      include_times: bool = False) -> List[dict]:
     region = get_active_region()
     from mobility.service_clock import _static_service_date
     observed = now or _berlin_now()
     key = (region.region_id, region.network_id, "window",
            _static_service_date(observed, region.timezone),
            str((network or {}).get("version_id") or ""),
-           _network_service_date(network) if network else None)
+           _network_service_date(network) if network else None,
+           include_times)
     task = _NETWORK_READS.get(key)
     if task is None or task.done():
-        task = asyncio.create_task(_load_journey_networks(network, now=observed))
+        task = asyncio.create_task(_load_journey_networks(network, now=observed, include_times=include_times))
         _NETWORK_READS[key] = task
         def finished(done):
             if _NETWORK_READS.get(key) is done:
@@ -2063,7 +2128,8 @@ async def networks_for_journey_window(network: Optional[dict] = None, *, now: Op
     return await asyncio.shield(task)
 
 
-async def _load_journey_networks(network: Optional[dict] = None, *, now: Optional[datetime] = None) -> List[dict]:
+async def _load_journey_networks(network: Optional[dict] = None, *, now: Optional[datetime] = None,
+                                 include_times: bool = False) -> List[dict]:
     """Read active + last activated previous civil date; never union trip IDs.
 
     Historical name dating supports already shipped versions without an
@@ -2077,7 +2143,7 @@ async def _load_journey_networks(network: Optional[dict] = None, *, now: Optiona
     today = _static_service_date(now, region.timezone)
     previous = (datetime.fromisoformat(today) - timedelta(days=1)).date().isoformat()
     if network is None:
-        network = await _get_active_network()
+        network = await _get_active_network(include_times=include_times)
     selected = []
     if network and _service_date(network) in (today, previous):
         selected.append(network)
@@ -2097,6 +2163,9 @@ async def _load_journey_networks(network: Optional[dict] = None, *, now: Optiona
         {"_id": 0},
         sort=[("activated_at", -1), ("imported_at", -1)],
     )
+    from mobility.network_store import assemble_network_routes
+
+    prior = await assemble_network_routes(prior, include_times=include_times)
     if prior and _service_date(prior) == previous:
         selected.append(prior)
     return selected
@@ -2276,7 +2345,6 @@ async def _create_network_version(routes: List[dict], name: str, *, service_date
         "country": region.country,
         "service_day_start_hour": region.service_day_start_hour,
         "name": name,
-        "routes": routes,
         "imported_at": now_utc().isoformat(),
         "active": False,
         "generation_state": "UNPREPARED",
@@ -2289,7 +2357,36 @@ async def _create_network_version(routes: List[dict], name: str, *, service_date
         version['stop_catalogue'] = stop_catalogue
     if static_input is not None:
         version["static_input"] = static_input
-    await db.bus_network_versions.insert_one(version)
+    # Large networks (Berlin/VBB ~264MB, Athens ~500MB) cannot fit one 16MB
+    # BSON document: the header keeps everything except routes and the routes
+    # live in bus_network_route_blocks. Magdeburg-size payloads are untouched.
+    from mobility.network_store import should_split_routes, store_route_block, occurrence_timing_present
+
+    if should_split_routes(routes):
+        # Precompute the deterministic base (realtime-free) timeline + compact
+        # window per trip ONCE at import, streamed one route at a time so the
+        # import never holds the precomputed timelines in RAM. Runtime
+        # consumers hydrate only the trips they actually need; delayed trips
+        # always recompute from the raw times (also stored).
+        version["routes_split"] = True
+        version["routes_count"] = len(routes)
+        version["occurrence_timing"] = occurrence_timing_present(routes)
+        await db.bus_network_versions.insert_one(version)
+        for route_index, route in enumerate(routes):
+            windows = {}
+            base_timelines = {}
+            for trip in route.get("trips", []):
+                tid = str(trip.get("trip_id") or "")
+                timeline = _predicted_stop_timeline(route, trip, None)
+                if timeline:
+                    base_timelines[(route_index, tid)] = timeline
+                    win = _window_from_timeline(timeline)
+                    if win:
+                        windows[(route_index, tid)] = win
+            await store_route_block(version, route_index, route, windows, base_timelines)
+    else:
+        version["routes"] = routes
+        await db.bus_network_versions.insert_one(version)
     diff = {
         "added_routes": added_routes,
         "removed_routes": removed_routes,
@@ -2778,6 +2875,13 @@ async def _buses_serving_stop(network: dict, stop_id: str, lat=None, lng=None):
         if any(str(sid) in target_stop_ids for trip in r.get("trips", []) for sid in trip.get("stop_ids") or [])
     ]
     route_numbers = {str(r.get("route_number")) for r in serving_routes}
+    # Split networks: hydrate only the serving routes' windows + times.
+    if network.get("routes_split"):
+        from mobility.network_store import attach_route_times as _attach_times
+        from mobility.network_store import attach_route_windows as _attach_windows
+
+        await _attach_windows(serving_routes, str(network.get("version_id") or ""))
+        await _attach_times(serving_routes, str(network.get("version_id") or ""))
 
     live = [
         v
@@ -3118,7 +3222,7 @@ async def vehicle_trip_progress(
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehicle not found")
 
-    network = next((n for n in await networks_for_journey_window()
+    network = next((n for n in await networks_for_journey_window(include_times=True)
                     if _vehicle_in_network(vehicle, n)), None)
     route = next((r for r in (network or {}).get("routes", [])
                   if str(r.get("route_number")) == str(vehicle.get("route_number"))), None)
@@ -3219,7 +3323,7 @@ async def plan_journey(
     The search uses the SAME predicted timeline as arrivals/vehicles
     (GTFS-RT delays + canceled trips), not a separate static snapshot."""
     itineraries = []
-    for network in await networks_for_journey_window():
+    for network in await networks_for_journey_window(include_times=True):
         result = await _plan_dated_network(network, from_lat, from_lng, to_lat, to_lng)
         for itinerary in result["itineraries"]:
             itinerary["network_version_id"] = network.get("version_id")

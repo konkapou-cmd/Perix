@@ -139,6 +139,15 @@ async def unified_arrivals(stop_id: str, limit: int = 20, *, dated_context: Opti
     if not candidates:
         return []  # Physical inventory does not imply a trip or require a fleet fit.
     trip_ids = [t["trip_id"] for t in candidates]
+    # Split networks: hydrate only the candidate routes' windows + times.
+    if network.get("routes_split"):
+        from mobility.network_store import attach_route_times as _attach_times
+        from mobility.network_store import attach_route_windows as _attach_windows
+
+        needed_routes = {str(tt.get("route_number")) for tt in candidates}
+        routes_holder = network.get("routes") or []
+        await _attach_windows(routes_holder, str(network.get("version_id") or ""), route_numbers=needed_routes)
+        await _attach_times(routes_holder, str(network.get("version_id") or ""), route_numbers=needed_routes)
     delays = await _realtime_delays_for(trip_ids, network=network)
     canceled = await canceled_trip_ids()
     skipped_ov = await skipped_stop_ids()

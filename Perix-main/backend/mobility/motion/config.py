@@ -79,6 +79,70 @@ DEFAULT_MOTION_CONFIG = {
         "rail_signal_max_hold_s": 30.0,
         "rail_signal_min_stop_s": 3.0,
     },
+    # Rail family: conservative calibration parameters, not operator claims.
+    # Dispatched over the rail graph like trams (no road traffic); region
+    # motion overrides can calibrate per city without a code fork.
+    "subway": {
+        "acceleration_mps2": 1.10,
+        "braking_mps2": 1.25,
+        "max_speed_kmh": 80.0,
+        "default_speed_kmh": 60.0,
+        "turn_speed_kmh": {
+            "20": 50.0,
+            "40": 40.0,
+            "70": 30.0,
+        },
+        "rail_signal_enabled": False,
+        "rail_signal_cycle_s": 60.0,
+        "rail_signal_green_ratio": 0.75,
+        "rail_signal_max_hold_s": 30.0,
+        "rail_signal_min_stop_s": 3.0,
+    },
+    "s-bahn": {
+        "acceleration_mps2": 1.00,
+        "braking_mps2": 1.10,
+        "max_speed_kmh": 120.0,
+        "default_speed_kmh": 90.0,
+        "turn_speed_kmh": {
+            "20": 60.0,
+            "40": 50.0,
+            "70": 40.0,
+        },
+        "rail_signal_enabled": False,
+        "rail_signal_cycle_s": 60.0,
+        "rail_signal_green_ratio": 0.75,
+        "rail_signal_max_hold_s": 30.0,
+        "rail_signal_min_stop_s": 3.0,
+    },
+    "rail": {
+        "acceleration_mps2": 0.90,
+        "braking_mps2": 1.00,
+        "max_speed_kmh": 140.0,
+        "default_speed_kmh": 100.0,
+        "turn_speed_kmh": {
+            "20": 70.0,
+            "40": 60.0,
+            "70": 50.0,
+        },
+        "rail_signal_enabled": False,
+        "rail_signal_cycle_s": 60.0,
+        "rail_signal_green_ratio": 0.75,
+        "rail_signal_max_hold_s": 30.0,
+        "rail_signal_min_stop_s": 3.0,
+    },
+    "ferry": {
+        "acceleration_mps2": 0.35,
+        "braking_mps2": 0.40,
+        "max_speed_kmh": 40.0,
+        "default_speed_kmh": 30.0,
+        "turn_speed_kmh": {},
+        "road_signal_enabled": False,
+        "rail_signal_enabled": False,
+        "rail_signal_cycle_s": 60.0,
+        "rail_signal_green_ratio": 0.75,
+        "rail_signal_max_hold_s": 0.0,
+        "rail_signal_min_stop_s": 999.0,
+    },
 }
 
 
@@ -98,7 +162,13 @@ def motion_config_for(
 ) -> dict:
     """Return validated-ish merged common + mode config for one region."""
     resolved_region = region or get_active_region()
-    resolved_mode = "tram" if str(mode).lower() == "tram" else "bus"
+    requested = str(mode).strip().lower()
+    # Bus/tram resolution is frozen for Magdeburg compatibility. Rail/ferry
+    # modes resolve to their own calibration; unknown modes stay on bus.
+    if requested in ("tram", "subway", "s-bahn", "rail", "ferry"):
+        resolved_mode = requested
+    else:
+        resolved_mode = "bus"
 
     common = _deep_merge(
         DEFAULT_MOTION_CONFIG["common"],

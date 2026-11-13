@@ -457,6 +457,10 @@ async def _store_alert(alert, now_iso: str, scope) -> None:
 def _has_occurrence_timing(network: Optional[dict]) -> bool:
     from mobility.stop_occurrences import stop_occurrence_times
 
+    # Split large networks store trips without timing fields: the header
+    # carries the answer computed at import time (see network_store).
+    if isinstance((network or {}).get("occurrence_timing"), bool):
+        return bool(network["occurrence_timing"])
     trips = [t for r in (network or {}).get("routes", []) for t in r.get("trips", [])]
     try:
         return bool(trips) and all(stop_occurrence_times(t) is not None for t in trips)
@@ -811,10 +815,188 @@ def start_mobility_workers():
     _precompute_primitives()
     asyncio.create_task(_realtime_worker())
     asyncio.create_task(_static_worker())
+    # OASA telematics is an opt-in source adapter: the fifth worker task is
+    # only spawned when the env flag AND the region AND the route allowlist
+    # are all set, so default (Magdeburg) startup keeps exactly four tasks.
+    if _oasa_telematics_enabled():
+        asyncio.create_task(_oasa_telematics_worker())
     # EXACTLY ONE long-lived precompute coordinator per backend process.
     asyncio.create_task(_precompute_road_geometries())
     request_precompute(None, reason="STARTUP")
     asyncio.create_task(_osm_snapshot_worker())
+
+
+def _oasa_telematics_enabled() -> bool:
+    """All three opt-in gates for the OASA telematics adapter."""
+    if os.getenv("MOBILITY_OASA_TELEMATICS_ENABLED", "false").strip().lower() != "true":
+        return False
+    if _ACTIVE_REGION.realtime_type != "OASA_TELEMATICS":
+        return False
+    route_codes = [r.strip() for r in os.getenv("MOBILITY_OASA_ROUTE_CODES", "").split(",") if r.strip()]
+    return bool(route_codes)
+
+
+async def _oasa_telematics_worker():
+    """OASA telematics source adapter for the Athens region.
+
+    Same pipeline as the GTFS_RT worker: matched journey documents go into
+    mobility_trip_realtime_journeys against the active static network. The
+    only difference is the source (telematics positions without trip ids ->
+    vehicle-to-trip matching) and the opt-in gates below. Disabled unless the
+    active region declares realtime_type OASA_TELEMATICS AND the route-code
+    allowlist is set AND MOBILITY_OASA_TELEMATICS_ENABLED=true.
+    """
+    enabled = os.getenv("MOBILITY_OASA_TELEMATICS_ENABLED", "false").strip().lower() == "true"
+    if not enabled:
+        _log("oasa telematics: disabled (MOBILITY_OASA_TELEMATICS_ENABLED != true)")
+        return
+    if _ACTIVE_REGION.realtime_type != "OASA_TELEMATICS":
+        _log("oasa telematics: region realtime_type is %r, not OASA_TELEMATICS; idle" % _ACTIVE_REGION.realtime_type)
+        return
+    route_codes = [r.strip() for r in os.getenv("MOBILITY_OASA_ROUTE_CODES", "").split(",") if r.strip()]
+    if not route_codes:
+        _log("oasa telematics: MOBILITY_OASA_ROUTE_CODES allowlist empty; idle")
+        return
+    interval = max(15.0, float(_ACTIVE_REGION.realtime_interval_seconds))
+    import time as _worker_time
+
+    from mobility.oasa_telematics import (
+        OasaTelematicsClient,
+        VehicleTripMatcher,
+        _parse_telematics_time,
+        predict_stop_times,
+    )
+    from routes.mobility import _get_active_network
+
+    client = OasaTelematicsClient()
+    matcher = VehicleTripMatcher()
+    _log("oasa telematics: started (%d routes, every %.0fs)" % (len(route_codes), interval))
+    while True:
+        try:
+            network = await _get_active_network()
+            if not network:
+                await asyncio.sleep(interval)
+                continue
+            # Large split networks assemble light (no trip timing): attach the
+            # timing fields only for the allowlisted routes.
+            from mobility.network_store import attach_route_times
+            await attach_route_times(network.get("routes", []), str(network.get("version_id") or ""),
+                                     route_numbers=set(route_codes))
+            from mobility.realtime_trip_identity import _service_date
+            service_date = _service_date(network)
+            now_s = int(_worker_time.time())
+            matched_total = 0
+            for route_code in route_codes:
+                raw = client.get_bus_location(route_code)
+                vehicles = []
+                for row in raw:
+                    vid = str(row.get("VEH_NO") or "").strip()
+                    if not vid:
+                        continue
+                    ts = _parse_telematics_time(str(row.get("CS_DATE") or ""))
+                    if ts is None:
+                        continue
+                    vehicles.append({"vehicle_id": vid, "route_code": route_code,
+                                     "lat": float(row.get("CS_LAT") or 0),
+                                     "lng": float(row.get("CS_LNG") or 0), "ts": ts})
+                # trips of this route code from the active network (route_number
+                # equality is used for the allowlist; trips carry gtfs_route_id)
+                routes = [r for r in network.get("routes", [])
+                          if str(r.get("route_number")) == route_code]
+                trips = []
+                for route in routes:
+                    shape = (route.get("shape") or [])
+                    for t in route.get("trips", []):
+                        sts = t.get("stop_times_sequence") or []
+                        if len(sts) < 2:
+                            continue
+                        start = _clock_seconds(sts[0].get("departure_time") or sts[0].get("arrival_time") or "00:00")
+                        trips.append({"trip_id": t.get("trip_id"), "_start_s": start,
+                                      "stop_times_sequence": [
+                                          {**st, "_abs_s": start + _clock_seconds(
+                                              st.get("departure_time") or st.get("arrival_time") or "00:00")}
+                                          for st in sts], "route_number": route_code})
+                if not trips or not routes:
+                    continue
+                polyline = [tuple(p) for p in (routes[0].get("shape") or []) if len(p) >= 2]
+                if len(polyline) < 2:
+                    continue
+                # stop progress along the polyline
+                from mobility.oasa_telematics import project_on_polyline
+                stops_progress = []
+                cumulative = 0.0
+                prev = polyline[0]
+                for i, p in enumerate(polyline):
+                    if i:
+                        cumulative += _haversine_pair(prev, p)
+                    stops_progress.append(cumulative)
+                    prev = p
+                results = matcher.match(vehicles, trips, now_s, polyline, stops_progress)
+                docs = []
+                for r in results:
+                    base = {
+                        "region_id": _ACTIVE_REGION.region_id,
+                        "network_id": _ACTIVE_REGION.network_id,
+                        "service_date": service_date,
+                        "source": "OASA_TELEMATICS",
+                        "updated_at": now_s,
+                    }
+                    if r.status == "MATCHED" and r.trip_id:
+                        trip = next((t for t in trips if t["trip_id"] == r.trip_id), None)
+                        if trip:
+                            base.update({
+                                "trip_id": r.trip_id,
+                                "network_version_id": network.get("version_id"),
+                                "gtfs_route_id": trip.get("gtfs_route_id"),
+                                "vehicle_id": r.vehicle_id,
+                                "identity_kind": "OASA_TELEMATICS_MATCHED",
+                                "delay_seconds": r.delay_seconds,
+                                "progress_stop_index": r.progress_stop_index,
+                                "predicted_stops": predict_stop_times(
+                                    trip, r.progress_stop_index, r.delay_seconds),
+                            })
+                    else:
+                        base.update({
+                            "vehicle_id": r.vehicle_id,
+                            "route_code": r.route_code,
+                            "identity_kind": "OASA_TELEMATICS_UNMATCHED",
+                            "match_status": r.status,
+                            "latitude": r.lat,
+                            "longitude": r.lon,
+                        })
+                    docs.append(base)
+                if docs:
+                    from pymongo import UpdateOne
+                    ops = []
+                    for d in docs:
+                        key = {"region_id": d["region_id"], "network_id": d["network_id"],
+                               "trip_id": d.get("trip_id") or ("vehicle:" + str(d.get("vehicle_id")))}
+                        ops.append(UpdateOne(key, {"$set": d}, upsert=True))
+                    res = await db.mobility_trip_realtime_journeys.bulk_write(ops, ordered=False)
+                    matched_total += sum(1 for d in docs if d.get("trip_id"))
+            _log("oasa telematics: cycle ok, matched=%d" % matched_total)
+        except Exception as e:
+            _log("oasa telematics: cycle error: %s: %s" % (type(e).__name__, e))
+        await asyncio.sleep(interval)
+
+
+def _clock_seconds(value: str) -> int:
+    parts = str(value or "00:00").split(":")
+    try:
+        if len(parts) == 3:
+            return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
+        return int(parts[0]) * 3600 + int(parts[1]) * 60
+    except ValueError:
+        return 0
+
+
+def _haversine_pair(a, b) -> float:
+    import math
+    r = 6371000.0
+    p1, p2 = math.radians(a[0]), math.radians(b[0])
+    dp, dl = math.radians(b[0] - a[0]), math.radians(b[1] - a[1])
+    x = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return r * 2 * math.atan2(math.sqrt(x), math.sqrt(1 - x))
 
 
 async def _osm_snapshot_worker():

@@ -43,7 +43,10 @@ def _build(timeline, progress, mode, origin):
     segments = []
     arrival = float(timeline[indices[0]]['predicted_arrival'])
     start = arrival
-    speed_cap = min(float(config['max_speed_kmh']), 45.0 if mode == 'tram' else 50.0)
+    speed_cap = min(float(config['max_speed_kmh']), {
+        'tram': 45.0, 'subway': 70.0, 's-bahn': 90.0, 'rail': 110.0,
+        'ferry': 35.0,
+    }.get(str(mode).strip().lower(), 50.0))
     for a, b in zip(indices, indices[1:]):
         current, nxt = timeline[a], timeline[b]
         dwell = max(0, current['predicted_departure'] - current['predicted_arrival'])

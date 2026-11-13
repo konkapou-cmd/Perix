@@ -724,6 +724,9 @@ async def summarize_generation_version(
         },
         {"_id": 0},
     )
+    from mobility.network_store import assemble_network_routes
+
+    network = await assemble_network_routes(network)
     if not network:
         return {
             "version_id": str(version_id),
@@ -851,6 +854,7 @@ async def prepare_network_version(
     patterns are rebuilt against the currently active OSM snapshot.
     """
     from mobility.domain import build_domain
+    from mobility.network_store import assemble_network_routes
 
     region = get_active_region()
     candidate = await db.bus_network_versions.find_one(
@@ -861,6 +865,7 @@ async def prepare_network_version(
         },
         {"_id": 0},
     )
+    candidate = await assemble_network_routes(candidate)
     if not candidate:
         return {"state": "NETWORK_NOT_FOUND", "version_id": str(version_id)}
 
@@ -874,6 +879,7 @@ async def prepare_network_version(
             },
             {"_id": 0},
         )
+        source = await assemble_network_routes(source)
     if source is None:
         source = await db.bus_network_versions.find_one(
             {
@@ -884,6 +890,7 @@ async def prepare_network_version(
             },
             {"_id": 0},
         )
+        source = await assemble_network_routes(source)
 
     candidate_domain = build_domain(candidate, region.network_id)
     source_domain = build_domain(source, region.network_id) if source else {"patterns": []}
@@ -1033,6 +1040,7 @@ async def refresh_network_version(
     """
     from mobility.domain import build_domain
     from mobility.infrastructure import INFRA_SCHEMA_VERSION
+    from mobility.network_store import assemble_network_routes
     from mobility.osm_store import active_version
     from mobility.restrictions import get_active_restrictions, restriction_signature
 
@@ -1046,6 +1054,7 @@ async def refresh_network_version(
         },
         {"_id": 0},
     )
+    network = await assemble_network_routes(network)
     if not network:
         return {"state": "NETWORK_NOT_FOUND", "version_id": str(version_id)}
 

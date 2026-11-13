@@ -1,0 +1,785 @@
+{
+ "trips": [
+  {
+   "trip_id": "SYR_L1_WD_001",
+   "route_id": "SYR_L1",
+   "service_id": "WD",
+   "flags": [],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_L1_WD_002",
+   "route_id": "SYR_L1",
+   "service_id": "WD",
+   "flags": [],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_L1_WD_003",
+   "route_id": "SYR_L1",
+   "service_id": "WD",
+   "flags": [],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_L1_WD_004",
+   "route_id": "SYR_L1",
+   "service_id": "WD",
+   "flags": [
+    "SHORT_WORKING_AS_PRINTED_xxx"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_L3_WD_005",
+   "route_id": "SYR_L3",
+   "service_id": "WD",
+   "flags": [],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_L3_WD_006",
+   "route_id": "SYR_L3",
+   "service_id": "WD",
+   "flags": [],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_L3_WD_007",
+   "route_id": "SYR_L3",
+   "service_id": "WD",
+   "flags": [],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_L3_WD_008",
+   "route_id": "SYR_L3",
+   "service_id": "WD",
+   "flags": [
+    "SHORT_WORKING_AS_PRINTED_xxx"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_L1_WE_009",
+   "route_id": "SYR_L1",
+   "service_id": "WE",
+   "flags": [],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_L1_WE_010",
+   "route_id": "SYR_L1",
+   "service_id": "WE",
+   "flags": [],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_L1_WE_011",
+   "route_id": "SYR_L1",
+   "service_id": "WE",
+   "flags": [],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_L3_WE_012",
+   "route_id": "SYR_L3",
+   "service_id": "WE",
+   "flags": [],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_L3_WE_013",
+   "route_id": "SYR_L3",
+   "service_id": "WE",
+   "flags": [],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_KINI_SCHOOL_014",
+   "route_id": "SYR_KINI",
+   "service_id": "SCHOOL",
+   "flags": [
+    "SCHOOL_DAYS_ONLY"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_KINI_WD_015",
+   "route_id": "SYR_KINI",
+   "service_id": "WD",
+   "flags": [
+    "DIRECTIONAL_RUN_PAIRING_NOT_INFERRED"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_KINI_WE_016",
+   "route_id": "SYR_KINI",
+   "service_id": "WE",
+   "flags": [
+    "WEEKEND_VALIDITY_INFERRED_FROM_JOINT_BLOCK",
+    "DIRECTIONAL_RUN_PAIRING_NOT_INFERRED"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_KINI_WD_017",
+   "route_id": "SYR_KINI",
+   "service_id": "WD",
+   "flags": [
+    "DIRECTIONAL_RUN_PAIRING_NOT_INFERRED"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_KINI_WE_018",
+   "route_id": "SYR_KINI",
+   "service_id": "WE",
+   "flags": [
+    "WEEKEND_VALIDITY_INFERRED_FROM_JOINT_BLOCK",
+    "DIRECTIONAL_RUN_PAIRING_NOT_INFERRED"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_KINI_WD_019",
+   "route_id": "SYR_KINI",
+   "service_id": "WD",
+   "flags": [
+    "DIRECTIONAL_RUN_PAIRING_NOT_INFERRED"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_KINI_WE_020",
+   "route_id": "SYR_KINI",
+   "service_id": "WE",
+   "flags": [
+    "WEEKEND_VALIDITY_INFERRED_FROM_JOINT_BLOCK",
+    "DIRECTIONAL_RUN_PAIRING_NOT_INFERRED"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_KINI_WD_021",
+   "route_id": "SYR_KINI",
+   "service_id": "WD",
+   "flags": [
+    "DIRECTIONAL_RUN_PAIRING_NOT_INFERRED"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_KINI_WE_022",
+   "route_id": "SYR_KINI",
+   "service_id": "WE",
+   "flags": [
+    "WEEKEND_VALIDITY_INFERRED_FROM_JOINT_BLOCK",
+    "DIRECTIONAL_RUN_PAIRING_NOT_INFERRED"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_KINI_SCHOOL_023",
+   "route_id": "SYR_KINI",
+   "service_id": "SCHOOL",
+   "flags": [
+    "SCHOOL_DAYS_ONLY"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_KINI_WD_024",
+   "route_id": "SYR_KINI",
+   "service_id": "WD",
+   "flags": [
+    "DIRECTIONAL_RUN_PAIRING_NOT_INFERRED"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_KINI_WE_025",
+   "route_id": "SYR_KINI",
+   "service_id": "WE",
+   "flags": [
+    "WEEKEND_VALIDITY_INFERRED_FROM_JOINT_BLOCK",
+    "DIRECTIONAL_RUN_PAIRING_NOT_INFERRED"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_KINI_WD_026",
+   "route_id": "SYR_KINI",
+   "service_id": "WD",
+   "flags": [
+    "DIRECTIONAL_RUN_PAIRING_NOT_INFERRED"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_KINI_WE_027",
+   "route_id": "SYR_KINI",
+   "service_id": "WE",
+   "flags": [
+    "WEEKEND_VALIDITY_INFERRED_FROM_JOINT_BLOCK",
+    "DIRECTIONAL_RUN_PAIRING_NOT_INFERRED"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_KINI_WD_028",
+   "route_id": "SYR_KINI",
+   "service_id": "WD",
+   "flags": [
+    "DIRECTIONAL_RUN_PAIRING_NOT_INFERRED"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_KINI_WE_029",
+   "route_id": "SYR_KINI",
+   "service_id": "WE",
+   "flags": [
+    "WEEKEND_VALIDITY_INFERRED_FROM_JOINT_BLOCK",
+    "DIRECTIONAL_RUN_PAIRING_NOT_INFERRED"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_KINI_WD_030",
+   "route_id": "SYR_KINI",
+   "service_id": "WD",
+   "flags": [
+    "DIRECTIONAL_RUN_PAIRING_NOT_INFERRED"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_KINI_WE_031",
+   "route_id": "SYR_KINI",
+   "service_id": "WE",
+   "flags": [
+    "WEEKEND_VALIDITY_INFERRED_FROM_JOINT_BLOCK",
+    "DIRECTIONAL_RUN_PAIRING_NOT_INFERRED"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_SCHOOL_SCHOOL_032",
+   "route_id": "SYR_SCHOOL",
+   "service_id": "SCHOOL",
+   "flags": [
+    "ESTIMATED_UNIFORM_LEGS_NOT_PUBLISHED",
+    "SCHOOL_DAYS_ONLY"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_SCHOOL_SCHOOL_033",
+   "route_id": "SYR_SCHOOL",
+   "service_id": "SCHOOL",
+   "flags": [
+    "ESTIMATED_UNIFORM_LEGS_NOT_PUBLISHED",
+    "SCHOOL_DAYS_ONLY"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_SCHOOL_SCHOOL_034",
+   "route_id": "SYR_SCHOOL",
+   "service_id": "SCHOOL",
+   "flags": [
+    "ESTIMATED_UNIFORM_LEGS_NOT_PUBLISHED",
+    "SCHOOL_DAYS_ONLY"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_SCHOOL_SCHOOL_035",
+   "route_id": "SYR_SCHOOL",
+   "service_id": "SCHOOL",
+   "flags": [
+    "ESTIMATED_UNIFORM_LEGS_NOT_PUBLISHED",
+    "SCHOOL_DAYS_ONLY"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_SCHOOL_SCHOOL_036",
+   "route_id": "SYR_SCHOOL",
+   "service_id": "SCHOOL",
+   "flags": [
+    "ESTIMATED_UNIFORM_LEGS_NOT_PUBLISHED",
+    "SCHOOL_DAYS_ONLY"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_SCHOOL_SCHOOL_037",
+   "route_id": "SYR_SCHOOL",
+   "service_id": "SCHOOL",
+   "flags": [
+    "ESTIMATED_UNIFORM_LEGS_NOT_PUBLISHED",
+    "SCHOOL_DAYS_ONLY"
+   ],
+   "published": true
+  },
+  {
+   "trip_id": "SYR_SCHOOL_SCHOOL_038",
+   "route_id": "SYR_SCHOOL",
+   "service_id": "SCHOOL",
+   "flags": [
+    "ESTIMATED_UNIFORM_LEGS_NOT_PUBLISHED",
+    "SCHOOL_DAYS_ONLY"
+   ],
+   "published": true
+  }
+ ],
+ "unresolved_column_stops": [
+  "Δανακός",
+  "Μέγα Γιαλό"
+ ],
+ "school_runs": [
+  {
+   "departure": "06:30",
+   "labels": [
+    "Ερμούπολη",
+    "Κ.Μάννα",
+    "Βάρη",
+    "Μ.Γιαλό",
+    "Ποσειδωνία",
+    "Φοίνικα",
+    "Γαλησσά",
+    "Πάγο",
+    "Τάλαντα",
+    "Ερμούπολη"
+   ],
+   "resolved": [
+    [
+     "SYR_ERM",
+     "Ερμούπολη"
+    ],
+    [
+     "SYR_K_MANNA",
+     "Κ.Μάννα"
+    ],
+    [
+     "SYR_VARI",
+     "Βάρη"
+    ],
+    [
+     "SYR_POSEIDONIA",
+     "Ποσειδωνία"
+    ],
+    [
+     "SYR_FINIKAS",
+     "Φοίνικα"
+    ],
+    [
+     "SYR_GALISSAS",
+     "Γαλησσά"
+    ],
+    [
+     "SYR_ERM",
+     "Ερμούπολη"
+    ]
+   ],
+   "missing": [
+    "Μ.Γιαλό",
+    "Πάγο",
+    "Τάλαντα"
+   ],
+   "status": "INCLUDED_ESTIMATED_ANCHORS_ONLY",
+   "leg_seconds_estimate": 360
+  },
+  {
+   "departure": "06:30",
+   "labels": [
+    "Ερμούπολη",
+    "Άνω Μάννα",
+    "Χρούσσα",
+    "Παρακοπή",
+    "Βήσσα",
+    "Αδειάτα",
+    "Ποσειδωνία",
+    "Μ.Γιαλό",
+    "Βάρη",
+    "Αζόλιμνο",
+    "Ερμούπολη"
+   ],
+   "resolved": [
+    [
+     "SYR_ERM",
+     "Ερμούπολη"
+    ],
+    [
+     "SYR_POSEIDONIA",
+     "Ποσειδωνία"
+    ],
+    [
+     "SYR_VARI",
+     "Βάρη"
+    ],
+    [
+     "SYR_AZOLIMNOS",
+     "Αζόλιμνο"
+    ],
+    [
+     "SYR_ERM",
+     "Ερμούπολη"
+    ]
+   ],
+   "missing": [
+    "Άνω Μάννα",
+    "Χρούσσα",
+    "Παρακοπή",
+    "Βήσσα",
+    "Αδειάτα",
+    "Μ.Γιαλό"
+   ],
+   "status": "INCLUDED_ESTIMATED_ANCHORS_ONLY",
+   "leg_seconds_estimate": 360
+  },
+  {
+   "departure": "07:10",
+   "labels": [
+    "Ερμούπολη",
+    "Κίνι",
+    "Ερμούπολη"
+   ],
+   "resolved": [
+    [
+     "SYR_ERM",
+     "Ερμούπολη"
+    ],
+    [
+     "SYR_KINI",
+     "Κίνι"
+    ],
+    [
+     "SYR_ERM",
+     "Ερμούπολη"
+    ]
+   ],
+   "missing": [],
+   "status": "INCLUDED_ESTIMATED_ANCHORS_ONLY",
+   "leg_seconds_estimate": 360
+  },
+  {
+   "departure": "07:30",
+   "labels": [
+    "Ερμούπολη",
+    "Ξηρόκαμπος",
+    "Λαλάκια",
+    "Ερμούπολη",
+    "Άνω Μάννα",
+    "Λιβάδια"
+   ],
+   "resolved": [
+    [
+     "SYR_ERM",
+     "Ερμούπολη"
+    ]
+   ],
+   "missing": [
+    "Ξηρόκαμπος",
+    "Λαλάκια",
+    "Άνω Μάννα",
+    "Λιβάδια"
+   ],
+   "status": "SKIPPED_FEWER_THAN_TWO_ANCHORS"
+  },
+  {
+   "departure": "08:00",
+   "labels": [
+    "Ερμούπολη",
+    "Ξηρόκαμπος",
+    "Λαλάκια",
+    "Ερμούπολη",
+    "Άνω Μάννα",
+    "Λιβάδια"
+   ],
+   "resolved": [
+    [
+     "SYR_ERM",
+     "Ερμούπολη"
+    ]
+   ],
+   "missing": [
+    "Ξηρόκαμπος",
+    "Λαλάκια",
+    "Άνω Μάννα",
+    "Λιβάδια"
+   ],
+   "status": "SKIPPED_FEWER_THAN_TWO_ANCHORS"
+  },
+  {
+   "departure": "08:00",
+   "labels": [
+    "Ποσειδωνία",
+    "Φοίνικα",
+    "Γαλησσά",
+    "Πάγο",
+    "Τάλαντα",
+    "Ερμούπολη"
+   ],
+   "resolved": [
+    [
+     "SYR_POSEIDONIA",
+     "Ποσειδωνία"
+    ],
+    [
+     "SYR_FINIKAS",
+     "Φοίνικα"
+    ],
+    [
+     "SYR_GALISSAS",
+     "Γαλησσά"
+    ],
+    [
+     "SYR_ERM",
+     "Ερμούπολη"
+    ]
+   ],
+   "missing": [
+    "Πάγο",
+    "Τάλαντα"
+   ],
+   "status": "INCLUDED_ESTIMATED_ANCHORS_ONLY",
+   "leg_seconds_estimate": 360
+  },
+  {
+   "departure": "08:00",
+   "labels": [
+    "Ποσειδωνία",
+    "Αδειάτα",
+    "Βήσσα",
+    "Παρακοπή",
+    "Αγρός",
+    "Άνω Μάννα",
+    "Ερμούπολη"
+   ],
+   "resolved": [
+    [
+     "SYR_POSEIDONIA",
+     "Ποσειδωνία"
+    ],
+    [
+     "SYR_ERM",
+     "Ερμούπολη"
+    ]
+   ],
+   "missing": [
+    "Αδειάτα",
+    "Βήσσα",
+    "Παρακοπή",
+    "Αγρός",
+    "Άνω Μάννα"
+   ],
+   "status": "INCLUDED_ESTIMATED_ANCHORS_ONLY",
+   "leg_seconds_estimate": 360
+  },
+  {
+   "departure": "08:00",
+   "labels": [
+    "Δημ. Σχολείο Βάρης",
+    "Κάτω Μάννα",
+    "Ερμούπολη",
+    "Λιβάδια",
+    "Άνω Μάννα"
+   ],
+   "resolved": [
+    [
+     "SYR_K_MANNA",
+     "Κάτω Μάννα"
+    ],
+    [
+     "SYR_ERM",
+     "Ερμούπολη"
+    ]
+   ],
+   "missing": [
+    "Δημ. Σχολείο Βάρης",
+    "Λιβάδια",
+    "Άνω Μάννα"
+   ],
+   "status": "INCLUDED_ESTIMATED_ANCHORS_ONLY",
+   "leg_seconds_estimate": 360
+  },
+  {
+   "departure": "08:00",
+   "labels": [
+    "Δημ. Σχολείο Βάρης",
+    "Αζόλιμνο",
+    "Κάτω Μάννα",
+    "Ερμούπολη"
+   ],
+   "resolved": [
+    [
+     "SYR_AZOLIMNOS",
+     "Αζόλιμνο"
+    ],
+    [
+     "SYR_K_MANNA",
+     "Κάτω Μάννα"
+    ],
+    [
+     "SYR_ERM",
+     "Ερμούπολη"
+    ]
+   ],
+   "missing": [
+    "Δημ. Σχολείο Βάρης"
+   ],
+   "status": "INCLUDED_ESTIMATED_ANCHORS_ONLY",
+   "leg_seconds_estimate": 360
+  },
+  {
+   "departure": "14:10",
+   "labels": [
+    "Ξηρόκαμπος (Γυμνάσια)",
+    "Λαλάκια",
+    "Ερμούπολη"
+   ],
+   "resolved": [
+    [
+     "SYR_ERM",
+     "Ερμούπολη"
+    ]
+   ],
+   "missing": [
+    "Ξηρόκαμπος (Γυμνάσια)",
+    "Λαλάκια"
+   ],
+   "status": "SKIPPED_FEWER_THAN_TWO_ANCHORS"
+  },
+  {
+   "departure": "14:10",
+   "labels": [
+    "Λιβάδια",
+    "Άνω Μάννα",
+    "Ερμούπολη",
+    "Λαλάκια",
+    "Ερμούπολη"
+   ],
+   "resolved": [
+    [
+     "SYR_ERM",
+     "Ερμούπολη"
+    ]
+   ],
+   "missing": [
+    "Λιβάδια",
+    "Άνω Μάννα",
+    "Λαλάκια"
+   ],
+   "status": "SKIPPED_FEWER_THAN_TWO_ANCHORS"
+  },
+  {
+   "departure": "14:10",
+   "labels": [
+    "Λιβάδια",
+    "Άνω Μάννα",
+    "Αφετηρία ΚΤΕΛ",
+    "Ερμούπολη"
+   ],
+   "resolved": [
+    [
+     "SYR_ERM",
+     "Αφετηρία ΚΤΕΛ"
+    ]
+   ],
+   "missing": [
+    "Λιβάδια",
+    "Άνω Μάννα"
+   ],
+   "status": "SKIPPED_FEWER_THAN_TWO_ANCHORS"
+  },
+  {
+   "departure": "14:15",
+   "labels": [
+    "Λιβάδια",
+    "Άνω Μάννα",
+    "Ερμούπολη",
+    "Λαλάκια",
+    "Ερμούπολη"
+   ],
+   "resolved": [
+    [
+     "SYR_ERM",
+     "Ερμούπολη"
+    ]
+   ],
+   "missing": [
+    "Λιβάδια",
+    "Άνω Μάννα",
+    "Λαλάκια"
+   ],
+   "status": "SKIPPED_FEWER_THAN_TWO_ANCHORS"
+  },
+  {
+   "departure": "14:30",
+   "labels": [
+    "Ερμούπολη",
+    "Άνω Μάννα",
+    "Χρούσσα",
+    "Παρακοπή",
+    "Βήσσα",
+    "Αδειάτα",
+    "Παρακοπή",
+    "Τάλαντα",
+    "Ερμούπολη"
+   ],
+   "resolved": [
+    [
+     "SYR_ERM",
+     "Ερμούπολη"
+    ]
+   ],
+   "missing": [
+    "Άνω Μάννα",
+    "Χρούσσα",
+    "Παρακοπή",
+    "Βήσσα",
+    "Αδειάτα",
+    "Παρακοπή",
+    "Τάλαντα"
+   ],
+   "status": "SKIPPED_FEWER_THAN_TWO_ANCHORS"
+  }
+ ],
+ "notes": [
+  "Line 1 = clockwise loop (via Kini first); Line 3 = counterclockwise (via Azolimnos).",
+  "12:00 (L1) and 12:30 (L3) weekdays are short workings: published columns end with xxx.",
+  "Δανακός and Μέγα Γιαλό columns exist in the PDF but have no exact named OSM stop; omitted until operator confirmation.",
+  "Kini line departures are printed as two independent lists; direction pairing not inferred.",
+  "The Kini block sits inside the weekday section; weekend copies are flagged as inferred.",
+  "School runs carry published anchors only; intermediate times are uniform 6-minute estimates.",
+  "Calendar end date is not printed in the PDF; 2027-03-31 is an assumption to re-verify."
+ ],
+ "schema_version": 1,
+ "status": "REVIEW_ARTIFACT_NOT_ACTIVATED",
+ "runtime_eligible": false,
+ "public_release_allowed": false,
+ "source_pdf": "https://ktelsyrou.gr/wp-content/uploads/2026/10/Dromologia-31.10.26.pdf",
+ "source_page": "https://ktelsyrou.gr/dromologia/",
+ "published": "2026-10-31",
+ "weekday_from": "2026-11-02",
+ "weekend_from": "2026-10-31",
+ "calendar_end_assumed": "2027-03-31",
+ "attribution": "© ΚΤΕΛ Ν. ΣΥΡΟΥ Α.Ε.; OpenStreetMap contributors, ODbL",
+ "activation_blockers": [
+  "STOP_COORDINATES_PARTIAL_OPERATOR_UNCONFIRMED",
+  "DANAKOS_AND_MEGA_GIALO_UNRESOLVED",
+  "WEEKEND_KINI_VALIDITY_INFERRED",
+  "SCHOOL_RUN_LEGS_ESTIMATED",
+  "CALENDAR_END_ASSUMED",
+  "OPERATOR_REUSE_RIGHTS_TO_CONFIRM"
+ ],
+ "coverage": {
+  "stops": 8,
+  "trips": 38,
+  "stop_times": 158
+ }
+}

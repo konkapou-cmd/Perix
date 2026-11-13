@@ -162,7 +162,10 @@ async def visual_position(*, trip_id, mode, version_id, timeline, path, now_s, n
                     topology_neighbors=neighbors)
                 kwargs = dict(edges=bounded.get('edges') or [], signals=[], start_m=start, end_m=end,
                     departure_service_s=0, config=config, slowdowns=priors, slowdown_strength=strength)
-                physical_profile = (build_tram_leg(**kwargs) if mode == 'tram'
+                # Rail family (tram/subway/s-bahn/rail) and ferries run over the
+                # rail-graph leg with no road traffic. Buses keep the bus leg.
+                # Magdeburg bus/tram dispatch is unchanged.
+                physical_profile = (build_tram_leg(**kwargs) if mode in ('tram', 'subway', 's-bahn', 'rail', 'ferry')
                                     else build_bus_leg(**kwargs, traffic_by_edge=traffic))
                 physical_profiles.append(physical_profile)
                 profiles.append(relative_profile(physical_profile, config['visual']))

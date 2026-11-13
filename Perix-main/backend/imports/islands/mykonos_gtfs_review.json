@@ -1,0 +1,147 @@
+{
+ "trips": [
+  {
+   "trip_id": "MYK_OLDNEW_001",
+   "route_id": "MYK_OLDNEW",
+   "flags": [
+    "LEG_MINUTES_INFERRED_FROM_PAIRED_COLUMN"
+   ]
+  },
+  {
+   "trip_id": "MYK_OLDNEW_002",
+   "route_id": "MYK_OLDNEW",
+   "flags": [
+    "LEG_MINUTES_INFERRED_FROM_PAIRED_COLUMN"
+   ]
+  },
+  {
+   "trip_id": "MYK_OLDNEW_003",
+   "route_id": "MYK_OLDNEW",
+   "flags": [
+    "LEG_MINUTES_INFERRED_FROM_PAIRED_COLUMN"
+   ]
+  },
+  {
+   "trip_id": "MYK_OLDNEW_004",
+   "route_id": "MYK_OLDNEW",
+   "flags": [
+    "LEG_MINUTES_INFERRED_FROM_PAIRED_COLUMN"
+   ]
+  },
+  {
+   "trip_id": "MYK_FAB_ORNOS_AGI_005",
+   "route_id": "MYK_FAB_ORNOS_AGI",
+   "flags": [
+    "PUBLISHED_ROW_CHAIN"
+   ]
+  },
+  {
+   "trip_id": "MYK_FAB_ORNOS_AGI_006",
+   "route_id": "MYK_FAB_ORNOS_AGI",
+   "flags": [
+    "ONWARD_LEG_NOT_PRINTED",
+    "LEG_MINUTES_FROM_PUBLISHED_ROW"
+   ]
+  },
+  {
+   "trip_id": "MYK_FAB_ORNOS_AGI_007",
+   "route_id": "MYK_FAB_ORNOS_AGI",
+   "flags": [
+    "LEG_MINUTES_INFERRED_FROM_OUTBOUND_ROW"
+   ]
+  },
+  {
+   "trip_id": "MYK_FAB_ORNOS_AGI_008",
+   "route_id": "MYK_FAB_ORNOS_AGI",
+   "flags": [
+    "LEG_MINUTES_INFERRED_FROM_OUTBOUND_ROW"
+   ]
+  },
+  {
+   "trip_id": "MYK_FAB_PARADISE_009",
+   "route_id": "MYK_FAB_PARADISE",
+   "flags": [
+    "LEG_MINUTES_FROM_PUBLISHED_ROW"
+   ]
+  },
+  {
+   "trip_id": "MYK_FAB_PARADISE_010",
+   "route_id": "MYK_FAB_PARADISE",
+   "flags": [
+    "LEG_MINUTES_FROM_PUBLISHED_ROW"
+   ]
+  },
+  {
+   "trip_id": "MYK_FAB_PARADISE_011",
+   "route_id": "MYK_FAB_PARADISE",
+   "flags": [
+    "LEG_MINUTES_INFERRED_FROM_OUTBOUND_ROW"
+   ]
+  },
+  {
+   "trip_id": "MYK_FAB_PLATYS_012",
+   "route_id": "MYK_FAB_PLATYS",
+   "flags": [
+    "LEG_MINUTES_FROM_PUBLISHED_ROW"
+   ]
+  },
+  {
+   "trip_id": "MYK_FAB_PLATYS_013",
+   "route_id": "MYK_FAB_PLATYS",
+   "flags": [
+    "LEG_MINUTES_FROM_PUBLISHED_ROW"
+   ]
+  },
+  {
+   "trip_id": "MYK_FAB_PLATYS_014",
+   "route_id": "MYK_FAB_PLATYS",
+   "flags": [
+    "LEG_MINUTES_INFERRED_FROM_OUTBOUND_ROW"
+   ]
+  }
+ ],
+ "skipped_corridors": {
+  "FABRIKA <-> PARAGA": "Paraga stop has no named OSM node; times printed (07:15/14:10, 07:25) but endpoint unresolved.",
+  "NEW PERIPHERAL <-> ANO MERA": "Ano Mera stop has no named OSM node; valid from 1/11/2026, departs the New Peripheral (printed: from Old Port column 10:00/13:15/16:30; from Ano Mera 07:30/10:15/13:30/16:45). Boarding relocation note applies.",
+  "OLD PORT <-> AGIOS STEFANOS": "no times printed on page",
+  "NEW PERIPHERAL <-> KALAFATIS": "no times printed on page; New Peripheral relocation note applies",
+  "NEW PERIPHERAL <-> ELIA": "no times printed on page; New Peripheral relocation note applies",
+  "OLD PORT <-> KALO LIVADI": "no times printed on page",
+  "OLD PORT <-> PANORMOS": "no times printed on page",
+  "FABRIKA <-> NEW PORT": "no times printed on page",
+  "FABRIKA <-> AIRPORT": "no times printed on page",
+  "FABRIKA <-> SUPER PARADISE": "no times printed on page",
+  "AIRPORT <-> NEW PORT": "no times printed on page"
+ },
+ "notes": [
+  "Winter schedule only; the page prints no weekday/weekend split, so ALL-day calendar is assumed and flagged.",
+  "Per-corridor printed validity: OLD-NEW from 11/11/2026; ANO MERA/ORNOS/PARADISE/PARAGA/PLATIS from 1/11/2026.",
+  "Ano Mera, Kalafati and Elia routes now board from the New Peripheral (page note), not the Old Port.",
+  "The page header still reads 'Λεωφορεία 2024' despite the fresh per-block dates above.",
+  "Empty corridor tables (Airport, Elia, Kalafatis, Kalo Livadi, Panormos, Agios Stefanos, Super Paradise, Paraga, Ano Mera stops) are recorded in skipped_corridors.",
+  "Fabrika coordinates are the interior point of the OSM bus_station polygon, not a confirmed entrance.",
+  "Paradise coordinates use the nearby 'Paradise View' OSM node; operator confirmation pending."
+ ],
+ "schema_version": 1,
+ "status": "REVIEW_ARTIFACT_NOT_ACTIVATED",
+ "runtime_eligible": false,
+ "public_release_allowed": false,
+ "source_page": "https://mykonosbus.com/bus-timetables/",
+ "fetched": "2026-11-12",
+ "attribution": "© ΚΤΕΛ Μυκόνου / Mykonos Bus; OpenStreetMap contributors, ODbL",
+ "activation_blockers": [
+  "PAGE_TITLE_STALE_2024",
+  "DAY_VALIDITY_NOT_PRINTED",
+  "SERVICE_PERIOD_END_NOT_PRINTED",
+  "PARAGA_AND_ANO_MERA_STOPS_UNRESOLVED",
+  "ANO_MERA_BOARDING_AT_NEW_PERIPHERAL_NOT_A_NAMED_STOP",
+  "RETURN_LEGS_INFERRED",
+  "SUMMER_SCHEDULE_NOT_PUBLISHED_ON_SITE",
+  "OPERATOR_REUSE_RIGHTS_TO_CONFIRM"
+ ],
+ "coverage": {
+  "stops": 7,
+  "trips": 14,
+  "stop_times": 30
+ }
+}

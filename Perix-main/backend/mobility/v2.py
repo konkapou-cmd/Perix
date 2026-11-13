@@ -567,7 +567,7 @@ class NearbyMapRequest(BaseModel):
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
     bounds: NearbyMapBounds
-    limit: int = Field(default=1, ge=1, le=3)
+    limit: int = Field(default=1, ge=1, le=6)
     radius_m: int = Field(default=150, ge=1, le=5000)
     position_pattern_ids: list[str] = Field(default_factory=list, max_length=40)
 
@@ -675,8 +675,8 @@ async def _build_nearby_context(payload: NearbyMapRequest, key):
         version_id=str(network.get('version_id') or '')
         patterns=[pattern for pattern in domain.get('patterns',[])
             if (version_id,str(pattern.get('pattern_id') or '')) in active_patterns
-            and (str(pattern.get('mode') or ''),str(pattern.get('route_number') or '')) in route_keys
-            and (target_platform_ids.intersection(str(pid) for pid in (pattern.get('stop_ids') or []))
+            and (((str(pattern.get('mode') or ''),str(pattern.get('route_number') or '')) in route_keys
+                  and target_platform_ids.intersection(str(pid) for pid in (pattern.get('stop_ids') or [])))
                  or str(pattern.get('pattern_id') or '') in requested_position_patterns)]
         if not patterns:
             continue
@@ -712,7 +712,7 @@ async def _get_nearby_context(payload: NearbyMapRequest):
 @router.post("/nearby-stops")
 async def v2_nearby_stops(payload: NearbyMapRequest,
                           current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
-    """Fast first stage: up to three visible boarding stops, no route geometry."""
+    """Fast first stage: up to five nearby boarding places, no route geometry."""
     context=await _get_nearby_context(payload)
     return {"stops":deepcopy(context["stops"]),"radius_m":payload.radius_m,
             "zoom_required":context["zoom_required"]}

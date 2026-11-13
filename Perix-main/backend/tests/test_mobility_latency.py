@@ -82,7 +82,7 @@ def test_domain_network_carries_manifest_and_cache_separates_inputs(monkeypatch)
 async def test_active_network_singleflight_cancellation_and_next_read_fresh(monkeypatch):
     entered, release = asyncio.Event(), asyncio.Event()
     calls = []
-    async def load():
+    async def load(include_times=False):
         calls.append(len(calls))
         entered.set()
         await release.wait()
@@ -103,7 +103,7 @@ async def test_active_network_singleflight_cancellation_and_next_read_fresh(monk
 
 @pytest.mark.asyncio
 async def test_window_singleflight_separates_civil_dates_and_explicit_versions(monkeypatch):
-    load = AsyncMock(side_effect=lambda net, now: [net])
+    load = AsyncMock(side_effect=lambda net, now, include_times=False: [net])
     monkeypatch.setattr(routes, "_load_journey_networks", load)
     a = network("2026-10-23")
     midnight = local("2026-10-23T00:00")

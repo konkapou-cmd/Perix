@@ -38,6 +38,10 @@ class MobilityRegion:
     realtime_interval_seconds: float = 15.0
     traffic_adapter: str = "normalized_csv"
     motion: dict = field(default_factory=dict)
+    # Optional archive-independent publisher record for feeds that ship no
+    # feed_info.txt (e.g. VBB). Only used when the archive supplies nothing;
+    # never merged with or overriding an archive-supplied record.
+    static_publisher: Optional[dict] = None
 
     def as_dict(self) -> dict:
         return {
@@ -83,6 +87,114 @@ _PRESETS: Dict[str, MobilityRegion] = {
         realtime_interval_seconds=15.0,
         traffic_adapter="normalized_csv",
     ),
+    # Gardelegen (Altmarkkreis): PVG Salzwedel, bus-only, same national GTFS-DE base.
+    # Dry-run 2026-11-11 on nv_free_latest.zip (264MB, 383 agencies):
+    # agency 9 = 'PVG Salzwedel', 82 bus routes. Generic Nahverkehr regex
+    # matched Jena/Suhl/Weimar false positives, so keep it exact.
+    "gardelegen": MobilityRegion(
+        region_id="gardelegen",
+        network_id="de-gardelegen-bus",
+        city="Gardelegen",
+        country="DE",
+        timezone="Europe/Berlin",
+        service_day_start_hour=4,
+        bbox=(52.45, 11.25, 52.62, 11.65),
+        agency_regex=r"PVG Salzwedel",
+        modes=("bus",),
+        static_transit_type="GTFS",
+        static_gtfs_url="https://download.gtfs.de/germany/nv_free/latest.zip",
+        realtime_type="GTFS_RT",
+        realtime_url="https://realtime.gtfs.de/realtime-free.pb",
+        realtime_interval_seconds=15.0,
+        traffic_adapter="normalized_csv",
+    ),
+    # Berlin: VBB open-data GTFS (all schedules in VBB area, incl. S-Bahn).
+    # Dry-run 2026-11-11 on VBB feed (84MB, 32 agencies, 1289 routes,
+    # 71191 trips today): S-Bahn Berlin GmbH (68 routes), BVG (265),
+    # DB Regio (55), ODEG (40), NEB. Extended route types 100/106=rail,
+    # 109=s-bahn, 400=subway, 700/3=bus, 900=tram, 1000=ferry.
+    # GTFS-DE national feeds carry no S-Bahn Berlin agency at all.
+    "berlin": MobilityRegion(
+        region_id="berlin",
+        network_id="de-berlin-vbb",
+        city="Berlin",
+        country="DE",
+        timezone="Europe/Berlin",
+        service_day_start_hour=4,
+        bbox=(52.35, 13.05, 52.70, 13.80),
+        agency_regex=r"S-Bahn Berlin GmbH|Berliner Verkehrsbetriebe|DB Regio AG|Ostdeutsche Eisenbahn|NEB Betriebsgesellschaft",
+        modes=("bus", "tram", "subway", "s-bahn", "rail", "ferry"),
+        static_transit_type="GTFS",
+        static_gtfs_url="https://unternehmen.vbb.de/gtfs",
+        realtime_type="GTFS_RT",
+        realtime_url="https://realtime.gtfs.de/realtime-free.pb",
+        realtime_interval_seconds=15.0,
+        traffic_adapter="normalized_csv",
+        # VBB ships no feed_info.txt; publisher is declared by the region so
+        # the version-bound source_manifest still carries an attribution.
+        static_publisher={"publisher_name": "VBB Verkehrsverbund Berlin-Brandenburg GmbH",
+                          "publisher_url": "https://unternehmen.vbb.de/en/digital-services/datasets"},
+    ),
+    # Syros: review GTFS from the official KTEL Syrou timetable
+    # (Dromologia-31.10.26.pdf). Manual import only (no feed URL), no
+    # realtime (no AVL on the island) -> schedule + virtual estimates.
+    # Inactive until explicitly selected.
+    "syros": MobilityRegion(
+        region_id="syros",
+        network_id="gr-syros-ktel",
+        city="Syros",
+        country="GR",
+        timezone="Europe/Athens",
+        service_day_start_hour=4,
+        bbox=(37.32, 24.80, 37.55, 25.07),
+        agency_regex=r"ΚΤΕΛ Ν\. ΣΥΡΟΥ|ΚΤΕΛ Σύρου|KTEL Syrou",
+        modes=("bus",),
+        static_transit_type="GTFS",
+        static_gtfs_url="",
+        realtime_type="NONE",
+        realtime_url="",
+        realtime_interval_seconds=15.0,
+        traffic_adapter="normalized_csv",
+    ),
+    # Mykonos: review GTFS from the Mykonos Bus timetable (manual import).
+    # Inactive until explicitly selected.
+    "mykonos": MobilityRegion(
+        region_id="mykonos",
+        network_id="gr-mykonos-ktel",
+        city="Mykonos",
+        country="GR",
+        timezone="Europe/Athens",
+        service_day_start_hour=4,
+        bbox=(37.34, 25.23, 37.52, 25.51),
+        agency_regex=r"ΚΤΕΛ Μυκόνου|Mykonos Bus|KTEL Mykonos",
+        modes=("bus",),
+        static_transit_type="GTFS",
+        static_gtfs_url="",
+        realtime_type="NONE",
+        realtime_url="",
+        realtime_interval_seconds=15.0,
+        traffic_adapter="normalized_csv",
+    ),
+    # Attica: OASA road GTFS (bus/trolley) + STASY fixed GTFS (metro/tram),
+    # manual import from data.gov.gr RARs. Realtime: OASA telematics adapter
+    # (later phase; built-in worker is GTFS_RT-only). Inactive until selected.
+    "attica": MobilityRegion(
+        region_id="attica",
+        network_id="gr-athens-oasa",
+        city="Athens",
+        country="GR",
+        timezone="Europe/Athens",
+        service_day_start_hour=4,
+        bbox=(37.60, 23.20, 38.40, 24.20),
+        agency_regex=r"Athens Urban Transport Organization|Urban Rail Transport",
+        modes=("bus", "trolleybus", "subway", "tram"),
+        static_transit_type="GTFS",
+        static_gtfs_url="",
+        realtime_type="OASA_TELEMATICS",
+        realtime_url="",
+        realtime_interval_seconds=30.0,
+        traffic_adapter="normalized_csv",
+    ),
 }
 
 
@@ -126,6 +238,7 @@ def _region_from_dict(data: dict) -> MobilityRegion:
         realtime_interval_seconds=float(data.get("realtime_interval_seconds", 15.0)),
         traffic_adapter=str(data.get("traffic_adapter") or "normalized_csv"),
         motion=dict(data.get("motion") or {}),
+        static_publisher=dict(data["static_publisher"]) if isinstance(data.get("static_publisher"), dict) else None,
     )
 
 
@@ -202,6 +315,7 @@ def _apply_env_overrides(region: MobilityRegion) -> MobilityRegion:
         ),
         traffic_adapter=str(os.getenv("MOBILITY_TRAFFIC_ADAPTER") or region.traffic_adapter),
         motion=dict(region.motion),
+        static_publisher=dict(region.static_publisher) if region.static_publisher else None,
     )
 
 

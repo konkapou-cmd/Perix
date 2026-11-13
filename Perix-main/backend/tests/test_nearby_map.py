@@ -119,9 +119,29 @@ async def test_nearby_stops_arrive_before_only_their_active_route_lines(monkeypa
         bounds=v2.NearbyMapBounds(min_lat=52.13,max_lat=52.15,min_lng=11.62,max_lng=11.64),
         position_pattern_ids=["other-direction-10","near-1"])
     predecessor_lines=await v2.v2_nearby_map(predecessor_request)
-    assert {line["pattern_id"] for line in predecessor_lines["lines"]}=={"near-10","other-direction-10"}
+    assert {line["pattern_id"] for line in predecessor_lines["lines"]}=={"near-10","other-direction-10","near-1"}
     expanded=v2._build_map_dated.await_args.args[0]
-    assert {pattern["pattern_id"] for pattern in expanded["patterns"]}=={"near-10","other-direction-10"}
+    assert {pattern["pattern_id"] for pattern in expanded["patterns"]}=={"near-10","other-direction-10","near-1"}, "retained trip patterns need not serve the origin route"
+
+
+def test_five_nearby_places_are_supported_without_widening_the_radius():
+    bounds=v2.NearbyMapBounds(min_lat=52.139,max_lat=52.142,min_lng=11.629,max_lng=11.631)
+    request=v2.NearbyMapRequest(latitude=52.14,longitude=11.63,bounds=bounds,limit=5)
+    rows=[_stop(f"s{i}",f"p{i}",52.14+i*0.0001,11.63,
+                [{"mode":"tram","route_number":str(i)}]) for i in range(6)]
+    result=v2._nearest_boarding_places(rows,request.latitude,request.longitude,
+        limit=request.limit,radius_m=request.radius_m,bounds=request.bounds)
+    assert len(result)==5
+    assert [stop["stop_id"] for stop in result]==[f"s{i}" for i in range(5)]
+    assert request.radius_m==150
+
+
+def test_selected_station_can_request_itself_plus_five_neighbours():
+    bounds=v2.NearbyMapBounds(min_lat=52.13,max_lat=52.15,min_lng=11.62,max_lng=11.64)
+    request=v2.NearbyMapRequest(latitude=52.14,longitude=11.63,bounds=bounds,limit=6,radius_m=3000)
+    assert request.limit==6
+    with pytest.raises(ValueError):
+        v2.NearbyMapRequest(latitude=52.14,longitude=11.63,bounds=bounds,limit=7)
 
 
 def test_nearby_map_requires_a_small_viewport():
