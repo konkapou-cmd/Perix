@@ -160,10 +160,10 @@ async def import_snapshot(force_new: bool = False, region_id: Optional[str] = No
     use a fresh version so an interrupted write cannot alter the active graph.
     """
     region = _region(region_id)
-    # 16 small tiles instead of 4 large quadrants: each Overpass request is
-    # far lighter. Every required tile must succeed before storage. (Large queries hit
-    # mirror read timeouts on busy public Overpass instances.)
-    quadrants = split_bbox(region.bbox, rows=4, cols=4)
+    # 36 small tiles: each Overpass request is lighter still (dense metro
+    # regions like Berlin/VBB time out on the 4x4 tiles of busy public
+    # mirrors). Every required tile must succeed before storage.
+    quadrants = split_bbox(region.bbox, rows=6, cols=6)
 
     roads = []
     rails = []

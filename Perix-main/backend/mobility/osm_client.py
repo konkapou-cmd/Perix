@@ -18,8 +18,8 @@ OVERPASS_URLS = [
 ]
 
 USER_AGENT = "PerixMobility/1.0 (app.perixapp.com)"
-REQUEST_TIMEOUT_SECONDS = 150
-ATTEMPTS_PER_MIRROR = 2
+REQUEST_TIMEOUT_SECONDS = 240
+ATTEMPTS_PER_MIRROR = 3
 
 
 async def overpass_json(query: str, *, require_elements: bool = True) -> dict:
