@@ -229,7 +229,8 @@ async def test_actual_rt_worker_dispatches_same_feed_by_descriptor_date(monkeypa
     legacy = AsyncMock()
     monkeypatch.setattr(workers, "db", SimpleNamespace(
         mobility_trip_realtime_journeys=SimpleNamespace(bulk_write=saved),
-        mobility_realtime=SimpleNamespace(bulk_write=legacy)))
+        mobility_realtime=SimpleNamespace(bulk_write=legacy),
+        mobility_schedule_audits=SimpleNamespace(find_one=AsyncMock(return_value=None))))
     monkeypatch.setattr(routes, "_get_active_network", AsyncMock(return_value=nets[0]))
     monkeypatch.setattr(routes, "networks_for_journey_window", AsyncMock(return_value=nets))
     monkeypatch.setattr(generations, "atomic_generations_enabled", lambda: True)

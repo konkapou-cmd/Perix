@@ -84,7 +84,7 @@ async def test_failed_tile_preserves_active_without_graph_writes(snapshot, monke
     update = meta.update_one.await_args.args[1]
     assert set(update["$set"]) == {"last_import_attempt"}
     attempt = update["$set"]["last_import_attempt"]
-    assert attempt["tiles_per_layer"] == 16
+    assert attempt["tiles_per_layer"] == 36  # 6x6 dense-metro split
     assert attempt["failed"] == 1
     assert attempt[{"bus": "roads_failed", "tram": "rails_failed", "signals": "signals_failed"}[failed_layer]] == 1
     assert meta.find_one.return_value == snapshot.old
