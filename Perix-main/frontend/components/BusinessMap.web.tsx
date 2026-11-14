@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
-import { StyleSheet, Text, View, Platform, Pressable, Modal, Image as RNImage, Linking, ActivityIndicator, type ImageSourcePropType } from "react-native";
+import { StyleSheet, Text, View, Platform, Pressable, Modal, Image as RNImage, Linking, ActivityIndicator, useWindowDimensions, type ImageSourcePropType } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Business, EventItem, ActivityItem, ArtistSearchResult, Rental, Job, Service } from "../lib/api";
 import { formatEventDate } from "../lib/formatDate";
@@ -11,8 +11,10 @@ import { sampleVisualPath } from "../lib/city/transitPath";
 import { stationQueueOffsets, smoothQueueOffset, StationQueueCandidate } from "../lib/city/stationQueue";
 import { measureVisualApplication } from "../lib/city/transitPublication";
 import { groupTransitStopIcons, transitStopPins, stopGeometryBearing, stopViewerBearing } from "../lib/city/visualGeometry";
-import { MAP_LAYERS, createUserPinElement, mapEmblemPinSize, mapEntityPinSize, mapMarkerGroupKey, profileInitial, transitStopAppearance, businessEmblemKey, perspectiveMultiplier, routeWeightForZoom, LOCKED_MAP_TILT, RASTER_FALLBACK_TILT, lockedTiltForRendering, PERIX_VECTOR_MAP_ID } from "../lib/city/mapPresentation";
+import { MAP_LAYERS, createUserPinElement, mapEmblemPinSize, mapEntityPinSize, mapMarkerGroupKey, profileInitial, transitStopAppearance, businessEmblemKey, perspectiveMultiplier, routeWeightForZoom, LOCKED_MAP_TILT, RASTER_FALLBACK_TILT, lockedTiltForRendering, PERIX_VECTOR_MAP_ID, easeInOutCubic, flyToDurationMs } from "../lib/city/mapPresentation";
 import { illustratedIconSource } from "./icons/IllustratedIcon";
+import FontMagnifierButton from "./city/FontMagnifierButton";
+const GAME_CABRIO = require("../assets/brand/game-cabrio.png");
 import { clusterLandmarks, landmarkAppearance, landmarkDepthLayout, landmarkIntersectsBounds, landmarkImageSource, landmarkTapTargets, LANDMARK_MAP_MAX_ZOOM, LANDMARK_STREET_DETAIL_ZOOM } from "../lib/city/landmarks";
 import { projectedRoutePath } from '../lib/city/routeArtwork';
 import type { Landmark } from "../lib/city/landmarks";
@@ -173,6 +175,8 @@ type Props = {
   onZoomChange?: (zoom: number) => void;
   onMarkerPress?: (markerId: string) => void;
   onMapPress?: (latitude: number, longitude: number) => void;
+  /** Mobile cluster game entry (-> /game at origin). Renders the cabrio button. */
+  onGamePress?: (() => void) | null;
   height?: number;
   horizontalInset?: number;
   disabled?: boolean;
@@ -368,7 +372,7 @@ let perixCinemaStylesInstalled = false;
  *  (never inside the Cloud Map Style JSON: it has no glare/bloom/vignette).
  *  pointer-events:none keeps every control clickable; the bottom 48px stay
  *  clear for the Google logo and attribution. Default intensity: PERIX Signature. */
-const PERIX_CINEMA_CSS = `.perix-cinema-light{position:absolute;inset:0 0 48px 0;z-index:2;pointer-events:none;background:radial-gradient(ellipse 65% 60% at 12% 4%,rgba(255,240,207,0.30),transparent 72%),radial-gradient(ellipse 55% 50% at 85% 8%,rgba(159,211,231,0.13),transparent 75%),radial-gradient(ellipse 120% 60% at 50% 0%,rgba(255,255,255,0.07),transparent 55%),radial-gradient(ellipse 85% 80% at 50% 46%,transparent 45%,rgba(79,64,52,0.14) 100%);}`;
+const PERIX_CINEMA_CSS = `.perix-map-grade{filter:saturate(1.25) contrast(1.1) brightness(1.03);}.perix-cinema-light{position:absolute;inset:0 0 48px 0;z-index:2;pointer-events:none;-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 90px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 90px),transparent);background:radial-gradient(ellipse 55% 48% at 50% 42%,rgba(255,250,235,0.24),transparent 70%),radial-gradient(ellipse 65% 60% at 12% 4%,rgba(255,240,207,0.30),transparent 72%),radial-gradient(ellipse 55% 50% at 85% 8%,rgba(159,211,231,0.13),transparent 75%),radial-gradient(ellipse 120% 60% at 50% 0%,rgba(255,255,255,0.07),transparent 55%),radial-gradient(ellipse 85% 80% at 50% 46%,transparent 45%,rgba(79,64,52,0.44) 100%);}.perix-eye-blur{position:absolute;inset:-2%;z-index:2;pointer-events:none;backdrop-filter:blur(3px) brightness(.97);-webkit-backdrop-filter:blur(3px) brightness(.97);-webkit-mask-image:radial-gradient(ellipse 72% 68% at 50% 46%,transparent 52%,#000 96%);mask-image:radial-gradient(ellipse 72% 68% at 50% 46%,transparent 52%,#000 96%);}`;
 function ensurePerixCinemaStyles() {
   if (perixCinemaStylesInstalled || typeof document === "undefined") return;
   const style = document.createElement("style");
@@ -503,6 +507,7 @@ export default function BusinessMap({
   onZoomChange,
   onMarkerPress,
   onMapPress,
+  onGamePress,
   height = 300,
   horizontalInset = 16,
   disabled = false,
@@ -510,6 +515,10 @@ export default function BusinessMap({
   staticMode = false,
 }: Props) {
   const { t } = useTranslation();
+  const { width: viewportWidth } = useWindowDimensions();
+  // Mobile gets our own control cluster (magnifier/zoom/game) instead of the
+  // Google zoom buttons, so nothing ever overlaps.
+  const isMobileMap = viewportWidth < 1024;
   const mapDivRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
@@ -629,6 +638,54 @@ export default function BusinessMap({
     if(next.cancelled)return;
     autoCameraRef.current={...next,cancelled:true};
     onAutofitCancelRef.current?.();
+  };
+  // Fly-to: animated glide from another area to a target at the SAME zoom we
+  // opened with (the first zoom). Any user gesture cancels the flight.
+  const initialZoomRef = useRef<number>(Number.isFinite(focusZoom) ? focusZoom : 14);
+  const flyCancelRef = useRef<(() => void) | null>(null);
+  const cancelFly = () => {
+    try { flyCancelRef.current?.(); } catch (e) {}
+    flyCancelRef.current = null;
+  };
+  const startFly = (latitude: number, longitude: number, targetZoom?: number) => {
+    const liveMap = mapRef.current;
+    if (!liveMap || !mapReadyRef.current) return;
+    cancelFly();
+    const fromCenter = liveMap.getCenter?.();
+    const fromZoom: number = liveMap.getZoom?.() ?? initialZoomRef.current ?? 14;
+    const toZoom: number = (typeof targetZoom === "number" && Number.isFinite(targetZoom)) ? targetZoom : (initialZoomRef.current ?? 14);
+    const from = fromCenter ? { latitude: fromCenter.lat(), longitude: fromCenter.lng() } : { latitude, longitude };
+    const distM = haversineMeters(
+      { lat: from.latitude, lng: from.longitude }, { lat: latitude, lng: longitude });
+    const durationMs = flyToDurationMs(distM);
+    const t0 = (typeof performance !== "undefined" ? performance.now() : Date.now());
+    let raf = 0;
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      try { cancelAnimationFrame(raf); } catch (e) {}
+      if (flyCancelRef.current === cancel) flyCancelRef.current = null;
+    };
+    const cancel = () => finish();
+    flyCancelRef.current = cancel;
+    const step = (now: number) => {
+      if (done) return;
+      const t = Math.max(0, Math.min(1, (now - t0) / durationMs));
+      const e = easeInOutCubic(t);
+      try {
+        liveMap.moveCamera?.({
+          center: {
+            lat: from.latitude + (latitude - from.latitude) * e,
+            lng: from.longitude + (longitude - from.longitude) * e,
+          },
+          zoom: fromZoom + (toZoom - fromZoom) * e,
+        });
+      } catch (err) {}
+      if (t >= 1) { finish(); return; }
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
   };
 
   // Visual estimates follow the authorized source-clock curve in geographic
@@ -1086,6 +1143,7 @@ export default function BusinessMap({
     const onUserGesture=(event:Event)=>{if(event.isTrusted)cancelAutofit();};
     for(const event of ['pointerdown','touchstart','wheel','keydown'])host.addEventListener(event,onUserGesture,{capture:true,passive:true});
     ensurePerixCinemaStyles();
+    try { mapDivRef.current?.classList?.add("perix-map-grade"); } catch (e) {}
     loadGoogleScript()
       .then(() => {
         if (cancelled || !mapDivRef.current) return;
@@ -1093,17 +1151,16 @@ export default function BusinessMap({
         const map = new google.maps.Map(mapDivRef.current, {
           center: { lat: centerLat, lng: centerLng },
           zoom: Number.isFinite(focusZoom) ? focusZoom : 14,
-          // Vector ROADMAP so buildings render natively in 3D at the locked 67°
-          // tilt. (Vector hybrid stays flat: aerial photos have no extrusion.)
-          // POI/transit hiding + Perix palette live in the Cloud console style.
+          // 3D ROADMAP DEFAULT with locked tilt. Styling (labels, palette,
+          // POI hiding) lives in the Cloud console style attached to this map ID.
           mapId: PERIX_VECTOR_MAP_ID,
           tilt: LOCKED_MAP_TILT,
           heading: 0,
-          mapTypeId: "roadmap",
+          mapTypeId: "hybrid",
           isFractionalZoomEnabled: true,
           maxZoom: LANDMARK_MAP_MAX_ZOOM,
           disableDefaultUI: staticMode,
-          zoomControl: !staticMode,
+          zoomControl: !staticMode && !isMobileMap,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: !staticMode,
@@ -1143,10 +1200,11 @@ export default function BusinessMap({
         });
 
         map.addListener("click", (e: any) => {
+          cancelFly();
           onMapPressRef.current?.(e.latLng.lat(), e.latLng.lng());
         });
 
-        listeners.push(map.addListener("dragstart", cancelAutofit));
+        listeners.push(map.addListener("dragstart", () => { cancelFly(); cancelAutofit(); }));
 
         // One in-place refresh for every camera movement (pan, zoom, tilt):
         // pins, vehicles and lines rescale where they stand. Nothing is
@@ -1187,11 +1245,11 @@ export default function BusinessMap({
           }, 350);
           onZoomChangeRef.current?.(map.getZoom() || 14);
         });
-        // Tilt stays locked: gestures snap back (threshold avoids loops).
+        // Tilt stays locked: re-applied on zoom/tile changes. No snap-back on
+        // tilt_changed (touch tilt gestures would fight it and judder).
         // Tilt rescales from the POV without reloading any data.
         map.addListener("tilt_changed", () => {
           refreshScales();
-          applyLockedTilt(map);
         });
         map.addListener("heading_changed", () => {
           const heading=map.getHeading?.() || 0;
@@ -2167,13 +2225,13 @@ export default function BusinessMap({
     return()=>{active=false;clearTimeout(timer);cancelAnimationFrame(frame);cleanup.forEach(fn=>fn());};
   },[landmarks,mapReady,mapError]);
 
-  // Fly to location
+  // Fly to location (same opening zoom, gliding from the current area)
   useEffect(() => {
     if (!mapRef.current || !mapReadyRef.current || !location) return;
     const key = `${location.latitude.toFixed(4)},${location.longitude.toFixed(4)}`;
     if (key === prevLocationRef.current) return;
     prevLocationRef.current = key;
-    mapRef.current.panTo({ lat: location.latitude, lng: location.longitude });
+    startFly(location.latitude, location.longitude);
   }, [location, mapReady]);
 
   // User location dot — glued to the map
@@ -2262,8 +2320,7 @@ export default function BusinessMap({
     if (!mapRef.current || !mapReadyRef.current || !focusToken || !focusRegion) return;
     if(lastAppliedFocusToken.current===focusToken)return;
     lastAppliedFocusToken.current=focusToken;
-    mapRef.current.panTo({ lat: focusRegion.latitude, lng: focusRegion.longitude });
-    mapRef.current.setZoom(Number.isFinite(focusZoom) ? focusZoom : 14);
+    startFly(focusRegion.latitude, focusRegion.longitude, Number.isFinite(focusZoom) ? focusZoom : undefined);
   }, [focusToken, focusZoom, mapReady]);
 
   // Run after explicit focus so it cannot immediately undo the first group fit.
@@ -2362,6 +2419,28 @@ export default function BusinessMap({
       />
       {/* Film finish above the tiles, below UI: morning-sun grade, attribution strip kept clear. */}
       <div aria-hidden className="perix-cinema-light" />
+      <div aria-hidden className="perix-eye-blur" />
+      {isMobileMap && (
+        <View testID="map-mobile-cluster" style={s.mobileCluster}>
+          <FontMagnifierButton />
+          <Pressable testID="map-zoom-in" accessibilityRole="button"
+            accessibilityLabel={t("map.zoomIn", "Zoom in")}
+            onPress={() => { try { mapRef.current?.setZoom?.((mapRef.current?.getZoom?.() || 14) + 1); } catch (e) {} }} style={s.clusterButton}>
+            <Ionicons name="add" size={22} color="#064472" />
+          </Pressable>
+          <Pressable testID="map-zoom-out" accessibilityRole="button"
+            accessibilityLabel={t("map.zoomOut", "Zoom out")}
+            onPress={() => { try { mapRef.current?.setZoom?.((mapRef.current?.getZoom?.() || 14) - 1); } catch (e) {} }} style={s.clusterButton}>
+            <Ionicons name="remove" size={22} color="#064472" />
+          </Pressable>
+          {onGamePress ? (
+            <Pressable testID="map-game-entry" accessibilityRole="button"
+              accessibilityLabel={t("map.game", "Game")} onPress={onGamePress} style={s.clusterGameButton}>
+              <RNImage source={GAME_CABRIO} resizeMode="cover" style={s.clusterGameIcon} accessibilityIgnoresInvertColors />
+            </Pressable>
+          ) : null}
+        </View>
+      )}
       {mapZoomLevel >= 19 && !streetView && (
         <Pressable testID="street-view-toggle" accessibilityRole="button"
           accessibilityLabel={t("map.walkHere", "Walk here")}
@@ -2455,6 +2534,10 @@ export default function BusinessMap({
 const s = StyleSheet.create({
   wrap: { marginHorizontal: 16, borderRadius: 12, backgroundColor: "#ffffff", overflow: "hidden", position: "relative" },
   streetViewToggle: { position: "absolute", left: 12, bottom: 12, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: COLORS.primary, borderRadius: 20, paddingHorizontal: 14, height: 40 },
+  mobileCluster: { position: "absolute", right: 10, bottom: 52, flexDirection: "row", alignItems: "center", gap: 8 },
+  clusterButton: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.92)", borderWidth: 1, borderColor: "#e5e7eb" },
+  clusterGameButton: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", backgroundColor: "#0b1620", borderWidth: 1, borderColor: "#e5e7eb", overflow: "hidden" },
+  clusterGameIcon: { width: 46, height: 46, borderRadius: 23 },
   streetViewToggleText: { color: "#fff", fontWeight: "700", fontSize: 13 },
   streetViewNotice: { position: "absolute", left: 12, bottom: 56, backgroundColor: "rgba(6,68,114,0.9)", color: "#fff", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, fontSize: 12 },
   streetViewWrap: { flex: 1, backgroundColor: "#000" },

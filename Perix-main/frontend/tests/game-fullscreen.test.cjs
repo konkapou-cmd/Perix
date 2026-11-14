@@ -45,7 +45,7 @@ function texts(tree) {
   return nodes(tree).filter((n) => n.type === "Text").map((n) => [].concat(n.props.children || []).join(""));
 }
 
-test("header game button navigates to /game with origin on mobile, keeps toggle otherwise", () => {
+test("header keeps fullscreen toggle and adds a separate wooden-cabrio game entry", () => {
   let pushed = null;
   const Header = load("components/city/MapScreenHeader.tsx", {
     react: { default: React }, "react-native": rn,
@@ -62,10 +62,14 @@ test("header game button navigates to /game with origin on mobile, keeps toggle 
   }).default;
   viewportWidth = 390;
   const tree = Header({ gameOrigin: { latitude: 52.13, longitude: 11.63 } });
-  const btn = nodes(tree).find((n) => n.props.testID === "fullscreen-toggle");
-  assert.ok(btn, "center button renders on mobile");
-  btn.props.onPress();
-  assert.ok(String(pushed).startsWith("/game?"), `navigates to /game, got ${pushed}`);
+  const fsBtn = nodes(tree).find((n) => n.props.testID === "fullscreen-toggle");
+  assert.ok(fsBtn, "fullscreen toggle renders on mobile");
+  fsBtn.props.onPress();
+  assert.equal(pushed, null, "fullscreen toggle keeps Fullscreen API behavior (no navigation)");
+  const gameBtn = nodes(tree).find((n) => n.props.testID === "game-entry");
+  assert.ok(gameBtn, "separate wooden-cabrio game entry renders next to it");
+  gameBtn.props.onPress();
+  assert.ok(String(pushed).startsWith("/game?"), `game entry navigates to /game, got ${pushed}`);
   assert.match(String(pushed), /lat=52\.13/);
   assert.match(String(pushed), /lng=11\.63/);
   pushed = null;
@@ -75,7 +79,53 @@ test("header game button navigates to /game with origin on mobile, keeps toggle 
   viewportWidth = 1280;
 });
 
-test("game route gates desktop/native and passes origin plus app keys to the game", () => {
+test("desktop header shows magnifier plus cabrio game entry", () => {
+  const Header = load("components/city/MapScreenHeader.tsx", {
+    react: { default: React }, "react-native": rn,
+    "expo-router": { usePathname: () => "/app", useRouter: () => ({ navigate: () => {} }) },
+    "react-i18next": { useTranslation: () => ({ t: (k, f) => f }) },
+    "../../context/AuthContext": { useAuth: () => ({ user: null, loading: false }) },
+    "../brand/PerixLogo": { default: "Logo" },
+    "./FontMagnifierButton": { default: "Magnifier" },
+    "../../lib/city/mapLayout": {
+      MAP_PAGE_BACKGROUND: "#fff", MAP_PAGE_GUTTER: 16, MAP_PAGE_MAX_WIDTH: 1200,
+      MAP_HEADER_BRAND_HEIGHT: 56,
+      mapHeaderMetrics: () => ({ logoWidth: 120, primaryWidth: 300, gap: 8, appWidth: 80, membersWidth: 104, compact: true }),
+    },
+    "@expo/vector-icons": { Ionicons: "Icon" },
+  }).default;
+  viewportWidth = 1280;
+  const desk = nodes(Header({ gameOrigin: { latitude: 52.13, longitude: 11.63 } }));
+  assert.ok(desk.find((n) => n.props.testID === "map-header-desktop-tools"), "desktop tools cluster renders");
+  assert.ok(desk.find((n) => n.type === "Magnifier"), "magnifier on desktop");
+  assert.ok(desk.find((n) => n.props.testID === "game-entry"), "cabrio game entry on desktop");
+  viewportWidth = 390;
+  const mob = nodes(Header({ gameOrigin: { latitude: 52.13, longitude: 11.63 } }));
+  assert.equal(mob.find((n) => n.props.testID === "map-header-desktop-tools"), undefined, "no desktop cluster on mobile");
+  viewportWidth = 1280;
+});
+
+test("font magnifier offers instant global sizes", () => {
+  const src = read("components/city/FontMagnifierButton.tsx");
+  assert.match(src, /FONT_SCALE_STEPS\.map/);
+  assert.match(src, /setStoredFontScale\(c\)/);
+  assert.match(src, /font-magnifier-option-/);
+  const Magnifier = load("components/city/FontMagnifierButton.tsx", {
+    react: { default: React },
+    "react-native": { ...rn, Platform: { OS: "web", select: (values) => values.web } },
+    "react-i18next": { useTranslation: () => ({ t: (k, f) => f }) },
+    "@expo/vector-icons": { Ionicons: "Icon" },
+    "../../lib/fontScale": {
+      FONT_SCALE_STEPS: ["85", "100", "130"],
+      getStoredFontScale: async () => "100",
+      setStoredFontScale: async () => {},
+    },
+  }).default;
+  const tree = nodes(Magnifier({}));
+  assert.ok(tree.find((n) => n.props.testID === "font-magnifier-toggle"), "magnifier toggle renders");
+});
+
+test("game route drives on web (mobile + desktop WASD) and gates native/missing origin", () => {
   let router = null;
   const deps = (w, params, platform = "web") => ({
     react: { default: React }, "react-native": { ...rn, Platform: { OS: platform }, useWindowDimensions: () => ({ width: w, height: 800 }) },
@@ -99,7 +149,11 @@ test("game route gates desktop/native and passes origin plus app keys to the gam
   game.props.onExit();
   assert.equal(router.backed, true, "back returns with stack pop (preserves /app)");
   const desk = load("app/game.tsx", deps(1280, { lat: "52.13", lng: "11.63" })).default();
-  assert.ok(texts(desk).join(" ").includes("mobile"), "desktop sees mobile-only notice");
+  const deskGame = nodes(desk).find((n) => n.type === "Game");
+  assert.ok(deskGame, "desktop web also drives (WASD/arrows)");
+  assert.equal(deskGame.props.startPoint.latitude, 52.13);
+  const nat = load("app/game.tsx", deps(390, { lat: "52.13", lng: "11.63" }, "android")).default();
+  assert.ok(texts(nat).join(" ").includes("web"), "native stays gated");
   const noloc = load("app/game.tsx", deps(390, {})).default();
   assert.ok(texts(noloc).join(" ").includes("Missing location"), "missing origin is explained");
 });
@@ -111,7 +165,18 @@ test("game component starts from origin, free-roams without streets, and exits o
   assert.match(src, /streetLines\s*=\s*\[\]/);
   assert.match(src, /hasStreets/);
   assert.match(src, /Free-roam/);
-  assert.match(src, /gestureHandling:\s*['"]none['"]/);
+  assert.match(src, /mapTypeId: 'hybrid'/);
+  assert.match(src, /tilt:\s*67/);
+  const web = read("components/BusinessMap.web.tsx");
+  assert.match(web, /map-mobile-cluster/);
+  assert.match(web, /map-zoom-in/);
+  assert.match(web, /map-zoom-out/);
+  assert.match(web, /map-game-entry/);
+  assert.match(web, /onGamePress/);
+  const native = read("components/BusinessMap.native.tsx");
+  assert.match(native, /map-mobile-cluster/);
+  assert.match(native, /zoomControl(Enabled)?=\{false\}/);
+  assert.match(native, /onGamePress\?:/);
   assert.match(src, /zoom:\s*20\.2/);
   assert.match(src, /tilt:\s*67/);
   assert.match(src, /map\.moveCamera/);

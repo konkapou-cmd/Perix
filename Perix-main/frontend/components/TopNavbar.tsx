@@ -17,6 +17,7 @@ import { useAuth } from "../context/AuthContext";
 import { useBadge } from "../context/BadgeContext";
 import { COLORS } from "../lib/designTokens";
 import MapScreenHeader from "./city/MapScreenHeader";
+import FontMagnifierButton from "./city/FontMagnifierButton";
 import { IdentityDropdown } from "./profile/IdentityDropdown";
 import { getMyBusinesses, type Business } from "../lib/api";
 
@@ -78,38 +79,40 @@ export default function TopNavbar({ onCreatePress }: { onCreatePress?: () => voi
               <Ionicons name={isProfile ? "person" : "person-outline"} size={22} color={iconColor(isProfile)} />
               <Text style={[styles.navIconText, isProfile && styles.navIconTextActive]}>{t("nav.profile", "Profile")}</Text>
             </Pressable>
+            <View style={{ position: "relative" }}>
+              <Pressable
+                style={styles.navIcon}
+                onPress={() => go(sessionToken ? "/(tabs)/messages" as any : "/login" as any)}
+                data-testid="navbar-messages"
+                accessibilityRole="button"
+                accessibilityLabel={t("nav.messages", "Messages")}
+              >
+                <Ionicons name={isMessages ? "chatbubble" : "chatbubble-outline"} size={22} color={iconColor(isMessages)} />
+                <Text style={[styles.navIconText, isMessages && styles.navIconTextActive]}>{t("nav.messages", "Messages")}</Text>
+              </Pressable>
+              {unreadMessageCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {unreadMessageCount > 9 ? "9+" : unreadMessageCount}
+                  </Text>
+                </View>
+              )}
+            </View>
+            {/* Create lives inside the unified pill, next to the section icons */}
             <Pressable
-              style={styles.navIcon}
-              onPress={() => go(sessionToken ? "/(tabs)/messages" as any : "/login" as any)}
-              data-testid="navbar-messages"
-              accessibilityRole="button"
-              accessibilityLabel={t("nav.messages", "Messages")}
+              style={[
+                styles.createButton,
+                hoveredItem === "create" && styles.createButtonHover,
+              ]}
+              onPress={onCreatePress}
+              onHoverIn={() => setHoveredItem("create")}
+              onHoverOut={() => setHoveredItem(null)}
+              data-testid="navbar-create"
             >
-              <Ionicons name={isMessages ? "chatbubble" : "chatbubble-outline"} size={22} color={iconColor(isMessages)} />
-              <Text style={[styles.navIconText, isMessages && styles.navIconTextActive]}>{t("nav.messages", "Messages")}</Text>
+              <Ionicons name="add-circle-outline" size={18} color={COLORS.background} />
+              <Text style={styles.createButtonText}>{t("common.create", "Create")}</Text>
             </Pressable>
-            {unreadMessageCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>
-                  {unreadMessageCount > 9 ? "9+" : unreadMessageCount}
-                </Text>
-              </View>
-            )}
           </View>
-          {/* Create Button — mirrors the app's bottom-bar create tab */}
-          <Pressable
-            style={[
-              styles.createButton,
-              hoveredItem === "create" && styles.createButtonHover,
-            ]}
-            onPress={onCreatePress}
-            onHoverIn={() => setHoveredItem("create")}
-            onHoverOut={() => setHoveredItem(null)}
-            data-testid="navbar-create"
-          >
-            <Ionicons name="add-circle-outline" size={18} color={COLORS.background} />
-            <Text style={styles.createButtonText}>{t("common.create", "Create")}</Text>
-          </Pressable>
 
           {/* User Menu / account type switcher */}
           <IdentityDropdown compact businesses={businesses}

@@ -9,6 +9,7 @@ import { formatEventDate } from "../lib/formatDate";
 import { COLORS } from "../lib/designTokens";
 import { isBusinessOpen } from "../lib/openingHours";
 import VisualTransitMarker, { VisualMarkerInput } from "./VisualTransitMarker.native";
+import FontMagnifierButton from "./city/FontMagnifierButton";
 import { useNativeStationQueue } from "../hooks/city/useNativeStationQueue";
 import { MAP_LAYERS, businessEmblemKey, mapEmblemPinSize, mapEntityPinSize, mapMarkerGroupKey, profileInitial, transitStopAppearance } from "../lib/city/mapPresentation";
 import { illustratedIconSource } from "./icons/IllustratedIcon";
@@ -190,6 +191,9 @@ type Props = {
   onZoomChange?: (zoom: number) => void;
   onMarkerPress?: (markerId: string) => void;
   onMapPress?: (latitude: number, longitude: number) => void;
+  /** Accepted for API parity with web (mobile cluster game entry); the
+   *  driving game is web-only, so native renders magnifier/zoom only. */
+  onGamePress?: (() => void) | null;
   height?: number;
   horizontalInset?: number;
   disabled?: boolean;
@@ -236,6 +240,7 @@ export default function BusinessMap({
   onZoomChange,
   onMarkerPress,
   onMapPress,
+  onGamePress,
   height,
   horizontalInset = 0,
   disabled = false,
@@ -482,16 +487,26 @@ export default function BusinessMap({
       longitude: location.longitude,
       latitudeDelta: 0.09,
       longitudeDelta: 0.09,
-    }, 600);
+    }, 1300);
   }, [location]);
 
   useEffect(() => {
     if (!focusToken || !focusRegion || !mapRef.current) return;
     if (Number.isFinite(focusZoom)) {
-      mapRef.current.animateCamera({center:{latitude:focusRegion.latitude,longitude:focusRegion.longitude},zoom:focusZoom}, {duration:500});
-    } else mapRef.current.animateToRegion(focusRegion, 500);
+      mapRef.current.animateCamera({center:{latitude:focusRegion.latitude,longitude:focusRegion.longitude},zoom:focusZoom}, {duration:1300});
+    } else mapRef.current.animateToRegion(focusRegion, 1300);
   }, [focusToken,focusZoom]);
 
+  const stepZoom = (delta: number) => {
+    const target = Math.max(3, Math.min(LANDMARK_MAP_MAX_ZOOM, zoomLevel + delta));
+    const c = visibleBounds
+      ? { latitude: (visibleBounds.minLat + visibleBounds.maxLat) / 2, longitude: (visibleBounds.minLng + visibleBounds.maxLng) / 2 }
+      : location ? { latitude: location.latitude, longitude: location.longitude }
+      : resolvedInitialRegion ? { latitude: resolvedInitialRegion.latitude, longitude: resolvedInitialRegion.longitude }
+      : null;
+    if (!c || !mapRef.current) return;
+    try { mapRef.current.animateCamera({ center: c, zoom: target }, { duration: 250 }); } catch (e) {}
+  };
   const handleRegionChangeComplete = (region: Region) => {
     void mapRef.current?.getCamera().then(camera => setCameraHeading(camera.heading || 0)).catch(() => {});
     const z = Math.max(2, Math.log2(360 / region.longitudeDelta));
@@ -602,6 +617,7 @@ export default function BusinessMap({
         onPanDrag={cancelAutofit}
         scrollEnabled={!staticMode}
         zoomEnabled={!staticMode}
+        zoomControlEnabled={false}
         maxZoomLevel={LANDMARK_MAP_MAX_ZOOM}
         pitchEnabled={!staticMode}
         rotateEnabled={!staticMode}
@@ -773,6 +789,17 @@ export default function BusinessMap({
           );
         })}
       </MapView>
+      <View testID="map-mobile-cluster" style={styles.mobileCluster}>
+        <FontMagnifierButton />
+        <Pressable testID="map-zoom-in" accessibilityRole="button"
+          accessibilityLabel={t("map.zoomIn", "Zoom in")} onPress={() => stepZoom(1)} style={styles.clusterButton}>
+          <Ionicons name="add" size={22} color="#064472" />
+        </Pressable>
+        <Pressable testID="map-zoom-out" accessibilityRole="button"
+          accessibilityLabel={t("map.zoomOut", "Zoom out")} onPress={() => stepZoom(-1)} style={styles.clusterButton}>
+          <Ionicons name="remove" size={22} color="#064472" />
+        </Pressable>
+      </View>
       <Modal visible={selectedGroup !== null} transparent animationType="slide" onRequestClose={() => setSelectedGroup(null)}>
         <Pressable style={styles.sheetOverlay} onPress={() => setSelectedGroup(null)}>
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
@@ -812,6 +839,8 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
+  mobileCluster: { position: "absolute", right: 10, bottom: 52, flexDirection: "row", alignItems: "center", gap: 8 },
+  clusterButton: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.92)", borderWidth: 1, borderColor: "#e5e7eb" },
   transitStopWrap: { alignItems: "center" },
   transitStopPin: {
     flexDirection: "row",

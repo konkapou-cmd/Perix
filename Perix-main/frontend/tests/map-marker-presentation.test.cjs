@@ -2,7 +2,7 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),ts=require('typescript');
 const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
 const out={};vm.runInNewContext(ts.transpileModule(read('lib/city/mapPresentation.ts'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports:out});
-const {transitStopAppearance,mapEntityPinSize,profileInitial,createUserPinElement,perspectiveMultiplier,routeWeightForZoom,LOCKED_MAP_TILT,RASTER_FALLBACK_TILT,lockedTiltForRendering,PERIX_VECTOR_MAP_ID}=out;
+const {transitStopAppearance,mapEntityPinSize,profileInitial,createUserPinElement,perspectiveMultiplier,routeWeightForZoom,LOCKED_MAP_TILT,RASTER_FALLBACK_TILT,lockedTiltForRendering,PERIX_VECTOR_MAP_ID,easeInOutCubic,flyToDurationMs}=out;
 
 test('vehicles, stops, entity pins and compass use layers above every building on both renderers',()=>{
   const layers=out.MAP_LAYERS;
@@ -224,13 +224,33 @@ test('tilt is locked permanent and pedestrian mode is explicit with coverage',()
   assert.equal(web.split('setStreetView({').length - 1, 1, 'street view opens only from the coverage-checked callback');
 });
 
+test('fly-to glides to origin at the opening zoom and cancels on gesture',()=>{
+  assert.equal(easeInOutCubic(0),0);assert.equal(easeInOutCubic(1),1);
+  assert.ok(Math.abs(easeInOutCubic(0.5)-0.5)<1e-9);
+  assert.ok(easeInOutCubic(0.25)<0.25 && easeInOutCubic(0.75)>0.75);
+  assert.equal(flyToDurationMs(0),1200);assert.equal(flyToDurationMs(100),1200);
+  assert.equal(flyToDurationMs(100000),1500);assert.equal(flyToDurationMs(NaN),1200);
+  const mid=flyToDurationMs(3000);
+  assert.ok(mid>1200 && mid<1500);
+  const web=read('components/BusinessMap.web.tsx');
+  assert.match(web,/startFly\(location\.latitude, location\.longitude\)/);
+  assert.match(web,/startFly\(focusRegion\.latitude, focusRegion\.longitude/);
+  assert.match(web,/moveCamera\?\.?\(/);
+  assert.match(web,/cancelFly\(\); cancelAutofit\(\);/);
+  assert.match(web,/initialZoomRef/);
+  const native=read('components/BusinessMap.native.tsx');
+  assert.match(native,/animateToRegion\(\{[^}]*\}, 1300\)/);
+  assert.match(native,/\{duration:1300\}/);
+});
+
 test('soft light cinema grade overlays the frame without touching controls',()=>{
   const web=read('components/BusinessMap.web.tsx');
   assert.match(web,/perix-cinema-light-styles/);
   assert.match(web,/radial-gradient\(ellipse 65% 60% at 12% 4%,rgba\(255,240,207,0\.30\)/);
   assert.match(web,/radial-gradient\(ellipse 55% 50% at 85% 8%,rgba\(159,211,231,0\.13\)/);
-  assert.match(web,/rgba\(79,64,52,0\.14\) 100%/);
+  assert.match(web,/rgba\(79,64,52,0\.44\) 100%/);
   assert.match(web,/inset:0 0 48px 0/);
+  assert.match(web,/mask-image:linear-gradient\(to bottom,#000 calc\(100% - 90px\),transparent\)/);
   assert.match(web,/pointer-events:none/);
   assert.match(web,/<div aria-hidden className="perix-cinema-light" \/>/);
   assert.match(web,/never inside the Cloud Map Style JSON/);

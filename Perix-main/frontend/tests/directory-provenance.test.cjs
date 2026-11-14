@@ -16,9 +16,9 @@ function load(file, dependencies = {}, globals = {}) {
   return module.exports;
 }
 
-test("map shows 3D roadmap with locked tilt and Cloud-owned POI styling", () => {
+test("map shows hybrid 3D satellite with locked tilt and Cloud-owned POI styling", () => {
   const source = read("components/BusinessMap.web.tsx");
-  assert.match(source, /mapTypeId: "roadmap"/);
+  assert.match(source, /mapTypeId: "hybrid"/);
   assert.match(source, /mapId: PERIX_VECTOR_MAP_ID/);
   assert.match(source, /tilt: LOCKED_MAP_TILT/);
   assert.doesNotMatch(source, /WebGLOverlayView|Perix3DLayer|import\(["']three["']\)/);

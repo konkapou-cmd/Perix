@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import Constants from "expo-constants";
 import Game from "../components/game/MagdeburgSportCabrioGame";
 import { PERIX_VECTOR_MAP_ID } from "../lib/city/mapPresentation";
@@ -16,12 +16,11 @@ const GEO_KEY =
  *  Back returns to /app with its state intact (stack pop). */
 export default function GameScreen() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
   const params = useLocalSearchParams<{ lat?: string; lng?: string; label?: string }>();
   const lat = Number(params.lat);
   const lng = Number(params.lng);
   const hasOrigin = Number.isFinite(lat) && Number.isFinite(lng);
-  const isMobileWeb = Platform.OS === "web" && width < 1024;
+  const isWeb = Platform.OS === "web";
   const goBack = () => {
     try {
       if (router.canGoBack()) router.back();
@@ -30,16 +29,16 @@ export default function GameScreen() {
       try { router.replace("/app"); } catch {}
     }
   };
-  if (!isMobileWeb || !hasOrigin) {
+  if (!isWeb || !hasOrigin) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24, backgroundColor: "#fff" }}>
         <Text style={{ fontSize: 16, fontWeight: "700", color: "#064472", textAlign: "center" }}>
-          {!hasOrigin ? "Missing location" : "Available on mobile"}
+          {!hasOrigin ? "Missing location" : "Available on web"}
         </Text>
         <Text style={{ marginTop: 8, color: "#5C7A99", textAlign: "center" }}>
           {!hasOrigin
-            ? "Open /app, confirm your location, then tap fullscreen."
-            : "Open this page on your phone to drive."}
+            ? "Open /app, confirm your location, then tap the wooden car."
+            : "Open this page in a browser to drive (WASD / arrows on desktop)."}
         </Text>
         <Pressable testID="game-back" accessibilityRole="button" accessibilityLabel="Back"
           onPress={goBack} style={{ marginTop: 16, paddingHorizontal: 20, height: 44, borderRadius: 22, backgroundColor: "#096BFF", alignItems: "center", justifyContent: "center" }}>
@@ -55,6 +54,7 @@ export default function GameScreen() {
       startPoint={{ latitude: lat, longitude: lng }}
       streetLines={[]}
       obstacles={[]}
+      laneHalfWidth={8}
       onExit={goBack}
     />
   );

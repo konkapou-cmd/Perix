@@ -35,6 +35,7 @@ test('desktop keeps fixed App/Members slots and mobile removes all top navigatio
     'react-i18next':{useTranslation:()=>({t:(key,fallback)=>key==='nav.members'?label:fallback})},
     '../../context/AuthContext':{useAuth:()=>({user,loading:false})},'../brand/PerixLogo':{default:'Logo'},'./MapBaseSelector':{default:'Base'},
     '../../lib/city/mapLayout':layout,
+    './FontMagnifierButton':{default:'Magnifier'},
     '@expo/vector-icons':{Ionicons:'Icon'},
   }).default;
   const geometry=[];

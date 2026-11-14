@@ -747,15 +747,6 @@ export default function CityGatewayScreen({ initialRoot }: { initialRoot?: strin
         <NearbyTransitSection originEditorOnly stops={[]} stopsLoaded onOriginSelect={focusPoint} />
         {!(Platform.OS === "web" && width >= 1024) && <FontScaleControl t={t} />}
       </View> : <>
-      <View testID="app-download-banner" style={styles.appBanner}>
-        <PerixLogo size="banner" />
-        <View style={styles.appBannerText}>
-          <Text style={styles.appBannerTitle}>{t("install.appBannerTitle", "Perix on the go")}</Text>
-          <Text style={styles.appBannerSubtitle} numberOfLines={2}>
-            {t("install.appBannerSubtitle", "Download the app for live stops, departures and nearby places.")}
-          </Text>
-        </View>
-      </View>
       <View testID="city-search-bar" style={styles.searchBar}>
         <Ionicons name="search-outline" size={21} color={theme.blue} />
         <TextInput value={search} onChangeText={value => { setSearch(value); closeDestination(false); }} accessibilityLabel={t("mobility.whereToGo", "Where do you want to go?")}
@@ -779,6 +770,7 @@ export default function CityGatewayScreen({ initialRoot }: { initialRoot?: strin
           pinScaleZoom={scopedLandmarks.some(item=>item.id.startsWith("GR-")) ? ISLAND_LANDMARK_LABEL_ZOOM : 15}
           landmarksMuted={!!current}
           autofit={autofit}
+          onGamePress={userOrigin && validOrigin(userOrigin) && width < 1024 ? () => router.navigate(`/game?lat=${userOrigin.latitude}&lng=${userOrigin.longitude}` as never) : null}
           userPinImage={user?.profile_photo || user?.picture || undefined} userPinName={user?.name}
           transitLines={renderedTransitLines}
           transitStops={transitStops}
@@ -999,10 +991,6 @@ const styles = StyleSheet.create({
   city: { color: theme.navy, fontFamily: LOCATOR_FONT_FAMILY.regular, fontSize: FONT_SIZES.micro, lineHeight: 14 }, lower: { flex: 1, minHeight: 0,backgroundColor:MAP_PAGE_BACKGROUND }, content: { padding: MAP_PAGE_GUTTER, paddingTop: 6, gap: 6, maxWidth: MAP_PAGE_MAX_WIDTH, width: "100%", alignSelf: "center",backgroundColor:MAP_PAGE_BACKGROUND },
   originGate: { gap: 8, paddingTop: 12, alignItems: "center", width: "100%" },
   originTitle: { color: "#59ABE3", fontFamily: LOCATOR_FONT_FAMILY.bold, fontWeight: FONT_WEIGHTS.bold, fontSize: FONT_SIZES.h3, textAlign: "center" },
-  appBanner: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#fff", borderRadius: BORDER_RADIUS.lg, paddingVertical: 12, paddingHorizontal: 14, borderWidth: 1, borderColor: COLORS.border, marginBottom: 10 },
-  appBannerText: { flex: 1, minWidth: 0 },
-  appBannerTitle: { color: theme.navy, fontFamily: LOCATOR_FONT_FAMILY.semibold, fontWeight: FONT_WEIGHTS.semibold, fontSize: FONT_SIZES.bodySmall },
-  appBannerSubtitle: { color: "#59616A", fontFamily: LOCATOR_FONT_FAMILY.regular, fontSize: FONT_SIZES.small, lineHeight: 18, marginTop: 2 },
   loadingStops: { minHeight: 160, justifyContent: "center", alignItems: "center", gap: 8 },
   mapBorder: { position: "absolute", top: 0, bottom: 0, left: 0, right: 0, borderWidth: 1, borderColor: COLORS.divider, borderRadius: BORDER_RADIUS.md },
    locateButton: { position: "absolute", right: 12, top: 12, width: 48, height: 48, borderRadius: 24, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },

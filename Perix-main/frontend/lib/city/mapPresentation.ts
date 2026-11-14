@@ -61,10 +61,20 @@ export function routeWeightForZoom(base: number, zoom: number): number {
 /** Valid Cloud console vector map ID (PERIX_3D_VECTOR). Paste the exact ID
  *  from Maps Management here; an unknown ID silently falls back to raster. */
 export const PERIX_VECTOR_MAP_ID = "242086816079968f2dab4657";
+/** Easing for camera flights (slow ends, fast middle). */
+export function easeInOutCubic(t: number): number {
+  const x = Math.max(0, Math.min(1, Number.isFinite(t) ? t : 0));
+  return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+}
+
+/** Fly-to duration by travel distance: 1200ms floor, 1500ms ceiling. */
+export function flyToDurationMs(distanceM: number): number {
+  const d = Number.isFinite(distanceM) ? Math.max(0, distanceM) : 0;
+  return Math.round(1200 + Math.min(300, Math.max(0, (d - 500) / 5000) * 300));
+}
 /** Camera tilt is locked — never changes with zoom or gestures. Vector maps
- *  (valid Cloud mapId) hold 67°; raster fallback (no/sw 45° imagery) caps at
- *  45°, flat where Google has no 45° coverage. Needs a VALID vector mapId
- *  from the Cloud console for 67 — an unknown ID silently falls back. */
+ *  (valid Cloud mapId) hold 67°; raster fallback caps at 45°, flat where
+ *  Google has no 45° coverage. An unknown map ID silently falls back. */
 export const LOCKED_MAP_TILT = 67;
 export const RASTER_FALLBACK_TILT = 45;
 /** Pick the lock target from the live renderer (UNINITIALIZED → vector hope). */

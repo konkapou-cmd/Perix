@@ -1151,7 +1151,8 @@ test('desktop header keeps App/Members and no longer renders Explore',()=>{
   const component=load('components/city/MapScreenHeader.tsx',{react:h.react,'react-native':{...rn,useWindowDimensions:()=>({width:1280,height:800})},
     'expo-router':{useRouter:()=>({navigate:route=>routes.push(route)}),usePathname:()=>pathname},
     'react-i18next':{useTranslation:()=>({t:(key,fallback)=>fallback || key})},'../../context/AuthContext':{useAuth:()=>({user,loading})},
-    '../brand/PerixLogo':{default:'Logo'},'./MapBaseSelector':{default:'BaseSelector'},
+    '../brand/PerixLogo':{default:'Logo'},'./FontMagnifierButton':{default:'Magnifier'},
+    '@expo/vector-icons':{Ionicons:'Icon'},'./MapBaseSelector':{default:'BaseSelector'},
     '../../lib/city/mapLayout':layoutTools,
   }).default;
   let tree=h.render(component,{publicScreen:true});let nav=nodes(tree).find(n=>n.props.testID==='map-screen-navigation');
