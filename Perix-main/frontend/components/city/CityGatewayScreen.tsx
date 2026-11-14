@@ -740,7 +740,7 @@ export default function CityGatewayScreen({ initialRoot }: { initialRoot?: strin
       opacity:line.service_active===false ? 0.1 : 0.22,weight:2,
     })),[nearbyTransitLines,effectiveMode]);
   return <SafeAreaView style={styles.page} edges={['top']}>
-     <MapScreenHeader publicScreen brand={compactHeader=><View testID="city-centered-brand"><PerixLogo size={compactHeader?'mobileHeader':'compact'} variant="english" /></View>} right={<CityLanguagePicker />} />
+     <MapScreenHeader publicScreen brand={compactHeader=><View testID="city-centered-brand"><PerixLogo size={compactHeader?'mobileHeader':'compact'} variant="english" /></View>} right={<CityLanguagePicker />} gameOrigin={userOrigin && validOrigin(userOrigin) ? { latitude: userOrigin.latitude, longitude: userOrigin.longitude } : null} />
     <ScrollView style={styles.lower} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       {!hasConfirmedOrigin ? <View testID="city-origin-gate" style={styles.originGate}>
         <Text style={styles.originTitle}>{t("mobility.confirmOrigin", "Choose your location first")}</Text>

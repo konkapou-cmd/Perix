@@ -1,0 +1,120 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const vm = require("node:vm");
+const ts = require("typescript");
+
+const read = (file) => fs.readFileSync(path.join(__dirname, "..", file), "utf8");
+function load(file, dependencies = {}) {
+  const exports = {};
+  const module = { exports };
+  const ReactGlobal = dependencies.react && (dependencies.react.default || dependencies.react);
+  vm.runInNewContext(
+    ts.transpileModule(read(file), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React } }).outputText,
+    { exports, module, require: (name) => dependencies[name], console, React: ReactGlobal }
+  );
+  return module.exports;
+}
+const React = {
+  createElement: (type, props, ...children) => ({ type, props: { ...props, children } }),
+  useMemo: (fn) => fn(),
+  useState: (initial) => [typeof initial === "function" ? initial() : initial, () => {}],
+  useEffect: () => {},
+  useRef: (v) => ({ current: v }),
+};
+let viewportWidth = 390;
+const rn = {
+  View: "View", Text: "Text", Image: "Image", Pressable: "Button",
+  Platform: { OS: "web" }, StyleSheet: { create: (v) => v },
+  useWindowDimensions: () => ({ width: viewportWidth, height: 800 }),
+};
+function nodes(tree, depth = 0) {
+  if (!tree || typeof tree !== "object" || depth > 25) return [];
+  if (Array.isArray(tree)) return tree.flatMap((t) => nodes(t, depth + 1));
+  if (typeof tree.type === "function") {
+    try {
+      return nodes(tree.type(tree.props || {}), depth + 1);
+    } catch {
+      return [tree];
+    }
+  }
+  return [tree, ...nodes(tree.props?.children, depth + 1)];
+}
+function texts(tree) {
+  return nodes(tree).filter((n) => n.type === "Text").map((n) => [].concat(n.props.children || []).join(""));
+}
+
+test("header game button navigates to /game with origin on mobile, keeps toggle otherwise", () => {
+  let pushed = null;
+  const Header = load("components/city/MapScreenHeader.tsx", {
+    react: { default: React }, "react-native": rn,
+    "expo-router": { usePathname: () => "/app", useRouter: () => ({ navigate: (p) => { pushed = p; } }) },
+    "react-i18next": { useTranslation: () => ({ t: (k, f) => f }) },
+    "../../context/AuthContext": { useAuth: () => ({ user: null, loading: false }) },
+    "../brand/PerixLogo": { default: "Logo" },
+    "../../lib/city/mapLayout": {
+      MAP_PAGE_BACKGROUND: "#fff", MAP_PAGE_GUTTER: 16, MAP_PAGE_MAX_WIDTH: 1200,
+      MAP_HEADER_BRAND_HEIGHT: 56,
+      mapHeaderMetrics: () => ({ logoWidth: 120, primaryWidth: 300, gap: 8, appWidth: 80, membersWidth: 104, compact: true }),
+    },
+    "@expo/vector-icons": { Ionicons: "Icon" },
+  }).default;
+  viewportWidth = 390;
+  const tree = Header({ gameOrigin: { latitude: 52.13, longitude: 11.63 } });
+  const btn = nodes(tree).find((n) => n.props.testID === "fullscreen-toggle");
+  assert.ok(btn, "center button renders on mobile");
+  btn.props.onPress();
+  assert.ok(String(pushed).startsWith("/game?"), `navigates to /game, got ${pushed}`);
+  assert.match(String(pushed), /lat=52\.13/);
+  assert.match(String(pushed), /lng=11\.63/);
+  pushed = null;
+  const tree2 = Header({});
+  nodes(tree2).find((n) => n.props.testID === "fullscreen-toggle").props.onPress();
+  assert.equal(pushed, null, "without origin keeps Fullscreen API behavior (no navigation)");
+  viewportWidth = 1280;
+});
+
+test("game route gates desktop/native and passes origin plus app keys to the game", () => {
+  let router = null;
+  const deps = (w, params, platform = "web") => ({
+    react: { default: React }, "react-native": { ...rn, Platform: { OS: platform }, useWindowDimensions: () => ({ width: w, height: 800 }) },
+    "expo-router": {
+      useLocalSearchParams: () => params,
+      useRouter: () => { router = { back: () => { router.backed = true; }, replace: (p) => { router.replaced = p; }, canGoBack: () => true }; return router; },
+    },
+    "expo-constants": { default: { expoConfig: { extra: { EXPO_PUBLIC_GEO_KEY: "k" } } } },
+    "../components/game/MagdeburgSportCabrioGame": { default: "Game" },
+    "../lib/city/mapPresentation": { PERIX_VECTOR_MAP_ID: "mid" },
+  });
+  const Screen = load("app/game.tsx", deps(390, { lat: "52.13", lng: "11.63" })).default;
+  const tree = Screen();
+  const game = nodes(tree).find((n) => n.type === "Game");
+  assert.ok(game, "game mounts on mobile web with origin");
+  assert.equal(game.props.apiKey, "k");
+  assert.equal(game.props.mapId, "mid");
+  assert.equal(game.props.startPoint.latitude, 52.13);
+  assert.equal(game.props.startPoint.longitude, 11.63);
+  assert.ok(Array.isArray(game.props.streetLines) && game.props.streetLines.length === 0);
+  game.props.onExit();
+  assert.equal(router.backed, true, "back returns with stack pop (preserves /app)");
+  const desk = load("app/game.tsx", deps(1280, { lat: "52.13", lng: "11.63" })).default();
+  assert.ok(texts(desk).join(" ").includes("mobile"), "desktop sees mobile-only notice");
+  const noloc = load("app/game.tsx", deps(390, {})).default();
+  assert.ok(texts(noloc).join(" ").includes("Missing location"), "missing origin is explained");
+});
+
+test("game component starts from origin, free-roams without streets, and exits on back", () => {
+  const src = read("components/game/MagdeburgSportCabrioGame.jsx");
+  assert.doesNotMatch(src, /YOUR_GOOGLE_MAPS_API_KEY|YOUR_VECTOR_MAP_ID/);
+  assert.match(src, /startPoint\s*=\s*null/);
+  assert.match(src, /streetLines\s*=\s*\[\]/);
+  assert.match(src, /hasStreets/);
+  assert.match(src, /Free-roam/);
+  assert.match(src, /gestureHandling:\s*['"]none['"]/);
+  assert.match(src, /zoom:\s*20\.2/);
+  assert.match(src, /tilt:\s*67/);
+  assert.match(src, /map\.moveCamera/);
+  assert.match(src, /onExit/);
+  assert.match(src, /aria-label="Back"/);
+});

@@ -13,7 +13,7 @@ const FS_EXIT = require("../../assets/brand/fullscreen-exit.png");
 
 /** Small centered fullscreen toggle (web only). Uses the Fullscreen API —
  *  no page zoom — so the map stays stable and pannable. */
-function FullscreenToggle({ label, exitLabel }: { label: string; exitLabel: string }) {
+function FullscreenToggle({ label, exitLabel, gameHref, onGamePress }: { label: string; exitLabel: string; gameHref?: string | null; onGamePress?: (() => void) | null }) {
   const [full, setFull] = React.useState(false);
   React.useEffect(() => {
     if (typeof document === "undefined") return;
@@ -39,17 +39,24 @@ function FullscreenToggle({ label, exitLabel }: { label: string; exitLabel: stri
   };
   return <Pressable testID="fullscreen-toggle" accessibilityRole="button"
     accessibilityLabel={full ? exitLabel : label} accessibilityState={{ expanded: full }}
-    onPress={toggle} style={styles.fullscreenButton} hitSlop={6}>
+    onPress={() => {
+      if (gameHref && onGamePress) { onGamePress(); return; }
+      toggle();
+    }} style={styles.fullscreenButton} hitSlop={6}>
     <Image source={full ? FS_EXIT : FS_ENTER} resizeMode="contain" style={styles.fullscreenIcon} accessible={false} />
   </Pressable>;
 }
 
-export default function MapScreenHeader({publicScreen=false,hideExplore=false,exploreOnly=false,right,brand,logoVariant,onBack}:{publicScreen?:boolean;hideExplore?:boolean;exploreOnly?:boolean;right?:React.ReactNode;brand?:React.ReactNode | ((compact:boolean)=>React.ReactNode);logoVariant?:"watercolor"|"english";onBack?:()=>void}){
+export default function MapScreenHeader({publicScreen=false,hideExplore=false,exploreOnly=false,right,brand,logoVariant,onBack,gameOrigin}:{publicScreen?:boolean;hideExplore?:boolean;exploreOnly?:boolean;right?:React.ReactNode;brand?:React.ReactNode | ((compact:boolean)=>React.ReactNode);logoVariant?:"watercolor"|"english";onBack?:()=>void;gameOrigin?:{latitude:number;longitude:number}|null}){
   const {t}=useTranslation(),{user,loading:authLoading}=useAuth(),router=useRouter(),pathname=usePathname();
   const width=useWindowDimensions().width,metrics=mapHeaderMetrics(width);
   const showDesktopLinks=width>=1024 && !hideExplore;
   // Fullscreen lives only on mobile web — desktop has browser zoom, native has no Fullscreen API.
   const showFullscreen = Platform.OS === "web" && width < 1024;
+  // On /app the center button opens the fullscreen driving game at the user's
+  // confirmed origin (stack push — back returns with /app state intact).
+  const gameHref = gameOrigin && Number.isFinite(gameOrigin.latitude) && Number.isFinite(gameOrigin.longitude)
+    ? `/game?lat=${gameOrigin.latitude}&lng=${gameOrigin.longitude}` as never : null;
   type NavLink={id:'app'|'members';label:string;path:string};
   const primary:NavLink[]=[{id:'app',label:'APP',path:'/app'},{id:'members',label:t('nav.members','Members'),path:user?'/home':'/login'}];
   // Members is the former Home destination, not an extra navigation item.
@@ -81,7 +88,7 @@ export default function MapScreenHeader({publicScreen=false,hideExplore=false,ex
       </View>
       {showFullscreen && (
         <View testID="map-header-fullscreen-slot" pointerEvents="box-none" style={styles.fullscreenCenter}>
-          <FullscreenToggle label={t("common.fullscreen", "Fullscreen")} exitLabel={t("common.exitFullscreen", "Exit fullscreen")} />
+          <FullscreenToggle label={t("common.fullscreen", "Fullscreen")} exitLabel={t("common.exitFullscreen", "Exit fullscreen")} gameHref={gameHref} onGamePress={gameHref ? () => router.navigate(gameHref) : null} />
         </View>
       )}
     </View>
