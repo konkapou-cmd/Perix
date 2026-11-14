@@ -26,14 +26,18 @@ and ShareAlike review remain open where noted.
 | berlin | VBB open-data GTFS, `https://unternehmen.vbb.de/gtfs` (fetched 2026-11-12; SHA-256 identical to the 2026-11-11 snapshot) | VBB open data; published terms referenced as CC BY 4.0 in the review artifact — verify the current published terms page before release | **No `feed_info.txt` in the archive.** Region-declared publisher (new): `VBB Verkehrsverbund Berlin-Brandenburg GmbH` / `https://unternehmen.vbb.de/en/digital-services/datasets` | Verify the current VBB terms page and record its retrieval date; rail mode currently renders tram sprites (visual substitution, see step 5) |
 | gardelegen | GTFS-DE national feed `nv_free_latest.zip` (download.gtfs.de), agency PVG Salzwedel | gtfs.de / DELFI e.V.; feed carries `attributions.txt` and `feed_info.txt` publisher | Archive-supplied: `gtfs.de - GTFS für Deutschland, Daten bereitgestellt von DELFI e.V.` / `http://gtfs.de` (as-is from the feed) | Preserve archive-supplied notices; review attribution scope on activation |
 
-Realtime for magdeburg/gardelegen/berlin uses the shared DELFI feed
+Realtime for magdeburg/gardelegen uses the shared DELFI feed
 `https://realtime.gtfs.de/realtime-free.pb` (published as CC BY-SA 4.0 with
-the provider's completeness/availability disclaimer). ShareAlike
-implications for the specific transformations and published outputs require
-qualified review — the same open point recorded in
-`MAGDEBURG_RIGHTS_PROVENANCE_STAGING_2026-11-02.md`. Syros/Mykonos/ports
-declare no realtime source; attica's telematics adapter (gated off) would
-need its own reuse confirmation before any live enablement.
+the provider's completeness/availability disclaimer). **Berlin uses VBB's own
+GTFS-RT feed `https://production.gtfsrt.vbb.de/data`**: the DELFI free feed
+matches the GTFS-DE static namespace, not the VBB static trip ids (verified
+2026-11-14: zero intersection across 46,610 static / 18,719 RT trip ids).
+The VBB RT feed requires a recognizable User-Agent (403 otherwise); the
+realtime worker now sends one. ShareAlike implications for the specific
+transformations and published outputs require qualified review — the same
+open point recorded in `MAGDEBURG_RIGHTS_PROVENANCE_STAGING_2026-11-02.md`.
+Syros/Mykonos/ports declare no realtime source; attica's telematics adapter
+(gated off) would need its own reuse confirmation before any live enablement.
 
 ## 2. Code changes made for this lock (all additive, Magdeburg-frozen)
 
