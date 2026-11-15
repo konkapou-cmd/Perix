@@ -4,6 +4,8 @@ type StopShape = {
   stop_id: string; physical_stop_id?: string; platform_id?: string;
   platform_code?: string | null; stop_ids?: string[];
   name: string; latitude: number; longitude: number; modes: ('bus' | 'tram' | 'subway' | 's-bahn' | 'rail' | 'ferry')[];
+  /** Server-assigned stop artwork kind (region + modes); bus_stop when absent. */
+  stop_kind?: string;
   /** Street side from the backend line geometry ("left"/"right"); null when unknown. */
   side?: string | null;
   routes: { route_number: string; mode: 'bus' | 'tram' | 'subway' | 's-bahn' | 'rail' | 'ferry'; directions?: string[] }[];

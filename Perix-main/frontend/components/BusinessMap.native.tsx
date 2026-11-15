@@ -659,7 +659,7 @@ export default function BusinessMap({
               >
                 {far ? <View style={{width:stopAppearance.size,height:stopAppearance.size,borderRadius:stopAppearance.size/2,backgroundColor:'#59ABE3',borderWidth:.5,borderColor:'#fff'}} />
                 : <View style={{width:140,height:stopAppearance.icon+32,alignItems:'center'}}>
-                  <Image source={stopMobilityView(cameraHeading,stopGeometryBearing(stop,transitLines),stopViewerBearing(stop,landmarkViewer),stop.side)}
+                  <Image source={stopMobilityView(cameraHeading,stopGeometryBearing(stop,transitLines),stopViewerBearing(stop,landmarkViewer),stop.side,(stop as any).stop_kind || "bus_stop")}
                     style={{width:stopAppearance.icon,height:stopAppearance.icon}} resizeMode="contain" />
                   {stopAppearance.platforms && !!platformLabel && <Text numberOfLines={1}
                     style={styles.stopPlatformCodes}>{platformLabel}</Text>}

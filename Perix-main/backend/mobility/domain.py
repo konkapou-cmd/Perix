@@ -145,6 +145,25 @@ def _physical_catalogue_routes(network):
     return routes
 
 
+def _stop_kind_for(modes: set, region_id: str) -> str:
+    """Map a physical stop's modes to the region's stop artwork kind."""
+    if region_id == "berlin":
+        if "subway" in modes:
+            return "berlin_u_bahn_stop"
+        if "s-bahn" in modes:
+            return "berlin_s_bahn_stop"
+        return "bus_stop"
+    if region_id == "attica":
+        if "subway" in modes:
+            return "athens_metro_stop"
+        if "s-bahn" in modes or "rail" in modes:
+            return "athens_isap_stop"
+        if "bus" in modes or "trolleybus" in modes:
+            return "athens_bus_stop"
+        return "bus_stop"
+    return "bus_stop"
+
+
 def _physical_stops(network: dict) -> List[dict]:
     """Group raw GTFS platforms into physical stops (parent_station, or
     same name within 80m - same-name stops far apart never merge)."""
@@ -235,6 +254,7 @@ def _physical_stops(network: dict) -> List[dict]:
                 "latitude": g["latitude"],
                 "longitude": g["longitude"],
                 "modes": sorted(g["modes"]),
+                "stop_kind": _stop_kind_for(g["modes"], str(network.get("region_id") or "")),
                 "routes": [
                     {
                         "route_number": r["route_number"],

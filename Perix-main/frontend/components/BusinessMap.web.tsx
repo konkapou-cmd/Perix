@@ -20,7 +20,7 @@ import { projectedRoutePath } from '../lib/city/routeArtwork';
 import type { Landmark } from "../lib/city/landmarks";
 import { autoCameraTarget, advanceAutoCamera, type AutoCameraState } from "../lib/city/mapLayout";
 import type { MotionPreview } from "../lib/api/mobility";
-import { MOBILITY_VIEW_SOURCES, vehicleKindViewAngle, stopMobilityViewAngle } from "../lib/mobilityViewSources.generated";
+import { MOBILITY_VIEW_SOURCES, vehicleKindViewAngle, stopMobilityViewAngle, type MobilityViewKind } from "../lib/mobilityViewSources.generated";
 import { getCurrentLanguageSync } from "../i18n";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
@@ -116,6 +116,8 @@ type Props = {
     latitude: number;
     longitude: number;
     modes: ("bus" | "tram" | "subway" | "s-bahn" | "rail" | "ferry")[];
+    /** Server-assigned stop artwork kind (region + modes); bus_stop when absent. */
+    stop_kind?: string;
     /** Street side ("left"/"right"); opposite known sides stay separate pins. */
     side?: string | null;
     routes: { route_number: string; mode: "bus" | "tram" | "subway" | "s-bahn" | "rail" | "ferry" }[];
@@ -1970,7 +1972,7 @@ export default function BusinessMap({
 
       // Close zoom: illustrated stop artwork (360-degree frame per heading).
       const image = document.createElement("img");
-      image.src = resolveMapAssetUri(MOBILITY_VIEW_SOURCES.bus_stop[viewAngle]);
+      image.src = resolveMapAssetUri(MOBILITY_VIEW_SOURCES[((s.stop_kind || "bus_stop") as MobilityViewKind)][viewAngle]);
       image.alt = ""; image.draggable = false;
       Object.assign(image.style, { position: "absolute", left: "0", top: "0",
         width: "36px", height: "36px", objectFit: "contain", display: "block" });
@@ -2051,7 +2053,7 @@ export default function BusinessMap({
     list.forEach((s) => {
       const center=mapRef.current.getCenter?.();
       const viewer=pinLocation || location || (center?{latitude:center.lat(),longitude:center.lng()}:null);
-      const viewAngle=stopMobilityViewAngle(mapHeading,stopGeometryBearing(s,transitLines || []),stopViewerBearing(s,viewer),s.side);
+      const viewAngle=stopMobilityViewAngle(mapHeading,stopGeometryBearing(s,transitLines || []),stopViewerBearing(s,viewer),s.side,(s.stop_kind || "bus_stop") as MobilityViewKind);
       const identity=(s.platform_ids?.length?s.platform_ids.slice().sort():s.stop_ids?.length?s.stop_ids.slice().sort():[s.stop_id]).join('|');
       const key = `stop:${identity}:name:${String(s.name).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase()}`;
       seenKeys.add(key);
@@ -2063,7 +2065,7 @@ export default function BusinessMap({
       // Changing the camera heading only selects a 360-degree artwork frame,
       // never replaces the overlay or changes its geographic coordinate.
       const rec=stopsCacheRef.current.get(key);
-      if(rec?.image)rec.image.src=resolveMapAssetUri(MOBILITY_VIEW_SOURCES.bus_stop[viewAngle]);
+      if(rec?.image)rec.image.src=resolveMapAssetUri(MOBILITY_VIEW_SOURCES[((s.stop_kind || "bus_stop") as MobilityViewKind)][viewAngle]);
     });
 
     // Remove only records removed from the supplied catalogue, not offscreen pins.
