@@ -104,6 +104,35 @@ export default function MagdeburgSportCabrioGame({
         keyboardShortcuts: false
       });
 
+      // The WebGL scene must sit ON the map's terrain, not at altitude 0
+      // (sea level). Magdeburg lies ~56m above the ellipsoid, so a scene
+      // anchored at altitude 0 renders tens of meters below the visible
+      // ground - the car then slides vertically on screen at 67° tilt.
+      // Sample the map's own terrain elevation and anchor the projection
+      // there, refreshing every ~30m of travel.
+      let groundAltitude = 0;
+      let elevationService = null;
+      let elevationSample = null;
+      try { elevationService = new google.maps.ElevationService(); } catch (e) {}
+      const sampleElevation = (lat, lng) => {
+        if (!elevationService || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
+        if (elevationSample) {
+          const meters = Math.hypot((lat - elevationSample.lat) * 111320,
+            (lng - elevationSample.lng) * 111320 * Math.cos(THREE.MathUtils.degToRad(lat)));
+          if (meters < 30) return;
+        }
+        elevationSample = { lat, lng };
+        try {
+          elevationService.getElevationForLocations({ locations: [new google.maps.LatLng(lat, lng)] }, (results, status) => {
+            if (status === google.maps.ElevationStatus.OK && results && results[0]
+              && Number.isFinite(results[0].elevation)) {
+              groundAltitude = results[0].elevation;
+            }
+          });
+        } catch (e) {}
+      };
+      sampleElevation(origin.lat, origin.lng);
+
       const latLngToMeters = (lat, lng) => {
         const R = 6378137;
         const dLat = THREE.MathUtils.degToRad(lat - origin.lat);
@@ -730,6 +759,7 @@ export default function MagdeburgSportCabrioGame({
         const carLng = origin.lng + (state.carPos.x / (R * Math.cos(THREE.MathUtils.degToRad(origin.lat)))) * (180 / Math.PI);
         const mapHeadingDeg = (-THREE.MathUtils.radToDeg(state.carHeading) + 360) % 360;
 
+        sampleElevation(carLat, carLng);
         map.moveCamera({
           center: { lat: carLat, lng: carLng },
           heading: mapHeadingDeg,
@@ -737,12 +767,18 @@ export default function MagdeburgSportCabrioGame({
           zoom: 20.2
         });
 
+        // Anchor the projection AT THE CAR on the terrain's own elevation and
+        // shift the whole scene so the car is the local origin. The car then
+        // stays glued to the road surface at every tilt/heading - no drift,
+        // no vertical slide.
+        scene.position.set(-state.carPos.x, 0, -state.carPos.z);
         const matrix = transformer.fromLatLngAltitude({
-          lat: origin.lat,
-          lng: origin.lng,
-          altitude: 0
+          lat: carLat,
+          lng: carLng,
+          altitude: groundAltitude
         });
         camera.projectionMatrix = new THREE.Matrix4().fromArray(matrix);
+        camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
 
         overlay.requestRedraw();
         renderer.render(scene, camera);

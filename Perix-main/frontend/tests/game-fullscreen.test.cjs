@@ -184,4 +184,15 @@ test("game component starts from origin, free-roams without streets, and exits o
   assert.match(src, /aria-label="Back"/);
   assert.match(src, /\.catch\(\(\) =>/);
   assert.match(src, /overlay\.setMap\(null\)/);
+  // Car sits ON the terrain: elevation-anchored projection, scene shifted
+  // to the car as local origin (no vertical slide at 67° tilt).
+  assert.match(src, /new google\.maps\.ElevationService\(\)/);
+  assert.match(src, /altitude: groundAltitude/);
+  assert.match(src, /scene\.position\.set\(-state\.carPos\.x, 0, -state\.carPos\.z\)/);
+  assert.match(src, /projectionMatrixInverse/);
+  // Crash/eject/walk-back logic stays wired (obstacles trigger it).
+  assert.match(src, /evaluateStreetBounds/);
+  assert.match(src, /mode === 'FLYING'|'FLYING'/);
+  assert.match(src, /'WALKING'/);
+  assert.match(src, /'Τράκαρες!|Τράκαρες!/);
 });
