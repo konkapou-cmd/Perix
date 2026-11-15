@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Loader } from '@googlemaps/js-api-loader';
 import * as THREE from 'three';
 import { soundEngine } from './soundEngine';
 
@@ -66,13 +65,25 @@ export default function MagdeburgSportCabrioGame({
     let map;
     let overlay;
 
-    const loader = new Loader({
-      apiKey,
-      version: 'weekly',
-      libraries: ['geometry']
+    // Same classic script-tag boot as BusinessMap.web.tsx: everything loads
+    // in one script and google.maps.Map is ready on onload. The packaged
+    // @googlemaps/js-api-loader no longer exports `Loader` (functional API
+    // only), so building our own avoids the runtime throw entirely.
+    const loadGoogleScript = () => new Promise((resolve, reject) => {
+      const w = window;
+      if (w.google && w.google.maps && w.google.maps.Map) { resolve(w.google); return; }
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
+      script.async = true;
+      script.onload = () => {
+        if (w.google && w.google.maps && w.google.maps.Map) resolve(w.google);
+        else reject(new Error('Google Maps API not available'));
+      };
+      script.onerror = () => reject(new Error('Google Maps script load failed'));
+      document.head.appendChild(script);
     });
 
-    loader.load().then((google) => {
+    loadGoogleScript().then((google) => {
       // Start: explicit origin prop wins, then first street point, then Magdeburg fallback.
       const firstStreetPt = (streetLines[0] && streetLines[0][0]) || null;
       const startOrigin = startPoint && Number.isFinite(startPoint.latitude) && Number.isFinite(startPoint.longitude)
