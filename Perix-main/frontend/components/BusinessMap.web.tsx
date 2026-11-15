@@ -1156,7 +1156,7 @@ export default function BusinessMap({
           mapId: PERIX_VECTOR_MAP_ID,
           tilt: LOCKED_MAP_TILT,
           heading: 0,
-          mapTypeId: "hybrid",
+          mapTypeId: "roadmap",
           isFractionalZoomEnabled: true,
           maxZoom: LANDMARK_MAP_MAX_ZOOM,
           disableDefaultUI: staticMode,

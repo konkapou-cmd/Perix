@@ -165,7 +165,7 @@ test("game component starts from origin, free-roams without streets, and exits o
   assert.match(src, /streetLines\s*=\s*\[\]/);
   assert.match(src, /hasStreets/);
   assert.match(src, /Free-roam/);
-  assert.match(src, /mapTypeId: 'hybrid'/);
+  assert.match(src, /mapTypeId: 'roadmap'/);
   assert.match(src, /tilt:\s*67/);
   const web = read("components/BusinessMap.web.tsx");
   assert.match(web, /map-mobile-cluster/);
@@ -182,4 +182,6 @@ test("game component starts from origin, free-roams without streets, and exits o
   assert.match(src, /map\.moveCamera/);
   assert.match(src, /onExit/);
   assert.match(src, /aria-label="Back"/);
+  assert.match(src, /\.catch\(\(\) =>/);
+  assert.match(src, /overlay\.setMap\(null\)/);
 });

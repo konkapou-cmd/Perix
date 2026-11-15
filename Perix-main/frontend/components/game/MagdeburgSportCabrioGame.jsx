@@ -40,7 +40,7 @@ export default function MagdeburgSportCabrioGame({
   onExit = null,
 }) {
   const mapDivRef = useRef(null);
-  const [statusText, setStatusText] = useState('Φόρτωση 3D Hybrid χάρτη...');
+  const [statusText, setStatusText] = useState('Φόρτωση 3D χάρτη...');
   const [hudStats, setHudStats] = useState({ gear: 1, boost: 'x1', kmh: 0 });
   const [isMuted, setIsMuted] = useState(false);
 
@@ -87,7 +87,7 @@ export default function MagdeburgSportCabrioGame({
         tilt: 67,
         heading: 0,
         mapId,
-        mapTypeId: 'hybrid',
+        mapTypeId: 'roadmap',
         disableDefaultUI: true,
         gestureHandling: 'none',
         keyboardShortcuts: false
@@ -413,12 +413,17 @@ export default function MagdeburgSportCabrioGame({
       };
 
       overlay.onContextRestored = ({ gl }) => {
-        renderer = new THREE.WebGLRenderer({
-          canvas: gl.canvas,
-          context: gl,
-          ...gl.getContextAttributes()
-        });
-        renderer.autoClear = false;
+        try {
+          renderer = new THREE.WebGLRenderer({
+            canvas: gl.canvas,
+            context: gl,
+            ...gl.getContextAttributes()
+          });
+          renderer.autoClear = false;
+        } catch (err) {
+          renderer = null;
+          setStatusText('Το 3D δεν υποστηρίζεται σε αυτή τη συσκευή.');
+        }
       };
 
       const smokeGeom = new THREE.SphereGeometry(0.22, 8, 8);
@@ -470,6 +475,7 @@ export default function MagdeburgSportCabrioGame({
       let lastTime = performance.now();
 
       overlay.onDraw = ({ gl, transformer }) => {
+        if (!renderer) return;
         const now = performance.now();
         const dt = Math.min(0.05, (now - lastTime) / 1000);
         lastTime = now;
@@ -733,7 +739,9 @@ export default function MagdeburgSportCabrioGame({
       };
 
       overlay.setMap(map);
-    });
+      }).catch(() => {
+        setStatusText('Δεν φόρτωσε ο χάρτης. Έλεγξε τη σύνδεση και πάτα Back.');
+      });
 
     const onKeyDown = (e) => {
       unlockAudio();
@@ -746,6 +754,7 @@ export default function MagdeburgSportCabrioGame({
     window.addEventListener('keyup', onKeyUp);
 
     return () => {
+      try { overlay && overlay.setMap(null); } catch {}
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
       soundEngine.destroy();
