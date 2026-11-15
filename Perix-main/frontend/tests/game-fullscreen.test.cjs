@@ -125,10 +125,10 @@ test("font magnifier offers instant global sizes", () => {
   assert.ok(tree.find((n) => n.props.testID === "font-magnifier-toggle"), "magnifier toggle renders");
 });
 
-test("game route drives on web (mobile + desktop WASD) and gates native/missing origin", () => {
+test("game route loads real roads, drives on web and gates native/missing origin", () => {
   let router = null;
   const deps = (w, params, platform = "web") => ({
-    react: { default: React }, "react-native": { ...rn, Platform: { OS: platform }, useWindowDimensions: () => ({ width: w, height: 800 }) },
+    react: { ...React, default: React }, "react-native": { ...rn, Platform: { OS: platform }, useWindowDimensions: () => ({ width: w, height: 800 }) },
     "expo-router": {
       useLocalSearchParams: () => params,
       useRouter: () => { router = { back: () => { router.backed = true; }, replace: (p) => { router.replaced = p; }, canGoBack: () => true }; return router; },
@@ -136,26 +136,40 @@ test("game route drives on web (mobile + desktop WASD) and gates native/missing 
     "expo-constants": { default: { expoConfig: { extra: { EXPO_PUBLIC_GEO_KEY: "k" } } } },
     "../components/game/MagdeburgSportCabrioGame": { default: "Game" },
     "../lib/city/mapPresentation": { PERIX_VECTOR_MAP_ID: "mid" },
+    "../lib/city/gameRoads": { loadGameRoads: async () => [], filterRoadWays: () => [] },
   });
   const Screen = load("app/game.tsx", deps(390, { lat: "52.13", lng: "11.63" })).default;
   const tree = Screen();
-  const game = nodes(tree).find((n) => n.type === "Game");
-  assert.ok(game, "game mounts on mobile web with origin");
-  assert.equal(game.props.apiKey, "k");
-  assert.equal(game.props.mapId, "mid");
-  assert.equal(game.props.startPoint.latitude, 52.13);
-  assert.equal(game.props.startPoint.longitude, 11.63);
-  assert.ok(Array.isArray(game.props.streetLines) && game.props.streetLines.length === 0);
-  game.props.onExit();
-  assert.equal(router.backed, true, "back returns with stack pop (preserves /app)");
+  assert.ok(texts(tree).join(" ").includes("Φόρτωση δρόμων"), "web waits for the OSM roads before mounting the game");
+  assert.ok(nodes(tree).find((n) => n.props.testID === "game-loading-roads"), "loading view is explicit");
   const desk = load("app/game.tsx", deps(1280, { lat: "52.13", lng: "11.63" })).default();
-  const deskGame = nodes(desk).find((n) => n.type === "Game");
-  assert.ok(deskGame, "desktop web also drives (WASD/arrows)");
-  assert.equal(deskGame.props.startPoint.latitude, 52.13);
+  assert.ok(texts(desk).join(" ").includes("Φόρτωση δρόμων"), "desktop web also loads roads (WASD/arrows)");
   const nat = load("app/game.tsx", deps(390, { lat: "52.13", lng: "11.63" }, "android")).default();
   assert.ok(texts(nat).join(" ").includes("web"), "native stays gated");
   const noloc = load("app/game.tsx", deps(390, {})).default();
   assert.ok(texts(noloc).join(" ").includes("Missing location"), "missing origin is explained");
+  const src = read("app/game.tsx");
+  assert.match(src, /loadGameRoads\(\{ latitude: lat, longitude: lng \}\)/);
+  assert.match(src, /streetLines=\{streetLines\}/);
+  assert.match(src, /laneHalfWidth=\{4\.6\}/);
+  assert.match(src, /© OpenStreetMap contributors/);
+  assert.match(src, /onExit=\{goBack\}/);
+});
+
+test("packed road polylines filter to the origin radius with a cap", () => {
+  const { filterRoadWays } = load("lib/city/gameRoads.ts", {});
+  const origin = { latitude: 52.13, longitude: 11.63 };
+  const near = [[52.1301, 11.6301], [52.1302, 11.6302]];
+  const far = [[52.5, 11.9], [52.51, 11.91]];
+  const mixed = [[52.5, 11.9], [52.1301, 11.6301]]; // touches the radius via one point
+  const out = filterRoadWays([far, near, mixed, null], origin, 450, 500);
+  assert.equal(out.length, 2, "only ways touching the radius survive");
+  assert.equal(out[0][0].lat, 52.1301);
+  const capped = filterRoadWays([near, near, near, near, near], origin, 450, 2);
+  assert.equal(capped.length, 2, "cap limits the way count");
+  const invalid = filterRoadWays([[["x", "y"]]], origin, 450, 500);
+  assert.equal(invalid.length, 0, "non-numeric points are dropped");
+  assert.equal(filterRoadWays([], { latitude: NaN, longitude: 1 }).length, 0, "invalid origin returns empty");
 });
 
 test("game component starts from origin, free-roams without streets, and exits on back", () => {
