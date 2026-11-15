@@ -325,6 +325,22 @@ if WEB_DIST.exists():
             return FileResponse(WEB_DIST / "google-mobility-map.html", headers={"Cache-Control": "no-store"})
         return JSONResponse({"detail": "mobility map not built"}, status_code=404)
 
+    @app.get("/game/{filename:path}", include_in_schema=False)
+    async def web_game_asset(filename: str):
+        # Packaged game data (OSM road polylines, ODbL). Served as a static
+        # asset so the driving game can load real streets on demand. The
+        # game page itself is the plain /game route (no path segment).
+        base = (WEB_DIST / "game").resolve()
+        target = (base / filename).resolve()
+        try:
+            target.relative_to(base)
+        except ValueError:
+            raise HTTPException(status_code=404, detail="Not found")
+        if target.is_file():
+            media = "application/gzip" if filename.endswith(".gz") else "application/octet-stream"
+            return FileResponse(target, media_type=media, headers={"Cache-Control": "public, max-age=86400"})
+        raise HTTPException(status_code=404, detail="Not found")
+
     @app.get("/{full_path:path}", include_in_schema=False)
     async def web_spa_fallback(full_path: str):
         # SPA fallback: serve index.html for any non-API GET request.
