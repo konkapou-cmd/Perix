@@ -1171,15 +1171,25 @@ async def _estimate_trip_position(
             for i, s in enumerate(stop_progress):
                 if s <= progress:
                     index = i
+            stopped = (progress <= stop_progress[index]
+                       and visual_now_s <= timeline[index]["predicted_departure"])
             sample = {
                 "next_timeline_index": index,
                 "marker_visible": True,
                 "progress_m": progress,
+                "next_stop_id": timeline[index].get("stop_id"),
                 "next_stop_eta_seconds": max(
                     0, int(timeline[index]["predicted_arrival"] - visual_now_s)),
+                "state": "VISUAL_STOP_ESTIMATE" if stopped else "VISUAL_MOVING",
                 "revision": "degraded-1",
+                "position_assurance": "TIME_NORMALIZED_VISUAL_ESTIMATE",
+                "physical_speed_assurance": False,
+                "observed_arrival": False,
+                "prediction_basis": "SOURCE_TIMELINE",
+                "speed_kmh": None,
                 "timeline": timeline,
                 "station_cycles": [],
+                "preview": None,
             }
         index = sample['next_timeline_index']
         entry = timeline[index]
