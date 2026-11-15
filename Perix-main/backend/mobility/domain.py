@@ -265,13 +265,13 @@ def _physical_stops(network: dict) -> List[dict]:
                 ],
             }
         )
-    return _cluster_stop_places(out)
+    return _cluster_stop_places(out, str(network.get("region_id") or ""))
 
 
 STOP_PLACE_MERGE_KM = 0.08  # 80 meters - same-NAME stops only
 
 
-def _cluster_stop_places(stops: List[dict]) -> List[dict]:
+def _cluster_stop_places(stops: List[dict], region_id: str) -> List[dict]:
     """Second level: STOP PLACES for the passenger map - SAME NAME only.
 
     Two stops merge ONLY when their names match (normalized) and they are
@@ -345,6 +345,7 @@ def _cluster_stop_places(stops: List[dict]) -> List[dict]:
         # Anchor the place at the FIRST (main) stop - keeps a stable point.
     for pl in places:
         pl["modes"] = sorted(pl["modes"])
+        pl["stop_kind"] = _stop_kind_for(set(pl["modes"]), region_id)
         pl["routes"] = sorted(pl["routes"].values(), key=lambda x: (x["mode"] != "tram", x["route_number"]))
         if len(pl["aliases"]) > 1:
             pl["name"] = pl["aliases"][0]
