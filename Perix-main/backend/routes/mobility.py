@@ -815,6 +815,10 @@ async def _trip_path_geometry(route: dict, trip: dict, timeline: List[dict], net
         if not version_id or not pat_id or ordered_ids != source_pattern['stop_ids']:
             return None
         expected_pattern_fp = pattern_fingerprint(source_pattern)
+        degraded_path = (
+            os.getenv("MOBILITY_ACTIVATE_WITHOUT_GENERATIONS", "false").strip().lower()
+            == "true"
+        )
         if (not entry or not entry.get('direction_verified')
                 or entry.get('pattern_fingerprint') != expected_pattern_fp
                 or not platforms_match_contract(entry.get('direction_contract') or {},ordered_platforms)):
@@ -822,25 +826,38 @@ async def _trip_path_geometry(route: dict, trip: dict, timeline: List[dict], net
                 bundle = await get_pattern_generation(pat_id,version_id,
                     region_id=region.region_id,network_id=region.network_id)
                 if not bundle:
-                    return None
-                if any(str(bundle.get(k) or '') != str(v) for k,v in dict(region_id=region.region_id,
+                    if not degraded_path:
+                        return None
+                    direction_contract = None
+                elif any(str(bundle.get(k) or '') != str(v) for k,v in dict(region_id=region.region_id,
                         network_id=region.network_id,version_id=version_id,pattern_id=pat_id).items()):
-                    return None
-                direction_contract = certify_generation_direction(bundle,source_pattern,ordered_platforms)
-                geometry = bundle['geometry']
-                geometry_cache.set_cached(pat_id,geometry['points'],version_id=version_id,
-                    generation_id=bundle['generation_id'],source=geometry.get('source'),
-                    osm_snapshot_v=bundle.get('osm_snapshot_v'),geometry_fingerprint=geometry.get('geometry_fingerprint'),
-                    direction_contract=direction_contract,direction_verified=True,
-                    pattern_fingerprint=expected_pattern_fp)
-                entry = geometry_cache.get_entry(pat_id,version_id)
+                    if not degraded_path:
+                        return None
+                    direction_contract = None
+                else:
+                    direction_contract = certify_generation_direction(bundle,source_pattern,ordered_platforms)
+                    geometry = bundle['geometry']
+                    geometry_cache.set_cached(pat_id,geometry['points'],version_id=version_id,
+                        generation_id=bundle['generation_id'],source=geometry.get('source'),
+                        osm_snapshot_v=bundle.get('osm_snapshot_v'),geometry_fingerprint=geometry.get('geometry_fingerprint'),
+                        direction_contract=direction_contract,direction_verified=True,
+                        pattern_fingerprint=expected_pattern_fp)
+                    entry = geometry_cache.get_entry(pat_id,version_id)
             except (DirectionContractError,PyMongoError,KeyError,TypeError,ValueError):
-                return None  # No marker-local direction guess or geometry fallback.
-        direction_contract = (entry or {}).get('direction_contract')
+                if not degraded_path:
+                    return None  # No marker-local direction guess or geometry fallback.
+                direction_contract = None
+        if direction_contract is None:
+            direction_contract = (entry or {}).get('direction_contract')
         if (not direction_contract or direction_contract['ordered_stop_ids'] != ordered_ids
                 or direction_contract.get('scope') != dict(region_id=region.region_id,
                     network_id=region.network_id,version_id=version_id,pattern_id=pat_id)):
-            return None
+            if not degraded_path:
+                return None
+            # Degraded mode: proceed to the GTFS-shape position fallback below;
+            # the visual motion engine rejects the contract-less path and the
+            # compatibility estimator positions the vehicle along the shape.
+            direction_contract = None
     key = (
         region.region_id, region.network_id, version_id,
         _service_date(network or {}) or _service_date_key(), pat_id,
@@ -1142,7 +1159,28 @@ async def _estimate_trip_position(
                           int((realtime or {}).get('feed_timestamp') or 0)),
             **({'rule_version':visual_rule_version} if visual_rule_version else {}))
         if sample is None:
-            return None  # No fabricated physical fallback in visual mode.
+            if (os.getenv("MOBILITY_ACTIVATE_WITHOUT_GENERATIONS", "false").strip().lower()
+                    != "true"):
+                return None  # No fabricated physical fallback in visual mode.
+            # Degraded mode (no OSM generations yet): project the vehicle onto
+            # the GTFS-shape fallback path by scheduled progress. The marker
+            # moves with the timetable; the visual motion engine takes over
+            # automatically once the generations arrive.
+            progress = _raw_timeline_progress(timeline, stop_progress, int(visual_now_s))
+            index = 0
+            for i, s in enumerate(stop_progress):
+                if s <= progress:
+                    index = i
+            sample = {
+                "next_timeline_index": index,
+                "marker_visible": True,
+                "progress_m": progress,
+                "next_stop_eta_seconds": max(
+                    0, int(timeline[index]["predicted_arrival"] - visual_now_s)),
+                "revision": "degraded-1",
+                "timeline": timeline,
+                "station_cycles": [],
+            }
         index = sample['next_timeline_index']
         entry = timeline[index]
         visible = sample['marker_visible']
