@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, Component, type ReactNode } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
 import Constants from "expo-constants";
@@ -6,6 +6,35 @@ import Game from "../components/game/MagdeburgSportCabrioGame";
 import { PERIX_VECTOR_MAP_ID } from "../lib/city/mapPresentation";
 import { loadGameRoads, type RoadWay } from "../lib/city/gameRoads";
 import { initialNearbyMapZoom } from "../lib/city/mapLayout";
+
+/** Catches any runtime crash while the game mounts (WebGL, fullscreen
+ *  transitions) so the player never gets thrown back to /app with a lost
+ *  origin - they get a friendly screen and a Back button instead. */
+class GameErrorBoundary extends Component<{ onExit: () => void; children?: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    if (this.state.failed) {
+      return (
+        <View testID="game-error-boundary" style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24, backgroundColor: "#06233F" }}>
+          <Text style={{ fontSize: 16, fontWeight: "700", color: "#FFFFFF", textAlign: "center" }}>
+            Παρουσιάστηκε σφάλμα κατά την εκκίνηση του παιχνιδιού.
+          </Text>
+          <Text style={{ marginTop: 8, color: "#9FC3E8", textAlign: "center", fontSize: 13 }}>
+            Δοκίμασε ξανά - αν επιμένει, η συσκευή μπορεί να μην υποστηρίζει το 3D.
+          </Text>
+          <Pressable testID="game-back" accessibilityRole="button" accessibilityLabel="Back"
+            onPress={this.props.onExit} style={{ marginTop: 20, paddingHorizontal: 20, height: 44, borderRadius: 22, backgroundColor: "#096BFF", alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ color: "#fff", fontWeight: "700" }}>Back</Text>
+          </Pressable>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const GEO_KEY =
   (Constants.expoConfig?.extra as any)?.EXPO_PUBLIC_GEO_KEY ||
@@ -48,7 +77,13 @@ export default function GameScreen() {
   const [streetLines, setStreetLines] = useState<RoadWay[] | null>(null);
   const [started, setStarted] = useState(false);
   // Same opening zoom as the /app map (300m target span, capped at 18).
-  const openingZoom = initialNearbyMapZoom(width, height, Number.isFinite(lat) ? lat : 52.13, 300, 850, 18);
+  // Computed ONCE: the fullscreen/orientation resize must not change the
+  // camera the game boots with (a changing prop would re-create the map).
+  const openingZoomRef = useRef<number | null>(null);
+  if (openingZoomRef.current === null) {
+    openingZoomRef.current = initialNearbyMapZoom(width, height, Number.isFinite(lat) ? lat : 52.13, 300, 850, 18);
+  }
+  const openingZoom = openingZoomRef.current;
   const goBack = () => {
     try {
       if (router.canGoBack()) router.back();
@@ -125,16 +160,18 @@ export default function GameScreen() {
   }
   return (
     <View style={{ flex: 1, position: "relative" }}>
-      <Game
-        apiKey={GEO_KEY}
-        mapId={PERIX_VECTOR_MAP_ID}
-        startPoint={{ latitude: lat, longitude: lng }}
-        streetLines={streetLines}
-        obstacles={[]}
-        laneHalfWidth={4.6}
-        initialZoom={openingZoom}
-        onExit={goBack}
-      />
+      <GameErrorBoundary onExit={goBack}>
+        <Game
+          apiKey={GEO_KEY}
+          mapId={PERIX_VECTOR_MAP_ID}
+          startPoint={{ latitude: lat, longitude: lng }}
+          streetLines={streetLines}
+          obstacles={[]}
+          laneHalfWidth={4.6}
+          initialZoom={openingZoom}
+          onExit={goBack}
+        />
+      </GameErrorBoundary>
       <Text style={{ position: "absolute", right: 10, bottom: 8, color: "#FFFFFF", fontSize: 10, opacity: 0.85, textShadowColor: "rgba(0,0,0,0.6)", textShadowRadius: 3, textShadowOffset: { width: 0, height: 1 } }}>
         © OpenStreetMap contributors · ODbL
       </Text>

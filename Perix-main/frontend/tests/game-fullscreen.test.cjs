@@ -22,6 +22,11 @@ const React = {
   useState: (initial) => [typeof initial === "function" ? initial() : initial, () => {}],
   useEffect: () => {},
   useRef: (v) => ({ current: v }),
+  Component: class {
+    constructor(props) { this.props = props; this.state = {}; }
+    setState(patch) { Object.assign(this.state, typeof patch === "function" ? patch(this.state) : patch); }
+    render() { return null; }
+  },
 };
 let viewportWidth = 390;
 const rn = {
@@ -161,6 +166,12 @@ test("game route loads real roads, drives on web and gates native/missing origin
   assert.match(src, /requestFullscreen/);
   assert.match(src, /lock\("landscape"\)/);
   assert.match(src, /Ξεκίνα \(οριζόντια\)/);
+  // Crash-proofing: a mount error shows a friendly screen + Back instead of
+  // dropping the player back to /app with a lost origin.
+  assert.match(src, /class GameErrorBoundary/);
+  assert.match(src, /getDerivedStateFromError/);
+  assert.match(src, /game-error-boundary/);
+  assert.match(src, /openingZoomRef/);
 });
 
 test("packed road polylines filter to the origin radius with a cap", () => {
