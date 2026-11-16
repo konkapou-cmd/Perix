@@ -1093,12 +1093,18 @@ async def _osm_snapshot_worker():
             version = await active_version()
             if version is None:
                 _log("osm snapshot: no local graph yet - importing...")
-                res = await import_snapshot()
+                # Bootstrap from the packaged audited bundle FIRST: public
+                # Overpass mirrors have been timing out for days and a full
+                # 36-tile fetch can take hours to fail. The packaged snapshot
+                # lands the graph immediately; the age-based path below keeps
+                # trying Overpass afterwards and supersedes it when healthy.
+                packaged = await _load_packaged_osm_source()
+                if packaged is not None:
+                    _log("osm snapshot: bootstrapping from packaged audited OSM bundle")
+                    res = await import_snapshot(sources=packaged)
                 if not (res and res.get("ok")):
-                    packaged = await _load_packaged_osm_source()
-                    if packaged is not None:
-                        _log("osm snapshot: Overpass incomplete - importing packaged audited OSM bundle")
-                        res = await import_snapshot(sources=packaged)
+                    _log("osm snapshot: packaged source unavailable - trying Overpass")
+                    res = await import_snapshot()
             else:
                 meta = await snapshot_meta(_ACTIVE_REGION.region_id)
                 age = _time.time() - float((meta or {}).get("imported_at") or 0)
