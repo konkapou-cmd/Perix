@@ -35,6 +35,8 @@ export default function MagdeburgSportCabrioGame({
   streetLines = [],
   obstacles = [],
   laneHalfWidth = 4.6,
+  // Opening camera zoom - the app uses its area-scale zoom (e.g. /app).
+  initialZoom = 20.2,
   // Back button handler (-> /app). Hidden when not provided.
   onExit = null,
 }) {
@@ -94,7 +96,7 @@ export default function MagdeburgSportCabrioGame({
 
       map = new google.maps.Map(mapDivRef.current, {
         center: origin,
-        zoom: 20.2,
+        zoom: initialZoom,
         tilt: 67,
         heading: 0,
         mapId,
@@ -764,7 +766,7 @@ export default function MagdeburgSportCabrioGame({
           center: { lat: carLat, lng: carLng },
           heading: mapHeadingDeg,
           tilt: 67,
-          zoom: 20.2
+          zoom: initialZoom
         });
 
         // Anchor the projection AT THE CAR on the terrain's own elevation and
@@ -806,7 +808,7 @@ export default function MagdeburgSportCabrioGame({
       window.removeEventListener('keyup', onKeyUp);
       soundEngine.destroy();
     };
-  }, [apiKey, mapId, streetLines, obstacles, laneHalfWidth]);
+  }, [apiKey, mapId, streetLines, obstacles, laneHalfWidth, initialZoom]);
 
   const handleLeftMove = (clientY, rect) => {
     unlockAudio();
@@ -830,6 +832,12 @@ export default function MagdeburgSportCabrioGame({
     unlockAudio();
     const el = document.documentElement;
     if (el.requestFullscreen) el.requestFullscreen();
+    // Landscape lock (Android/Chrome: needs fullscreen, which the tap just
+    // requested). iOS has no API - ignored silently there.
+    try {
+      const lock = screen.orientation && screen.orientation.lock;
+      if (lock) { const p = lock('landscape'); if (p && p.catch) p.catch(() => {}); }
+    } catch (e) {}
   };
 
   return (
@@ -856,7 +864,7 @@ export default function MagdeburgSportCabrioGame({
               {isMuted ? '16-Bit Ήχος: OFF' : '16-Bit Ήχος: ON'}
             </button>
             <button onClick={enterFullScreen} style={styles.fsBtn}>
-              Fullscreen 16:9
+              Οριζόντια / Fullscreen
             </button>
           </div>
         </div>

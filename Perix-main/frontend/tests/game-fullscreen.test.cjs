@@ -136,6 +136,7 @@ test("game route loads real roads, drives on web and gates native/missing origin
     "expo-constants": { default: { expoConfig: { extra: { EXPO_PUBLIC_GEO_KEY: "k" } } } },
     "../components/game/MagdeburgSportCabrioGame": { default: "Game" },
     "../lib/city/mapPresentation": { PERIX_VECTOR_MAP_ID: "mid" },
+    "../lib/city/mapLayout": { initialNearbyMapZoom: () => 17 },
     "../lib/city/gameRoads": { loadGameRoads: async () => [], filterRoadWays: () => [] },
   });
   const Screen = load("app/game.tsx", deps(390, { lat: "52.13", lng: "11.63" })).default;
@@ -154,6 +155,12 @@ test("game route loads real roads, drives on web and gates native/missing origin
   assert.match(src, /laneHalfWidth=\{4\.6\}/);
   assert.match(src, /© OpenStreetMap contributors/);
   assert.match(src, /onExit=\{goBack\}/);
+  assert.match(src, /initialNearbyMapZoom\(width, height/);
+  assert.match(src, /initialZoom=\{openingZoom\}/);
+  assert.match(src, /testID="game-start"/);
+  assert.match(src, /requestFullscreen/);
+  assert.match(src, /lock\("landscape"\)/);
+  assert.match(src, /Ξεκίνα \(οριζόντια\)/);
 });
 
 test("packed road polylines filter to the origin radius with a cap", () => {
@@ -191,13 +198,17 @@ test("game component starts from origin, free-roams without streets, and exits o
   assert.match(native, /map-mobile-cluster/);
   assert.match(native, /zoomControl(Enabled)?=\{false\}/);
   assert.match(native, /onGamePress\?:/);
-  assert.match(src, /zoom:\s*20\.2/);
+  assert.match(src, /zoom:\s*initialZoom/);
+  assert.match(src, /initialZoom\s*=\s*20\.2/);
   assert.match(src, /tilt:\s*67/);
   assert.match(src, /map\.moveCamera/);
   assert.match(src, /onExit/);
   assert.match(src, /aria-label="Back"/);
   assert.match(src, /\.catch\(\(\) =>/);
   assert.match(src, /overlay\.setMap\(null\)/);
+  // Landscape entry: the HUD fullscreen button also locks orientation.
+  assert.match(src, /screen\.orientation/);
+  assert.match(src, /lock\('landscape'\)/);
   // Car sits ON the terrain: elevation-anchored projection, scene shifted
   // to the car as local origin (no vertical slide at 67° tilt).
   assert.match(src, /new google\.maps\.ElevationService\(\)/);
