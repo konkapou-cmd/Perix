@@ -203,12 +203,16 @@ test("game component starts from origin, free-roams without streets, and exits o
   assert.match(web, /map-mobile-cluster/);
   assert.match(web, /map-zoom-in/);
   assert.match(web, /map-zoom-out/);
-  assert.match(web, /map-game-entry/);
-  assert.match(web, /onGamePress/);
+  // The map itself never carries a game entry - the game opens only from
+  // the header button, so map gestures stay untouched.
+  assert.doesNotMatch(web, /map-game-entry/);
+  assert.doesNotMatch(web, /onGamePress/);
+  const header = read("components/city/MapScreenHeader.tsx");
+  assert.match(header, /testID="game-entry"/);
   const native = read("components/BusinessMap.native.tsx");
   assert.match(native, /map-mobile-cluster/);
   assert.match(native, /zoomControl(Enabled)?=\{false\}/);
-  assert.match(native, /onGamePress\?:/);
+  assert.doesNotMatch(native, /onGamePress/);
   assert.match(src, /zoom:\s*initialZoom/);
   assert.match(src, /initialZoom\s*=\s*20\.2/);
   assert.match(src, /tilt:\s*67/);

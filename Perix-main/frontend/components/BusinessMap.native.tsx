@@ -191,9 +191,6 @@ type Props = {
   onZoomChange?: (zoom: number) => void;
   onMarkerPress?: (markerId: string) => void;
   onMapPress?: (latitude: number, longitude: number) => void;
-  /** Accepted for API parity with web (mobile cluster game entry); the
-   *  driving game is web-only, so native renders magnifier/zoom only. */
-  onGamePress?: (() => void) | null;
   height?: number;
   horizontalInset?: number;
   disabled?: boolean;
@@ -240,7 +237,6 @@ export default function BusinessMap({
   onZoomChange,
   onMarkerPress,
   onMapPress,
-  onGamePress,
   height,
   horizontalInset = 0,
   disabled = false,

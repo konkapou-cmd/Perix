@@ -14,7 +14,6 @@ import { groupTransitStopIcons, transitStopPins, stopGeometryBearing, stopViewer
 import { MAP_LAYERS, createUserPinElement, mapEmblemPinSize, mapEntityPinSize, mapMarkerGroupKey, profileInitial, transitStopAppearance, businessEmblemKey, perspectiveMultiplier, routeWeightForZoom, LOCKED_MAP_TILT, RASTER_FALLBACK_TILT, lockedTiltForRendering, PERIX_VECTOR_MAP_ID, easeInOutCubic, flyToDurationMs } from "../lib/city/mapPresentation";
 import { illustratedIconSource } from "./icons/IllustratedIcon";
 import FontMagnifierButton from "./city/FontMagnifierButton";
-const GAME_CABRIO = require("../assets/brand/game-cabrio.png");
 import { clusterLandmarks, landmarkAppearance, landmarkDepthLayout, landmarkIntersectsBounds, landmarkImageSource, landmarkTapTargets, LANDMARK_MAP_MAX_ZOOM, LANDMARK_STREET_DETAIL_ZOOM } from "../lib/city/landmarks";
 import { projectedRoutePath } from '../lib/city/routeArtwork';
 import type { Landmark } from "../lib/city/landmarks";
@@ -177,8 +176,6 @@ type Props = {
   onZoomChange?: (zoom: number) => void;
   onMarkerPress?: (markerId: string) => void;
   onMapPress?: (latitude: number, longitude: number) => void;
-  /** Mobile cluster game entry (-> /game at origin). Renders the cabrio button. */
-  onGamePress?: (() => void) | null;
   height?: number;
   horizontalInset?: number;
   disabled?: boolean;
@@ -509,7 +506,6 @@ export default function BusinessMap({
   onZoomChange,
   onMarkerPress,
   onMapPress,
-  onGamePress,
   height = 300,
   horizontalInset = 16,
   disabled = false,
@@ -1250,18 +1246,26 @@ export default function BusinessMap({
         // judders and feels stuck). 'idle' runs after the gesture ends.
         map.addListener("idle", () => {
           applyLockedTilt(map);
+          refreshScales();
         });
         // Tilt stays locked: re-applied on init/tilesloaded/idle. No snap-back
         // on tilt_changed (touch tilt gestures would fight it and judder).
-        // Tilt rescales from the POV without reloading any data.
-        map.addListener("tilt_changed", () => {
-          refreshScales();
-        });
+        // Per-event heavy work (scale/POV refresh) moved to 'idle' so a
+        // pinch/tilt gesture never lags: during the gesture only the cheap
+        // heading icon pass runs, throttled to one animation frame.
+        let headingFrame = 0;
         map.addListener("heading_changed", () => {
-          const heading=map.getHeading?.() || 0;
-          markersRef.current.forEach((rec:any)=>{if(rec?.marker)updateVehicleMarkerIcon((window as any).google,rec);});
-          setMapHeading((previous:number)=>Math.abs(previous-heading)<0.1?previous:heading);
-          setStopViewportRevision(value=>value+1);
+          const run = () => {
+            headingFrame = 0;
+            const heading = map.getHeading?.() || 0;
+            const g = (window as any).google;
+            markersRef.current.forEach((rec: any) => { if (rec?.marker) updateVehicleMarkerIcon(g, rec); });
+            setMapHeading((previous: number) => Math.abs(previous - heading) < 0.1 ? previous : heading);
+            setStopViewportRevision(value => value + 1);
+          };
+          if (!headingFrame) {
+            headingFrame = window.requestAnimationFrame ? window.requestAnimationFrame(run) : (run(), 0);
+          }
         });
 
         if (cancelled) return;
@@ -2439,12 +2443,6 @@ export default function BusinessMap({
             onPress={() => { try { mapRef.current?.setZoom?.((mapRef.current?.getZoom?.() || 14) - 1); } catch (e) {} }} style={s.clusterButton}>
             <Ionicons name="remove" size={22} color="#064472" />
           </Pressable>
-          {onGamePress ? (
-            <Pressable testID="map-game-entry" accessibilityRole="button"
-              accessibilityLabel={t("map.game", "Game")} onPress={onGamePress} style={s.clusterGameButton}>
-              <RNImage source={GAME_CABRIO} resizeMode="cover" style={s.clusterGameIcon} accessibilityIgnoresInvertColors />
-            </Pressable>
-          ) : null}
         </View>
       )}
       {mapZoomLevel >= 19 && !streetView && (
@@ -2542,8 +2540,6 @@ const s = StyleSheet.create({
   streetViewToggle: { position: "absolute", left: 12, bottom: 12, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: COLORS.primary, borderRadius: 20, paddingHorizontal: 14, height: 40 },
   mobileCluster: { position: "absolute", right: 10, bottom: 52, flexDirection: "row", alignItems: "center", gap: 8 },
   clusterButton: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.92)", borderWidth: 1, borderColor: "#e5e7eb" },
-  clusterGameButton: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", backgroundColor: "#0b1620", borderWidth: 1, borderColor: "#e5e7eb", overflow: "hidden" },
-  clusterGameIcon: { width: 46, height: 46, borderRadius: 23 },
   streetViewToggleText: { color: "#fff", fontWeight: "700", fontSize: 13 },
   streetViewNotice: { position: "absolute", left: 12, bottom: 56, backgroundColor: "rgba(6,68,114,0.9)", color: "#fff", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, fontSize: 12 },
   streetViewWrap: { flex: 1, backgroundColor: "#000" },

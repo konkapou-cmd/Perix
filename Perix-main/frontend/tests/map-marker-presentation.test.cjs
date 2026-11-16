@@ -217,8 +217,11 @@ test('tilt is locked permanent and pedestrian mode is explicit with coverage',()
   assert.match(web,/lockedTiltForRendering\(target\.getRenderingType/);
   assert.match(web,/tilesloaded/);
   // Tilt re-locks at rest only: never mid-pinch (no gesture fighting).
-  assert.match(web,/addListener\("idle", \(\) => \{\s*applyLockedTilt\(map\);\s*\}\);/);
+  assert.match(web,/addListener\("idle", \(\) => \{\s*applyLockedTilt\(map\);[\s\S]{0,80}refreshScales\(\);\s*\}\);/);
   assert.doesNotMatch(web,/zoom_changed", \(\) => \{\s*refreshScales\(\);\s*applyLockedTilt/);
+  // Per-frame heavy work during gestures is throttled (no map lag).
+  assert.doesNotMatch(web,/addListener\("tilt_changed"/);
+  assert.match(web,/headingFrame/);
   assert.match(web,/street-view-toggle/);
   assert.match(web,/StreetViewService[\s\S]*?getPanorama/);
   assert.match(web,/StreetViewSource\.OUTDOOR/);

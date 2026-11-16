@@ -608,20 +608,24 @@ export default function CityGatewayScreen({ initialRoot }: { initialRoot?: strin
     .filter(v => v.latitude != null && v.longitude != null && (v.mode === "bus" || v.mode === "tram"))
     .filter(v => trackedVehicles(trackedTrips,liveVehicles,transitLines).some(tracked=>tracked===v)
       || nearbyDepartureRows.some(row=>vehicleForDeparture(row,[v],transitLines)))
-    .filter(v => visualGeometryReady(v, transitLines))
     .map(v => {
       const line = transitLines.find(l => !!v.pattern_id && !!v.network_version_id && !!v.service_date
         && l.pattern_id === v.pattern_id && l.mode === v.mode && l.valid === true
         && l.network_version_id === v.network_version_id && l.service_date === v.service_date);
+      // Vehicles whose pattern geometry is still building show as STATIC pins
+      // at the backend's published position (no invented movement); once the
+      // dated line lands they switch to smooth progress along the road.
+      const geometryReady = visualGeometryReady(v, transitLines);
       return { id: `mobility:${v.vehicle_id}`, latitude: v.latitude!, longitude: v.longitude!, title: `${v.mode} ${v.route_number || v.name}`,
       type: v.mode as "bus" | "tram" | "taxi", pinColor: GATEWAY_ENTITY_COLORS[v.mode] ?? "#216BA2",
        estimated: v.estimated ?? false, label: v.route_number, heading: v.heading, positionState: v.position_state,
        visualEstimate: v.motion?.model === "TIME_NORMALIZED_VISUAL_ESTIMATE",
       journeyId: v.trip_instance_id, publicationStatus: v.motion?.publication_status,
       patternId: v.pattern_id, planRevision: v.motion_plan_revision, estimateRevision: v.estimate_revision,
-      progressM: v.progress_m, motionPreview: v.motion?.preview, nextTimelineIndex: v.next_timeline_index,
+      progressM: geometryReady ? v.progress_m : null, motionPreview: geometryReady ? v.motion?.preview : null,
+      nextTimelineIndex: v.next_timeline_index,
       distanceToNextStopM: v.distance_to_next_stop_m, nextStopEtaSeconds: v.next_stop_eta_seconds,
-       geometryFingerprint: line?.approach_geometry_fingerprint, path: line?.points }; }), [liveVehicles, transitLines, effectiveMode,trackedTrips,nearbyDepartureRows]);
+       geometryFingerprint: line?.approach_geometry_fingerprint, path: geometryReady ? line?.points : undefined }; }), [liveVehicles, transitLines, effectiveMode,trackedTrips,nearbyDepartureRows]);
    // Destination is a regular place marker, never the live user's avatar pin.
    const markers = useMemo(() => [...placeMarkers, ...vehicleMarkers,
       ...(userOrigin?.kind === "manual" ? [{id:"gateway-user-origin",latitude:userOrigin.latitude,longitude:userOrigin.longitude,
@@ -773,7 +777,6 @@ export default function CityGatewayScreen({ initialRoot }: { initialRoot?: strin
           pinScaleZoom={scopedLandmarks.some(item=>item.id.startsWith("GR-")) ? ISLAND_LANDMARK_LABEL_ZOOM : 15}
           landmarksMuted={!!current}
           autofit={autofit}
-          onGamePress={userOrigin && validOrigin(userOrigin) && width < 1024 ? () => router.navigate(`/game?lat=${userOrigin.latitude}&lng=${userOrigin.longitude}` as never) : null}
           userPinImage={user?.profile_photo || user?.picture || undefined} userPinName={user?.name}
           transitLines={renderedTransitLines}
           transitStops={transitStops}

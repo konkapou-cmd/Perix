@@ -153,8 +153,6 @@ type Props = {
   onZoomChange?: (zoom: number) => void;
   onMarkerPress?: (markerId: string) => void;
   onMapPress?: (latitude: number, longitude: number) => void;
-  /** Mobile cluster game entry (-> /game at origin). Renders the cabrio button. */
-  onGamePress?: (() => void) | null;
   height?: number;
   horizontalInset?: number;
   disabled?: boolean;
