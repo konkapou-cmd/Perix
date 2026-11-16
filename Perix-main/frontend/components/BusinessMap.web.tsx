@@ -1233,8 +1233,6 @@ export default function BusinessMap({
         };
         map.addListener("zoom_changed", () => {
           refreshScales();
-          // Tilt stays locked — re-apply whenever the camera moved.
-          applyLockedTilt(map);
           try {
             const zoom = map.getZoom() || 14;
             setMapZoomLevel(prev => ((prev >= 19) === (zoom >= 19) ? prev : zoom));
@@ -1247,8 +1245,14 @@ export default function BusinessMap({
           }, 350);
           onZoomChangeRef.current?.(map.getZoom() || 14);
         });
-        // Tilt stays locked: re-applied on zoom/tile changes. No snap-back on
-        // tilt_changed (touch tilt gestures would fight it and judder).
+        // Tilt lock applied only when the camera is AT REST. Re-applying on
+        // zoom_changed fires mid-pinch and fights the user's fingers (the map
+        // judders and feels stuck). 'idle' runs after the gesture ends.
+        map.addListener("idle", () => {
+          applyLockedTilt(map);
+        });
+        // Tilt stays locked: re-applied on init/tilesloaded/idle. No snap-back
+        // on tilt_changed (touch tilt gestures would fight it and judder).
         // Tilt rescales from the POV without reloading any data.
         map.addListener("tilt_changed", () => {
           refreshScales();
