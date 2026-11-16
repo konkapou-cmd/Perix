@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Stack, usePathname, useSegments, router } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { I18nextProvider } from "react-i18next";
@@ -23,7 +23,7 @@ import { ensureWebPushSubscription } from "../lib/webPush";
 import { useDeepLinkHandler } from "../hooks/useDeepLinkHandler";
 import i18n from "../i18n";
 import { applyDefaultFontFamily } from "../lib/defaultFont";
-import { applyStoredFontScale } from "../lib/fontScale";
+import { applyStoredFontScale, subscribeFontScale, getFontScaleVersion } from "../lib/fontScale";
 import { useFonts, Quicksand_400Regular, Quicksand_500Medium, Quicksand_600SemiBold, Quicksand_700Bold } from "@expo-google-fonts/quicksand";
 import GlobalWebChrome from "../components/GlobalWebChrome";
 import InstallBanner from "../components/InstallBanner";
@@ -392,6 +392,9 @@ function PushNotificationManager() {
 
 export default function RootLayout() {
   const pathname = usePathname();
+  // Re-render the whole tree whenever the font scale changes: the JSX below
+  // is recreated, so every screen repaints with the new factor instantly.
+  useSyncExternalStore(subscribeFontScale, getFontScaleVersion);
   // Initialize notification channels on app start
   useEffect(() => {
     try {

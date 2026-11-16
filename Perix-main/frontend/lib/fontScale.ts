@@ -14,6 +14,19 @@ export const FONT_SCALE_STEPS: FontScaleChoice[] = ["85", "100", "130"];
 
 let currentFactor = 1;
 let installed = false;
+let scaleVersion = 0;
+const scaleListeners = new Set<() => void>();
+
+/** Subscribe to scale changes (useSyncExternalStore) so screens re-render
+ *  the moment a new factor is applied - instant, no reload, no state loss. */
+export function subscribeFontScale(listener: () => void): () => void {
+  scaleListeners.add(listener);
+  return () => { scaleListeners.delete(listener); };
+}
+
+export function getFontScaleVersion(): number {
+  return scaleVersion;
+}
 
 // One scaled copy per unique style object per factor. StyleSheet.create
 // objects are stable identities, so repeated renders reuse the same copy
@@ -86,6 +99,11 @@ function installPatches(): void {
 export function applyFontScale(choice: FontScaleChoice): void {
   currentFactor = FONT_SCALE_FACTORS[choice] ?? 1;
   installPatches();
+  // Wake every subscribed screen so the new factor paints immediately.
+  scaleVersion += 1;
+  for (const listener of Array.from(scaleListeners)) {
+    try { listener(); } catch {}
+  }
 }
 
 export async function setStoredFontScale(choice: FontScaleChoice): Promise<void> {

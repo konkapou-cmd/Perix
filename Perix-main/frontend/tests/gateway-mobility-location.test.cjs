@@ -28,6 +28,7 @@ function host() {
       return slots[i].value;
     },
     useCallback: (fn, deps) => React.useMemo(() => fn, deps),
+    useSyncExternalStore: () => 1,
     useEffect(fn, deps) { const i = index++, old = slots[i];
       if (!old || !deps || deps.some((v, j) => !Object.is(v, old.deps[j]))) {
         pending.push(() => { old?.cleanup?.(); slots[i] = { deps, cleanup: fn() }; });
@@ -159,6 +160,7 @@ function gatewayHost(stopFixture=stops,categoryFixture,landmarkFixture=[]) {
         stops: [{ stop_id: 'mixed', name: 'Central', lat: 52.14, lng: 11.63 }] }) },
     '../../lib/categoryTranslation': {}, '../../lib/city/publicServices': { MAGDEBURG_BOUNDS: { minLat: 52, maxLat: 52.3, minLng: 11.5, maxLng: 11.8 },
       PUBLIC_SERVICE_THEME: {}, getPublicServiceTaxonomy: async () => null },
+    '../../lib/fontScale': { subscribeFontScale: () => () => {}, getFontScaleVersion: () => 1 },
     '../../lib/city/areas': (() => {
       const magdeburg = { id: 'magdeburg', countryCode: 'DE', cityId: 'de-magdeburg', label: { el: 'Μαγδεβούργο', de: 'Magdeburg', en: 'Magdeburg' },
         bounds: { minLat: 52, maxLat: 52.3, minLng: 11.5, maxLng: 11.8 },

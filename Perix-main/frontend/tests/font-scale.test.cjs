@@ -94,3 +94,24 @@ test('choice persists and legacy values migrate', async () => {
   store['perix-font-scale'] = 'standard';
   assert.equal(await api.getStoredFontScale(), '100');
 });
+
+test('scale changes notify subscribers so screens repaint instantly', async () => {
+  const { api } = loadFontScale();
+  const seen = [];
+  const unsub = api.subscribeFontScale(() => seen.push(api.getFontScaleVersion()));
+  assert.equal(api.getFontScaleVersion(), 0);
+  await api.setStoredFontScale('130');
+  assert.equal(seen.length, 1, 'subscriber woke exactly once');
+  assert.equal(seen[0], 1, 'version bumped');
+  unsub();
+  await api.setStoredFontScale('85');
+  assert.equal(seen.length, 1, 'unsubscribed listeners stay silent');
+});
+
+test('root, /app and /home subscribe to instant font-scale repaints', () => {
+  assert.match(read('lib/fontScale.ts'), /export function subscribeFontScale/);
+  assert.match(read('lib/fontScale.ts'), /scaleListeners\.add\(listener\)/);
+  assert.match(read('app/_layout.tsx'), /useSyncExternalStore\(subscribeFontScale, getFontScaleVersion\)/);
+  assert.match(read('components/city/CityGatewayScreen.tsx'), /useSyncExternalStore\(subscribeFontScale, getFontScaleVersion\)/);
+  assert.match(read('app/(tabs)/home.tsx'), /useSyncExternalStore\(subscribeFontScale, getFontScaleVersion\)/);
+});

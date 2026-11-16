@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import {
   ActivityIndicator,
@@ -97,6 +97,7 @@ import { useLayoutPreferences } from "../../hooks/useLayoutPreferences";
 import { CityAdCircles } from "../../components/home/CityAdCircles";
 import { CarouselSection } from "../../components/home/CarouselSection";
 import { MapSection } from "../../components/home/MapSection";
+import { subscribeFontScale, getFontScaleVersion } from "../../lib/fontScale";
 import HomeDiscoveryPanel from "../../components/home/HomeDiscoveryPanel";
 import { useHomeDiscovery } from "../../hooks/useHomeDiscovery";
 import { createDiscoveryFilters, discoverySection, type DiscoverySection, type DiscoveryFilter } from "../../lib/home/discovery";
@@ -133,6 +134,8 @@ function HomeSkeleton() {
 
 export default function HomeScreen() {
   const { t } = useTranslation();
+  // Font-scale changes repaint this screen immediately (desktop magnifier).
+  useSyncExternalStore(subscribeFontScale, getFontScaleVersion);
   const { user, sessionToken, activeIdentity, setActiveIdentity } = useAuth();
   const { unreadMessageCount } = useBadge();
   const { openCreateSheet, openBizActions } = React.useContext(CreateFlowContext);

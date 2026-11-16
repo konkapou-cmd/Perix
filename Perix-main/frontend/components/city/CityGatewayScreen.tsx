@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { ActivityIndicator, Image as RNImage, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import BusinessMap from "../BusinessMap";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MAP_PAGE_BACKGROUND, MAP_PAGE_GUTTER, MAP_PAGE_MAX_WIDTH, mapHeaderMetrics, initialNearbyMapZoom, categoryButtonMetrics } from "../../lib/city/mapLayout";
+import { subscribeFontScale, getFontScaleVersion } from "../../lib/fontScale";
 import { useAuth } from "../../context/AuthContext";
 import { useLocation } from "../../context/LocationContext";
 import MapScreenHeader from "./MapScreenHeader";
@@ -155,6 +156,8 @@ const fss = StyleSheet.create({
 export default function CityGatewayScreen({ initialRoot }: { initialRoot?: string }) {
   const { t, i18n } = useTranslation();
   const { t: city } = useTranslation("city");
+  // Font-scale changes repaint this screen immediately (magnifier in header).
+  useSyncExternalStore(subscribeFontScale, getFontScaleVersion);
   const language = (i18n.resolvedLanguage || i18n.language || "en").split("-")[0];
   const { user, loading: authLoading } = useAuth();
   const {mapBase,mapBaseRevision,setMapBounds:publishMapBounds,mapBounds:sharedMapBounds,isMapInitialized:sharedMapReady}=useMapBounds();
