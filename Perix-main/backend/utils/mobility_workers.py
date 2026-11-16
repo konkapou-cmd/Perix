@@ -1048,6 +1048,34 @@ def _haversine_pair(a, b) -> float:
     return r * 2 * math.atan2(math.sqrt(x), math.sqrt(1 - x))
 
 
+async def _load_packaged_osm_source(*, path=None):
+    """Audited offline OSM bundle shipped with the backend image
+    (Geofabrik/OpenStreetMap, ODbL, coverage-verified for the region bbox).
+    Used only when the public Overpass mirrors fail, so the road/rail graph
+    can still be built from a verified snapshot instead of stalling."""
+    import json
+    import zlib
+    from pathlib import Path
+
+    if path is None:
+        path = Path(__file__).resolve().parent.parent / "daily_osm_source.dat"
+    else:
+        path = Path(path)
+    if not path.exists():
+        return None
+    try:
+        data = await asyncio.to_thread(
+            lambda: json.loads(zlib.decompress(path.read_bytes()).decode("utf-8"))
+        )
+    except Exception as exc:
+        _log(f"osm snapshot: packaged source unreadable: {type(exc).__name__}")
+        return None
+    if not isinstance(data, dict) or data.get("schema") != "perix-osm-source-v1":
+        _log("osm snapshot: packaged source schema mismatch")
+        return None
+    return data
+
+
 async def _osm_snapshot_worker():
     """Refresh raw OSM without destroying last-known-good derivatives.
 
@@ -1066,11 +1094,21 @@ async def _osm_snapshot_worker():
             if version is None:
                 _log("osm snapshot: no local graph yet - importing...")
                 res = await import_snapshot()
+                if not (res and res.get("ok")):
+                    packaged = await _load_packaged_osm_source()
+                    if packaged is not None:
+                        _log("osm snapshot: Overpass incomplete - importing packaged audited OSM bundle")
+                        res = await import_snapshot(sources=packaged)
             else:
                 meta = await snapshot_meta(_ACTIVE_REGION.region_id)
                 age = _time.time() - float((meta or {}).get("imported_at") or 0)
                 if age > 12 * 3600:
                     res = await import_snapshot(force_new=(age > 86400))
+                    if not (res and res.get("ok")):
+                        packaged = await _load_packaged_osm_source()
+                        if packaged is not None:
+                            _log("osm snapshot: Overpass refresh incomplete - importing packaged audited OSM bundle")
+                            res = await import_snapshot(sources=packaged)
 
             if res and res.get("ok"):
                 request_precompute(
