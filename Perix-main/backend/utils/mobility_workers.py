@@ -1108,10 +1108,26 @@ async def _osm_snapshot_worker():
             else:
                 meta = await snapshot_meta(_ACTIVE_REGION.region_id)
                 age = _time.time() - float((meta or {}).get("imported_at") or 0)
-                if age > 12 * 3600:
+                # A packaged bundle NEWER than the active graph's own source
+                # wins immediately (no hours-long Overpass wait): the shipped
+                # Geofabrik snapshot replaces stale road/rail geometry.
+                packaged = await _load_packaged_osm_source()
+                packaged_ts = (((packaged or {}).get("provenance") or {}).get("source_timestamp"))
+                active_source = (((meta or {}).get("last_import_attempt") or {}).get("source") or {})
+                active_ts = ((active_source.get("provenance") or {})).get("source_timestamp")
+                packaged_newer = bool(packaged_ts) and (not active_ts or str(packaged_ts) > str(active_ts))
+                if packaged is not None and packaged_newer:
+                    _log(
+                        "osm snapshot: packaged audited OSM bundle is newer than the active graph "
+                        f"({packaged_ts} > {active_ts}) - importing"
+                    )
+                    res = await import_snapshot(sources=packaged)
+                    if not (res and res.get("ok")):
+                        _log("osm snapshot: packaged import failed - trying Overpass")
+                        res = await import_snapshot(force_new=(age > 86400))
+                elif age > 12 * 3600:
                     res = await import_snapshot(force_new=(age > 86400))
                     if not (res and res.get("ok")):
-                        packaged = await _load_packaged_osm_source()
                         if packaged is not None:
                             _log("osm snapshot: Overpass refresh incomplete - importing packaged audited OSM bundle")
                             res = await import_snapshot(sources=packaged)
