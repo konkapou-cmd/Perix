@@ -14,6 +14,7 @@ import it from './locales/it.json';
 import sr from './locales/sr.json';
 import pl from './locales/pl.json';
 import ru from './locales/ru.json';
+import flight from './flight.json';
 
 export const LANGUAGES = [
   { code: 'en', name: 'English', nativeName: 'English' },
@@ -29,9 +30,9 @@ export const LANGUAGES = [
 ];
 
 const resources = {
-  en: { translation: en },
-  de: { translation: de },
-  el: { translation: el },
+  en: { translation: en, flight:flight.en },
+  de: { translation: de, flight:flight.de },
+  el: { translation: el, flight:flight.el },
   es: { translation: es },
   sq: { translation: sq },
   fr: { translation: fr },

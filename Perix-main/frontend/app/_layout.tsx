@@ -164,7 +164,7 @@ LogBox.ignoreLogs([
 
 function CityAwareBanners() {
   const segments = useSegments() as string[];
-  const gateway = segments.length === 0 || ["index", "app", "public-services"].includes(segments[0]);
+  const gateway = segments.length === 0 || ["index", "app", "public-services", "game"].includes(segments[0]);
   return gateway ? null : <><InstallBanner /><UpdateBanner /></>;
 }
 
@@ -184,7 +184,7 @@ function AuthGuard() {
     }
     // Guest browsing: the App gateway and public entity pages stay public.
     // Home, the retired Locator route and all other member tabs require login.
-    const publicTopLevel = ["verify-email", "reset-password", "forgot-password", "privacy-policy", "terms-of-service", "share", "mobility"];
+    const publicTopLevel = ["verify-email", "reset-password", "forgot-password", "privacy-policy", "terms-of-service", "share", "mobility", "game"];
     const isTopLevelPublic = segs.length > 0 && publicTopLevel.includes(segs[0]);
     const isPublicServiceRead = segs[0] === "public-services" &&
       (segs.length === 1 || (segs.length === 2 && (segs[1] === "index" || segs[1] === "[id]")));

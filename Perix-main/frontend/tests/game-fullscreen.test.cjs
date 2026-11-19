@@ -12,7 +12,7 @@ function load(file, dependencies = {}) {
   const ReactGlobal = dependencies.react && (dependencies.react.default || dependencies.react);
   vm.runInNewContext(
     ts.transpileModule(read(file), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React } }).outputText,
-    { exports, module, require: (name) => dependencies[name], console, React: ReactGlobal }
+    { exports, module, require: (name) => dependencies[name]||(name==='@expo/vector-icons'?{Ionicons:'Icon'}:name==='../navigation/PerixChromeContext'?{usePerixChrome:()=>false}:name==='react-i18next'?require('./flightTranslations.cjs').module('en'):undefined), console, React: ReactGlobal }
   );
   return module.exports;
 }
@@ -22,15 +22,21 @@ const React = {
   useState: (initial) => [typeof initial === "function" ? initial() : initial, () => {}],
   useEffect: () => {},
   useRef: (v) => ({ current: v }),
+  useSyncExternalStore: (_subscribe, get) => get(),
+  lazy: () => 'Game', Suspense: 'Suspense',
   Component: class {
     constructor(props) { this.props = props; this.state = {}; }
     setState(patch) { Object.assign(this.state, typeof patch === "function" ? patch(this.state) : patch); }
     render() { return null; }
   },
 };
+const cityStarts=load('lib/city/flightStartCities.ts',{
+  './originalLandmarks.generated':load('lib/city/originalLandmarks.generated.ts'),
+  './islandLandmarks.generated':load('lib/city/islandLandmarks.generated.ts'),
+});
 let viewportWidth = 390;
 const rn = {
-  View: "View", Text: "Text", Image: "Image", Pressable: "Button",
+  View: "View", Text: "Text", Image: "Image", Pressable: "Button", ScrollView: "ScrollView",
   Platform: { OS: "web" }, StyleSheet: { create: (v) => v },
   useWindowDimensions: () => ({ width: viewportWidth, height: 800 }),
 };
@@ -130,7 +136,7 @@ test("font magnifier offers instant global sizes", () => {
   assert.ok(tree.find((n) => n.props.testID === "font-magnifier-toggle"), "magnifier toggle renders");
 });
 
-test("game route loads real roads, drives on web and gates native/missing origin", () => {
+test("flight route chooses a city and gates portrait/native before mounting WebGL without requiring GPS", () => {
   let router = null;
   const deps = (w, params, platform = "web") => ({
     react: { ...React, default: React }, "react-native": { ...rn, Platform: { OS: platform }, useWindowDimensions: () => ({ width: w, height: 800 }) },
@@ -142,36 +148,62 @@ test("game route loads real roads, drives on web and gates native/missing origin
     "../components/game/MagdeburgSportCabrioGame": { default: "Game" },
     "../lib/city/mapPresentation": { PERIX_VECTOR_MAP_ID: "mid" },
     "../lib/city/mapLayout": { initialNearbyMapZoom: () => 17 },
+    '../lib/city/flightStartCities':cityStarts,
     "../lib/city/gameRoads": { loadGameRoads: async () => [], filterRoadWays: () => [] },
+    "@react-navigation/native": { useIsFocused: () => true },
   });
   const Screen = load("app/game.tsx", deps(390, { lat: "52.13", lng: "11.63" })).default;
   const tree = Screen();
-  assert.ok(texts(tree).join(" ").includes("Φόρτωση δρόμων"), "web waits for the OSM roads before mounting the game");
-  assert.ok(nodes(tree).find((n) => n.props.testID === "game-loading-roads"), "loading view is explicit");
+  assert.equal(texts(tree).join(' '),'Start flight','only the flight-start label is visible');
+  assert.ok(nodes(tree).find((n) => n.props.testID === "flight-rotate-notice"));
+  assert.ok(nodes(tree).find((n) => n.props.testID === "flight-intro-art"),'supplied intro is visible BEFORE fullscreen or rotation');
+  assert.equal(nodes(tree).find(n => n.type === 'Game'), undefined, 'no flight scene in portrait');
   const desk = load("app/game.tsx", deps(1280, { lat: "52.13", lng: "11.63" })).default();
-  assert.ok(texts(desk).join(" ").includes("Φόρτωση δρόμων"), "desktop web also loads roads (WASD/arrows)");
+  assert.equal(texts(desk).join(' '),'Start flight','desktop uses the same minimal start screen');
   const nat = load("app/game.tsx", deps(390, { lat: "52.13", lng: "11.63" }, "android")).default();
-  assert.ok(texts(nat).join(" ").includes("web"), "native stays gated");
+  assert.ok(nodes(nat).find(n=>n.props.accessibilityRole==='alert'),'native remains gated with an accessible non-text notice');
+  assert.equal(texts(nat).length,0);
   const noloc = load("app/game.tsx", deps(390, {})).default();
-  assert.ok(texts(noloc).join(" ").includes("Missing location"), "missing origin is explained");
+  assert.ok(nodes(noloc).find(n=>n.props.testID==='flight-city-picker'),'missing GPS still offers the city picker');
+  assert.equal(nodes(noloc).find(n=>n.props.testID==='game-start').props.disabled,true,'explicit city choice required');
   const src = read("app/game.tsx");
-  assert.match(src, /loadGameRoads\(\{ latitude: lat, longitude: lng \}\)/);
-  assert.match(src, /streetLines=\{streetLines\}/);
-  assert.match(src, /laneHalfWidth=\{4\.6\}/);
-  assert.match(src, /© OpenStreetMap contributors/);
+  assert.match(src, /import\("\.\.\/components\/game\/CityFlightGame"\)/);
+  assert.doesNotMatch(src, /loadGameRoads|streetLines|laneHalfWidth|soundEngine|LocationContext"|MapBoundsContext"/);
+  assert.match(src, /if \(!started \|\| portrait\)/);
   assert.match(src, /onExit=\{goBack\}/);
   assert.match(src, /initialNearbyMapZoom\(width, height/);
   assert.match(src, /initialZoom=\{openingZoom\}/);
   assert.match(src, /testID="game-start"/);
-  assert.match(src, /requestFullscreen/);
-  assert.match(src, /lock\("landscape"\)/);
-  assert.match(src, /Ξεκίνα \(οριζόντια\)/);
+  assert.match(src, /createGameDisplaySession/);
+  assert.match(src,/void display.current\?\.enter\(\)/,'unsupported/pending fullscreen must not block an already-landscape game');
+  assert.match(src,/perix-wooden-plane-adventure\.webp/);
+  assert.match(src, /t\('start'\)/);
   // Crash-proofing: a mount error shows a friendly screen + Back instead of
   // dropping the player back to /app with a lost origin.
   assert.match(src, /class GameErrorBoundary/);
   assert.match(src, /getDerivedStateFromError/);
   assert.match(src, /game-error-boundary/);
   assert.match(src, /openingZoomRef/);
+  let nullIndex=0;
+  const startedReact = { ...React, useState: initial => [initial===null?(nullIndex++%2===0?'magdeburg':null):initial === false ? true : (typeof initial === 'function' ? initial() : initial), () => {}] };
+  const startedDeps = deps(390, {lat:'52.13',lng:'11.63'});
+  startedDeps.react = {...startedReact, default:startedReact};
+  const portraitStarted = load('app/game.tsx', startedDeps).default();
+  assert.ok(nodes(portraitStarted).find(n=>n.props.testID==='flight-rotate-notice'), 'start cannot mount a portrait flight');
+  for(const [width,height] of [[1200,1600],[900,900]]){
+    const guarded={...startedDeps,'react-native':{...rn,useWindowDimensions:()=>({width,height})}};
+    assert.ok(nodes(load('app/game.tsx',guarded).default()).find(n=>n.props.testID==='flight-rotate-notice'),'large portrait/square viewport must never mount flight');
+  }
+  const landscapeDeps = {...startedDeps, 'react-native':{...rn,useWindowDimensions:()=>({width:844,height:390})}};
+  const landscapeTree = load('app/game.tsx', landscapeDeps).default();
+  const rawNodes = n => !n || typeof n!=='object' ? [] : Array.isArray(n) ? n.flatMap(rawNodes) : [n,...rawNodes(n.props?.children)];
+  const flight = rawNodes(landscapeTree).find(n=>n.type==='Game');
+  assert.ok(flight,'landscape phone mounts the independent flight scene after start');
+  assert.equal(flight.props.startPoint.latitude,52.1314442);
+  assert.equal(flight.props.initialZoom,17);
+  assert.equal(flight.props.streetLines,undefined,'no road-bound driving dependency');
+  const blurredDeps = {...landscapeDeps,'@react-navigation/native':{useIsFocused:()=>false}};
+  assert.equal(load('app/game.tsx',blurredDeps).default(),null,'blurred game unmounts the flight scene');
 });
 
 test("packed road polylines filter to the origin radius with a cap", () => {

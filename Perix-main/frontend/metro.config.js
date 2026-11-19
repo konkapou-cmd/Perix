@@ -12,6 +12,7 @@ config.cacheStores = [
 ];
 
 config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
+config.resolver.assetExts = [...new Set([...config.resolver.assetExts, 'glb'])];
 
 // Stub react-native-agora — native module not available in Expo Go
 config.resolver.resolveRequest = (context, moduleName, platform) => {
